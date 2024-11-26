@@ -9,8 +9,10 @@ folder containing architectural decision records (ADR)
 
 pysims: 
 
-folder containing python scripts to run MuJoCo simulations
-  models folder contains the xml models to use in simulation
-  mujoco_run.py is the main file that tests sensors/actuators on the default humanoid.xml
+Folder containing Python scripts to run MuJoCo simulations:
+  - `models` folder:
+    - Contains the XML models to use in simulation
+  - `mujoco_run.py`:
+    - The main file that tests sensors/actuators on the default `humanoid.xml`
 
 
