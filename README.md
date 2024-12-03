@@ -1,18 +1,18 @@
-Refer to https://docs.google.com/document/d/1hz5qZrm4ITF_1TlYCzt-1vlaxFZolGrV2-ytaYGXRvM for guide on how to use MuJoCo
-
 This repository contains everything simulations related.
 
-admin/adrs:
 
-folder containing architectural decision records (ADR)
+# Folder Structure
+### `admin/adrs`
 
+This folder contains Architectural Decision Records (ADRs) documenting decisions made during the development of this repository. 
 
-pysims: 
+###  `learning_mujoco`
+This folder contains:
+- **example_models**: Contains example mujoco XML models
+- **example_scripts**: Contains example simulation scripts.
+- **mujoco_tutorials**: Followed step-by-step tutorials.
 
-Folder containing Python scripts to run MuJoCo simulations:
-  - `models` folder:
-    - Contains the XML models to use in simulation
-  - `mujoco_run.py`:
-    - The main file that tests sensors/actuators on the default `humanoid.xml`
+For a guide on how to use Mujoco refer to:
+[MuJoCo Guide](https://docs.google.com/document/d/1hz5qZrm4ITF_1TlYCzt-1vlaxFZolGrV2-ytaYGXRvM)
 
-
+### `pysims`
