@@ -28,7 +28,6 @@ from locomotion.default_humanoid.base import DefaultHumanoidEnv
 from mujoco_playground._src import gait
 from mujoco_playground._src import mjx_env
 from mujoco_playground._src.collision import geoms_colliding
-from mujoco_playground._src.locomotion.berkeley_humanoid import base as berkeley_humanoid_base
 from locomotion.default_humanoid import default_humanoid_constants as consts
 
 def default_config() -> config_dict.ConfigDict:
@@ -212,15 +211,17 @@ class Joystick(DefaultHumanoidEnv):
         qpos = qpos.at[3:7].set(new_quat) #qpos[3:7]: The quaternion representing the orientation (yaw, pitch, roll) of the humanoid's root
 
         # qpos[7:]=*U(0.5, 1.5)
+        #qpos[7:]: The joint positions within the humanoid
         rng, key = jax.random.split(rng)
         qpos = qpos.at[7:].set(
-            qpos[7:] * jax.random.uniform(key, (12,), minval=0.5, maxval=1.5) #qpos[7:]: The joint positions within the humanoid
+            qpos[7:] * jax.random.uniform(key, (12,), minval=0.5, maxval=1.5) 
         )
 
         # d(xyzrpy)=U(-0.5, 0.5)
+        #qvel[0:6]: The generalized velocities of the humanoid's base
         rng, key = jax.random.split(rng)
         qvel = qvel.at[0:6].set(
-            jax.random.uniform(key, (6,), minval=-0.5, maxval=0.5) #qvel[0:6]: The generalized velocities of the humanoid's base
+            jax.random.uniform(key, (6,), minval=-0.5, maxval=0.5) 
         )
 
         data = mjx_env.init(self.mjx_model, qpos=qpos, qvel=qvel, ctrl=qpos[7:])
@@ -384,17 +385,110 @@ class Joystick(DefaultHumanoidEnv):
             fall_termination | jp.isnan(data.qpos).any() | jp.isnan(data.qvel).any()
         )
 
-    def _get_obs(self):
-       pass
+    def _get_obs(
+        self, 
+        data: mjx.Data, 
+        info: dict[str, Any], 
+        contact: jax.Array
+    ) -> mjx_env.Observation:
+        
+        gyro = self.get_gyro(data) 
+        info["rng"], noise_rng = jax.random.split(info["rng"])
+
+        #Introduce some noise into our sesnor readings.
+        noisy_gyro = (
+        gyro
+        + (2 * jax.random.uniform(noise_rng, shape=gyro.shape) - 1)
+        * self._config.noise_config.level
+        * self._config.noise_config.scales.gyro
+    )
+        
+        gravity = data.site_xmat[self._site_id].T @ jp.array([0, 0, -1])
+        info["rng"], noise_rng = jax.random.split(info["rng"])
+        noisy_gravity = (
+            gravity
+            + (2 * jax.random.uniform(noise_rng, shape=gravity.shape) - 1)
+            * self._config.noise_config.level
+            * self._config.noise_config.scales.gravity
+        )
+
+        joint_angles = data.qpos[7:]
+        info["rng"], noise_rng = jax.random.split(info["rng"])
+        noisy_joint_angles = (
+            joint_angles
+            + (2 * jax.random.uniform(noise_rng, shape=joint_angles.shape) - 1)
+            * self._config.noise_config.level
+            * self._qpos_noise_scale
+        )
+
+        joint_vel = data.qvel[6:]
+        info["rng"], noise_rng = jax.random.split(info["rng"])
+        noisy_joint_vel = (
+            joint_vel
+            + (2 * jax.random.uniform(noise_rng, shape=joint_vel.shape) - 1)
+            * self._config.noise_config.level
+            * self._config.noise_config.scales.joint_vel
+        )
+
+        cos = jp.cos(info["phase"])
+        sin = jp.sin(info["phase"])
+        phase = jp.concatenate([cos, sin])
+
+        linvel = self.get_local_linvel(data)
+        info["rng"], noise_rng = jax.random.split(info["rng"])
+        noisy_linvel = (
+            linvel
+            + (2 * jax.random.uniform(noise_rng, shape=linvel.shape) - 1)
+            * self._config.noise_config.level
+            * self._config.noise_config.scales.linvel
+        )
+
+        state = jp.hstack([
+        noisy_linvel,  # 3 (dimensions)
+        noisy_gyro,  # 3
+        noisy_gravity,  # 3
+        info["command"],  # 3
+        noisy_joint_angles - self._default_pose,  # 12
+        noisy_joint_vel,  # 12
+        info["last_act"],  # 12
+        phase,
+    ])
+        
+        accelerometer = self.get_accelerometer(data)
+        global_angvel = self.get_global_angvel(data)
+        feet_vel = data.sensordata[self._foot_linvel_sensor_adr].ravel()
+        root_height = data.qpos[2]
+
+        privileged_state = jp.hstack([
+        state,
+        gyro,  # 3
+        accelerometer,  # 3
+        gravity,  # 3
+        linvel,  # 3
+        global_angvel,  # 3
+        joint_angles - self._default_pose,
+        joint_vel,
+        root_height,  # 1
+        data.actuator_force,  # 12
+        contact,  # 2
+        feet_vel,  # 4*3
+        info["feet_air_time"],  # 2
+    ])
+        
+        return {
+        "state": state,
+        "privileged_state": privileged_state,
+    }
+        
 
     def _get_reward(
-      self,
-      data: mjx.Data,
-      action: jax.Array,
-      info: dict[str, Any],
-      done: jax.Array,
-      first_contact: jax.Array,
-      contact: jax.Array,
+        self,
+        data: mjx.Data,
+        action: jax.Array,
+        info: dict[str, Any],
+        done: jax.Array,
+        first_contact: jax.Array,
+        contact: jax.Array,
   ) -> dict[str, jax.Array]:
         """ Computes all rewards for the current state of the environment. """
         return {
