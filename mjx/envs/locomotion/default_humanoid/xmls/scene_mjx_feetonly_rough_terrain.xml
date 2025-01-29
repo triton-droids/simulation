@@ -1,5 +1,5 @@
 <mujoco model="humanoid feet only rough terrain scene">
-  <include file="locomotion/default_humanoid/xmls/default_humanoid_legs_only.xml"/>
+  <include file="mjx\envs\locomotion\default_humanoid\xmls\default_humanoid_legs_only.xml"/>
 
   <statistic center="0 0 0.1" extent="0.8" meansize="0.04"/>
 
@@ -23,7 +23,14 @@
       friction="1.0"/>
   </worldbody>
 
-   <keyframe>
-     <key name="home" qpos='0 0 1.06 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0'/>
+    <keyframe>
+     <key name="home" 
+     qpos='-0.0162596 -7.05898e-06 0.906106 
+      0.999985 7.24954e-06 -0.00547073 2.36507e-05 
+      0.0842856 -0.00557515 -0.512152 1.11029 -0.562585 0.180164 
+      -0.0842877 0.00556646 -0.512137 1.1103 -0.562604 -0.180338'
+    ctrl='0.0842856 -0.00557515 -0.512152 1.11029 -0.562585 0.180164 
+      -0.0842877 0.00556646 -0.512137 1.1103 -0.562604 -0.180338'
+          />
   </keyframe>
 </mujoco>

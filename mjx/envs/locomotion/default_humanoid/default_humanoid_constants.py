@@ -33,25 +33,20 @@ def task_to_xml(task_name: str) -> epath.Path:
   }[task_name]
 
 
-#TODO: Define sites for default humanoid
 FEET_SITES = [
-    "1_foot_l",
-    "2_foot_l",
-    "1_foot_r",
-    "2_foot_r",
+  "left_foot",
+  "right_foot"
 ]
 
-LEFT_FEET_GEOMS = [
-    "foot1_left",
-    "foot2_left"
+LEFT_FEET_BODY = [
+    "left_foot"
 ]
 
-RIGHT_FEET_GEOMS = [
-    "foot1_right",
-    "foot2_left"
+RIGHT_FEET_BODY = [
+    "right_foot"
 ]
 
-FEET_GEOMS = LEFT_FEET_GEOMS + RIGHT_FEET_GEOMS
+FEET_BODIES = LEFT_FEET_BODY + RIGHT_FEET_BODY
 
 FEET_POS_SENSOR = [f"{site}_pos" for site in FEET_SITES]
 

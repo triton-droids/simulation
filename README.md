@@ -1,12 +1,12 @@
 # Triton Droids Humanoid Robot Simulator
-Welcome to the **Triton Droids** (mjx) codebase! We are the first club at UCSD and second in the nation to embark on the mission of building a humanoid robot. This codebase serves as the foundation for training reinforcement learning models, evaluating learned policies, and enabling sim-to-sim transfer to improve the robustness and generalization of our robot. 
+Official repository for **Triton Droids** simulations.
 
 ## Installation and Configuration
 Please refer to [setup.md](doc\setup.md) for installation and configuration steps.
 
 ## Project Overview
 This simulator codebase provides a platform for:
-- **Train**: Use the MuJoCo simulation environment to let the robot interact with the MJX environment and learn a policy that maximizes the designed rewards. 
+- **Train**: Use the MJX simulation environment to learn a policy that maximizes the designed rewards. 
 
 - **Play**: Test and evaluate the trained policies in the simulator.
 
@@ -20,22 +20,48 @@ Here's an overview of the directory structure:
 ```
 /mjx
 │
-├── /locomotion                   # Contains locomotion task environments
-│   ├── /default_humanoid         # MuJoCo's default humanoid model
-│       ├── xmls                  # MJCF xml files and assets 
-|       ├── base.py               # base env class
-|       ├── joystick.py           # Joystick task implementation
-|
+├── /configs                          # Default config files for env, sim, and rl params
+├── /envs                             # Contains all RL environments
+│   ├── /locomotion                   # Locomotion tasks
+├── /scripts                          # Train, play, evaluate scripts
+├── /utils                            # Utility functions and task manager
 ```
 
 ## User Guide
-...
+`run.py` serves as the main entry point. The execution environment can be configured using the `instructs.yml` file, allowing users to override default settings. If not instructions are provided the default configuration will run. Refer to the provided [template files](doc\templates) to see which variables can be modified.
 
+
+### 1. Training
+Run the following command to start training:
+
+
+```
+python run.py --env=xxx --framework=brax_ppo 
+```
+
+Parameter Description
+- `env`: Required parameter; values can be 
+
+(DefaultHumanoidJoystickFlatTerrain,
+DefaultHumanoidJoystickRoughTerrain) 
+
+- `framework`: Required parameter; values can only be (brax_ppo) atm.
+- `name`: Name of the run / experiment.
+- `checkpoint`: Path to model checkpoint to resume training.
+
+### 2. Play
+Coming soon.
+
+### 3. Sim2Sim
+Coming soon.
 
 
 ## Future Plans
 - **Ros Integration**
 - **Isaac Lab**
+
+## TODO
+
 
 ## Acknowledgments
 This repository incorporates code from [mujoco_playground](https://github.com/google-deepmind/mujoco_playground).

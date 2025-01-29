@@ -1,16 +1,17 @@
-<!-- Copyright 2021 DeepMind Technologies Limited
+<!-- Copyright 2025 Triton Droids
 
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-         http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+==============================================================================
 -->
 
 <mujoco model="Humanoid">
@@ -33,10 +34,10 @@
   <default>
     <motor ctrlrange="-1 1" ctrllimited="true"/>
     <default class="humanoid">
-    <!-- <position inheritrange="1.0" kp="35"/> -->
+    
 
       <!-- geoms -->
-      <geom type="capsule" condim="1" friction=".7" solimp=".9 .99 .003" solref=".015 1" material="body" group="1"/>
+      <geom type="capsule" contype="0" conaffinity="0" condim="1" friction=".7" solimp=".9 .99 .003" solref=".015 1" material="body" group="1"/>
       <default class="thigh">
         <geom size=".06"/>
       </default>
@@ -46,12 +47,11 @@
       <default class="foot">
         <geom size=".027"/>
         <default class="foot1">
-          <geom fromto="-.07 -.01 0 .14 -.03 0"/>
+          <geom contype="1" conaffinity="1" fromto="-.07 -.01 0 .14 -.03 0"/>
           <site type="capsule" fromto="-.07 -.01 0 .14 -.03 0" size="0.03" rgba="0 1 0 1"/>
         </default>
         <default class="foot2">
-          <geom fromto="-.07 .01 0 .14  .03 0"/>
-          <site type="capsule" fromto="-.07 .01 0 .14 .03 0" size="0.03" rgba="0 1 0 1"/>
+          <geom contype="1" conaffinity="1" fromto="-.07 .01 0 .14  .03 0"/>
         </default>
         
       </default>
@@ -59,15 +59,12 @@
       <!-- joints -->     
         <default class="hfe">
         <joint actuatorfrcrange="-30 30" range="-1.74533 0.523599" armature="0.007614" frictionloss="0.3"/>
-        <!-- <position kp="15"/> -->
       </default>
       <default class="hxx">
         <joint actuatorfrcrange="-20 20" range="-0.610865 0.610865" armature="0.0056" frictionloss="0.3"/>
-        <!-- <position kp="10"/> -->
       </default>
       <default class="kfe">
-        <joint actuatorfrcrange="-30 30" range="0 2.0944" armature="0.0056" frictionloss="0.8"/>
-        <!-- <position kp="15"/> -->
+        <joint actuatorfrcrange="-30 30" range="0 1.0944" armature="0.0056" frictionloss="0.8"/>
       </default>
       <default class="ffe">
         <joint actuatorfrcrange="-20 20" range="-0.523599 0.698132" armature="0.0056" frictionloss="1.0"/>
@@ -87,8 +84,6 @@
       <site name="imu"/>
       <camera name="front" pos="1.210 -0.435 0.32" xyaxes="0.342 0.940 0.000 -0.321 0.117 0.940" mode="trackcom"/>
       <camera name="track" pos="0.805 -1.105 0.2" xyaxes="0.814 0.580 0.000 -0.140 0.196 0.971" mode="trackcom"/>
-      <inertial pos="0.0123294 -0.0023557 0.114047" quat="0.997324 0.0100377 0.00560983 -0.0721951" mass="0.37812"
-        diaginertia="0.0900564 0.0815619 0.0530251"/>
       <body name="waist_lower" pos="-.01 0 -0">
       <geom name="waist_lower" fromto="0 -.06 0 0 .06 0" size=".06"/>
       <body name="pelvis" pos="0 0 -.165">
@@ -104,11 +99,11 @@
                 <body name="foot_left" pos="0 0 -.39">
                 <joint name="LL_FFE" class="ffe" axis="0 1 0" pos="0 0.025 0"/>
                 <joint name="LL_FAA" class="faa"/>
+                <body name="left_foot">
                 <geom name="foot1_left" class="foot1"/>
-                
                 <geom name="foot2_left" class="foot2"/>
-                <site name="1_foot_l" class="foot1" quat="0.45452 -0.541675 -0.541675 -0.45452"/>
-                <site name="2_foot_l" class="foot2" quat="0.45452 -0.541675 -0.541675 -0.45452"/>
+                <site name="left_foot" type="box" fromto="-.095 .00 0 .165 .0 0" size="0.0265" rgba="0 1 0 1"/>
+                </body>
                 </body> 
               </body>
             </body>
@@ -124,10 +119,11 @@
               <body name="foot_right" pos="0 0 -.39">
                 <joint name="LR_FFE" class="ffe" axis="0 1 0" pos="0 0.025 0"/>
                 <joint name="LR_FAA" class="faa"/>
+                <body name="right_foot">
                 <geom name="foot1_right" class="foot1"/>
                 <geom name="foot2_right" class="foot2"/>
-                <site name="1_foot_r" class="foot1" quat="0.45452 -0.541675 -0.541675 -0.45452"/>
-                <site name="2_foot_r" class="foot2" quat="0.45452 -0.541675 -0.541675 -0.45452"/>
+                <site name="right_foot" type="box" fromto="-.095 .00 0 .165 .0 0" size="0.0265" rgba="0 1 0 1"/>
+                </body>
               </body>
             </body>
           </body>
@@ -157,7 +153,6 @@
     <position class="faa" name="LR_FAA" joint="LR_FAA"/>
   </actuator>
 
-
   <sensor>
     <gyro site="imu" name="gyro"/>
     <velocimeter site="imu" name="local_linvel"/>
@@ -168,18 +163,12 @@
     <frameangvel objtype="site" objname="imu" name="global_angvel"/>
     <framepos objtype="site" objname="imu" name="position"/>
     <framequat objtype="site" objname="imu" name="orientation"/>
-    <framelinvel objtype="site" objname="1_foot_l" name="1_foot_l_global_linvel"/>
-    <framelinvel objtype="site" objname="1_foot_r" name="1_foot_r_global_linvel"/>
-    <framelinvel objtype="site" objname="2_foot_l" name="2_foot_l_global_linvel"/>
-    <framelinvel objtype="site" objname="2_foot_r" name="2_foot_r_global_linvel"/>
-    <framexaxis objtype="site" objname="1_foot_l" name="1_foot_l_upvector"/>
-    <framexaxis objtype="site" objname="1_foot_r" name="1_foot_r_upvector"/>
-    <framexaxis objtype="site" objname="2_foot_l" name="2_foot_l_upvector"/>
-    <framexaxis objtype="site" objname="2_foot_r" name="2_foot_r_upvector"/>
-    <framepos objtype="site" objname="1_foot_l" name="1_foot_l_pos"/>
-    <framepos objtype="site" objname="1_foot_r" name="1_foot_r_pos"/>
-    <framepos objtype="site" objname="2_foot_l" name="2_foot_l_pos"/>
-    <framepos objtype="site" objname="2_foot_r" name="2_foot_r_pos"/>
+    <framelinvel objtype="site" objname="left_foot" name="left_foot_global_linvel"/>
+    <framelinvel objtype="site" objname="right_foot" name="right_foot_global_linvel"/>
+    <framexaxis objtype="site" objname="left_foot" name="left_foot_upvector"/>
+    <framexaxis objtype="site" objname="right_foot" name="right_foot_upvector"/>
+    <framepos objtype="site" objname="left_foot" name="left_foot_pos"/>
+    <framepos objtype="site" objname="right_foot" name="right_foot_pos"/>
   </sensor>
 
 </mujoco>

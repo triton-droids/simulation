@@ -24,90 +24,22 @@ from mujoco import mjx
 from mujoco.mjx._src import math
 import numpy as np
 
-from locomotion.default_humanoid.base import DefaultHumanoidEnv
+from .base import DefaultHumanoidEnv
 from mujoco_playground._src import gait
 from mujoco_playground._src import mjx_env
 from mujoco_playground._src.collision import geoms_colliding
-from locomotion.default_humanoid import default_humanoid_constants as consts
-
-def default_config() -> config_dict.ConfigDict:
-  return config_dict.create(
-      ctrl_dt=0.02,
-      sim_dt=0.002,
-      episode_length=1000,
-      action_repeat=1,
-      action_scale=0.5,
-      history_len=1,
-      soft_joint_pos_limit_factor=0.95,
-      noise_config=config_dict.create(
-          level=1.0,  # Set to 0.0 to disable noise.
-          scales=config_dict.create(
-              hip_pos=0.03,  # rad
-              kfe_pos=0.05,
-              ffe_pos=0.08,
-              faa_pos=0.03,
-              joint_vel=1.5,  # rad/s
-              gravity=0.05,
-              linvel=0.1,
-              gyro=0.2,  # angvel.
-          ),
-      ),
-      reward_config=config_dict.create(
-          scales=config_dict.create(
-              # Tracking related rewards.
-              tracking_lin_vel=1.0,
-              tracking_ang_vel=0.5,
-              # Base related rewards.
-              lin_vel_z=0.0,
-              ang_vel_xy=-0.15,
-              orientation=-1.0,
-              base_height=0.0,
-              # Energy related rewards.
-              torques=-2.5e-5,
-              action_rate=-0.01,
-              energy=0.0,
-              # Feet related rewards.
-              feet_clearance=0.0,
-              feet_air_time=2.0,
-              feet_slip=-0.25,
-              feet_height=0.0,
-              feet_phase=1.0,
-              # Other rewards.
-              stand_still=0.0,
-              alive=0.0,
-              termination=-1.0,
-              # Pose related rewards.
-              joint_deviation_knee=-0.1,
-              joint_deviation_hip=-0.25,
-              dof_pos_limits=-1.0,
-              pose=-1.0,
-          ),
-          tracking_sigma=0.5, # Standard deviation for tracking velocity rewards
-          max_foot_height=0.1,
-          base_height_target=0.5,
-      ),
-      push_config=config_dict.create(
-          enable=True,
-          interval_range=[5.0, 10.0],
-          magnitude_range=[0.1, 2.0],
-      ),
-      lin_vel_x=[-1.0, 1.0],
-      lin_vel_y=[-1.0, 1.0],
-      ang_vel_yaw=[-1.0, 1.0],
-  )
+from .default_humanoid_constants import *
 
 class Joystick(DefaultHumanoidEnv):
     """ Track a joystick command"""
     def __init__(
         self,
-        task: str ="flat_terrain",
+        terrain: str ="flat_terrain",
         config: config_dict.ConfigDict = None,
-        config_overrides: Optional[Dict[str, Union[str, int, list[Any]]]] = None,
     ):
         super().__init__(
-            xml_path= consts.task_to_xml(task).as_posix(),
+            xml_path= task_to_xml(terrain).as_posix(),
             config = config,
-            config_overrides=config_overrides
         )
         self._post_init()
 
@@ -119,13 +51,13 @@ class Joystick(DefaultHumanoidEnv):
         """
         #STORE ANY INFORMATION THAT MAY BE USEFUL FOR REWARDS, VISUALIZATION, ETC
         
-        self._init_q = jp.array(self._mj_model.keyframe("home").qpos) #Set initial joint positions to home. I don't full understand this line
+        self._init_q = jp.array(self._mj_model.keyframe("home").qpos) #Set initial joint positions to a knees bent athletic position.
         self._default_pose = jp.array(self._mj_model.keyframe("home").qpos[7:])
 
         #Note: First joint is freejoint
-        self._lowers, self._uppers = self.mj_model.jnt_range[1:].T #joint position limits
-        c = (self._lowers + self._uppers) / 2 #center of joint position limits. don't fully understand from this point onward. 
-        r = self._uppers - self._lowers #range of allowable motion
+        self._lowers, self._uppers = self.mj_model.jnt_range[1:].T 
+        c = (self._lowers + self._uppers) / 2 
+        r = self._uppers - self._lowers 
         self._soft_lowers = c - 0.5 * r * self._config.soft_joint_pos_limit_factor #soft position limits. Help revent extreme joint positions
         self._soft_uppers = c + 0.5 * r * self._config.soft_joint_pos_limit_factor
 
@@ -144,32 +76,32 @@ class Joystick(DefaultHumanoidEnv):
             knee_indices.append(self._mj_model.joint(f"{side}_KFE").qposadr - 7)
         self._knee_indices = jp.array(knee_indices)
 
-        #Set weights for default pose NOT TOO SURE
+        #Set weights for each joint in the default pose  
         self._weights = jp.array([
         1.0, 1.0, 0.01, 0.01, 1.0, 1.0,  # left leg.
         1.0, 1.0, 0.01, 0.01, 1.0, 1.0,  # right leg.
     ])
 
-        self._torso_body_id = self._mj_model.body(consts.ROOT_BODY).id 
+        self._torso_body_id = self._mj_model.body(ROOT_BODY).id 
         self._torso_mass = self._mj_model.body_subtreemass[self._torso_body_id]
         self._site_id = self._mj_model.site("imu").id
 
         #Obtain id of feet sites to save information about feet / leg movement
         self._feet_site_id = np.array(
-            [self._mj_model.site(name).id for name in consts.FEET_SITES]
+            [self._mj_model.site(name).id for name in FEET_SITES]
     )
         #Obtain id of floor and feet geoms for contact detection. e.x. Does foot hit floor?
         self._floor_geom_id = self._mj_model.geom("floor").id
         self._feet_geom_id = np.array(
-            [self._mj_model.geom(name).id for name in consts.FEET_GEOMS]
+            [self._mj_model.body(name).id for name in FEET_BODIES]
     )
         #Obtain linear velocity of feet sensors
         foot_linvel_sensor_adr = []
-        for site in consts.FEET_SITES:  
+        for site in FEET_SITES:  
             sensor_id = self._mj_model.sensor(f"{site}_global_linvel").id
             sensor_adr = self._mj_model.sensor_adr[sensor_id] 
             sensor_dim = self._mj_model.sensor_dim[sensor_id] 
-            foot_linvel_sensor_adr.append( #why we take a list like this im not too sure ...
+            foot_linvel_sensor_adr.append( 
                 list(range(sensor_adr, sensor_adr + sensor_dim))
             )
         self._foot_linvel_sensor_adr = jp.array(foot_linvel_sensor_adr) 
@@ -365,9 +297,9 @@ class Joystick(DefaultHumanoidEnv):
             state.info["step"],
         )
         #Contact indicates if robot's feet are in contact with the floor. We update the air time and swing peak based on this. 
-        state.info["feet_air_time"] *= not contact
+        state.info["feet_air_time"] *= ~ contact
         state.info["last_contact"] = contact
-        state.info["swing_peak"] *= not contact
+        state.info["swing_peak"] *= ~contact
 
         #Store reward information.
         for k, v in rewards.items():
@@ -561,7 +493,11 @@ class Joystick(DefaultHumanoidEnv):
         return jp.exp(-ang_vel_error / self._config.reward_config.tracking_sigma)
 
     # Base-related rewards.
-
+    """ 
+    The following cost functions produce negative rewards based on how large the z axis linear velocity, xy angular velocity are. They also produce a 
+    negative reward if there is deviation from the target base height or torso is not aligned with the z axis. 
+    """
+     
     def _cost_lin_vel_z(self, global_linvel) -> jax.Array:
         return jp.square(global_linvel[2])
 
@@ -577,7 +513,10 @@ class Joystick(DefaultHumanoidEnv):
         )
 
     # Energy related rewards.
-
+    """
+    The following cost functions are based on the magnitude of torques applies, mechanical energy expended by actuator, 
+    and the rate of change of actions. 
+    """
     def _cost_torques(self, torques: jax.Array) -> jax.Array:
         return jp.sum(jp.abs(torques))
 
@@ -594,7 +533,8 @@ class Joystick(DefaultHumanoidEnv):
         return c1
 
     # Other rewards.
-
+    """
+    The following cost functions are based on a soft bound for joint positions and deviations from the current pose  """
     def _cost_joint_pos_limits(self, qpos: jax.Array) -> jax.Array:
         out_of_limits = -jp.clip(qpos - self._soft_lowers, None, 0.0)
         out_of_limits += jp.clip(qpos - self._soft_uppers, 0.0, None)
@@ -615,7 +555,9 @@ class Joystick(DefaultHumanoidEnv):
         return jp.array(1.0)
 
     # Pose-related rewards.
-
+    """
+    The following cost functions produce a negative reward when the joint positions deviates from the default pose (knees bent athletic) to encourage walkinig and stability. 
+    """
     def _cost_joint_deviation_hip(
         self, qpos: jax.Array, cmd: jax.Array
     ) -> jax.Array:
@@ -636,7 +578,10 @@ class Joystick(DefaultHumanoidEnv):
         return jp.sum(jp.square(qpos - self._default_pose) * self._weights)
 
     # Feet related rewards.
-
+    """
+    The following cost functions produce a negative reward for the velocity in the x-y place in contact with the ground, impromper foot clearnace by feet 
+    height and velocities, swing height of the feet by a predfined maximum. Includes a reward for feet air time upon first contact and correct phase during foot swing. 
+    """
     def _cost_feet_slip(
         self, data: mjx.Data, contact: jax.Array, info: dict[str, Any]
     ) -> jax.Array:
@@ -690,15 +635,13 @@ class Joystick(DefaultHumanoidEnv):
         commands: jax.Array,
     ) -> jax.Array:
         # Reward for tracking the desired foot height.
-        del commands  # Unused.
         foot_pos = data.site_xpos[self._feet_site_id]
-        foot_z = foot_pos[..., -1]
-        rz = gait.get_rz(phase, swing_height=foot_height)
+        foot_z = foot_pos[..., -1] #Actual z-axis height
+        rz = gait.get_rz(phase, swing_height=foot_height) #Desired z-axis height
         error = jp.sum(jp.square(foot_z - rz))
         reward = jp.exp(-error / 0.01)
-        # TODO(kevin): Ensure no movement at 0 command.
-        # cmd_norm = jp.linalg.norm(commands)
-        # reward *= cmd_norm > 0.1  # No reward for zero commands.
+        cmd_norm = jp.linalg.norm(commands)
+        reward *= cmd_norm > 0.1  # No reward for zero commands.
         return reward
 
     def sample_command(self, rng: jax.Array) -> jax.Array:

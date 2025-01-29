@@ -1,0 +1,8 @@
+# Override any default configurations for the expected environment and RL training algorithm here
+#e.g.
+#
+#  experiment_name: "test"
+#
+#  Will rewrite the default experiment name to "test" from the provided config passed to run.py 
+# 
+# See doc/templates

@@ -2,4 +2,10 @@
 
 berk_hum
 
+__pycache__/
+
+logs/
+
 test.py
+
+wandb/
