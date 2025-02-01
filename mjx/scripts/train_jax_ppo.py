@@ -23,6 +23,7 @@ from orbax import checkpoint as ocp
 from tensorboardX import SummaryWriter
 import wandb
 
+from mujoco_playground._src import mjx_env
 from mujoco_playground import wrapper
 from mjx.utils import registry
 from mjx.utils.randomize import domain_randomize
@@ -43,18 +44,15 @@ warnings.filterwarnings("ignore", category=UserWarning, module="absl")
 
 
 def brax_train_policy(
+        env:  mjx_env.MjxEnv,
         cfg:  config_dict.ConfigDict, 
         env_name: str,
         exp_name: str = None,
         checkpoint: str = None
         ) -> None:
+    
     env_cfg = cfg.env
     ppo_cfg = cfg.brax_ppo_agent
-
-    env = registry.load(env_name, env_cfg)
-
-    print(f"Environment Config:\n{env_cfg}")
-    print(f"PPO Training Parameters:\n{ppo_cfg}")
 
     # Generate unique experiment name
     now = datetime.now()
@@ -117,7 +115,6 @@ def brax_train_policy(
         network_fn, **ppo_cfg.network_factory
     )
 
-
     if env_cfg.d_randomization_config.enable:
         training_params["randomization_fn"] =  registry.get_domain_randomizer(env_name)
     num_eval_envs = (
@@ -165,7 +162,7 @@ def brax_train_policy(
     make_inference_fn, params, _ = train_fn(
       environment=env,
       progress_fn=progress,
-      eval_env=None
+      eval_env=eval_env
   )
 
     print("Done training.")

@@ -8,7 +8,9 @@ Please refer to [setup.md](doc\setup.md) for installation and configuration step
 This simulator codebase provides a platform for:
 - **Train**: Use the MJX simulation environment to learn a policy that maximizes the designed rewards. 
 
-- **Play**: Test and evaluate the trained policies in the simulator.
+- **Play**: Play the learned policies in the simulator.
+
+- **Evaluate**: Evaluate the learned policies in the simulator.
 
 - **Sim2Sim Transfer**: Transfer learned policies from one simulation environment to another to improve robustness and generalization of the agent.
 - **Sim2Real Transfer**: Deploy the policy to a physical robot to achieve motion control. 
@@ -36,7 +38,7 @@ Run the following command to start training:
 
 
 ```
-python run.py --env=xxx --framework=brax_ppo 
+python run.py train --env=xxx --framework=brax_ppo 
 ```
 
 Parameter Description
