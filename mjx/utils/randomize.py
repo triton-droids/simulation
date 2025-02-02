@@ -1,11 +1,16 @@
-"""Domain randomization for the environment"""
+"""
+Domain randomization function randomizes over friction, armature, center of 
+mass of the torso, and link masses, amongst other simulation parameters
+"""
 
 import jax
 from mujoco import mjx
 from ml_collections import ConfigDict
 
+
 FLOOR_GEOM_ID = 0
 TORSO_BODY_ID = 1
+
 
 def apply_operation(op, value, rng, range_):
     rng, key = jax.random.split(rng)

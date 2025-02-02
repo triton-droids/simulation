@@ -5,7 +5,7 @@ from absl import logging
 from mujoco_playground._src import mjx_env
 import jax
 import mediapy as media
-from utils.rollout import mjx_rollout
+from mjx.utils.rollout import mjx_rollout
 import mujoco
 import multiprocessing
 
@@ -25,6 +25,16 @@ def default_video_schedule(episode_id: int) -> bool:
         return int(round(episode_id ** (1.0 / 3))) ** 3 == episode_id
     else:
         return episode_id % 1000 == 0
+
+# make_policy = ppo_networks.make_inference_fn(ppo_network)
+# inference_fn = make_policy(params)
+
+# policy = make_policy((
+#         training_state.normalizer_params,
+#         training_state.params.policy,
+#         training_state.params.value,
+#     ))
+
 
 class RecordVideo(Wrapper):
     """ This wrapper records videos of rollouts
@@ -75,6 +85,9 @@ class RecordVideo(Wrapper):
 
         if self._video_enabled():
             self.save_trajectory()
+        
+        self.episode_id += 1
+        print(self.episode_id)
 
         return state
 
@@ -84,9 +97,9 @@ class RecordVideo(Wrapper):
     def save_trajectory(self):
         """Save the trajectory of the current episode"""
         video_name = f"{self.name_prefix}-episode-{self.episode_id}"
-        rollout = mjx_rollout(self.env, self.inference_fn, episode_length=self.video_length)
-        base_path = os.path.join(self.video_folder, video_name)
-        self.save_video(rollout, base_path)
+        #rollout = mjx_rollout(self.env, self.inference_fn, episode_length=self.video_length) 
+        #base_path = os.path.join(self.video_folder, video_name)
+        #self.save_video(rollout, base_path)
     
     def save_video(self, rollout: list[mjx_env.State], path: str):
         """ Saves the video of the rollout """

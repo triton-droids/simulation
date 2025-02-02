@@ -30,7 +30,7 @@ Here's an overview of the directory structure:
 ```
 
 ## User Guide
-`run.py` serves as the main entry point. The execution environment can be configured using the `instructs.yml` file, allowing users to override default settings. If not instructions are provided the default configuration will run. Refer to the provided [template files](doc\templates) to see which variables can be modified.
+`run.py` serves as the main entry point. The execution environment can be configured using the `instructs.yml` file, allowing users to override default settings. If no instructions are provided the default configuration will run. Refer to the provided [template files](doc\templates) to see which variables can be modified.
 
 
 ### 1. Training
