@@ -23,7 +23,6 @@ import functools
 from mjx.envs import locomotion
 from mujoco_playground._src import mjx_env
 from ml_collections import config_dict
-from mjx.utils.randomize import domain_randomize
 
 DomainRandomizer = Optional[
     Callable[[mjx.Model, jax.Array], Tuple[mjx.Model, mjx.Model]]
@@ -47,9 +46,9 @@ def load(
 
   raise ValueError(f"Env '{env_name}' not found. Available envs: {ALL_ENVS}")
 
-
-def get_domain_randomizer(randomizer_cfg: ConfigDict) -> Optional[DomainRandomizer]:
-  return functools.partial(domain_randomize, cfg=randomizer_cfg)
+def get_domain_randomizer(env_name: str) -> Optional[DomainRandomizer]:
+  if env_name in locomotion.ALL:
+    return locomotion.get_domain_randomizer(env_name)
 
   
   

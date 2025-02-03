@@ -6,6 +6,7 @@ import numpy as np
 from brax import envs
 from brax.mjx.base import State as mjxState
 import mujoco
+import mediapy as media
 
 InferenceFn = Callable[[jp.ndarray, jp.ndarray], tuple[jp.ndarray, jp.ndarray]]
 
@@ -56,7 +57,7 @@ def render_mjx_rollout(
     width: int = 640,
     height: int = 480,
 ) -> np.ndarray:
-    """Rollout a trajectory using MuJoCo and render it.
+    """Rollout a trajectory using MJX and render it.
 
     Args:
         env: Brax environment
@@ -88,49 +89,32 @@ def render_mjx_rollout(
 
     return np.array(frames)
 
-def render_mujoco_rollout(
-    env: mujoco.MjModel,
+def save_mjx_rollout(
+    env: envs.Env,
     inference_fn: InferenceFn,
-    n_steps: int = 1000,
+    name: str,
+    episode_length: int = 1000,
     render_every: int = 2,
     seed: int = 0,
-    width: int = 320,
-    height: int = 240,
-) -> np.ndarray:
-    """Rollout a trajectory using MuJoCo.
+    width: int = 640,
+    height: int = 480,):
 
-    Args:
-        env: Brax environment
-        inference_fn: Inference function
-        n_steps: Number of steps to rollout
-        render_every: Render every nth step
-        seed: Random seed
-        width: width of rendered frame in pixels
-        height: height of rendered frame in pixels
+    rollout = mjx_rollout(env, inference_fn, episode_length, render_every, seed)
+    traj = rollout[::render_every]
 
-    Returns:
-        A list of images of the policy rollout (T, H, W, C)
-    """
-    print(f"Rolling out {n_steps} steps with MuJoCo")
-    model = env.sys.mj_model
-    data = mujoco.MjData(model)
-    renderer = mujoco.Renderer(model, width=width, height=height)
-    ctrl = jp.zeros(model.nu)
+    scene_option = mujoco.MjvOption()
+    scene_option.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT] = False
+    scene_option.flags[mujoco.mjtVisFlag.mjVIS_PERTFORCE] = False
+    scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE] = False
 
-    images: list[np.ndarray] = []
-    rng = jax.random.PRNGKey(seed)
-    for step in tqdm(range(n_steps)):
-        act_rng, seed = jax.random.split(rng)
-        obs = env._get_obs(mjx.put_data(model, data), ctrl)
-        # TODO: implement methods in envs that avoid having to use mjx in a hacky way...
-        # print(obs)
-        ctrl, _ = inference_fn(obs, act_rng)
-        data.ctrl = ctrl
-        for _ in range(env._n_frames):
-            mujoco.mj_step(model, data)
+    frames = env.render(
+        traj,
+        camera="track",
+        height=height, 
+        width=width, 
+        scene_option=scene_option
+    )
 
-        if step % render_every == 0:
-            renderer.update_scene(data, camera="side")
-            images.append(renderer.render())
-
-    return np.array(images)
+    fps = 1.0 / env.dt / render_every
+    media.write_video(f"{name}.mp4", frames, fps=fps)
+    

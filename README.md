@@ -2,7 +2,7 @@
 Official repository for **Triton Droids** simulations.
 
 ## Installation and Configuration
-Please refer to [setup.md](doc\setup.md) for installation and configuration steps.
+Please refer to [setup.md](doc/setup.md) for installation and configuration steps.
 
 ## Project Overview
 This simulator codebase provides a platform for:
@@ -63,6 +63,10 @@ Coming soon.
 - **Isaac Lab**
 
 ## TODO
+- train a policy and evaluate environment setup
+- implement play.py
+- implement evaluate.py
+- 
 
 
 ## Acknowledgments

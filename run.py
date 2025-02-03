@@ -1,9 +1,10 @@
 import argparse
-from mjx.scripts import brax_train_policy, run_policy, evaluate_policy
+from mjx.scripts import brax_train_policy, play, evaluate_policy
 from mjx.utils.parse import parse_cfg
 from mjx.utils.registry import ALL_ENVS
 from mjx.utils import registry
-from mjx.envs.wrappers import RecordVideo
+from pathlib import Path
+
 
 
 def main():
@@ -23,7 +24,7 @@ def main():
                             required=True, help="RL training framework")  
     train_parser.add_argument("--checkpoint", type=str, 
                              help="Path to model checkpoint to resume training")
-    train_parser.add_argument("--record", type=int, default=1000,
+    train_parser.add_argument("--record", type=bool,
                              help="Record videos during training")
 
     # Play Subparser
@@ -36,35 +37,28 @@ def main():
                             help="Render simulation in GUI")
 
     args = parser.parse_args()
-    default_cfg = registry.get_default_config(args.env)
+    default_cfg = Path(registry.get_default_config(args.env))
 
     #Merge custom configurations with default configurations
     cfg = parse_cfg('instruct.yml', default_cfg_path=default_cfg)
 
-    env = registry.load(args.env, cfg.env)
-
     print(f"Environment Config:\n{cfg.env}")
-
-    # #Wrap environment with video recording wrapper to record videos during training
-    # if args.record:
-    #     env = RecordVideo(env, video_folder="videos", episode_trigger=None, step_trigger=None, video_length=0, name_prefix="rl-video") 
-    #NOT FINISHED - Need to store global number of episodes to trigger recording 
 
     if args.command == "train":
         if args.framework == "brax_ppo":
             print(f"PPO Training Parameters:\n{cfg.brax_ppo_agent}")
             brax_train_policy(
-                env,
-                cfg, 
                 env_name = args.env,
-                exp_name=args.name,
-                checkpoint=args.checkpoint
+                cfg=cfg,
+                checkpoint = args.checkpoint,
+                exp_name = args.name,
+                record = args.record
                 )
         else:
             raise NotImplementedError(f"Framework {args.framework} is not implemented")
         
     elif args.command == "play":
-        run_policy(checkpoint_path=args.checkpoint, env_id=args.env, render=args.render)
+        play(checkpoint_path=args.checkpoint, env_id=args.env, render=args.render)
 
     elif args.command == "evaluate":
         evaluate_policy(checkpoint_path=args.checkpoint, env_id=args.env)

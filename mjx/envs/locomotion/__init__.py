@@ -16,12 +16,21 @@
 
 
 import functools
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Callable, Tuple
+
+import jax
+from mujoco import mjx
 
 from mujoco_playground import MjxEnv
 from .default_humanoid import joystick as default_humanoid_joystick
+from mjx.envs.locomotion.default_humanoid import randomize as default_humanoid_randomize
+from mjx.envs import locomotion
 
-#Register all locomotion enviornmnets here
+DomainRandomizer = Optional[
+    Callable[[mjx.Model, jax.Array], Tuple[mjx.Model, mjx.Model]]
+]
+
+#Register all locomotion environments here
 _envs = {
     "DefaultHumanoidJoystickFlatTerrain": functools.partial(
         default_humanoid_joystick.Joystick, terrain="flat_terrain"
@@ -33,11 +42,22 @@ _envs = {
 
 #Register 'default' config paths here
 _cfgs = {
-    "DefaultHumanoidJoystickFlatTerrain": 'mjx\configs\DefaultHumanoid\locomotion_default.yml',
-    "DefaultHumanoidJoystickRoughTerrain": 'mjx\configs\DefaultHumanoid\locomotion_default.yml'
+    "DefaultHumanoidJoystickFlatTerrain": 'mjx/configs/DefaultHumanoid/locomotion_default.yml',
+    "DefaultHumanoidJoystickRoughTerrain": 'mjx/configs/DefaultHumanoid/locomotion_default.yml'
 }
 
 
+#Register all randomizers here
+_randomizer ={
+  "DefaultHumanoidJoystickFlatTerrain": (
+    default_humanoid_randomize.domain_randomize
+  ),
+  "DefaultHumanoidJoystickRoughTerrain": (
+    default_humanoid_randomize.domain_randomize
+  )
+}
+
+#List of all environments
 ALL = list(_envs.keys()) 
 
 def get_default_config(env_name: str) -> str:
@@ -68,3 +88,6 @@ def load(
   
   return _envs[env_name](config=config)
 
+def get_domain_randomizer(env_name: str) -> Optional[DomainRandomizer]:
+    """Gets the randomizer function for the given environment """
+    return _randomizer[env_name]

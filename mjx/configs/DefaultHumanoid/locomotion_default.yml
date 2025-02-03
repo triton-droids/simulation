@@ -22,28 +22,7 @@ env:
       linvel: 0.1
       gyro: 0.2  # angvel.
     
-  d_randomization_config: 
-    enable: False #DOES NOT WORK
-    dynamics: # All dynamics are randomized from a uniform distribution between provided values
-      floor_friction:
-        op: "clip"
-        range: [0.4, 1.0]
-      static friction: 
-        op: "scale"
-        range: [0.9, 1.1]
-      armature:
-        op: "scale"
-        range: [1.0, 1.05]
-      link_mass:
-        op: "scale"
-        range: [0.9, 1.1]
-      torso_mass:
-        op: "add"
-        range: [-1.0, 1.0]
-      jitter_qpos0:
-        op: "add"
-        range: [-0.05, 0.05]
-
+  d_randomization: False #Doesn't work !
   
   reward_config:
     scales: 
@@ -96,6 +75,7 @@ logger:
 brax_ppo_agent:
   num_timesteps: 150_000_000
   num_evals: 15
+  clipping_epsilon: 0.2
   reward_scaling: 1.0
   episode_length: 1000
   normalize_observations: True
@@ -106,7 +86,7 @@ brax_ppo_agent:
   discounting: 0.97
   learning_rate: 0.0003
   entropy_cost: 0.005
-  num_envs: 1
+  num_envs: 8192
   batch_size: 256
   max_grad_norm: 1.0
   network_factory:

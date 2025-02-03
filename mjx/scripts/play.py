@@ -3,7 +3,7 @@ from absl import logging
 from brax.io import model
 from brax.training.acme import running_statistics
 from brax.training.agents.ppo import networks as ppo_networks
-from mjx.utils.rollout import render_mujoco_rollout, render_mjx_rollout
+from mjx.utils.rollouts import render_mjx_rollout
 
 
 def play(env, cfg, seed, model_path):
@@ -27,6 +27,8 @@ def play(env, cfg, seed, model_path):
         )
 
     policy_network = ppo_networks.make_ppo_networks(
+        observation_size=env.observation_size,
+        action_size=env.action_size,
         **ppo_cfg.network_factory
     )
     params = (params[0], params[1].policy)
@@ -35,9 +37,9 @@ def play(env, cfg, seed, model_path):
     print(f"Loaded params from {model_path}")
     print(inference_fn)
 
-    if args.use_mujoco:
-        images_thwc = render_mujoco_rollout(env, inference_fn, n_steps, render_every, width=width, height=height)
-    else:
-        images_thwc = render_mjx_rollout(env, inference_fn, n_steps, render_every, width=width, height=height)
-    print(f"Rolled out {len(images_thwc)} steps")
+    # if args.use_mujoco:
+    #     images_thwc = render_mujoco_rollout(env, inference_fn, n_steps, render_every, width=width, height=height)
+    # else:
+    #     images_thwc = render_mjx_rollout(env, inference_fn, n_steps, render_every, width=width, height=height)
+    # print(f"Rolled out {len(images_thwc)} steps")
 

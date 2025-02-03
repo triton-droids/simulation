@@ -26,7 +26,7 @@ import wandb
 from mujoco_playground._src import mjx_env
 from mujoco_playground import wrapper
 from mjx.utils import registry
-from mjx.utils.randomize import domain_randomize
+from mjx.utils.rollouts import save_mjx_rollout
 
 
 # Ignore the info logs from brax
@@ -44,13 +44,15 @@ warnings.filterwarnings("ignore", category=UserWarning, module="absl")
 
 
 def brax_train_policy(
-        env:  mjx_env.MjxEnv,
-        cfg:  config_dict.ConfigDict, 
         env_name: str,
+        cfg:  config_dict.ConfigDict, 
+        checkpoint: str = None,
         exp_name: str = None,
-        checkpoint: str = None
+        record: bool = False
         ) -> None:
     
+    env = registry.load(env_name, cfg.env)
+
     env_cfg = cfg.env
     ppo_cfg = cfg.brax_ppo_agent
 
@@ -93,17 +95,32 @@ def brax_train_policy(
     ckpt_path.mkdir(parents=True, exist_ok=True)
     print(f"Checkpoint path: {ckpt_path}")
 
+    if record:
+        # Set up training vid directory
+        vid_path = logdir / "videos"
+        vid_path.mkdir(parents=True, exist_ok=True)
+        print(f"Video path: {vid_path}")
+
+        #Load recording environment
+        rec_env = (
+        registry.load(env_name, env_cfg)
+    )
+         
     # Save environment configuration
     with open(ckpt_path / "config.json", "w") as fp:
         json.dump(cfg.to_dict(), fp, indent=2)
 
-    # Define policy parameters function for saving checkpoints
+    # Define policy parameters function for saving checkpoints and recording rollouts
     def policy_params_fn(current_step, make_policy, params):
         orbax_checkpointer = ocp.PyTreeCheckpointer()
         save_args = orbax_utils.save_args_from_target(params)
         path = ckpt_path / f"{current_step}"
         orbax_checkpointer.save(path, params, force=True, save_args=save_args)
-
+        if record:
+            path = vid_path / f"{current_step}"
+            print("Saving rollout at step {current_step} to videos/")
+            save_mjx_rollout(rec_env, make_policy, path, seed=cfg.seed)
+            
     training_params = dict(ppo_cfg) 
     if "network_factory" in training_params:
         del training_params["network_factory"]
@@ -115,7 +132,7 @@ def brax_train_policy(
         network_fn, **ppo_cfg.network_factory
     )
 
-    if env_cfg.d_randomization_config.enable:
+    if env_cfg.d_randomization:
         training_params["randomization_fn"] =  registry.get_domain_randomizer(env_name)
     num_eval_envs = (
       ppo_cfg.num_envs
@@ -169,7 +186,5 @@ def brax_train_policy(
     if len(times) > 1:
         print(f"Time to JIT compile: {times[1] - times[0]}")
         print(f"Time to train: {times[-1] - times[1]}")
-
-
-    #TODO: Implement rollout logic , rollout every .. to see progression when training. 
-
+    
+    return params
