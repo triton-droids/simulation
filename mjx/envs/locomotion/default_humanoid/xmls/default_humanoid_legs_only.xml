@@ -59,12 +59,15 @@ limitations under the License.
       <!-- joints -->     
         <default class="hfe">
         <joint actuatorfrcrange="-30 30" range="-1.74533 0.523599" armature="0.007614" frictionloss="0.3"/>
+        <position kp="10"/>
       </default>
       <default class="hxx">
         <joint actuatorfrcrange="-20 20" range="-0.610865 0.610865" armature="0.0056" frictionloss="0.3"/>
+        <position kp="15"/>
       </default>
       <default class="kfe">
         <joint actuatorfrcrange="-30 30" range="0 1.0944" armature="0.0056" frictionloss="0.8"/>
+        <position kp="15"/>
       </default>
       <default class="ffe">
         <joint actuatorfrcrange="-20 20" range="-0.523599 0.698132" armature="0.0056" frictionloss="1.0"/>

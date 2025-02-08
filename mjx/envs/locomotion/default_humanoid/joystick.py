@@ -51,7 +51,7 @@ class Joystick(DefaultHumanoidEnv):
         """
         #STORE ANY INFORMATION THAT MAY BE USEFUL FOR REWARDS, VISUALIZATION, ETC
         
-        self._init_q = jp.array(self._mj_model.keyframe("home").qpos) #Set initial joint positions to a knees bent athletic position.
+        self._init_q = jp.array(self._mj_model.keyframe("home").qpos) #Set initial joint positions standing
         self._default_pose = jp.array(self._mj_model.keyframe("home").qpos[7:])
 
         #Note: First joint is freejoint

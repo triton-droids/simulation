@@ -71,7 +71,7 @@ def render_mjx_rollout(
     Returns:
         A list of renderings of the policy rollout with dimensions (T, H, W, C)
     """
-    rollout = mjx_rollout(env, inference_fn, episode_length, render_every, seed)
+    rollout = mjx_rollout(env, inference_fn, episode_length, seed)
     traj = rollout[::render_every]
 
     scene_option = mujoco.MjvOption()
@@ -99,7 +99,7 @@ def save_mjx_rollout(
     width: int = 640,
     height: int = 480,):
 
-    rollout = mjx_rollout(env, inference_fn, episode_length, render_every, seed)
+    rollout = mjx_rollout(env, inference_fn, episode_length, seed)
     traj = rollout[::render_every]
 
     scene_option = mujoco.MjvOption()

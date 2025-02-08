@@ -11,7 +11,7 @@ env:
   history_len: 1
   soft_joint_pos_limit_factor: 0.95 #Soft bound to discourage maxing out joint limits.
   noise_config:
-    level: 1.0  # Set to 0.0 to disable noise.
+    level: 0.0  # Set to 0.0 to disable noise.
     scales:
       hip_pos: 0.03  # rad
       kfe_pos: 0.05
