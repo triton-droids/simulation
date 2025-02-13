@@ -18,7 +18,7 @@ limitations under the License.
   <compiler angle="radian"/>
 
 
-  <option iterations="3" ls_iterations="5" timestep="0.002" integrator="Euler">
+  <option iterations="3" ls_iterations="5" timestep="0.005" integrator="Euler">
     <flag eulerdamp="disable"/>
   </option>
 
@@ -57,24 +57,26 @@ limitations under the License.
       </default>
 
       <!-- joints -->     
+      <joint type="hinge" damping="3" stiffness="1" armature="0.1" limited="true"/>
         <default class="hfe">
-        <joint actuatorfrcrange="-30 30" range="-1.74533 0.523599" armature="0.007614" frictionloss="0.3"/>
-        <position kp="10"/>
+        <joint actuatorfrcrange="-30 30" range="-1.74533 0.523599" frictionloss="0.4" />
+        <position kp="20"/>
       </default>
       <default class="hxx">
-        <joint actuatorfrcrange="-20 20" range="-0.610865 0.610865" armature="0.0056" frictionloss="0.3"/>
-        <position kp="15"/>
+        <joint actuatorfrcrange="-20 20" range="-0.610865 0.610865"/>
+        <position kp="25"/>
       </default>
       <default class="kfe">
-        <joint actuatorfrcrange="-30 30" range="0 1.0944" armature="0.0056" frictionloss="0.8"/>
-        <position kp="15"/>
+        <joint actuatorfrcrange="-30 30" range="0 2.27"/>
+        <position kp="25"/>
       </default>
       <default class="ffe">
-        <joint actuatorfrcrange="-20 20" range="-0.523599 0.698132" armature="0.0056" frictionloss="1.0"/>
+        <joint actuatorfrcrange="-20 20" range="-0.523599 0.698132" />
+        <position kp="10"/>
       </default>
       <default class="faa">
-        <joint actuatorfrcrange="-5 5" range="-0.523599 0.523599" armature="0.0004941" damping="0.1" frictionloss="0.1"/>
-        <position kp="1"/>
+        <joint actuatorfrcrange="-5 5" range="-0.523599 0.523599" />
+        <position kp="10"/>
       </default>
   
     </default>
@@ -83,18 +85,21 @@ limitations under the License.
   <worldbody>
     <light name="spotlight" mode="targetbodycom" target="torso" pos="3 0 4"/>
     <body name = "torso" pos="0 0 1.06" childclass="humanoid">
+    <!-- <joint name="debug_slider" type="slide" axis="1 0 0"/> -->
+
+      
       <freejoint/>
       <site name="imu"/>
       <camera name="front" pos="1.210 -0.435 0.32" xyaxes="0.342 0.940 0.000 -0.321 0.117 0.940" mode="trackcom"/>
       <camera name="track" pos="0.805 -1.105 0.2" xyaxes="0.814 0.580 0.000 -0.140 0.196 0.971" mode="trackcom"/>
       <body name="waist_lower" pos="-.01 0 -0">
-      <geom name="waist_lower" fromto="0 -.06 0 0 .06 0" size=".06"/>
+      <inertial mass="3.5" pos="0 0 -0.07" diaginertia="0.1 0.16 0.12"/>
       <body name="pelvis" pos="0 0 -.165">
         <geom name="butt" fromto="-.02 -.07 0 -.02 .07 0" size=".09"/>
           <body name="thigh_left" pos="0 .1 -.04">
             <joint name="LL_HR" class="hxx" axis="1 0 -1" pos="-0.06 0 .061" />
             <joint name="LL_HAA" class="hxx" axis="-1 0 1"/>
-            <joint name="LL_HFE" class="hfe" axis="0 2 0"/>
+            <joint name="LL_HFE" class="hfe" axis="0 1 0"/>
             <geom name="thigh_left" fromto="0 0 0 0 -.01 -.34" class="thigh"/>
             <body name="shin_left" pos="0 -.01 -.4">
                 <joint name="LL_KFE" class="kfe" axis="0 1 0" pos="0 -0.025 0"/>
@@ -114,7 +119,7 @@ limitations under the License.
             <body name="thigh_right" pos="0 -.1 -.04">
             <joint name="LR_HR" class="hxx" axis="1 0 -1" pos="-0.06 0 .061" />
             <joint name="LR_HAA" class="hxx" axis="-1 0 1"/>
-            <joint name="LR_HFE" class="hfe" axis="0 2 0"/>
+            <joint name="LR_HFE" class="hfe" axis="0 1 0"/>
             <geom name="thigh_right" fromto="0 0 0 0 .01 -.34" class="thigh"/>
             <body name="shin_right" pos="0 .01 -.4">
               <joint name="LR_KFE" class="kfe" axis="0 1 0" pos="0 0.025 0"/>
@@ -140,6 +145,17 @@ limitations under the License.
     <exclude body1="waist_lower" body2="thigh_right"/>
     <exclude body1="waist_lower" body2="thigh_left"/>
   </contact>
+
+  <!-- <tendon>
+    <fixed name="hamstring_right" limited="true" range="-0.3 2">
+      <joint joint="LR_HFE" coef=".5"/>
+      <joint joint="LR_KFE" coef="-.5"/>
+    </fixed>
+    <fixed name="hamstring_left" limited="true" range="-0.3 2">
+      <joint joint="LL_HFE" coef=".5"/>
+      <joint joint="LL_KFE" coef="-.5"/>
+    </fixed>
+  </tendon> -->
 
    <actuator>
     <position class="hxx" name="LL_HR" joint="LL_HR"/>

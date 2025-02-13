@@ -437,11 +437,11 @@ class Joystick(DefaultHumanoidEnv):
             "orientation": self._cost_orientation(self.get_gravity(data)),
             "base_height": self._cost_base_height(data.qpos[2]),
             # Energy related rewards.
-            "torques": self._cost_torques(data.actuator_force),
-            "action_rate": self._cost_action_rate(
-                action, info["last_act"], info["last_last_act"]
-            ),
-            "energy": self._cost_energy(data.qvel[6:], data.actuator_force),
+            #"torques": self._cost_torques(data.actuator_force),
+            #"action_rate": self._cost_action_rate(
+            #    action, info["last_act"], info["last_last_act"]
+            #),
+            #"energy": self._cost_energy(data.qvel[6:], data.actuator_force),
             # Feet related rewards.
             "feet_slip": self._cost_feet_slip(data, contact, info),
             "feet_clearance": self._cost_feet_clearance(data, info),
@@ -556,7 +556,7 @@ class Joystick(DefaultHumanoidEnv):
 
     # Pose-related rewards.
     """
-    The following cost functions produce a negative reward when the joint positions deviates from the default pose (knees bent athletic) to encourage walkinig and stability. 
+    The following cost functions produce a negative reward when the joint positions deviates from the default pose (knees bent athletic) to encourage walking and stability. 
     """
     def _cost_joint_deviation_hip(
         self, qpos: jax.Array, cmd: jax.Array

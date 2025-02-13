@@ -112,6 +112,7 @@ def brax_train_policy(
 
     # Define policy parameters function for saving checkpoints and recording rollouts
     def policy_params_fn(current_step, make_policy, params):
+        inference_fn = make_policy(params)
         orbax_checkpointer = ocp.PyTreeCheckpointer()
         save_args = orbax_utils.save_args_from_target(params)
         path = ckpt_path / f"{current_step}"
@@ -119,7 +120,7 @@ def brax_train_policy(
         if record:
             path = vid_path / f"{current_step}"
             print("Saving rollout at step {current_step} to videos/")
-            save_mjx_rollout(rec_env, make_policy, path, seed=cfg.seed)
+            save_mjx_rollout(rec_env, inference_fn, path, seed=cfg.seed)
             
     training_params = dict(ppo_cfg) 
     if "network_factory" in training_params:
@@ -187,4 +188,4 @@ def brax_train_policy(
         print(f"Time to JIT compile: {times[1] - times[0]}")
         print(f"Time to train: {times[-1] - times[1]}")
     
-    return params
+    return make_inference_fn
