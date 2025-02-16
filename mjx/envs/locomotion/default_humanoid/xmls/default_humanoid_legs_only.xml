@@ -57,27 +57,27 @@ limitations under the License.
       </default>
 
       <!-- joints -->     
-      <joint type="hinge" damping="3" stiffness="1" armature="0.1" limited="true"/>
-        <default class="hfe">
-        <joint actuatorfrcrange="-30 30" range="-1.74533 0.523599" frictionloss="0.4" />
-        <position kp="90"/>
-      </default>
-      <default class="hxx">
-        <joint actuatorfrcrange="-20 20" range="-0.610865 0.610865"/>
-        <position kp="95"/>
-      </default>
-      <default class="kfe">
-        <joint actuatorfrcrange="-30 30" range="0 2.27"/>
-        <position kp="95"/>
-      </default>
-      <default class="ffe">
-        <joint actuatorfrcrange="-20 20" range="-0.523599 0.698132" />
-        <position kp="50"/>
-      </default>
-      <default class="faa">
-        <joint actuatorfrcrange="-5 5" range="-0.523599 0.523599" />
-        <position kp="50"/>
-      </default>
+    <joint type="hinge" damping="1" stiffness="1" armature="0.1" limited="true"/>
+    <default class="hfe">
+      <joint actuatorfrcrange="-40 40" range="-2.0 0.523599" frictionloss="0.3"/>
+      <position kp="110"/>
+    </default>
+    <default class="hxx">
+      <joint actuatorfrcrange="-20 20" range="-0.610865 0.610865"/>
+      <position kp="95"/>
+    </default>
+    <default class="kfe">
+      <joint actuatorfrcrange="-40 40" range="0.2 2.27"/>
+      <position kp="150"/>
+    </default>
+    <default class="ffe">
+      <joint actuatorfrcrange="-20 20" range="-0.523599 0.698132"/>
+      <position kp="50"/>
+    </default>
+    <default class="faa">
+      <joint actuatorfrcrange="-5 5" range="-0.523599 0.523599"/>
+      <position kp="50"/>
+    </default>
   
     </default>
   </default>
