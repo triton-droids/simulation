@@ -159,10 +159,10 @@ class Joystick(DefaultHumanoidEnv):
         data = mjx_env.init(self.mjx_model, qpos=qpos, qvel=qvel, ctrl=qpos[7:])
 
         # Phase, freq=U(1.25, 1.5) : Gate cycle
-        # rng, key = jax.random.split(rng)
-        # gait_freq = jax.random.uniform(key, (1,), minval=1.25, maxval=1.5)
-        # phase_dt = 2 * jp.pi * self.dt * gait_freq #Change in phase per time step (how gait phase evolves over time)
-        # phase = jp.array([0, jp.pi]) #One leg starts at beginning of gait cycle, other starts at mid-gait cycle (natural alternation between two legs)
+        rng, key = jax.random.split(rng)
+        gait_freq = jax.random.uniform(key, (1,), minval=1.25, maxval=1.5)
+        phase_dt = 2 * jp.pi * self.dt * gait_freq #Change in phase per time step (how gait phase evolves over time)
+        phase = jp.array([0, jp.pi]) #One leg starts at beginning of gait cycle, other starts at mid-gait cycle (natural alternation between two legs)
 
         #Generate a random command
         rng, cmd_rng = jax.random.split(rng)
@@ -188,8 +188,8 @@ class Joystick(DefaultHumanoidEnv):
             "last_contact": jp.zeros(2, dtype=bool),
             "swing_peak": jp.zeros(2),
             # Phase related.
-            # "phase_dt": phase_dt,
-            # "phase": phase,
+            "phase_dt": phase_dt,
+            "phase": phase,
             # Push related.
             "push": jp.array([0.0, 0.0]),
             "push_step": 0,
