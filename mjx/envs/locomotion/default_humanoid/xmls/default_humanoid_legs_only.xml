@@ -60,23 +60,23 @@ limitations under the License.
       <joint type="hinge" damping="3" stiffness="1" armature="0.1" limited="true"/>
         <default class="hfe">
         <joint actuatorfrcrange="-30 30" range="-1.74533 0.523599" frictionloss="0.4" />
-        <position kp="20"/>
+        <position kp="30"/>
       </default>
       <default class="hxx">
         <joint actuatorfrcrange="-20 20" range="-0.610865 0.610865"/>
-        <position kp="25"/>
+        <position kp="35"/>
       </default>
       <default class="kfe">
         <joint actuatorfrcrange="-30 30" range="0 2.27"/>
-        <position kp="25"/>
+        <position kp="35"/>
       </default>
       <default class="ffe">
         <joint actuatorfrcrange="-20 20" range="-0.523599 0.698132" />
-        <position kp="10"/>
+        <position kp="20"/>
       </default>
       <default class="faa">
         <joint actuatorfrcrange="-5 5" range="-0.523599 0.523599" />
-        <position kp="10"/>
+        <position kp="20"/>
       </default>
   
     </default>
@@ -84,6 +84,7 @@ limitations under the License.
 
   <worldbody>
     <light name="spotlight" mode="targetbodycom" target="torso" pos="3 0 4"/>
+
     <body name = "torso" pos="0 0 1.06" childclass="humanoid">
     <!-- <joint name="debug_slider" type="slide" axis="1 0 0"/> -->
 
