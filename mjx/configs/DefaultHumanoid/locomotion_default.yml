@@ -27,7 +27,7 @@ env:
   reward_config:
     scales: 
       # Tracking related rewards.
-      tracking_lin_vel: 1.25
+      tracking_lin_vel: 1.5
       tracking_ang_vel: 0.5
       # Base related rewards.
       lin_vel_z: 0.0
@@ -49,14 +49,13 @@ env:
       alive: 0.0
       termination: -1.0
       # Pose related rewards.
-      joint_deviation_knee: -0.1
-      joint_deviation_hip: -0.25
-      dof_pos_limits: -1.0
-      pose: -1.0
-      healthy_reward: 5.0
+      joint_deviation_knee: 0.0
+      joint_deviation_hip: 0.0
+      dof_pos_limits: 0.0
+      pose: 0.0
     
     tracking_sigma: 0.5 # Standard deviation for tracking velocity rewards
-    max_foot_height: 0.2
+    max_foot_height: 0.1
     base_height_target: 0.9 
   
   push_config:

@@ -425,10 +425,6 @@ class Joystick(DefaultHumanoidEnv):
         """ Computes all rewards for the current state of the environment. """
         return {
             # Tracking rewards.
-          
-            "healthy_reward": self.healthy_reward_fn(
-                data, 0.5, 1.0,
-            ),
             "tracking_lin_vel": self._reward_tracking_lin_vel(
                 info["command"], self.get_local_linvel(data)
             ),
@@ -442,63 +438,37 @@ class Joystick(DefaultHumanoidEnv):
             "base_height": self._cost_base_height(data.qpos[2]),
             # Energy related rewards.
             "torques": self._cost_torques(data.actuator_force),
-            #"action_rate": self._cost_action_rate(
-            #    action, info["last_act"], info["last_last_act"]
-            #),
-            #"energy": self._cost_energy(data.qvel[6:], data.actuator_force),
+            "action_rate": self._cost_action_rate(
+               action, info["last_act"], info["last_last_act"]
+            ),
+            "energy": self._cost_energy(data.qvel[6:], data.actuator_force),
             # Feet related rewards.
-            # "feet_slip": self._cost_feet_slip(data, contact, info),
-            # "feet_clearance": self._cost_feet_clearance(data, info),
-            # "feet_height": self._cost_feet_height(
-            #     info["swing_peak"], first_contact, info
-            # ),
-            # "feet_air_time": self._reward_feet_air_time(
-            #     info["feet_air_time"], first_contact, info["command"]
-            # ),
-            # "feet_phase": self._reward_feet_phase(
-            #     data,
-            #     info["phase"],
-            #     self._config.reward_config.max_foot_height,
-            #     info["command"],
-            # ),
-            # # Other rewards.
-            # "alive": self._reward_alive(),
+            "feet_slip": self._cost_feet_slip(data, contact, info),
+            "feet_clearance": self._cost_feet_clearance(data, info),
+            "feet_height": self._cost_feet_height(
+                info["swing_peak"], first_contact, info
+            ),
+            "feet_air_time": self._reward_feet_air_time(
+                info["feet_air_time"], first_contact, info["command"]
+            ),
+            "feet_phase": self._reward_feet_phase(
+                data,
+                info["phase"],
+                self._config.reward_config.max_foot_height,
+                info["command"],
+            ),
+            # Other rewards.
+            "alive": self._reward_alive(),
             "termination": self._cost_termination(done),
             "stand_still": self._cost_stand_still(info["command"], data.qpos[7:]),
-            # # Pose related rewards.
-            # "joint_deviation_hip": self._cost_joint_deviation_hip(
-            #     data.qpos[7:], info["command"]
-            # ),
-            # "joint_deviation_knee": self._cost_joint_deviation_knee(data.qpos[7:]),
-            # "dof_pos_limits": self._cost_joint_pos_limits(data.qpos[7:]),
-            # "pose": self._cost_pose(data.qpos[7:]),
+            # Pose related rewards.
+            "joint_deviation_hip": self._cost_joint_deviation_hip(
+                data.qpos[7:], info["command"]
+            ),
+            "joint_deviation_knee": self._cost_joint_deviation_knee(data.qpos[7:]),
+            "dof_pos_limits": self._cost_joint_pos_limits(data.qpos[7:]),
+            "pose": self._cost_pose(data.qpos[7:]),
         }
-    
-    #Testing rewards:
-
-
-    def healthy_reward_fn(
-        data,
-        min_z,
-        max_z,
-    ) -> tuple[jp.ndarray, jp.ndarray]:
-        """Reward function for staying healthy.
-
-        Args:
-            state: Current state.
-            action: Action taken.
-            next_state: Next state.
-            dt: Time step.
-            params: Reward parameters.
-
-        Returns:
-            A float wrapped in a jax array.
-        """
-        is_healthy = jp.where(data.qpos[2] < min_z, 0.0, 1.0)
-        is_healthy = jp.where(data.qpos[2] > max_z, 0.0, is_healthy)
-
-        return is_healthy
-
     
     # Tracking rewards.
     """
