@@ -71,9 +71,9 @@ def brax_train_policy(
 
     # Initialize Weights & Biases if required
     if cfg.logger.wandb:
-        wandb.init(project=cfg.logger.project_name, name=exp_name)
+        wandb.init(project=env_name, name=exp_name)
         wandb.config.update(env_cfg.to_dict())
-        wandb.config.update({"env_name": env_cfg.name})
+        wandb.config.update({"env_name": env_name})
 
     # Initialize TensorBoard if required
     if cfg.logger.tensorboard:

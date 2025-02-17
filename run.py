@@ -11,7 +11,7 @@ def main():
     parser = argparse.ArgumentParser(description='Humanoid Robot RL Simulator')
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-     # Training Subparser
+    # Training Subparser
     train_parser = subparsers.add_parser("train", help="Train a policy")
     train_parser.add_argument("--name", type=str, required=False, 
                              help="Name of experiment")

@@ -68,9 +68,8 @@ env:
   ang_vel_yaw: [-1.0, 1.0]
 
 logger:
-  tensorboard: True
-  wandb: False
-  project_name: "default_humanoid"
+  tensorboard: False
+  wandb: True
 
 brax_ppo_agent:
   num_timesteps: 150_000_000
