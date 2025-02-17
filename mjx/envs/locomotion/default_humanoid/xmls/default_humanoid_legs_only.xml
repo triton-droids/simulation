@@ -84,6 +84,7 @@ limitations under the License.
 
   <worldbody>
     <light name="spotlight" mode="targetbodycom" target="torso" pos="3 0 4"/>
+
     <body name = "torso" pos="0 0 1.06" childclass="humanoid">
     <!-- <joint name="debug_slider" type="slide" axis="1 0 0"/> -->
 

@@ -133,28 +133,28 @@ class Joystick(DefaultHumanoidEnv):
         qvel = jp.zeros(self.mjx_model.nv)
 
         # x=+U(-0.5, 0.5), y=+U(-0.5, 0.5), yaw=U(-3.14, 3.14).
-        rng, key = jax.random.split(rng)
-        dxy = jax.random.uniform(key, (2,), minval=-0.5, maxval=0.5) 
-        qpos = qpos.at[0:2].set(qpos[0:2] + dxy)  #qpos[0:2]: The global x and y position of the humanoid's root
-        rng, key = jax.random.split(rng) 
-        yaw = jax.random.uniform(key, (1,), minval=-3.14, maxval=3.14)
-        quat = math.axis_angle_to_quat(jp.array([0, 0, 1]), yaw)
-        new_quat = math.quat_mul(qpos[3:7], quat) 
-        qpos = qpos.at[3:7].set(new_quat) #qpos[3:7]: The quaternion representing the orientation (yaw, pitch, roll) of the humanoid's root
+        # rng, key = jax.random.split(rng)
+        # dxy = jax.random.uniform(key, (2,), minval=-0.5, maxval=0.5) 
+        # qpos = qpos.at[0:2].set(qpos[0:2] + dxy)  #qpos[0:2]: The global x and y position of the humanoid's root
+        # rng, key = jax.random.split(rng) 
+        # yaw = jax.random.uniform(key, (1,), minval=-3.14, maxval=3.14)
+        # quat = math.axis_angle_to_quat(jp.array([0, 0, 1]), yaw)
+        # new_quat = math.quat_mul(qpos[3:7], quat) 
+        # qpos = qpos.at[3:7].set(new_quat) #qpos[3:7]: The quaternion representing the orientation (yaw, pitch, roll) of the humanoid's root
 
-        # qpos[7:]=*U(0.5, 1.5)
-        #qpos[7:]: The joint positions within the humanoid
-        rng, key = jax.random.split(rng)
-        qpos = qpos.at[7:].set(
-            qpos[7:] * jax.random.uniform(key, (12,), minval=0.5, maxval=1.5) 
-        )
+        # # qpos[7:]=*U(0.5, 1.5)
+        # #qpos[7:]: The joint positions within the humanoid
+        # rng, key = jax.random.split(rng)
+        # qpos = qpos.at[7:].set(
+        #     qpos[7:] * jax.random.uniform(key, (12,), minval=0.5, maxval=1.5) 
+        # )
 
-        # d(xyzrpy)=U(-0.5, 0.5)
-        #qvel[0:6]: The generalized velocities of the humanoid's base
-        rng, key = jax.random.split(rng)
-        qvel = qvel.at[0:6].set(
-            jax.random.uniform(key, (6,), minval=-0.5, maxval=0.5) 
-        )
+        # # d(xyzrpy)=U(-0.5, 0.5)
+        # #qvel[0:6]: The generalized velocities of the humanoid's base
+        # rng, key = jax.random.split(rng)
+        # qvel = qvel.at[0:6].set(
+        #     jax.random.uniform(key, (6,), minval=-0.5, maxval=0.5) 
+        # )
 
         data = mjx_env.init(self.mjx_model, qpos=qpos, qvel=qvel, ctrl=qpos[7:])
 
@@ -310,7 +310,7 @@ class Joystick(DefaultHumanoidEnv):
         state = state.replace(data=data, obs=obs, reward=reward, done=done)
         return state
 
-
+ 
     def _get_termination(self, data: mjx.Data) -> jax.Array:
         fall_termination = self.get_gravity(data)[-1] < 0.0
         return (
@@ -328,60 +328,60 @@ class Joystick(DefaultHumanoidEnv):
         info["rng"], noise_rng = jax.random.split(info["rng"])
 
         #Introduce some noise into our sesnor readings.
-        noisy_gyro = (
-        gyro
-        + (2 * jax.random.uniform(noise_rng, shape=gyro.shape) - 1)
-        * self._config.noise_config.level
-        * self._config.noise_config.scales.gyro
-    )
+    #     noisy_gyro = (
+    #     gyro
+    #     + (2 * jax.random.uniform(noise_rng, shape=gyro.shape) - 1)
+    #     * self._config.noise_config.level
+    #     * self._config.noise_config.scales.gyro
+    # )
         
         gravity = data.site_xmat[self._site_id].T @ jp.array([0, 0, -1])
-        info["rng"], noise_rng = jax.random.split(info["rng"])
-        noisy_gravity = (
-            gravity
-            + (2 * jax.random.uniform(noise_rng, shape=gravity.shape) - 1)
-            * self._config.noise_config.level
-            * self._config.noise_config.scales.gravity
-        )
+        # info["rng"], noise_rng = jax.random.split(info["rng"])
+        # noisy_gravity = (
+        #     gravity
+        #     + (2 * jax.random.uniform(noise_rng, shape=gravity.shape) - 1)
+        #     * self._config.noise_config.level
+        #     * self._config.noise_config.scales.gravity
+        # )
 
         joint_angles = data.qpos[7:]
-        info["rng"], noise_rng = jax.random.split(info["rng"])
-        noisy_joint_angles = (
-            joint_angles
-            + (2 * jax.random.uniform(noise_rng, shape=joint_angles.shape) - 1)
-            * self._config.noise_config.level
-            * self._qpos_noise_scale
-        )
+        # info["rng"], noise_rng = jax.random.split(info["rng"])
+        # noisy_joint_angles = (
+        #     joint_angles
+        #     + (2 * jax.random.uniform(noise_rng, shape=joint_angles.shape) - 1)
+        #     * self._config.noise_config.level
+        #     * self._qpos_noise_scale
+        # )
 
         joint_vel = data.qvel[6:]
-        info["rng"], noise_rng = jax.random.split(info["rng"])
-        noisy_joint_vel = (
-            joint_vel
-            + (2 * jax.random.uniform(noise_rng, shape=joint_vel.shape) - 1)
-            * self._config.noise_config.level
-            * self._config.noise_config.scales.joint_vel
-        )
+        # info["rng"], noise_rng = jax.random.split(info["rng"])
+        # noisy_joint_vel = (
+        #     joint_vel
+        #     + (2 * jax.random.uniform(noise_rng, shape=joint_vel.shape) - 1)
+        #     * self._config.noise_config.level
+        #     * self._config.noise_config.scales.joint_vel
+        # )
 
         cos = jp.cos(info["phase"])
         sin = jp.sin(info["phase"])
         phase = jp.concatenate([cos, sin])
 
         linvel = self.get_local_linvel(data)
-        info["rng"], noise_rng = jax.random.split(info["rng"])
-        noisy_linvel = (
-            linvel
-            + (2 * jax.random.uniform(noise_rng, shape=linvel.shape) - 1)
-            * self._config.noise_config.level
-            * self._config.noise_config.scales.linvel
-        )
+        # info["rng"], noise_rng = jax.random.split(info["rng"])
+        # noisy_linvel = (
+        #     linvel
+        #     + (2 * jax.random.uniform(noise_rng, shape=linvel.shape) - 1)
+        #     * self._config.noise_config.level
+        #     * self._config.noise_config.scales.linvel
+        # )
 
         state = jp.hstack([
-        noisy_linvel,  # 3 (dimensions)
-        noisy_gyro,  # 3
-        noisy_gravity,  # 3
+        # noisy_linvel,  # 3 (dimensions)
+        # noisy_gyro,  # 3
+        # noisy_gravity,  # 3
         info["command"],  # 3
-        noisy_joint_angles - self._default_pose,  # 12
-        noisy_joint_vel,  # 12
+        # noisy_joint_angles - self._default_pose,  # 12
+        # noisy_joint_vel,  # 12
         info["last_act"],  # 12
         phase,
     ])
@@ -437,11 +437,11 @@ class Joystick(DefaultHumanoidEnv):
             "orientation": self._cost_orientation(self.get_gravity(data)),
             "base_height": self._cost_base_height(data.qpos[2]),
             # Energy related rewards.
-            #"torques": self._cost_torques(data.actuator_force),
-            #"action_rate": self._cost_action_rate(
-            #    action, info["last_act"], info["last_last_act"]
-            #),
-            #"energy": self._cost_energy(data.qvel[6:], data.actuator_force),
+            "torques": self._cost_torques(data.actuator_force),
+            "action_rate": self._cost_action_rate(
+               action, info["last_act"], info["last_last_act"]
+            ),
+            "energy": self._cost_energy(data.qvel[6:], data.actuator_force),
             # Feet related rewards.
             "feet_slip": self._cost_feet_slip(data, contact, info),
             "feet_clearance": self._cost_feet_clearance(data, info),
@@ -470,6 +470,7 @@ class Joystick(DefaultHumanoidEnv):
             "pose": self._cost_pose(data.qpos[7:]),
         }
     
+
     # Tracking rewards.
     """
     The following rewards are based on how well the linear and angular velocities of the humanoid in simulation match the target velocities.
