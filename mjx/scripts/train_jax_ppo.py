@@ -177,7 +177,7 @@ def brax_train_policy(
     )
     
     # Train or load the model
-    make_inference_fn, params, _ = train_fn(
+    make_inference_fn, params, metrics = train_fn(
       environment=env,
       progress_fn=progress,
       eval_env=eval_env
@@ -188,4 +188,4 @@ def brax_train_policy(
         print(f"Time to JIT compile: {times[1] - times[0]}")
         print(f"Time to train: {times[-1] - times[1]}")
     
-    return make_inference_fn
+    return make_inference_fn, params, metrics
