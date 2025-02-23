@@ -36,6 +36,7 @@ def play(env, cfg, seed, model_path):
     inference_fn = ppo_networks.make_inference_fn(policy_network)(params)
     print(f"Loaded params from {model_path}")
     print(inference_fn)
+    
 
     # if args.use_mujoco:
     #     images_thwc = render_mujoco_rollout(env, inference_fn, n_steps, render_every, width=width, height=height)
