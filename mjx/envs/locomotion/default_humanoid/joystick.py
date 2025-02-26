@@ -545,13 +545,16 @@ class Joystick(DefaultHumanoidEnv):
     def _cost_stand_still(
         self,
         commands: jax.Array,
-        qpos: jax.Array,
+        joint_angles: jax.Array,
     ) -> jax.Array:
-        cmd_norm = jp.linalg.norm(commands)
-        return jp.sum(jp.abs(qpos - self._default_pose)) * (cmd_norm < 0.1)
+        # Penalize motion at zero commands.
+        unit_cmd = commands[:2] / jp.linalg.norm(commands[:2])
+        return jp.sum(jp.abs(joint_angles - self._default_pose)) * (
+            unit_cmd[1] < 0.1
+        )
 
-    def _cost_termination(self, done: jax.Array) -> jax.Array:
-        return done
+    def _cost_termination(self, done: jax.Array, step: jax.Array) -> jax.Array:
+        return done & (step < 500)
 
     def _reward_alive(self) -> jax.Array:
         return jp.array(1.0)

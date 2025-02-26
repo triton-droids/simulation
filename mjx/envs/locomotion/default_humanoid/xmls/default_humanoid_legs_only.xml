@@ -15,11 +15,10 @@
 
 <mujoco model="Humanoid">
 
-  <option iterations="3" ls_iterations="5" timestep="0.002" integrator="Euler">
+  <option iterations="1" ls_iterations="5" timestep="0.004" integrator="Euler">
     <flag eulerdamp="disable"/>
   </option>
 
-  <statistic center="0 0 0.7"/>
 
   <asset>
     <texture type="skybox" builtin="gradient" rgb1=".3 .5 .7" rgb2="0 0 0" width="32" height="512"/>
@@ -31,7 +30,7 @@
 
   <default>
     <default class="body">
-    <site size="0.01" rgba="1 0 0 1" group="4"/>
+    <site size="0.01" rgba="1 0 0 1"/>
 
       <!-- geoms -->
       <geom type="capsule" condim="1" friction=".7" solimp=".9 .99 .003" solref=".015 1" material="body" group="1"/>
@@ -55,32 +54,26 @@
       <joint type="hinge" damping=".2" stiffness="1" armature=".01" limited="true" solimplimit="0 .99 .01"/>
   
         <default class="HR">
-          <position kp="45"/>
           <joint range="-30 10"/>
         </default>
         <default class="HAA">
-          <position kp="65"/>
           <joint range="-60 35"/>
         </default>
         <default class="HFE">
-          <position  kp="65"/>
           <joint axis="0 1 0" range="-150 20"/>
         </default>
         <default class="joint_big_stiff">
           <joint stiffness="20"/>
         </default>
       <default class="KFE">
-        <position kp="55"/>
         <joint pos="0 0 .02" axis="0 -1 0" range="-160 2"/>
       </default>
       <default class="ankle">
         <joint range="-50 50"/>
         <default class="FFE">
-          <position kp="35"/>
           <joint pos="0 0 .08" axis="0 1 0" stiffness="6"/>
         </default>
         <default class="FAA">
-          <position kp="35"/>
           <joint pos="0 0 .04" stiffness="3"/>
         </default>
       </default>
@@ -91,61 +84,59 @@
     <light name="spotlight" mode="targetbodycom" target="torso" diffuse=".8 .8 .8" specular="0.3 0.3 0.3" pos="0 -6 4" cutoff="30"/>
     <light name="top" pos="0 0 2" mode="trackcom"/>
     <body name="torso" pos="0 0 1.282" childclass="body">
+    <inertial pos="0.14 0 0" mass="1.0"/>
       <camera name="back" pos="-3 0 1" xyaxes="0 -1 0 1 0 2" mode="trackcom"/>
       <camera name="side" pos="0 -3 1" xyaxes="1 0 0 0 1 2" mode="trackcom"/>
       <freejoint name="root"/>
-      <site name="imu"/>
-      <inertial pos="0 0 0" mass="10.0" diaginertia="0.4 0.4 0.4"/>
+      <site name="imu" pos="0 0 -0.1"/>
         <body name="pelvis" pos="0 0 -.165">
-          <inertial pos="0 0 0" mass="8.0" diaginertia="0.2 0.2 0.2"/>
           <geom name="butt" fromto="-.02 -.07 0 -.02 .07 0" size=".09"/>
           <body name="thigh_right" pos="0 -.1 -.04">
-            <inertial pos="0 0 -0.17" mass="4.5" diaginertia="0.15 0.15 0.15"/>
             <joint name="LR_HR" axis="1 0 0" class="HR"/>
             <joint name="LR_HAA" axis="0 0 1" class="HAA"/>
             <joint name="LR_HFE" class="HFE"/>
             <geom name="thigh_right" fromto="0 0 0 0 .01 -.34" class="thigh"/>
             <body name="shin_right" pos="0 .01 -.4">
-              <inertial pos="0 0 -0.15" mass="3.0" diaginertia="0.1 0.1 0.1"/>
               <joint name="LR_KFE" class="KFE"/>
               <geom name="shin_right" class="shin"/>
               <body name="foot_right" pos="0 0 -.39">
-                <inertial pos="0.035 0 0" mass="1.0" diaginertia="0.02 0.02 0.02"/>
                 <joint name="LR_FFE" class="FFE"/>
                 <joint name="LR_FAA" class="FAA" axis="1 0 .5"/>
                 <geom name="foot1_right" class="foot1"/>
                 <geom name="foot2_right" class="foot2"/>
-                 <site name="r_foot" pos="0 0 -.39" rgba="1 0 0 1"/>
+                 <site name="r_foot" pos="0 0 -0.014" rgba="1 0 0 1"/>
               </body>
             </body>
           </body>
           <body name="thigh_left" pos="0 .1 -.04">
-            <inertial pos="0 0 -0.17" mass="4.5" diaginertia="0.15 0.15 0.15"/>
             <joint name="LL_HR" axis="-1 0 0" class="HR"/>
             <joint name="LL_HAA" axis="0 0 -1" class="HAA"/>
             <joint name="LL_HFE" class="HFE"/>
             <geom name="thigh_left" fromto="0 0 0 0 -.01 -.34" class="thigh"/>
             <body name="shin_left" pos="0 -.01 -.4">
-              <inertial pos="0 0 -0.15" mass="3.0" diaginertia="0.1 0.1 0.1"/>
               <joint name="LL_KFE" class="KFE"/>
               <geom name="shin_left" fromto="0 0 0 0 0 -.3" class="shin"/>
               <body name="foot_left" pos="0 0 -.39">
-                <inertial pos="0.035 0 0" mass="1.0" diaginertia="0.02 0.02 0.02"/>
                 <joint name="LL_FFE" class="FFE"/>
                 <joint name="LL_FAA" class="FAA" axis="-1 0 -.5"/>
                 
                 <geom name="foot1_left" class="foot1"/>
                 <geom name="foot2_left" class="foot2"/>
-                <site name="l_foot" pos="0 0 -.39" rgba="1 0 0 1"/>
+                <site name="l_foot" pos="0 0 -0.014" rgba="1 0 0 1"/>
               </body>
             </body>
           </body>
         </body>
     </body>
   </worldbody>
+<!-- 
+  <contact>
+    <exclude body1="waist_lower" body2="thigh_right"/>
+    <exclude body1="waist_lower" body2="thigh_left"/>
+  </contact> -->
 
 
-  <!-- <tendon>
+  <tendon>
     <fixed name="hamstring_right" limited="true" range="-0.3 2">
       <joint joint="LR_HFE" coef=".5"/>
       <joint joint="LR_KFE" coef="-.5"/>
@@ -154,22 +145,22 @@
       <joint joint="LL_HFE" coef=".5"/>
       <joint joint="LL_KFE" coef="-.5"/>
     </fixed>
-  </tendon> -->
+  </tendon>
 
   <actuator>
-    <position class="HR" name="LL_HR" joint="LL_HR"/>
-    <position class="HAA" name="LL_HAA" joint="LL_HAA"/>
-    <position class="HFE" name="LL_HFE" joint="LL_HFE"/>
-    <position class="KFE" name="LL_KFE" joint="LL_KFE"/>
-    <position class="FFE" name="LL_FFE" joint="LL_FFE"/>
-    <position class="FAA" name="LL_FAA" joint="LL_FAA"/>
+    <motor class="HR" name="LL_HR" joint="LL_HR" gear="40"/>
+    <motor class="HAA" name="LL_HAA" joint="LL_HAA" gear="40"/>
+    <motor class="HFE" name="LL_HFE" joint="LL_HFE" gear="120"/>
+    <motor class="KFE" name="LL_KFE" joint="LL_KFE" gear="80"/>
+    <motor class="FFE" name="LL_FFE" joint="LL_FFE" gear="20"/>
+    <motor class="FAA" name="LL_FAA" joint="LL_FAA" gear="20"/>
 
-    <position class="HR" name="LR_HR" joint="LR_HR"/>
-    <position class="HAA" name="LR_HAA" joint="LR_HAA"/>
-    <position class="HFE" name="LR_HFE" joint="LR_HFE"/>
-    <position class="KFE" name="LR_KFE" joint="LR_KFE"/>
-    <position class="FFE" name="LR_FFE" joint="LR_FFE"/>
-    <position class="FAA" name="LR_FAA" joint="LR_FAA"/>
+    <motor class="HR" name="LR_HR" joint="LR_HR" gear="40"/>
+    <motor class="HAA" name="LR_HAA" joint="LR_HAA" gear="40"/>
+    <motor class="HFE" name="LR_HFE" joint="LR_HFE" gear="120"/>
+    <motor class="KFE" name="LR_KFE" joint="LR_KFE" gear="80"/>
+    <motor class="FFE" name="LR_FFE" joint="LR_FFE" gear="20"/>
+    <motor class="FAA" name="LR_FAA" joint="LR_FAA" gear="20"/>
   </actuator>
   
   <sensor>
