@@ -459,7 +459,7 @@ class Joystick(DefaultHumanoidEnv):
             ),
             # Other rewards.
             "alive": self._reward_alive(),
-            "termination": self._cost_termination(done),
+            "termination": self._cost_termination(done, info["step"]),
             "stand_still": self._cost_stand_still(info["command"], data.qpos[7:]),
             # Pose related rewards.
             "joint_deviation_hip": self._cost_joint_deviation_hip(
