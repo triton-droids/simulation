@@ -59,7 +59,7 @@
           <joint range="-30 10"/>
         </default>
         <default class="HAA">
-          <position kp="35"/>
+          <position kp="65"/>
           <joint range="-60 35"/>
         </default>
         <default class="HFE">

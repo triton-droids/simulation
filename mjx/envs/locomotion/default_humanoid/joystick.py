@@ -468,6 +468,7 @@ class Joystick(DefaultHumanoidEnv):
             "joint_deviation_knee": self._cost_joint_deviation_knee(data.qpos[7:]),
             "dof_pos_limits": self._cost_joint_pos_limits(data.qpos[7:]),
             "pose": self._cost_pose(data.qpos[7:]),
+            "is_healthy": self.is_healthy(data),
         }
     
 
@@ -644,6 +645,18 @@ class Joystick(DefaultHumanoidEnv):
         cmd_norm = jp.linalg.norm(commands)
         reward *= cmd_norm > 0.1  # No reward for zero commands.
         return reward
+
+    def is_healthy(
+        self,
+        data,
+    ) -> tuple[jp.ndarray, jp.ndarray]:
+    
+
+        is_healthy = jp.where(data.qpos[2] < 0.05, 0.0, 1.0)
+        is_healthy = jp.where(data.qpos[2] > 0.1, 0.0, is_healthy)
+        healthy_reward = is_healthy
+
+        return healthy_reward
 
     def sample_command(self, rng: jax.Array) -> jax.Array:
         """ 
