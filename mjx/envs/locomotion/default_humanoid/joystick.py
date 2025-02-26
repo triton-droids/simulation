@@ -93,7 +93,7 @@ class Joystick(DefaultHumanoidEnv):
         #Obtain id of floor and feet geoms for contact detection. e.x. Does foot hit floor?
         self._floor_geom_id = self._mj_model.geom("floor").id
         self._feet_geom_id = np.array(
-            [self._mj_model.body(name).id for name in FEET_BODIES]
+            [self._mj_model.geom(name).id for name in FEET_GEOMS]
     )
         #Obtain linear velocity of feet sensors
         foot_linvel_sensor_adr = []

@@ -34,19 +34,19 @@ def task_to_xml(task_name: str) -> epath.Path:
 
 
 FEET_SITES = [
-  "left_foot",
-  "right_foot"
+  "l_foot",
+  "r_foot"
 ]
 
-LEFT_FEET_BODY = [
-    "left_foot"
+LEFT_FEET_GEOMS = [
+    "foot1_left"
 ]
 
-RIGHT_FEET_BODY = [
-    "right_foot"
+RIGHT_FEET_GEOMS = [
+    "foot1_right"
 ]
 
-FEET_BODIES = LEFT_FEET_BODY + RIGHT_FEET_BODY
+FEET_GEOMS = LEFT_FEET_GEOMS + RIGHT_FEET_GEOMS
 
 FEET_POS_SENSOR = [f"{site}_pos" for site in FEET_SITES]
 
