@@ -7,7 +7,7 @@ env:
   sim_dt: 0.004
   episode_length: 1000
   action_repeat: 1
-  action_scale: 0.5
+  action_scale: 1.0
   history_len: 1
   soft_joint_pos_limit_factor: 0.95 #Soft bound to discourage maxing out joint limits.
   noise_config:
