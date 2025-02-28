@@ -60,8 +60,8 @@
       </default>
 
       <!-- joints -->
-      <joint type="hinge" damping="1" armature=".1" frictionloss="0.3"/>
-      <position kp="200" dampratio="0.5" inheritrange="1"/>
+      <joint type="hinge" damping=".5" armature=".1" frictionloss="0.3"/>
+      <position kp="600" dampratio="0.5" inheritrange="1"/>
         <default class="HR">
           <joint range="-30 10"/>
         </default>
