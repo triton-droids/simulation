@@ -61,7 +61,7 @@
 
       <!-- joints -->
       <joint type="hinge" damping="1.0" armature=".1" frictionloss="0.1"/>
-      <position kp="250" dampratio="0.5" inheritrange="1"/>
+      <position kp="500" dampratio="1.0" inheritrange="1"/>
         <default class="HR">
           <joint range="-30 10" actuatorfrcrange="-20 20"/>
         </default>
