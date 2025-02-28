@@ -83,7 +83,7 @@ class Joystick(DefaultHumanoidEnv):
     ])
 
         self._torso_body_id = self._mj_model.body(ROOT_BODY).id 
-        self._torso_mass = self._mj_model.body_subtreemass[self._torso_body_id]
+        self._torso_mass = self._mj_model.body_mass[self._torso_body_id]
         self._site_id = self._mj_model.site("imu").id
 
         #Obtain id of feet sites to save information about feet / leg movement
@@ -184,9 +184,8 @@ class Joystick(DefaultHumanoidEnv):
             "last_act": jp.zeros(self.mjx_model.nu),
             "last_last_act": jp.zeros(self.mjx_model.nu),
             "motor_targets": jp.zeros(self.mjx_model.nu),
-            "feet_air_time": jp.zeros(2),
-            "last_contact": jp.zeros(2, dtype=bool),
-            "swing_peak": jp.zeros(2),
+            "feet_air_time": jp.zeros(4),
+            "last_contact": jp.zeros(4, dtype=bool),
             # Phase related.
             "phase_dt": phase_dt,
             "phase": phase,
@@ -199,7 +198,6 @@ class Joystick(DefaultHumanoidEnv):
         metrics = {}
         for k in self._config.reward_config.scales.keys():
             metrics[f"reward/{k}"] = jp.zeros(())
-            metrics["swing_peak"] = jp.zeros(())
 
         contact = jp.array([
             geoms_colliding(data, geom_id, self._floor_geom_id)
@@ -259,9 +257,6 @@ class Joystick(DefaultHumanoidEnv):
         contact_filt = contact | state.info["last_contact"]
         first_contact = (state.info["feet_air_time"] > 0.0) * contact_filt
         state.info["feet_air_time"] += self.dt
-        p_f = data.site_xpos[self._feet_site_id]
-        p_fz = p_f[..., -1] #Extract z position of the feet of foot position
-        state.info["swing_peak"] = jp.maximum(state.info["swing_peak"], p_fz)
 
         #Get observations, rewards, and termination status
         obs = self._get_obs(data, state.info, contact)
@@ -296,15 +291,13 @@ class Joystick(DefaultHumanoidEnv):
             0,
             state.info["step"],
         )
-        #Contact indicates if robot's feet are in contact with the floor. We update the air time and swing peak based on this. 
+        #Contact indicates if robot's feet are in contact with the floor. We update the air time based on this. 
         state.info["feet_air_time"] *= ~ contact
         state.info["last_contact"] = contact
-        state.info["swing_peak"] *= ~contact
 
         #Store reward information.
         for k, v in rewards.items():
             state.metrics[f"reward/{k}"] = v
-            state.metrics["swing_peak"] = jp.mean(state.info["swing_peak"])
 
         done = done.astype(reward.dtype)
         state = state.replace(data=data, obs=obs, reward=reward, done=done)
@@ -445,9 +438,6 @@ class Joystick(DefaultHumanoidEnv):
             # Feet related rewards.
             "feet_slip": self._cost_feet_slip(data, contact, info),
             "feet_clearance": self._cost_feet_clearance(data, info),
-            "feet_height": self._cost_feet_height(
-                info["swing_peak"], first_contact, info
-            ),
             "feet_air_time": self._reward_feet_air_time(
                 info["feet_air_time"], first_contact, info["command"]
             ),
@@ -606,16 +596,6 @@ class Joystick(DefaultHumanoidEnv):
         foot_z = foot_pos[..., -1]
         delta = jp.abs(foot_z - self._config.reward_config.max_foot_height)
         return jp.sum(delta * vel_norm)
-
-    def _cost_feet_height(
-        self,
-        swing_peak: jax.Array,
-        first_contact: jax.Array,
-        info: dict[str, Any],
-    ) -> jax.Array:
-        del info  # Unused.
-        error = swing_peak / self._config.reward_config.max_foot_height - 1.0
-        return jp.sum(jp.square(error) * first_contact)
 
 
     def _reward_feet_air_time(
