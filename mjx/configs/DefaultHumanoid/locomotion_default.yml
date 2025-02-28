@@ -7,7 +7,7 @@ env:
   sim_dt: 0.004
   episode_length: 1000
   action_repeat: 1
-  action_scale: 1.0
+  action_scale: 0.5
   history_len: 1
   soft_joint_pos_limit_factor: 0.95 #Soft bound to discourage maxing out joint limits.
   noise_config:
@@ -27,33 +27,33 @@ env:
   reward_config:
     scales: 
       # Tracking related rewards.
-      tracking_lin_vel: 1.5
-      tracking_ang_vel: 0.8
+      tracking_lin_vel: 1.0
+      tracking_ang_vel: 0.75
       # Base related rewards.
-      lin_vel_z: -2.0
-      ang_vel_xy: -0.05
-      orientation: -5.0
+      lin_vel_z: 0.0
+      ang_vel_xy: -0.15
+      orientation: -0.5
       base_height: 0.0
       # Energy related rewards.
-      torques: -0.0002
-      action_rate: -0.2
+      torques: 0.0
+      action_rate: -0.1
       energy: 0.0
       # Feet related rewards.
-      feet_clearance: -0.5
-      feet_air_time: 0.0
-      feet_slip: -0.1
+      feet_clearance: -0.25
+      feet_air_time: 2.0
+      feet_slip: -0.25
       feet_height: 0.0
-      feet_phase: 0.0
+      feet_phase: 1.0
       # Other rewards.
       stand_still: -0.5
       alive: 0.0
       is_healthy: 0.0
       termination: -1.0
       # Pose related rewards.
-      joint_deviation_knee: 0.0
-      joint_deviation_hip: 0.0
+      joint_deviation_knee: -0.1
+      joint_deviation_hip: -0.25
       dof_pos_limits: 0.0
-      pose: 0.0
+      pose: -0.25
     
     tracking_sigma: 0.25 # Standard deviation for tracking velocity rewards
     max_foot_height: 0.15
@@ -64,9 +64,9 @@ env:
     interval_range: [5.0, 10.0]
     magnitude_range: [0.1, 2.0]
   
-  lin_vel_x: [-0.5, 1.2]
-  lin_vel_y: [-0.5, 0.5]
-  ang_vel_yaw: [-0.5, 0.5]
+  lin_vel_x: [-0.6, 1.5]
+  lin_vel_y: [-0.8, 0.8]
+  ang_vel_yaw: [-0.7, 0.7]
 
 logger:
   tensorboard: False

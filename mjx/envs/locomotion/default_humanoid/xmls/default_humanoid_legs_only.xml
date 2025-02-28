@@ -60,30 +60,30 @@
       </default>
 
       <!-- joints -->
-      <joint type="hinge" damping=".5" armature=".1" frictionloss="0.3"/>
-      <position kp="600" dampratio="0.5" inheritrange="1"/>
+      <joint type="hinge" damping="1.0" armature=".1" frictionloss="0.1"/>
+      <position kp="85" inheritrange="1"/>
         <default class="HR">
-          <joint range="-30 10"/>
+          <joint range="-30 10" actuatorfrcrange="-20 20"/>
         </default>
         <default class="HAA">
-          <joint range="-60 35"/>
+          <joint range="-60 35" actuatorfrcrange="-30 30"/>
         </default>
         <default class="HFE">
-          <joint axis="0 1 0" range="-150 20"/>
+          <joint axis="0 1 0" range="-150 20" actuatorfrcrange="-100 100"/>
         </default>
         <default class="joint_big_stiff">
           <joint stiffness="20"/>
         </default>
       <default class="KFE">
-        <joint pos="0 0 .02" axis="0 -1 0" range="-160 2"/>
+        <joint pos="0 0 .02" axis="0 -1 0" range="-160 2" actuatorfrcrange="-150 150"/>
       </default>
       <default class="ankle">
-        <joint range="-50 50"/>
+        <joint range="-50 50" actuatorfrcrange="-100 100"/>
         <default class="FFE">
-          <joint pos="0 0 .08" axis="0 1 0" stiffness="6"/>
+          <joint pos="0 0 .08" axis="0 1 0" stiffness="6" actuatorfrcrange="-30 30"/>
         </default>
         <default class="FAA">
-          <joint pos="0 0 .04" stiffness="3"/>
+          <joint pos="0 0 .04" stiffness="3" actuatorfrcrange="-20 20"/>
         </default>
       </default>
     </default>
