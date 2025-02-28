@@ -15,7 +15,7 @@
 
 <mujoco model="Humanoid">
 
-  <option iterations="1" ls_iterations="5" timestep="0.004" integrator="Euler">
+  <option iterations="3" ls_iterations="5" timestep="0.004" integrator="Euler">
     <flag eulerdamp="disable"/>
   </option>
 
@@ -33,7 +33,7 @@
     <site size="0.01" rgba="1 0 0 1"/>
 
       <!-- geoms -->
-      <geom type="capsule" contype="0" conaffinity="0" condim="1" friction=".7" solimp=".9 .99 .003" solref=".015 1" material="body" group="1"/>
+      <geom type="capsule" contype="0" conaffinity="0" condim="1" material="body" group="1"/>
       <default class="thigh">
         <geom size=".06"/>
       </default>
@@ -60,30 +60,27 @@
       </default>
 
       <!-- joints -->
-      <joint type="hinge" damping="1.0" armature=".1" frictionloss="0.1"/>
-      <position kp="500" dampratio="0.5" inheritrange="1"/>
+      <joint type="hinge" damping="1.5" armature=".1" frictionloss="0.1"/>
+      <position kp="75" inheritrange="1"/>
         <default class="HR">
-          <joint range="-30 10" actuatorfrcrange="-20 20"/>
+          <joint range="-30 10" />
         </default>
         <default class="HAA">
-          <joint range="-60 35" actuatorfrcrange="-30 30"/>
+          <joint range="-60 35" />
         </default>
         <default class="HFE">
-          <joint axis="0 1 0" range="-150 20" actuatorfrcrange="-100 100"/>
-        </default>
-        <default class="joint_big_stiff">
-          <joint stiffness="20"/>
+          <joint axis="0 1 0" range="-150 20" />
         </default>
       <default class="KFE">
-        <joint pos="0 0 .02" axis="0 -1 0" range="-160 2" actuatorfrcrange="-150 150"/>
+        <joint pos="0 0 .02" axis="0 -1 0" range="-160 2" />
       </default>
       <default class="ankle">
-        <joint range="-50 50" actuatorfrcrange="-100 100"/>
+        <joint range="-50 50" />
         <default class="FFE">
-          <joint pos="0 0 .08" axis="0 1 0" stiffness="6" actuatorfrcrange="-30 30"/>
+          <joint pos="0 0 .08" axis="0 1 0" stiffness="6" />
         </default>
         <default class="FAA">
-          <joint pos="0 0 .04" stiffness="3" actuatorfrcrange="-20 20"/>
+          <joint pos="0 0 .04" stiffness="3" />
         </default>
       </default>
     </default>
@@ -143,7 +140,7 @@
 
 
 
-  <tendon>
+  <!-- <tendon>
     <fixed name="hamstring_right" limited="true" range="-0.3 2">
       <joint joint="LR_HFE" coef=".5"/>
       <joint joint="LR_KFE" coef="-.5"/>
@@ -152,7 +149,7 @@
       <joint joint="LL_HFE" coef=".5"/>
       <joint joint="LL_KFE" coef="-.5"/>
     </fixed>
-  </tendon>
+  </tendon> -->
 
   <actuator>
     <position class="HR" name="LL_HR" joint="LL_HR" />

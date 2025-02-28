@@ -39,11 +39,13 @@ FEET_SITES = [
 ]
 
 LEFT_FEET_GEOMS = [
-    "foot1_left"
+    "foot1_left",
+    "foot2_left"
 ]
 
 RIGHT_FEET_GEOMS = [
-    "foot1_right"
+    "foot1_right",
+    "foot2_right"
 ]
 
 FEET_GEOMS = LEFT_FEET_GEOMS + RIGHT_FEET_GEOMS

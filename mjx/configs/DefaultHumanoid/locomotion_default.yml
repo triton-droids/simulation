@@ -27,7 +27,7 @@ env:
   reward_config:
     scales: 
       # Tracking related rewards.
-      tracking_lin_vel: 1.0
+      tracking_lin_vel: 1.5
       tracking_ang_vel: 0.75
       # Base related rewards.
       lin_vel_z: 0.0
