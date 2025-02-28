@@ -468,7 +468,7 @@ class Joystick(DefaultHumanoidEnv):
             "joint_deviation_knee": self._cost_joint_deviation_knee(data.qpos[7:]),
             "dof_pos_limits": self._cost_joint_pos_limits(data.qpos[7:]),
             "pose": self._cost_pose(data.qpos[7:]),
-            "is_healthy": self.is_healthy(data),
+            "is_healthy": self.is_healthy(data)
         }
     
 
@@ -616,6 +616,7 @@ class Joystick(DefaultHumanoidEnv):
         del info  # Unused.
         error = swing_peak / self._config.reward_config.max_foot_height - 1.0
         return jp.sum(jp.square(error) * first_contact)
+
 
     def _reward_feet_air_time(
         self,

@@ -22,7 +22,7 @@
     <geom name="floor" type="hfield" hfield="hfield" material="groundplane" contype="1" conaffinity="0" priority="1"
       friction="1.0"/>
   </worldbody>
-  <keyframe>
-<key name="home"qpos='0 0 1.282 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0'/>
+   <keyframe>
+   <key name="home" qpos='-0.0276615 -1.25533e-15 1.02139 0.999791 1.82474e-16 -0.0204594 -1.97893e-15 0.00219935 -0.000258628 0.00694016 -0.0142965 0.0191795 -0.0020099 0.00219935 -0.000258628 0.00694016 -0.0142965 0.0191795 -0.0020099'/>
   </keyframe>
 </mujoco>
