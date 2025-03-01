@@ -33,7 +33,7 @@
     <site size="0.01" rgba="1 0 0 1"/>
 
       <!-- geoms -->
-      <geom type="capsule" contype="0" conaffinity="0" condim="1" material="body" group="1"/>
+      <geom type="capsule" contype="0" conaffinity="0" condim="1" friction="0.7" solimp=".9 .99 .003" solref=".015 1"  material="body" group="1"/>
       <default class="thigh">
         <geom size=".06"/>
       </default>
@@ -41,7 +41,7 @@
         <geom fromto="0 0 0 0 0 -.3"  size=".049"/>
       </default>
       <default class="foot">
-        <geom size=".027" contype="1" conaffinity="1"/>
+        <geom size=".027" contype="0" conaffinity="1"/>
         <default class="foot1">
           <geom fromto="-.07 -.01 0 .14 -.03 0"/>
         </default>
@@ -60,8 +60,8 @@
       </default>
 
       <!-- joints -->
-      <joint type="hinge" damping="1.5" armature=".1" frictionloss="0.1"/>
-      <position kp="75" inheritrange="1"/>
+      <joint type="hinge" damping="1.5" armature=".1" frictionloss="0.1" limited="true" solimplimit="0 .99 .01"/>
+      <position kp="550" dampratio=".6" inheritrange="1"/>
         <default class="HR">
           <joint range="-30 10" />
         </default>
