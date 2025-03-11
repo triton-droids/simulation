@@ -39,7 +39,7 @@ def main():
     args = parser.parse_args()
     default_cfg = Path(registry.get_default_config(args.env))
 
-    #Merge custom configurations with default configurations
+    # Merge custom configurations with default configurations
     cfg = parse_cfg('instruct.yml', default_cfg_path=default_cfg)
 
     print(f"Environment Config:\n{cfg.env}")
