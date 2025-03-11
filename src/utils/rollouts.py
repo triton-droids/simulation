@@ -12,21 +12,21 @@ InferenceFn = Callable[[jp.ndarray, jp.ndarray], tuple[jp.ndarray, jp.ndarray]]
 
 
 def mjx_rollout(
-        eval_env: envs.Env,
-        inference_fn: InferenceFn,
-        episode_length: int = 1000,
-        seed: int = 0,
+    eval_env: envs.Env,
+    inference_fn: InferenceFn,
+    episode_length: int = 1000,
+    seed: int = 0,
 ) -> list[mjxState]:
-    """ Rollout a trajectory using MJX
+    """Rollout a trajectory using MJX
 
-        Args:
-            env: Brax environment
-            inference_fn: Inference function #Not sure if we can obtain inference func during training. Neeed another way
-            episode_length: Length of episode (timesteps)
-            seed: Random seed
-        
-        Returns:
-            The rollout trajectory for a provided length or until the episode ends
+    Args:
+        env: Brax environment
+        inference_fn: Inference function #Not sure if we can obtain inference func during training. Neeed another way
+        episode_length: Length of episode (timesteps)
+        seed: Random seed
+
+    Returns:
+        The rollout trajectory for a provided length or until the episode ends
     """
 
     jit_reset = jax.jit(eval_env.reset)
@@ -47,6 +47,7 @@ def mjx_rollout(
         if state.done:
             break
     return rollout
+
 
 def render_mjx_rollout(
     env: envs.Env,
@@ -80,14 +81,11 @@ def render_mjx_rollout(
     scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE] = False
 
     frames = env.render(
-        traj,
-        camera="track",
-        height=height, 
-        width=width, 
-        scene_option=scene_option
+        traj, camera="track", height=height, width=width, scene_option=scene_option
     )
 
     return np.array(frames)
+
 
 def save_mjx_rollout(
     env: envs.Env,
@@ -97,7 +95,8 @@ def save_mjx_rollout(
     render_every: int = 2,
     seed: int = 0,
     width: int = 640,
-    height: int = 480,):
+    height: int = 480,
+):
 
     rollout = mjx_rollout(env, inference_fn, episode_length, seed)
     traj = rollout[::render_every]
@@ -108,13 +107,8 @@ def save_mjx_rollout(
     scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE] = False
 
     frames = env.render(
-        traj,
-        camera="track",
-        height=height, 
-        width=width, 
-        scene_option=scene_option
+        traj, camera="track", height=height, width=width, scene_option=scene_option
     )
 
     fps = 1.0 / env.dt / render_every
     media.write_video(f"{name}.mp4", frames, fps=fps)
-    
