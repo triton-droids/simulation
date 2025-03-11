@@ -1,6 +1,6 @@
 import argparse
 from src.scripts import brax_train_policy, play, evaluate_policy
-from src.utils.parse import parse_cfg
+from scripts.parse import parse_cfg
 from src.utils import registry
 from pathlib import Path
 
