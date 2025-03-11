@@ -44,13 +44,13 @@ warnings.filterwarnings("ignore", category=UserWarning, module="absl")
 
 
 def brax_train_policy(
-        env_name: str,
-        cfg:  config_dict.ConfigDict, 
-        checkpoint: str = None,
-        exp_name: str = None,
-        record: bool = False
-        ) -> None:
-    
+    env_name: str,
+    cfg: config_dict.ConfigDict,
+    checkpoint: str = None,
+    exp_name: str = None,
+    record: bool = False,
+) -> None:
+
     env = registry.load(env_name, cfg.env)
 
     env_cfg = cfg.env
@@ -82,9 +82,7 @@ def brax_train_policy(
     # Handle checkpoint loading
     if checkpoint is not None:
         # Convert to absolute path
-        checkpoint = epath.Path(
-            checkpoint
-        ).resolve()
+        checkpoint = epath.Path(checkpoint).resolve()
         print(f"Restoring from checkpoint: {checkpoint}")
     else:
         print("No checkpoint path provided, not restoring from checkpoint")
@@ -101,11 +99,9 @@ def brax_train_policy(
         vid_path.mkdir(parents=True, exist_ok=True)
         print(f"Video path: {vid_path}")
 
-        #Load recording environment
-        rec_env = (
-        registry.load(env_name, env_cfg)
-    )
-         
+        # Load recording environment
+        rec_env = registry.load(env_name, env_cfg)
+
     # Save environment configuration
     with open(ckpt_path / "config.json", "w") as fp:
         json.dump(cfg.to_dict(), fp, indent=2)
@@ -121,24 +117,18 @@ def brax_train_policy(
             path = vid_path / f"{current_step}"
             print("Saving rollout at step {current_step} to videos/")
             save_mjx_rollout(rec_env, inference_fn, path, seed=cfg.seed)
-            
-    training_params = dict(ppo_cfg) 
+
+    training_params = dict(ppo_cfg)
     if "network_factory" in training_params:
         del training_params["network_factory"]
 
-    network_fn = (
-       ppo_networks.make_ppo_networks
-    )
-    network_factory = functools.partial(
-        network_fn, **ppo_cfg.network_factory
-    )
+    network_fn = ppo_networks.make_ppo_networks
+    network_factory = functools.partial(network_fn, **ppo_cfg.network_factory)
 
     if env_cfg.d_randomization:
-        training_params["randomization_fn"] =  registry.get_domain_randomizer(env_name)
-    num_eval_envs = (
-      ppo_cfg.num_envs
-  )
-    
+        training_params["randomization_fn"] = registry.get_domain_randomizer(env_name)
+    num_eval_envs = ppo_cfg.num_envs
+
     if "num_eval_envs" in training_params:
         del training_params["num_eval_envs"]
 
@@ -172,20 +162,16 @@ def brax_train_policy(
         print(f"{num_steps}: reward={metrics['eval/episode_reward']:.3f}")
 
     # Load evaluation environment
-    eval_env = (
-        registry.load(env_name, env_cfg)
-    )
-    
+    eval_env = registry.load(env_name, env_cfg)
+
     # Train or load the model
     make_inference_fn, params, _ = train_fn(
-      environment=env,
-      progress_fn=progress,
-      eval_env=eval_env
-  )
+        environment=env, progress_fn=progress, eval_env=eval_env
+    )
 
     print("Done training.")
     if len(times) > 1:
         print(f"Time to JIT compile: {times[1] - times[0]}")
         print(f"Time to train: {times[-1] - times[1]}")
-    
+
     return make_inference_fn
