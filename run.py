@@ -1,7 +1,7 @@
 import argparse
-from mjx.scripts import brax_train_policy, play, evaluate_policy
-from mjx.utils.parse import parse_cfg
-from mjx.utils import registry
+from src.scripts import brax_train_policy, play, evaluate_policy
+from src.utils.parse import parse_cfg
+from src.utils import registry
 from pathlib import Path
 
 # from mjx.utils.registry import ALL_ENVS
