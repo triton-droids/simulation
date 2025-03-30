@@ -3,7 +3,7 @@ from absl import logging
 from brax.io import model
 from brax.training.acme import running_statistics
 from brax.training.agents.ppo import networks as ppo_networks
-from mjx.utils.rollouts import render_mjx_rollout
+from ..utils.rollouts import render_mjx_rollout
 
 
 def play(env, cfg, seed, model_path):

@@ -20,7 +20,7 @@ from ml_collections import ConfigDict
 from mujoco import mjx
 import functools
 
-from mjx.envs import locomotion
+from ..envs import locomotion
 from mujoco_playground._src import mjx_env
 from ml_collections import config_dict
 

@@ -25,8 +25,8 @@ import wandb
 
 from mujoco_playground._src import mjx_env
 from mujoco_playground import wrapper
-from mjx.utils import registry
-from mjx.utils.rollouts import save_mjx_rollout
+from ..utils import registry
+from ..utils.rollouts import save_mjx_rollout
 
 
 # Ignore the info logs from brax
