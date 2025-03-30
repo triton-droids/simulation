@@ -23,8 +23,7 @@ from mujoco import mjx
 
 from mujoco_playground import MjxEnv
 from .default_humanoid import joystick as default_humanoid_joystick
-from mjx.envs.locomotion.default_humanoid import randomize as default_humanoid_randomize
-from mjx.envs import locomotion
+from .default_humanoid import randomize as default_humanoid_randomize
 
 DomainRandomizer = Optional[
     Callable[[mjx.Model, jax.Array], Tuple[mjx.Model, mjx.Model]]
@@ -42,8 +41,8 @@ _envs = {
 
 #Register 'default' config paths here
 _cfgs = {
-    "DefaultHumanoidJoystickFlatTerrain": 'mjx/configs/DefaultHumanoid/locomotion_default.yml',
-    "DefaultHumanoidJoystickRoughTerrain": 'mjx/configs/DefaultHumanoid/locomotion_default.yml'
+    "DefaultHumanoidJoystickFlatTerrain": 'src/configs/DefaultHumanoid/locomotion_default.yml',
+    "DefaultHumanoidJoystickRoughTerrain": 'src/configs/DefaultHumanoid/locomotion_default.yml'
 }
 
 

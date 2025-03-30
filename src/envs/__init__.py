@@ -1,6 +1,6 @@
 """MJX environments."""
 
-from mjx.envs import locomotion
+from . import locomotion
 
 
 __all__ = ["locomotion"]

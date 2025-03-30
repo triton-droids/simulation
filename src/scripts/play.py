@@ -3,7 +3,7 @@ from absl import logging
 from brax.io import model
 from brax.training.acme import running_statistics
 from brax.training.agents.ppo import networks as ppo_networks
-from mjx.utils.rollouts import render_mjx_rollout
+from ..utils.rollouts import render_mjx_rollout
 
 
 def play(env, cfg, seed, model_path):
@@ -22,14 +22,12 @@ def play(env, cfg, seed, model_path):
     params = model.load_params(model_path)
 
     if ppo_cfg.normalize_observations:
-        normalize = (
-            running_statistics.normalize
-        )
+        normalize = running_statistics.normalize
 
     policy_network = ppo_networks.make_ppo_networks(
         observation_size=env.observation_size,
         action_size=env.action_size,
-        **ppo_cfg.network_factory
+        **ppo_cfg.network_factory,
     )
     params = (params[0], params[1].policy)
     # Params are a tuple of (processor_params, PolicyNetwork)
@@ -42,4 +40,3 @@ def play(env, cfg, seed, model_path):
     # else:
     #     images_thwc = render_mjx_rollout(env, inference_fn, n_steps, render_every, width=width, height=height)
     # print(f"Rolled out {len(images_thwc)} steps")
-

@@ -4,6 +4,4 @@
 #   action_scale: 1.0
 #
 #  Will rewrite the default experiment name to "test" from the provided config passed to run.py 
-# 
-# See doc/templates
 
