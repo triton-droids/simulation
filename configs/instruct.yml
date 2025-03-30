@@ -1,0 +1,7 @@
+# Override any default configurations for the expected environment and RL training algorithm here
+#e.g.
+#  env:
+#   action_scale: 1.0
+#
+#  Will rewrite the default experiment name to "test" from the provided config passed to run.py 
+
