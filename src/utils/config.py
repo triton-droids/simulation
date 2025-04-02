@@ -1,3 +1,4 @@
+from .logger import Logger
 from glob import glob
 import yaml
 import os
@@ -8,7 +9,6 @@ theFiles = [
     ("tools/configs/models", glob("tools/configs/models/**/*.yml", recursive=True))
 ]
 
-#print(grouped_files)
 class Configurations:
     def __init__(self):
         with open(theFiles[0][1][0], 'r') as theData:
@@ -21,7 +21,10 @@ class Configurations:
                 'instructions': theInstructions,
                 'model': theModel,
         }
-
+        # Global configurations for loggers
+        logger = Logger.configure(theInstructions)
+         
+        
     def __getitem__(self, key):
         return self.configs[key]
 
