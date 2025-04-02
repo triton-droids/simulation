@@ -1,0 +1,19 @@
+train:
+  environment: "DefaultHumanoidJoyStickFlatTerrain" #"DefaultHumanoidJoystickRoughTerrain"
+  framework: "brax_ppo"
+  settings:
+    enable_checkpoints: true
+    enable_record: true
+    enable_logging: true
+    enable_testing: false
+
+test:
+  environment: "DefaultHumanoidJoyStickFlatTerrain"
+  settings:
+    enable_checkpoints: true
+    enable_rendering: true
+    enable_record: true
+    enable_logging: true
+
+general:
+
