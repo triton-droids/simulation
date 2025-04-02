@@ -1,5 +1,5 @@
 from src.core import Driver, Trainer, Tester
-from src.utils import Logger
+import logging
 
 if __name__ == "__main__":
     theDriver = Driver()
