@@ -30,13 +30,10 @@ DomainRandomizer = Optional[
 
 ALL_ENVS = locomotion.ALL
 
-
 def get_default_config(env_name: str) -> str:
     if env_name in locomotion.ALL:
         return locomotion.get_default_config(env_name)
-
     raise ValueError(f"Env '{env_name}' not found in default configs.")
-
 
 def load(
     env_name: str,

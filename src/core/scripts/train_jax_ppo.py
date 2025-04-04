@@ -1,39 +1,31 @@
 """Train a PPO agent using JAX on the specified environment."""
-
-import os
+from datetime import datetime
+from absl import logging
+from ml_collections import config_dict
+from brax.training.agents.ppo import networks as ppo_networks
+from brax.training.agents.ppo import train as ppo
+from orbax import checkpoint as ocp
+from flax.training import orbax_utils
+from etils import epath
+from tensorboardX import SummaryWriter
+from mujoco_playground._src import mjx_env
+from mujoco_playground import wrapper
+from ..utils import registry
+from ..utils.rollouts import save_mjx_rollout
+import jax.numpy as jp
+import functools
+import json
+import time
+import wandb
+import warnings
 
 xla_flags = os.environ.get("XLA_FLAGS", "")
 xla_flags += " --xla_gpu_triton_gemm_any=True"
 os.environ["XLA_FLAGS"] = xla_flags
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
-from datetime import datetime
-import functools
-import json
-import time
-
-from absl import logging
-from ml_collections import config_dict
-from brax.training.agents.ppo import networks as ppo_networks
-from brax.training.agents.ppo import train as ppo
-from etils import epath
-from flax.training import orbax_utils
-import jax.numpy as jp
-from orbax import checkpoint as ocp
-from tensorboardX import SummaryWriter
-import wandb
-
-from mujoco_playground._src import mjx_env
-from mujoco_playground import wrapper
-from ..utils import registry
-from ..utils.rollouts import save_mjx_rollout
-
-
 # Ignore the info logs from brax
 logging.set_verbosity(logging.WARNING)
-
-# Suppress warnings
-import warnings
 
 # Suppress RuntimeWarnings from JAX
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="jax")
@@ -41,7 +33,6 @@ warnings.filterwarnings("ignore", category=RuntimeWarning, module="jax")
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="jax")
 # Suppress UserWarnings from absl (used by JAX and TensorFlow)
 warnings.filterwarnings("ignore", category=UserWarning, module="absl")
-
 
 def brax_train_policy(
     env_name: str,
@@ -52,9 +43,11 @@ def brax_train_policy(
 ) -> None:
 
     env = registry.load(env_name, cfg.env)
-
+    print(env)
     env_cfg = cfg.env
     ppo_cfg = cfg.brax_ppo_agent
+    print(ppo_cfg)
+    print(env_cfg)
 
     # Generate unique experiment name
     now = datetime.now()
@@ -67,6 +60,7 @@ def brax_train_policy(
     # Set up logging directory
     logdir = epath.Path("logs").resolve() / experiment_name
     logdir.mkdir(parents=True, exist_ok=True)
+    print(logdir)
     print(f"Logs are being stored in: {logdir}")
 
     # Initialize Weights & Biases if required

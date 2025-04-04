@@ -1,5 +1,6 @@
 from .misc.enums import TDroidType
 from enum import Enum
+from ml_collections import ConfigDict
 from typing import Type, TypeVar
 
 T = TypeVar('T', bound=Enum)
@@ -28,3 +29,16 @@ class Helper:
     @staticmethod
     def toString(anEnum: Type[T]) -> str:
         return Helper._string_map[anEnum]
+
+    @staticmethod
+    def toConfigDict(aDict: dict) -> ConfigDict:
+        if isinstance(aDict, dict):
+            return ConfigDict({k: Helper.toConfigDict(v) for k, v in aDict.items()})
+        elif isinstance(aDict, list):
+            return [Helper.toConfigDict(i) for i in aDict]
+        elif isinstance(aDict, (str, int, float, bool, type(None))):
+            return aDict
+        else:
+            raise ValueError(f"Unsupported config type: {type(aDict)} — value: {repr(aDict)}")
+
+ 

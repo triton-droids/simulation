@@ -1,68 +1,30 @@
-FROM nvidia/cuda:12.6.3-runtime-ubuntu22.04
-WORKDIR /tdroids
+FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu24.04
+WORKDIR /TDROID
 
-ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
-ENV PATH=/opt/mujoco/bin:$PATH
-ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    DEBIAN_FRONTEND=noninteractive
 
-# Dependencies for Mujoco and general tools
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \
-    curl \
-    gnupg \
-    ca-certificates \
-    build-essential \
-    software-properties-common \
-    libosmesa6-dev \
-    libgl1-mesa-glx \
-    libxrender1 \
-    libxrandr2 \
-    libxcursor1 \
-    libxi6 \
-    libglu1-mesa \
-    libxinerama1 \
-    libx11-dev \
-    x11-apps \
-    mesa-utils \
-    patchelf \
-    python3 \
-    python3-venv \
-    python3-dev \
-    python3-pip \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+  vim \
+  neovim \
+  gedit \
+  python3 \
+  python3-venv \
+  python3-pip \
+  git \
+  && rm -rf /var/lib/apt/lists/*
 
-# Add deadsnakes PPA for the latest Python version
-RUN add-apt-repository -y ppa:deadsnakes/ppa && apt-get update && apt-get install -y \
-    python3.11 \
-    python3.11-venv \
-    python3.11-dev \
-    python3-pip \
-    && rm -rf /var/lib/apt/lists/*
+RUN ln -sf /usr/bin/python3 /usr/bin/python
+RUN git clone https://github.com/triton-droids/simulation.git
+RUN python3 -m venv /TDROID/sim_venv
+RUN /TDROID/sim_venv/bin/pip install --upgrade pip \
+ && /TDROID/sim_venv/bin/pip install \
+    "jax[cuda12_local]" \
+    absl-py wandb mediapy brax playground \
+    -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
-# Upgrade pip to the latest version
-RUN python3.11 -m pip install --no-cache-dir --upgrade pip
+RUN echo 'sim() { source /TDROID/sim_venv/bin/activate; }' >> /root/.bashrc
 
-# Install prebuilt binary package of MuJoCo
-RUN mkdir -p /opt/mujoco && \
-    cd /opt/mujoco && \
-    wget -q https://github.com/google-deepmind/mujoco/releases/download/3.2.7/mujoco-3.2.7-linux-x86_64.tar.gz && \
-    wget -q https://github.com/google-deepmind/mujoco/releases/download/3.2.7/mujoco-3.2.7-linux-x86_64.tar.gz.sha256 && \
-    sha256sum -c mujoco-3.2.7-linux-x86_64.tar.gz.sha256 && \
-    tar -xzf mujoco-3.2.7-linux-x86_64.tar.gz --strip-components=1 && \
-    rm mujoco-3.2.7-linux-x86_64.tar.gz mujoco-3.2.7-linux-x86_64.tar.gz.sha256
 
-# Install Python dependencies
-# Consider adding a requirements.txt and put these on here
-# just add -r requirements.txt
-RUN python3.11 -m pip install --no-cache-dir --timeout=1000 \
-    numpy \
-    gymnasium \
-    matplotlib \
-    tensorflow \
-    torch \
-    scipy
-
-RUN echo "Copyright @ rriton Droids 2024"
-
-CMD ["bash"]
 

@@ -4,7 +4,7 @@ train:
   settings:
     enable_checkpoints: true
     enable_record: true
-    enable_logging: true
+    enable_logging: false
     enable_testing: false
 
 simulate:
@@ -18,4 +18,3 @@ simulate:
 general:
   settings:
     enable_logging: true
-

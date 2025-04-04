@@ -14,14 +14,18 @@
 # ==============================================================================
 
 """ Constants for Default Humanoid"""
-
 from etils import epath
-ROOT_PATH = epath.Path(__file__).parent # This needs to be fixed to redirect to tools/configs/
+from pathlib import Path
+import os
 
-print(ROOT_PATH)
+
+ROOT_PATH = Path(os.path.join(os.getcwd(), "tools/configs/models"))
+#ROOT_PATH = epath.Path(__file__).parents
+
 FEET_ONLY_FLAT_TERRAIN_XML = (
     ROOT_PATH / "DefaultHumanoid" / "xmls" / "scene_mjx_feetonly_flat_terrain.xml"
 )
+
 FEET_ONLY_ROUGH_TERRAIN_XML = (
     ROOT_PATH / "DefaultHumanoid" / "xmls" / "scene_mjx_feetonly_rough_terrain.xml"
 )
@@ -51,7 +55,6 @@ FEET_BODIES = LEFT_FEET_BODY + RIGHT_FEET_BODY
 FEET_POS_SENSOR = [f"{site}_pos" for site in FEET_SITES]
 
 ROOT_BODY = "torso"
-
 GRAVITY_SENSOR = "upvector"
 GLOBAL_LINVEL_SENSOR = "global_linvel"
 GLOBAL_ANGVEL_SENSOR = "global_angvel"

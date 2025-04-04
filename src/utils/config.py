@@ -1,4 +1,6 @@
 from .logger import Logger
+from .helper import Helper
+from ml_collections import ConfigDict
 from glob import glob
 import yaml
 import os
@@ -12,20 +14,18 @@ theFiles = [
 class Configurations:
     def __init__(self):
         with open(theFiles[0][1][0], 'r') as theData:
-            theInstructions = yaml.safe_load(theData)
+            theInstructions = Helper.toConfigDict(yaml.safe_load(theData))
 
         with open(theFiles[1][1][0], 'r') as theData:
-            theModel = yaml.safe_load(theData)
-
-        self.configs = {
-                'instructions': theInstructions,
-                'model': theModel,
-        }
+            theModel = Helper.toConfigDict(yaml.safe_load(theData))
+        
+        self.configs = ConfigDict({
+            'instructions': theInstructions,
+            'model': theModel,
+        })
         # Global configurations for loggers
         logger = Logger.configure(theInstructions)
          
-        
-    def __getitem__(self, key):
-        return self.configs[key]
-
+    def __getattr__(self, aKey):
+        return getattr(self.configs, aKey) 
 

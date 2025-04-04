@@ -2,6 +2,15 @@
 
 Official repository for **Triton Droids** simulations.
 
+## Table of Contents
+- [Dockerfiles](#dockerfiles)
+- [Using Docker Images](#using-docker-images)
+- - [MacOS](#macos)
+- - [Windows](#windows)
+- - [Linux](#linux)
+- [Mounting Directories](#mounting-directories)
+- [X11 GUI Forwarding](#x11-gui-forwarding)
+
 ## Installation and Configuration
 
 Please refer to [setup.md] for installation and configuration steps.
@@ -19,7 +28,6 @@ This simulator codebase provides a platform for:
 - **Sim2Real Transfer**: Deploy the policy to a physical robot to achieve motion control. (IN PROGRESS)
 
 ## Code Structure
-
 Here's an overview of the directory structure:
 
 ```Markdown
@@ -33,6 +41,15 @@ Here's an overview of the directory structure:
 ```
 
 ## User Guide
+
+### 0. Docker
+Please install Docker on your computer.
+
+- [Windows](https://docs.docker.com/desktop/setup/install/windows-install/)
+- [Mac](https://docs.docker.com/desktop/setup/install/mac-install/)
+- [Linux](https://docs.docker.com/desktop/setup/install/linux/)
+
+A docker image exists so that everyone can have the same dependencies and remove said errors. As such, please develop in this container and not on your computer. This way, we can isolate non-container and container errors.
 
 `run.py` serves as the main entry point. The execution environment can be configured using the `instructs.yml` file, allowing users to override default settings. If no instructions are provided the default configuration will run.
 
