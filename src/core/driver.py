@@ -11,6 +11,14 @@ class Driver:
         theTrainConfig = self.configs.instructions.train
         theEnvironment, theFramework = theTrainConfig.environment, theTrainConfig.framework
         self.theTrainer = Trainer(self.configs.model, theEnvironment, theFramework)
+        
+        general = Logger(TDroidType.Log.GENERAL)
+        train = Logger(TDroidType.Log.TRAIN)
+        sim = Logger(TDroidType.Log.SIMULATE)
+
+        general.info("Hello")
+        train.info("Hello")
+        sim.info("Hello")
 
     def train(self):
         pass

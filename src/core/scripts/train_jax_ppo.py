@@ -10,14 +10,15 @@ from etils import epath
 from tensorboardX import SummaryWriter
 from mujoco_playground._src import mjx_env
 from mujoco_playground import wrapper
-from ..utils import registry
-from ..utils.rollouts import save_mjx_rollout
+from . import registry
+from .rollouts import save_mjx_rollout
 import jax.numpy as jp
 import functools
 import json
 import time
 import wandb
 import warnings
+import os
 
 xla_flags = os.environ.get("XLA_FLAGS", "")
 xla_flags += " --xla_gpu_triton_gemm_any=True"

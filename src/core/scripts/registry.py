@@ -19,8 +19,7 @@ import jax
 from ml_collections import ConfigDict
 from mujoco import mjx
 import functools
-
-from ..envs import locomotion
+from ..models import DefaultHumanoid as locomotion
 from mujoco_playground._src import mjx_env
 from ml_collections import config_dict
 
