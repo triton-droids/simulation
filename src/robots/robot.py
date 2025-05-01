@@ -54,8 +54,8 @@ class Robot:
                 "jnt_bodyid": joint["jnt_bodyid"],
             }
             self.joint_limits[joint["name"]] = {
-                "min": joint["jnt_range"][0],
-                "max": joint["jnt_range"][1],
+                "min": joint["jnt_range"].split(" ")[0],
+                "max": joint["jnt_range"].split(" ")[1],
             }
 
         self.geoms = {}
@@ -65,15 +65,14 @@ class Robot:
             }
             
         self.bodies = {}
-        for id, body in self.model_config["BODY"].items():
-            id = int(id.split(" ")[1])
-            if body["name"] == "world":
-                continue
+        body_data = {int(k.split()[1]): v for k, v in self.model_config["BODY"].items() 
+                     if int(k.split()[1]) != 0}
+        for id, body in body_data.items():
             self.bodies[body["name"]] = {
-                "body_id": id,
-                "body_parentid": body["body_parentid"],
-                "body_jntadr": body["body_jntadr"],
-                "body_geom_adr": body["body_geomadr"],
+                "weld_id": body["body_weldid"],
+                "parent_id": body["body_parentid"],
+                "jnt_adr": body["body_jntadr"],
+                "geom_adr": body["body_geomadr"],
             }
         
         self.sensors = {}
@@ -108,6 +107,8 @@ class Robot:
                 "actuator_forcerange": actuator["actuator_forcerange"],
                 
             }
+        self.nu = len(self.actuators)
+        self.body_to_joint_mapping = self.body_to_joint_mapping()
         
     def get_joint_attrs(self, attr: str):
         """Get the attributes of a a model component.
@@ -127,6 +128,40 @@ class Robot:
         # if "foot_name" in self.config["general"]:
         #     self.foot_name = self.config["general"]["foot_name"]
 
-       
+    def body_to_joint_mapping(self):
+        body_data = {int(k.split()[1]): v for k, v in self.model_config["BODY"].items() 
+                     if int(k.split()[1]) != 0}
+        joint_data = {int(k.split()[1]): v for k, v in self.model_config["JOINT"].items()}
 
+        # Build body id to name and name to id mappings
+        body_id_to_name = {bid: binfo['name'] for bid, binfo in body_data.items()}
+        body_name_to_id = {v: k for k, v in body_id_to_name.items()}
+
+        # Build parent-child relationship
+        body_children = {}
+        body_parents = {}
+        for bid, binfo in body_data.items():
+            pid = int(binfo['body_parentid'])
+            body_children.setdefault(pid, []).append(bid)
+            body_parents[bid] = pid
+
+        # Map joints to the body they belong to
+        joints_by_body = {}
+        for jid, jinfo in joint_data.items():
+            b_id = int(jinfo['jnt_bodyid'])
+            joints_by_body.setdefault(b_id, []).append(jinfo['name'])
+
+        # Recursive function to get all joints under a body (including sub-bodies)
+        def collect_all_joints(body_id):
+            joints = set(joints_by_body.get(body_id, []))
+            for child_id in body_children.get(body_id, []):
+                joints.update(collect_all_joints(child_id))
+            return joints
+
+        # Final mapping: body name → all joints inside it (including descendants)
+        body_to_all_joints = {
+            body_id_to_name[bid]: collect_all_joints(bid) for bid in body_id_to_name
+        }
+
+        return body_to_all_joints
             
