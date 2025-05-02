@@ -18,6 +18,10 @@ def print_mj_model(xml_path):
 def parse_mj_model(xml_path: str):
     relevant_sections = set(['BODY', 'JOINT', 'DOF', 'GEOM', 'SITE', 'CAMERA', 'ACTUATOR', 'SENSOR'])
     result = {section: {} for section in relevant_sections}
+    
+    # Add fields for default joint angles and motor controls
+    result['default_joint_angles'] = {}
+    result['default_motor_ctrls'] = {}
 
     mj_model_str = print_mj_model(xml_path)
     lines = mj_model_str.splitlines()
@@ -28,13 +32,30 @@ def parse_mj_model(xml_path: str):
             i += 1
             continue
 
-        current_section = line.split()[0]
-        if current_section in relevant_sections:
+        parts = line.split()
+        if not parts:
+            i += 1
+            continue
+            
+        current_section = parts[0]
+        
+        # Handle key_qpos0 (default joint angles)
+        if current_section == 'key_qpos0':
+            # Skip the first element which is 'key_qpos0'
+            result['default_joint_angles'] = [float(x) for x in parts[1:]]
+            i += 1
+        # Handle key_ctrl0 (default motor controls)
+        elif current_section == 'key_ctrl0':
+            # Skip the first element which is 'key_ctrl0'
+            result['default_motor_ctrls'] = [float(x) for x in parts[1:]]
+            i += 1
+        # Handle regular sections we're interested in
+        elif current_section in relevant_sections:
             result[current_section][line[:-1]] = {}
             i += 1
 
             # Iterate through the section's lines
-            while i < len(lines) and lines[i] and lines[i].split()[0] not in relevant_sections:
+            while i < len(lines) and lines[i] and lines[i].split()[0] not in relevant_sections and lines[i].split()[0] not in ['key_qpos0', 'key_ctrl0']:
                 section_name = lines[i].split()[0]
                 result[current_section][line[:-1]][section_name] = ' '.join(lines[i].split()[1:])
                 i += 1
@@ -49,9 +70,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     robot_dir = os.path.join("src", "robots", args.robot)
+    general_config = {}
+    general_config["offsets"] = {
+        "foot_to_com_x": 0.0,
+        "foot_to_com_y": 0.09,
+    }
     robot_xml = os.path.join(robot_dir, args.robot + ".xml")
+    
 
     mj_model = parse_mj_model(robot_xml)
+
 
     os.makedirs(robot_dir, exist_ok=True)
     file_path = os.path.join(robot_dir, "mj_model.json")

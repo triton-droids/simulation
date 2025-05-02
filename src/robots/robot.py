@@ -109,7 +109,17 @@ class Robot:
             }
         self.nu = len(self.actuators)
         self.body_to_joint_mapping = self.body_to_joint_mapping()
+
+        self.default_joint_angles = self.model_config["default_joint_angles"]
+        self.default_motor_ctrls = self.model_config["default_motor_ctrls"]
         
+        # Create mapping between joint names and their initial angles based on qposadr
+        self.init_joint_angles = {}
+        for joint_name, joint_info in list(self.joints.items())[1:]:
+            qpos_index = int(joint_info["qposadr"])
+            if qpos_index < len(self.default_joint_angles):
+                self.init_joint_angles[joint_name] = self.default_joint_angles[qpos_index]
+
     def get_joint_attrs(self, attr: str):
         """Get the attributes of a a model component.
         
