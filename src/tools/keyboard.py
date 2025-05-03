@@ -5,17 +5,13 @@ class KeyboardController:
         self.linear_speed = linear_speed
         self.angular_speed = angular_speed
 
-        # This dictionary keeps current velocity state
-        self.command = {
-            "linear_velocity": 0.0,
-            "angular_velocity": 0.0
-        }
-
         # Track which keys are currently pressed
         self.pressed_keys = set()
 
+        # Command format: [lin_vel_x, lin_vel_y, ang_vel_yaw]
+        self.command = [0.0, 0.0, 0.0]
+
     def key_callback(self, window, key, scancode, action, mods):
-        # Key press
         if action == glfw.PRESS:
             self.pressed_keys.add(key)
         elif action == glfw.RELEASE:
@@ -24,18 +20,20 @@ class KeyboardController:
         self._update_command()
 
     def _update_command(self):
-        # Reset
-        self.command["linear_velocity"] = 0.0
-        self.command["angular_velocity"] = 0.0
+        lin_vel_x = 0.0
+        lin_vel_y = 0.0  # Optional: support strafe with keys like Q/E or LEFT/RIGHT
+        ang_vel_yaw = 0.0
 
         if glfw.KEY_W in self.pressed_keys:
-            self.command["linear_velocity"] += self.linear_speed
+            lin_vel_x += self.linear_speed
         if glfw.KEY_S in self.pressed_keys:
-            self.command["linear_velocity"] -= self.linear_speed
+            lin_vel_x -= self.linear_speed
         if glfw.KEY_A in self.pressed_keys:
-            self.command["angular_velocity"] -= self.angular_speed
+            ang_vel_yaw -= self.angular_speed
         if glfw.KEY_D in self.pressed_keys:
-            self.command["angular_velocity"] += self.angular_speed
+            ang_vel_yaw += self.angular_speed
+
+        self.command = [lin_vel_x, lin_vel_y, ang_vel_yaw]
 
     def get_command(self):
         return self.command
