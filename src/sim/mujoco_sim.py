@@ -5,7 +5,7 @@ from typing import Dict
 from time import time
 
 from src.robots.robot import Robot
-from sim.mujoco_utils import MuJoCoRenderer, MuJoCoViewer
+from src.sim.mujoco_utils import MuJoCoRenderer, MuJoCoViewer
 from src.sim.sim_types import JointState
 
 
@@ -15,7 +15,7 @@ class MujocoSim:
 
     It provides an interface for interacting with a model in the MuJoCo simulation environment, 
     allowing functions to control and observe the model's behavior. It supports retrieving motor and joint states, 
-    setting joint angles, advancing the simulation, and visualizing the robot's movements. 
+    setting joint angles, advancing the simulation, visualizing the robot's movements, and computing transformation matrices. 
     Includes features like applying random forces to the robot and resetting the simulation.
     """
     def __init__(
@@ -24,7 +24,7 @@ class MujocoSim:
         n_frames: int = 20,
         dt: float = 0.001,
         xml_path: str = "",
-        vis_type: str = "render"
+        vis_type: str = "render",
     ):
         """ Initalizes the simulation environment for a robot using the MuJoCo physics engine. """
 
@@ -44,6 +44,43 @@ class MujocoSim:
             self.visualizer = MuJoCoRenderer(self.model)
         elif vis_type == "view":
             self.visualizer = MuJoCoViewer(robot, self.model, self.data)
+        
+    
+    def get_body_transform(self, body_name: str):
+        """Computes the transformation matrix for a specified body.
+
+        Args:
+            body_name (str): The name of the body for which to compute the transformation matrix.
+
+        Returns:
+            np.ndarray: A 4x4 transformation matrix representing the position and orientation of the body.
+        """
+        transformation = np.eye(4)
+        body_pos = self.data.body(body_name).xpos.copy()
+        body_mat = self.data.body(body_name).xmat.reshape(3, 3).copy()
+        transformation[:3, :3] = body_mat
+        transformation[:3, 3] = body_pos
+        return transformation
+
+    def get_site_transform(self, site_name: str):
+        """Retrieves the transformation matrix for a specified site.
+
+        This method constructs a 4x4 transformation matrix for the given site name,
+        using the site's position and orientation matrix. The transformation matrix
+        is composed of a 3x3 rotation matrix and a 3x1 translation vector.
+
+        Args:
+            site_name (str): The name of the site for which to retrieve the transformation matrix.
+
+        Returns:
+            numpy.ndarray: A 4x4 transformation matrix representing the site's position and orientation.
+        """
+        transformation = np.eye(4)
+        site_pos = self.data.site(site_name).xpos.copy()
+        site_mat = self.data.site(site_name).xmat.reshape(3, 3).copy()
+        transformation[:3, :3] = site_mat
+        transformation[:3, 3] = site_pos
+        return transformation
         
 
     def get_motor_state(self) -> Dict[str, JointState]: 
@@ -199,8 +236,8 @@ class MujocoSim:
         """
         for _ in range(self.n_frames):
             mujoco.mj_step(self.model, self.data)
-        if self.visualizer is not None:
-            self.visualizer.visualize(self.data)
+
+        self.visualizer.visualize(self.data)
 
     def forward(self):
         """Advances the simulation forward by a specified number of frames and visualizes the result if a visualizer is available.
@@ -210,8 +247,8 @@ class MujocoSim:
         """
         for _ in range(self.n_frames):
             mujoco.mj_step(self.model, self.data)
-        if self.visualizer is not None:
-            self.visualizer.visualize(self.data)
+
+        self.visualizer.visualize(self.data)
 
     def get_obs(self):
         """ Get the observation from the simulation."""
@@ -219,8 +256,7 @@ class MujocoSim:
 
     def close(self):
         """ Closes the visualizer if it is currently open."""
-        if self.visualizer is not None:
-            self.visualizer.close()
+        self.visualizer.close()
     
     def push(
         self, 
