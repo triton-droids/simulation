@@ -108,6 +108,8 @@ class MujocoViewer:
             rgba=[1, 0, 0, 1],
         )
         self.viewer.user_scn.ngeom = i + 1
+    
+
 
 
     def close(self):
@@ -115,7 +117,7 @@ class MujocoViewer:
         self.viewer.close()
 
 
-class MuJoCoRenderer:
+class MujocoRenderer:
     """A class for rendering MuJoCo simulation data and recording video output.
 
     Provides functionality to record and visualize the robot's motion over time. 

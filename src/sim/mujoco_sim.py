@@ -5,7 +5,7 @@ from typing import Dict
 from time import time
 
 from src.robots.robot import Robot
-from src.sim.mujoco_utils import MuJoCoRenderer, MuJoCoViewer
+from src.sim.mujoco_utils import MujocoRenderer, MujocoViewer
 from src.sim.sim_types import JointState
 
 
@@ -41,9 +41,9 @@ class MujocoSim:
         self.robot = robot
 
         if vis_type == "render":
-            self.visualizer = MuJoCoRenderer(self.model)
+            self.visualizer = MujocoRenderer(self.model)
         elif vis_type == "view":
-            self.visualizer = MuJoCoViewer(robot, self.model, self.data)
+            self.visualizer = MujocoViewer(robot, self.model, self.data)
         
     
     def get_body_transform(self, body_name: str):
@@ -81,8 +81,21 @@ class MujocoSim:
         transformation[:3, :3] = site_mat
         transformation[:3, 3] = site_pos
         return transformation
-        
 
+    def get_body_position(self, body1_name: str, body2_name: str):
+        """ Computes the position of a specified body relative to another body.
+
+        Args:
+            body1_name (str): The name of the body for which to compute the position.
+            body2_name (str): The name of the body to which the position is relative.
+
+        Returns:
+            np.ndarray: A 3x1 array representing the position of the body.
+        """
+        body1_transform = self.get_body_transform(body1_name)
+        body2_transform = self.get_body_transform(body2_name)
+        return body1_transform[:3, 3] - body2_transform[:3, 3]
+        
     def get_motor_state(self) -> Dict[str, JointState]: 
         """Retrieve the current state of each motor in the robot.
 
