@@ -4,8 +4,8 @@ train:
   settings:
     enable_checkpoints: true
     enable_record: true
-    enable_logging: false
-    enable_testing: false
+    enable_logging: true
+    enable_testing: true
 
 simulate:
   environment: "DefaultHumanoidJoyStickFlatTerrain"
@@ -13,8 +13,8 @@ simulate:
     enable_checkpoints: true
     enable_rendering: true
     enable_record: true
-    enable_logging: true
+    enable_logging: false
 
 general:
   settings:
-    enable_logging: true
+    enable_logging: false
