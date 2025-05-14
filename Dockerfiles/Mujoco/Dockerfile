@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.6.3-runtime-ubuntu22.04
+FROM ghcr.io/nvidia/jax:equinox
 WORKDIR /tdroids
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     software-properties-common \
     libosmesa6-dev \
-    libgl1-mesa-glx \
+    libgl1 \
     libxrender1 \
     libxrandr2 \
     libxcursor1 \
@@ -40,7 +40,7 @@ RUN add-apt-repository -y ppa:deadsnakes/ppa && apt-get update && apt-get instal
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip to the latest version
-RUN python3.11 -m pip install --no-cache-dir --upgrade pip
+RUN python3.11 -m pip install --no-cache-dir --upgrade pip --ignore-installed pip
 
 # Install prebuilt binary package of MuJoCo
 RUN mkdir -p /opt/mujoco && \
