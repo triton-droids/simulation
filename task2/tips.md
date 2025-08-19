@@ -49,13 +49,6 @@ $\mathcal{L}(\theta) = \frac{1}{2} \sum_{i=1}^N \left[ \frac{\|a_i - \mu_\theta(
 
 ---
 
-## Intuition
-
-1. **Capturing multimodality:** The policy can **spread probability mass over multiple plausible actions**, instead of averaging them.
-2. **Modeling uncertainty:** The variance allows the network to **express confidence**. Low variance for consistent expert behavior; high variance where the expert is variable.
-
----
-
 ## Negative Log-Likelihood (NLL) with a Gaussian Actor
 
 A **Gaussian actor** learns to predict a **distribution over actions** for each state rather than a single deterministic action. This allows the policy to capture the variability in expert demonstrations instead of averaging multiple plausible actions, which can produce invalid results.  
@@ -66,20 +59,16 @@ Training uses the **negative log-likelihood (NLL)**:
 - NLL minimizes the “cost” of the expert action under the predicted distribution.
 - Intuitively, this makes the **most probable actions for a given state more likely**, while also accounting for variability and uncertainty in the demonstrations.
 
-Mathematically, for Gaussian outputs:
-
-$$
-\mathcal{L}_{\text{NLL}} = -\sum_{i=1}^N \log \mathcal{N}(a_i \mid \mu_\theta(s_i), \sigma_\theta^2(s_i))
-$$
-
-or equivalently:
-
-$$
-\mathcal{L}_{\text{NLL}} = \frac{1}{2} \sum_{i=1}^N \left[ \frac{\|a_i - \mu_\theta(s_i)\|^2}{\sigma_\theta^2(s_i)} + \log \sigma_\theta^2(s_i) \right] + \text{constant}
-$$
 
 **Key idea:** NLL encourages the policy to assign high probability to expert actions while allowing flexibility to model multiple plausible actions in the same state.
 
+
+---
+
+## Intuition
+
+1. **Capturing multimodality:** The policy can **spread probability mass over multiple plausible actions**, instead of averaging them.
+2. **Modeling uncertainty:** The variance allows the network to **express confidence**. Low variance for consistent expert behavior; high variance where the expert is variable.
 
 ---
 
