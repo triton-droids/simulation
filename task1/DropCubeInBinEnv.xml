@@ -1,0 +1,28 @@
+<mujoco model="cube in bin scene">
+   <compiler angle="radian" autolimits="true"/>
+
+   <option iterations="3" ls_iterations="5" solver="Newton" tolerance="1e-8" timestep="0.001">
+     <flag eulerdamp="disable"/>
+   </option>
+
+  <!-- Assets -->
+  <include file="../assets/simpleTable/simpleTable_asset.xml"/>
+
+  <!-- Scene -->
+  <include file="../assets/scene.xml"/> 
+
+  
+  <!-- Scene Objects -->
+  <worldbody>
+ 
+
+    <!-- Table -->
+    <include file="../assets/simpleTable/simpleWoodTable_body.xml"/>
+
+   
+  </worldbody>
+
+
+
+ 
+</mujoco>
