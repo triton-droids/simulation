@@ -16,3 +16,4 @@ By the end of this task, you should feel comfortable accessing and using simulat
 >*💡 Feel free to explore different approaches to data collection, neural network architectures, and more advanced algorithms and techniques for imitation learning.*
 
 
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/triton-droids/simulation/blob/onboarding/task2/imitation_learning.ipynb?copy=true)
