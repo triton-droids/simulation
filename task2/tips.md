@@ -1,3 +1,33 @@
+## Tips for Network Architecture
+
+**Goal:** Predict a distribution over actions (mean + variance) instead of a single deterministic action. 
+
+### 1. Output Layer (shared backbone)
+- **Mean**: $\mu_\theta(s)$ → linear layer, no activation.
+- **Log Std**: $\log \sigma_\theta(s)$ → linear layer, no activation (use `exp`).
+
+### 2. Loss Function
+- **Negative Log-Likelihood (NLL)**:
+$$
+\mathcal{L}_{\text{NLL}} = -\sum_i \log \mathcal{N}(a_i \mid \mu_\theta(s_i), \sigma_\theta^2(s_i))
+$$
+- Captures both action accuracy and uncertainty.
+
+### 3. Architecture Tips
+- MLP with ReLU/GELU activations.
+- Separate heads for mean and variance.
+
+### 4. Training Tips
+- Moderate learning rate to avoid unstable variance.
+- Monitor predicted variance; add regularization if it grows too large.
+
+### 5. Inference
+- **Stochastic:** sample $a \sim \mathcal{N}(\mu, \sigma^2)$.
+- **Deterministic:** use mean $\mu$ for evaluation.
+
+---
+
+
 # Background: Behavior Cloning (BC)
 
 Behavior cloning is a **supervised learning approach** for imitation learning, where the goal is to train an agent to mimic an expert's behavior by learning a mapping from states to actions `s → a`. 

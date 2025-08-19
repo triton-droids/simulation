@@ -1,8 +1,8 @@
 # MuJoCo vs. MJX
-MuJoCo is the physics engine that we will be using (for the time being) to experiment and validate our model and various control policies. MuJoCo is a lightweight engine that runs well on Colab. 
+MuJoCo is the physics engine we use to simulate and validate our models and control policies. It’s lightweight, efficient, and runs well on Colab, making it ideal for experimentation.
 
-One challenge with using MuJoCo, however, is that it is built upon NumPy. NumPy runs only on CPU constraining computational power, i.e. the number of parallelizable environments during training, which is essential for reinforcement learning. 
+However, MuJoCo is built on top of NumPy, which only runs on the CPU. This limits the computational power available during training, especially when you want to run many parallel environments.
 
-As a result MJX allows MuJoCo to run on supported hardware. Please see supported platforms to ensure your machine supports JAX. MJX also runs very easily on Colab. 
+MJX solves this problem by integrating MuJoCo with JAX, a numerical computing library that supports GPU and TPU acceleration. This allows simulations and training to run much faster on supported hardware. You don’t need to worry about JAX too much right now. What matters for us is that MJX lets us run MuJoCo efficiently, we will use exisitng jax algorithms to train our model.
 
-Talk about JAX. what is JAX? Don’t get lost in the sauce, we can learn JAX later. What’s important now is learning to use MuJoCo / MJX for reinforcement learning and other ML techniques for robotics. 
+Before you start, make sure your machine [supports JAX](https://docs.jax.dev/en/latest/installation.html#supported-platforms) if you plan to run simulations locally. Otherwise, Colab provides an easy way to get started with GPU-accelerated MJX.
