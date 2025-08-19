@@ -1,5 +1,7 @@
 # Task 2: Imitation Learning
-In this task, you will work with the simulation scene that you have created in task 1. The primary goal is to become familiar with MuJoCo’s API for accessing robot and environment state information and also begin to see how machine learning integrates with robotics control. 
+In this task, you will build on the simulation scene you created in Task 1 by exploring how imitation learning can be applied to robotic control. You will collect a dataset of expert demonstrations, generated my a motion planner, to train a model. The model will learn to map states to actions by imitating the expert's behavior. 
+
+The primary goal is to become familiar with MuJoCo’s API for accessing robot and environment state information and also begin to see how machine learning integrates with robotics control. 
 
 We have provided the basic imitation learning pipeline (data collection → training → evaluation). You will fill in key pieces of the code to:
 - Access and interpret MuJoCo state information (positions, quaternions, velocities, etc.)
@@ -13,7 +15,4 @@ By the end of this task, you should feel comfortable accessing and using simulat
 
 >*💡 Feel free to explore different approaches to data collection, neural network architectures, and more advanced algorithms and techniques for imitation learning.*
 
-  <video controls style="width: 65%; height: auto; display: block; margin: 0 auto;">
-    <source src="../assets/media/pick_and_place.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
+

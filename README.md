@@ -2,7 +2,7 @@
 
 **Welcome to Triton Droids! 🎉**
 
-This guide will introduce you to MuJoCo while providing a practical foundation in robotics and machine learning techniques for robotic systems. Each task is designed to expose you to the physics engine and different aspects of robot behavior. You will gain the skills to effectively use MuJoCo as a simulation platform, while also exploring new approaches and solutions to robotic challenges.
+This guide will introduce you to MuJoCo through key fundamentals of robotics and machine learning techniques for robotic systems. Each task is designed to expose you to the physics engine and different aspects of robot behavior. You will gain the skills to effectively use MuJoCo as a simulation platform, while also exploring new approaches and solutions to robotic challenges.
 
 Follow the steps, and don’t hesitate to experiment or ask questions as you go!
 
@@ -26,6 +26,7 @@ Let's build the foundation to create a humanoid robot!
   1. [`task1`](task1/) → Scene Construction
   2. [`task2`](task2/) → Imitation Learning   
   3. [`task3`](task3/) → Reinforcement Learning   
+  
 
   >NOTE: task 0 is there to help you gain a better understanding of xml structure and kinematic tree, but is not necessary to complete the other tasks. 
 
