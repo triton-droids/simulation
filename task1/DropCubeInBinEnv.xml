@@ -6,10 +6,10 @@
    </option>
 
   <!-- Assets -->
-  <include file="../assets/descriptions/simpleTable/simpleTable_asset.xml"/>
+  <include file="assets/descriptions/simpleTable/simpleTable_asset.xml"/>
 
   <!-- Scene -->
-  <include file="../assets/descriptions/simpleTable/simpleTable_scene.xml"/> 
+  <include file="assets/descriptions/simpleTable/simpleTable_scene.xml"/> 
 
   
   <!-- Scene Objects -->
@@ -17,7 +17,7 @@
  
 
     <!-- Table -->
-    <include file="../assets/descriptions/simpleTable/simpleWoodTable_body.xml"/>
+    <include file="assets/descriptions/simpleTable/simpleWoodTable_body.xml"/>
 
    
   </worldbody>
