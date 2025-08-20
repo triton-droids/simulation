@@ -21,7 +21,7 @@ Let's build the foundation to create a humanoid robot!
 **Good luck, and have fun!**
 
 ## Getting Started
-- Start by reading `docs/setup.md` to install MuJoCo and set up your environment.
+- Start by reading [`docs/setup.md`](docs/setup.md) to install MuJoCo and set up your environment.
 - Then, complete the tasks in order:  
   1. [`task1`](task1/) → Scene Construction
   2. [`task2`](task2/) → Imitation Learning   
