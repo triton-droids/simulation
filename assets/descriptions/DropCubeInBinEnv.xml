@@ -6,18 +6,20 @@
    </option>
 
   <!-- Assets -->
-  <include file="assets/descriptions/simpleTable/simpleTable_asset.xml"/>
+  <include file="simpleTable/simpleTable_asset.xml"/>
 
   <!-- Scene -->
-  <include file="assets/descriptions/simpleTable/simpleTable_scene.xml"/> 
+  <include file="scene.xml"/> 
 
   
   <!-- Scene Objects -->
   <worldbody>
+    <camera name="fixed" pos="0 0 2" quat="1 0 0 0" fovy="45"/>
+
  
 
     <!-- Table -->
-    <include file="assets/descriptions/simpleTable/simpleWoodTable_body.xml"/>
+    <include file="simpleTable/simpleWoodTable_body.xml"/>
 
    
   </worldbody>
