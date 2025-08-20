@@ -19,5 +19,3 @@ This ensures that the robot always begins in a consistent, neutral configuration
 By the end of this task, you should feel comfortable with how MuJoCo scenes are structured, how to work with MJCF elements, and how to reason about object placement using coordinate frames and object geometry.
 
 >You can find the necessary MJCF files for the arm and the provided objects [here](../assets/descriptions/).
-
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/triton-droids/simulation/blob/onboarding/task1/scene_construction.ipynb?copy=true)
