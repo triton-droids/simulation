@@ -9,7 +9,7 @@ In this task, you will create a custom simulation scene for the MuJoCo physics e
 
 You’ll be working with pre-existing MJCF object definitions, but feel free to explore or add your own to customize the environment. We’ve provided a [starter XML file](../assets/descriptions/DropCubeInBinEnv.xml) for you to construct the scene, which already includes a table asset as a starting point.
 
-As part of the setup, you should also define a keyframe in your XML model titled `"home"`. This keyframe will set a default starting position for the robot’s joints. Use the following joint values for the home configuration:
+As part of the setup, you should define the correct camera viewing angle and define a keyframe in your XML model titled `"home"`. This keyframe will set a default starting position for the robot’s joints. Use the following joint values for the home configuration:
 
 `0 0.392699 0 -1.9635 0 2.35619 0.785398 0.04 0.04`
 
