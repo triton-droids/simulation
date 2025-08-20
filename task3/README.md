@@ -1,5 +1,5 @@
 # Task 3: Reinforcement Learning
-In this task, you will being to explore reinforcement learning (RL) for robotic control. The goal is for the Panda robot arm to learn to pick up a cube and place it into a bin autonomously.
+In this task, you will being to explore reinforcement learning (RL) for robotic control. The goal is for the Panda robot arm to learn to pick up a cube and place it into the bin.
 
 Unlike imitation learning, RL does not rely on expert demonstrations. Instead, the robot will learn by interacting with the environment, receiving feedback in the form of rewards. You will define the task setup, success conditions, and reward function, which guide the learning process.
 
