@@ -7,10 +7,7 @@
 - **Log Std**: $\log \sigma_\theta(s)$ → linear layer, no activation (use `exp`).
 
 ### 2. Loss Function
-- **Negative Log-Likelihood (NLL)**:
-$$
-\mathcal{L}_{\text{NLL}} = -\sum_i \log \mathcal{N}(a_i \mid \mu_\theta(s_i), \sigma_\theta^2(s_i))
-$$
+- **Negative Log-Likelihood (NLL)**
 - Captures both action accuracy and uncertainty.
 
 ### 3. Architecture Tips
