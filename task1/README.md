@@ -11,7 +11,7 @@ You’ll be working with pre-existing MJCF object definitions, but feel free to 
 
 As part of the setup, you should define the correct camera viewing angle and define a keyframe in your XML model titled `"home"`. This keyframe will set a default starting position for the robot’s joints. Use the following joint values for the home configuration:
 
-`0 0.392699 0 -1.9635 0 2.35619 0.785398 0.04 0.04`
+`0 0.3 0 -1.57079 0 2.0 -0.7853 0.04 0.04`
 
 
 This ensures that the robot always begins in a consistent, neutral configuration, which will make later tasks involving control and learning more stable.
