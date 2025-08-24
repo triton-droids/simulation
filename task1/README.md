@@ -1,6 +1,6 @@
 # Task 1: Create a Custom Simulation Task in MuJoCo
 
-In this task, you will create a custom simulation scene for the MuJoCo physics engine using MJCF (MuJoCo XML) files. Your goal is to **compose a tabletop environment** featuring the **Arctos robot arm**, a **cube**, and a **bin**. The cube should be placed within reach of the robot arm, and the bin should be positioned such that it could be used as the target for a pick-and-place task. You do not need to implement any control or solve the task—this exercise focuses solely on scene composition.
+In this task, you will create a custom simulation scene for the MuJoCo physics engine using MJCF (MuJoCo XML) files. Your goal is to **compose a tabletop environment** featuring the **panda robot arm**, a **cube**, and a **bin**. The cube should be placed within reach of the robot arm, and the bin should be positioned such that it could be used as the target for a pick-and-place task. You do not need to implement any control or solve the task—this exercise focuses solely on scene composition.
 
 <p align="center">
     <img src="../assets/media/panda_scene.png" alt="Humanoid robot" width="500"/>
