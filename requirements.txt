@@ -1,0 +1,12 @@
+scipy==1.13.1
+mplib==0.1.1
+brax==0.12.1
+jax[cuda12]
+mediapy==1.2.4
+mujoco==3.3.4
+mujoco-mjx==3.2.7
+gymnasium[mujoco]==0.29.1
+numpy==1.26.4
+matplotlib==3.9.4
+imageio==2.37.0
+wandb==0.19.7
