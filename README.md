@@ -2,58 +2,56 @@
 
 Official repository for **Triton Droids** simulations.
 
+This codebase provides a framework to train, evaluate, and test reinforcement learning (RL) policies using MJX and MuJoCo.
+
 ## Installation and Configuration
 
 Please refer to [setup.md] for installation and configuration steps.
 
-## Project Overview
+## 🚀 Features
 
 This simulator codebase provides a platform for:
 
-- **Train**: Use the MJX simulation environment to learn a policy that maximizes the designed rewards.
+- **Train**: Learn policies using MJX and Brax PPO.
 
-- **Play**: Play the learned policies in the simulator, and return an evaluation metric. (IN PROGRESS)
+- **Play**: Test trained policies inside MuJoCo environments.
 
-- **Sim2Sim Transfer**: Transfer learned policies from one simulation environment to another to improve robustness and generalization of the agent. (IN PROGRESS)
+- **Sim2Sim Transfer**: Transfer policies between simulators to improve robustness. (WIP)
 
-- **Sim2Real Transfer**: Deploy the policy to a physical robot to achieve motion control. (IN PROGRESS)
+- **Sim2Real Transfer**: Deploy policies to physical robots for real-world control. (Future goal)
 
-## Code Structure
-
-Here's an overview of the directory structure:
+## 📂 Project Structure
 
 ```Markdown
-/mjx
-│
-├── /configs                          # Default config files for env, sim, and rl params
-├── /envs                             # Contains all RL environments
-│   ├── /locomotion                   # Locomotion tasks
-├── /scripts                          # Train, play, evaluate scripts
-├── /utils                            # Utility functions and task manager
+/simulation
+├── /scripts                              # Shell scripts to automate training execution
+├── /src
+│   ├── /configs                          # Dataclass config files for environmnets, sim, and rl params
+│   ├── /locomotion                       # (mjx) Locomotion task environments
+│   ├── /rewards                          # Reward functions
+│   ├── /robots                           # Robot object to represent MuJoCo model
+│   ├── /scripts                          # Python entry points for training and policy playback
+│   ├── /sim                              # MuJoCo utilities (physics rendering and sim-state management)
+│   ├── /tools                            # Experiment tools
+│   ├── /utils                            # General-purpose uitilites
 ```
 
-## User Guide
-
-`run.py` serves as the main entry point. The execution environment can be configured using the `instructs.yml` file, allowing users to override default settings. If no instructions are provided the default configuration will run.
+## Usage
 
 ### 1. Training
 
 Run the following command to start training:
 
 ```shell
-python run.py train --env=xxx --framework=brax_ppo 
+./scripts/single_train_mjx.sh
 ```
 
 Parameter Description
 
-- `env`: Required parameter; values can be
+- `VIDEO`: Flag to enable/disable video recording during training.
 
-(DefaultHumanoidJoystickFlatTerrain,
-DefaultHumanoidJoystickRoughTerrain)
-
-- `framework`: Required parameter; values can only be (brax_ppo) atm.
-- `name`: Name of the run / experiment.
-- `checkpoint`: Path to model checkpoint to resume training.
+- `VIDEO_LENGTH`: Number of simulation steps (frames) to record per video. Controls how long each video lasts.
+- `VIDEO_INTERVAL`:Interval (in training steps or timesteps) between video recordings.
 
 ### 2. Play
 
@@ -68,11 +66,6 @@ Coming soon.
 - **Ros Integration**
 - **Isaac Lab**
 
-## TODO
-
-- train a policy and evaluate environment setup
-- implement play.py
-
 ## Acknowledgments
 
-This repository incorporates code from [mujoco_playground](https://github.com/google-deepmind/mujoco_playground).
+This repository incorporates code from [toddlerbot](https://github.com/hshi74/toddlerbot).
