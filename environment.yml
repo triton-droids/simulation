@@ -1,0 +1,22 @@
+name: mujoco_cpu
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy=1.26.4
+  - scipy=1.13.1
+  - matplotlib=3.9.4
+  - imageio=2.37.0
+  - jupyterlab
+  - ipykernel
+  - pip
+  - pip:
+      - mujoco==3.3.4
+      - gymnasium[mujoco]==0.29.1
+      - mediapy==1.2.4
+      - jax==0.4.35
+      - jaxlib==0.4.35
+      - brax==0.12.1
+      - wandb==0.19.7
+      # optional; include only if you actually use MJX:
+      - "mujoco-mjx==3.3.*"

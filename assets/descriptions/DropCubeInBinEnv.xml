@@ -14,7 +14,7 @@
   
   <!-- Scene Objects -->
   <worldbody>
-    <camera name="fixed" pos="0 0 2" quat="1 0 0 0" fovy="45"/>
+    <camera name="fixed" pos="0 0 5" quat="1 0 0 0" fovy="45"/>
 
  
 
