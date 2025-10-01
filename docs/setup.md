@@ -22,7 +22,10 @@ note this assumes you have conda installed already for dependency management.
 
 ## 4. Workflow (Enter each task directory on your terminal and run the following command to open )
    ````bash
+   cd task1
    jupyter lab
+
+   # repeat for the other task directories^
    ````
 
   >If you would like to install the standalone version of MuJoCo download the prebuilt binaries from the official [MuJoCo releases page](https://github.com/google-deepmind/mujoco/releases) and look up instructions for your machine, although this is not necessary for the following tasks. 
