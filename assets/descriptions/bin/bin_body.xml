@@ -1,6 +1,6 @@
 <mujocoinclude>
 
-    <body name="simpleWoodBin" pos="0 0 0"  childclass="body_simpleBin" >
+    <body name="simpleWoodBin" pos="0.25 0 0.77"  childclass="body_simpleBin" >
         <!-- Visual geoms (for rendering) -->
         <geom class="viz_simpleBin" type='box' pos='-0.05 0 .025' size='.005 .055 .03' euler='0 0 0' />
         <geom class="viz_simpleBin" type='box' pos='0.05 0 .025' size='.005 .055 .03' euler='0 0 0' />

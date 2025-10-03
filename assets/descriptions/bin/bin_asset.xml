@@ -1,6 +1,6 @@
 <mujocoinclude>
     <asset>
-        <texture name="woodTexture" type="cube" height="1" width="1" file="wood2.png" />
+        <texture name="woodTexture" type="cube" height="1" width="1" file="bin/wood2.png" />
         <material name="wood" texture="woodTexture" rgba="0.8 0.8 0.8 1" shininess="0.2" reflectance="0.3" texuniform="false" />
     </asset>
 

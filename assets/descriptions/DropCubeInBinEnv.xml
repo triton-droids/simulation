@@ -6,24 +6,32 @@
    </option>
 
   <!-- Assets -->
+
   <include file="simpleTable/simpleTable_asset.xml"/>
+  <include file="bin/bin_asset.xml"/>
+  <include file="panda/mjcf/panda_asset.xml"/>
+  <include file="cube/cube_asset.xml"/>
 
   <!-- Scene -->
   <include file="scene.xml"/> 
-
   
   <!-- Scene Objects -->
   <worldbody>
-    <camera name="fixed" pos="0 0 5" quat="1 0 0 0" fovy="45"/>
+    <!-- <camera name="fixed" pos="2.25 -1.75 1.75" quat="0.78 0.45 0.34 0.24" fovy="45"/> -->
+    <camera name="fixed" pos="-2.939 3.519 2.661" xyaxes="-0.767 -0.641 -0.000 0.322 -0.385 0.865"/>
+
+
+
 
  
 
     <!-- Table -->
     <include file="simpleTable/simpleWoodTable_body.xml"/>
+    <include file="bin/bin_body.xml"/>
+    <include file="panda/mjcf/panda_body.xml"/>
+    <include file="cube/cube_body.xml"/>
 
-   
   </worldbody>
-
 
 
  
