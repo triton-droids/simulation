@@ -11,6 +11,9 @@ def main():
     # Load model & data
     # model = mujoco.MjModel.from_xml_path("meshes/lego_hand/lego_hand.xml")
     model = mujoco.MjModel.from_xml_path("../assets/descriptions/DropCubeInBinEnv.xml")
+
+    print(f"Number of keyframes: {model.nkey}")
+    print(f"Available keyframes: {[model.key(i).name for i in range(model.nkey)]}")
     data = mujoco.MjData(model)
     #camera_id = mj.mj_name2id(model, mj.mjtObj.mjOBJ_CAMERA, "fixed")
     
