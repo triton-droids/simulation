@@ -105,7 +105,7 @@
                 <joint name="left_ankle_joint" type="hinge" axis="1 0 0" range="-1.57 1.57" pos="0.00958 -0.03 0.031528"/>
                 <geom mesh="left_foot" contype="1" conaffinity="1" group="1"/>
                 <geom mesh="left_foot_visual" material="metal_silver"/>
-                <inertial pos="-0.53 -20.276 11.109" mass="765.723" pos="2071000 467800 2213000 -17795.772 2818.065 116700"/>
+                <inertial pos="-0.53 -20.276 11.109" mass="765.723" fullinertia="2071000 467800 2213000 -17795.772 2818.065 116700"/>
               </body>
             </body>
           </body>
