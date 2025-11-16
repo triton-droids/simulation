@@ -62,10 +62,10 @@
   <!--        WORLD           -->
   <!-- ===================== -->
   <worldbody>
-    <light pos="0 0 3" dir="0 0 -1" diffuse="0.8 0.8 0.8" specular="0.2 0.2 0.2" directional="false"/>
+    <!-- <light pos="0 0 3" dir="0 0 -1" diffuse="0.8 0.8 0.8" specular="0.2 0.2 0.2" directional="false"/>
     <light pos="2 2 3" dir="-0.5 -0.5 -1" diffuse="0.5 0.5 0.5" specular="0.1 0.1 0.1" directional="false"/>
     <light pos="-2 2 3" dir="0.5 -0.5 -1" diffuse="0.5 0.5 0.5" specular="0.1 0.1 0.1" directional="false"/>
-    
+     -->
     <geom name="floor" type="plane" size="5 5 0.1" material="grid" contype="1" conaffinity="1"/>
 
     <!-- HIP (root body) -->
@@ -81,7 +81,7 @@
         <joint name="left_hip1_joint" type="hinge" axis="1 0 0" range="-1.57 1.57" pos="-0.068372 -0.029495 0.577401"/>
         <geom mesh="left_leg1" contype="1" conaffinity="1" group="1"/>
         <geom mesh="left_leg1_visual" material="metal_silver"/>
-        <interial pos="-5.945 -35.287 577.433" mass="2189.611" fullinertia="2609000 3137000 3391000 81259.088 1365.266 223.227"/>
+        <inertial pos="-5.945 -35.287 577.433" mass="2189.611" fullinertia="2609000 3137000 3391000 81259.088 1365.266 223.227"/>
 
         <body name="left_leg2" pos="0 0 0" >
           <joint name="left_hip2_joint" type="hinge" axis="0 1 0" range="-1.57 1.57" pos="-0.000048 -0.029495 0.577401"/>
@@ -129,7 +129,7 @@
             <joint name="right_thigh_joint" type="hinge" axis="0 0 1" range="-1.57 1.57"  pos="-0.311223 -0.029495 0.463816"/>
             <geom mesh="right_leg3" contype="1" conaffinity="1" group="1"/>
             <geom mesh="right_leg3_visual" material="metal_silver"/>
-            <inertial pos="-317.293 -30.266 318.75" mass="3074.969" fullinertia="9174000 7824000 4262000 -45044.639 -225500 -49133.206">
+            <inertial pos="-317.293 -30.266 318.75" mass="3074.969" fullinertia="9174000 7824000 4262000 -45044.639 -225500 -49133.206"/>
 
             <body name="right_leg4" pos="0 0 0">
               <joint name="right_knee_joint" type="hinge" axis="1 0 0" range="-1.57 1.57" pos="-0.311223 -0.029495 0.306338"/>
