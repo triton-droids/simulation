@@ -42,6 +42,10 @@ class LocomotionEnv(DirectRLEnv):
         # used only for energy penalty; keep as simple scale for now
         self.motor_effort_ratio = torch.ones(self.num_actions, dtype=torch.float32, device=self.sim.device)
 
+        # ---- Identify important body indices ----
+        hip_body_indices, _ = self.robot.find_bodies("left_leg1")
+        self._hip_body_idx = int(hip_body_indices[0])
+
         # ---- Locomotion targets and cached buffers ----
         self.potentials = torch.zeros(self.num_envs, dtype=torch.float32, device=self.sim.device)
         self.prev_potentials = torch.zeros_like(self.potentials)
@@ -86,8 +90,13 @@ class LocomotionEnv(DirectRLEnv):
         self.robot.set_joint_velocity_target(vel_targets, joint_ids=self._joint_dof_idx)
 
     def _compute_intermediate_values(self):
-        self.torso_position, self.torso_rotation = self.robot.data.root_pos_w, self.robot.data.root_quat_w
-        self.velocity, self.ang_velocity = self.robot.data.root_lin_vel_w, self.robot.data.root_ang_vel_w
+        hip = self._hip_body_idx
+
+        self.torso_position = self.robot.data.body_pos_w[:, hip]
+        self.torso_rotation = self.robot.data.body_quat_w[:, hip]
+        self.velocity = self.robot.data.body_lin_vel_w[:, hip]
+        self.ang_velocity = self.robot.data.body_ang_vel_w[:, hip]
+
         self.dof_pos, self.dof_vel = self.robot.data.joint_pos, self.robot.data.joint_vel
 
         (
@@ -120,6 +129,7 @@ class LocomotionEnv(DirectRLEnv):
             self.prev_potentials,
             self.cfg.sim.dt,
         )
+
 
     def _get_observations(self) -> dict:
         obs = torch.cat(
