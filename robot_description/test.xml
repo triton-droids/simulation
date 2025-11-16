@@ -74,38 +74,38 @@
       <geom mesh="hip" contype="1" conaffinity="1" group="1"/>
       <geom mesh="hip_visual" material="metal_silver"/>
       <geom type="box" size="0.16 0.08 0.12" pos="-0.155 -0.03 0.765" contype="1" conaffinity="1" material="metal_silver"/>
-      <inertial pos="-155.587 -29.06 584.318" mass="5159.055" fullinertia="15600000 23770000 25170000 178.966 1857.794 -43706.028"/>
+      <inertial pos="-0.155587 -0.02906 0.584318" mass="5.159055" fullinertia="0.0156 0.02377 0.02517 0.000178966 0.000001857794 -0.000043706028"/>
 
       <!-- LEFT LEG -->
       <body name="left_leg1" pos="0 0 0">
         <joint name="left_hip1_joint" type="hinge" axis="1 0 0" range="-1.57 1.57" pos="-0.068372 -0.029495 0.577401"/>
         <geom mesh="left_leg1" contype="1" conaffinity="1" group="1"/>
         <geom mesh="left_leg1_visual" material="metal_silver"/>
-        <inertial pos="-5.945 -35.287 577.433" mass="2189.611" fullinertia="2609000 3137000 3391000 81259.088 1365.266 223.227"/>
+        <inertial pos="-0.005945 -0.035287 0.577433" mass="2.189611" fullinertia="0.002609 0.003137 0.003391 0.000081259088 0.000001365266 0.000000223227"/>
 
         <body name="left_leg2" pos="0 0 0" >
           <joint name="left_hip2_joint" type="hinge" axis="0 1 0" range="-1.57 1.57" pos="-0.000048 -0.029495 0.577401"/>
           <geom mesh="left_leg2" contype="1" conaffinity="1" group="1"/>
           <geom mesh="left_leg2_visual" material="metal_silver"/>
-          <inertial pos="-0.018 -25.475 486.173" mass="1709.674" fullinertia="6082000 5232000 2818000 25844.041 765.045 -579800"/>
+          <inertial pos="-0.000018 -0.025475 0.486173" mass="1.709674" fullinertia="0.006082 0.005232 0.002818 0.000025844041 0.000000765045 -0.0005798"/>
 
           <body name="left_leg3" pos="0 0 0">
             <joint name="left_thigh_joint" type="hinge" axis="0 0 1" range="-1.57 1.57" pos="-0.000048 -0.029495 0.463816"/>
             <geom mesh="left_leg3" contype="1" conaffinity="1" group="1"/>
             <geom mesh="left_leg3_visual" material="metal_silver"/>
-            <inertial pos="5.174 -30.248 318.931" mass="3156.742" fullinertia="9368000 8100000 4377000 46968.418 201400 -49473.856"/>
+            <inertial pos="0.005174 -0.030248 0.318931" mass="3.156742" fullinertia="0.009368 0.0081 0.004377 0.000046968418 0.0002014 -0.000049473856"/>
 
             <body name="left_leg4" pos="0 0 0">
               <joint name="left_knee_joint" type="hinge" axis="1 0 0" range="-1.57 1.57" pos="-0.000048 -0.029495 0.306338"/>
               <geom mesh="left_leg4" contype="1" conaffinity="1" group="1"/>
               <geom mesh="left_leg4_visual" material="metal_silver"/>
-              <inertial pos="1.337 -31.134 183.938" mass="1980.828" fullinertia="11710000 11930000 2972000 -22781.438 283900 -234100"/>
+              <inertial pos="0.001337 -0.031134 0.183938" mass="1.980828" fullinertia="0.01171 0.01193 0.002972 -0.000022781438 0.0002839 -0.0002341"/>
 
               <body name="left_foot" pos="0 0 0">
                 <joint name="left_ankle_joint" type="hinge" axis="1 0 0" range="-1.57 1.57" pos="0.00958 -0.03 0.031528"/>
                 <geom mesh="left_foot" contype="1" conaffinity="1" group="1"/>
                 <geom mesh="left_foot_visual" material="metal_silver"/>
-                <inertial pos="-0.53 -20.276 11.109" mass="765.723" fullinertia="2071000 467800 2213000 -17795.772 2818.065 116700"/>
+                <inertial pos="-0.00053 -0.020276 0.011109" mass="0.765723" fullinertia="0.002071 0.0004678 0.002213 -0.000017795772 0.000002818065 0.0001167"/>
               </body>
             </body>
           </body>
@@ -117,31 +117,31 @@
         <joint name="right_hip1_joint" type="hinge" axis="1 0 0" range="-1.57 1.57" pos="-0.24290 -0.029495 0.577401"/>
         <geom mesh="right_leg1" contype="1" conaffinity="1" group="1"/>
         <geom mesh="right_leg1_visual" material="metal_silver"/>
-        <inertial pos="-305.326 -35.287 577.434" mass="2189.548" fullinertia="2609000 3137000 3391000 -81252.869 -1353.92 224.81"/>
+        <inertial pos="-0.305326 -0.035287 0.577434" mass="2.189548" fullinertia="0.002609 0.003137 0.003391 -0.000081252869 -0.00000135392 0.00000024481"/>
 
         <body name="right_leg2" pos="0 0 0">
           <joint name="right_hip2_joint" type="hinge" axis="0 1 0" range="-1.57 1.57" pos="-0.311223 -0.029495 0.577401"/>
           <geom mesh="right_leg2" contype="1" conaffinity="1" group="1"/>
           <geom mesh="right_leg2_visual" material="metal_silver"/>
-          <inertial pos="-311.252 -25.506 485.714" mass="1722.84" fullinertia="6132000 5281000 2822000 -25837.194 -742.612 -583000"/>
+          <inertial pos="-0.311252 -0.025506 0.485714" mass="1.72284" fullinertia="0.006132 0.005281 0.002822 -0.000025837194 -0.000000742612 -0.000583"/>
 
           <body name="right_leg3" pos="0 0 0">
             <joint name="right_thigh_joint" type="hinge" axis="0 0 1" range="-1.57 1.57"  pos="-0.311223 -0.029495 0.463816"/>
             <geom mesh="right_leg3" contype="1" conaffinity="1" group="1"/>
             <geom mesh="right_leg3_visual" material="metal_silver"/>
-            <inertial pos="-317.293 -30.266 318.75" mass="3074.969" fullinertia="9174000 7824000 4262000 -45044.639 -225500 -49133.206"/>
+            <inertial pos="-0.317293 -0.030266 0.31875" mass="3.074969" fullinertia="0.009174 0.007824 0.004262 -0.000045044639 -0.0002255 -0.000049133206"/>
 
             <body name="right_leg4" pos="0 0 0">
               <joint name="right_knee_joint" type="hinge" axis="1 0 0" range="-1.57 1.57" pos="-0.311223 -0.029495 0.306338"/>
               <geom mesh="right_leg4" contype="1" conaffinity="1" group="1"/>
               <geom mesh="right_leg4_visual" material="metal_silver"/>
-              <inertial pos="-312.608 -31.134 183.938" mass="1980.828" fullinertia="11710000 11930000 2972000 22781.459 -283900 -234100"/>
+              <inertial pos="-0.312608 -0.031134 0.183938" mass="1.980828" fullinertia="0.01171 0.01193 0.002972 0.000022781459 -0.0002839 -0.0002341"/>
 
               <body name="right_foot" pos="0 0 0">
                 <joint name="right_ankle_joint" type="hinge" axis="1 0 0" range="-1.57 1.57" pos="-0.320851 -0.03 0.031528"/>
                 <geom mesh="right_foot" contype="1" conaffinity="1" group="1"/>
                 <geom mesh="right_foot_visual" material="metal_silver"/>
-                <inertial pos="-310.741 -20.276 11.109" mass="765.723" fullinertia="2071000 467800 2213000 17795.772 -2818.065 116700"/>
+                <inertial pos="-0.310741 -0.020276 0.011109" mass="0.765723" fullinertia="0.002071 0.0004678 0.002213 0.000017795772 -0.000002818065 0.0001167"/>
 
               </body>
             </body>
