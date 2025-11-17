@@ -13,6 +13,7 @@ from isaacsim.core.utils.torch.rotations import compute_heading_and_up, compute_
 import isaaclab.sim as sim_utils
 from isaaclab.assets import Articulation
 from isaaclab.envs import DirectRLEnv, DirectRLEnvCfg
+from isaaclab.sensors import ContactSensor
 
 
 def normalize_angle(x):
@@ -43,8 +44,10 @@ class LocomotionEnv(DirectRLEnv):
         self.motor_effort_ratio = torch.ones(self.num_actions, dtype=torch.float32, device=self.sim.device)
 
         # ---- Identify important body indices ----
-        hip_body_indices, _ = self.robot.find_bodies("left_leg1")
+        hip_body_indices, _ = self.robot.find_bodies("base_link")
         self._hip_body_idx = int(hip_body_indices[0])
+        
+        self._feet_ids, _ = self._contact_sensor.find_bodies("left_foot|right_foot")
 
         # ---- Locomotion targets and cached buffers ----
         self.potentials = torch.zeros(self.num_envs, dtype=torch.float32, device=self.sim.device)
@@ -64,6 +67,12 @@ class LocomotionEnv(DirectRLEnv):
 
     def _setup_scene(self):
         self.robot = Articulation(self.cfg.robot)
+
+        # add contact sensors
+        self._contact_sensor = ContactSensor(self.cfg.contact_sensor)
+        self.scene.articulations["robot"] = self.robot
+        self.scene.sensors["contact_sensor"] = self._contact_sensor
+
         # add ground plane
         self.cfg.terrain.num_envs = self.scene.cfg.num_envs
         self.cfg.terrain.env_spacing = self.scene.cfg.env_spacing
@@ -155,7 +164,7 @@ class LocomotionEnv(DirectRLEnv):
         # use only actuated joint velocities for energy cost
         actuated_dof_vel = self.dof_vel[:, self._joint_dof_idx]
 
-        total_reward = compute_rewards(
+        base_reward = compute_rewards(
             self.actions,
             self.reset_terminated,
             self.cfg.up_weight,
@@ -173,7 +182,28 @@ class LocomotionEnv(DirectRLEnv):
             self.cfg.alive_reward_scale,
             self.motor_effort_ratio,
         )
+
+        # ---------- NEW: feet air-time reward ----------
+        # first_contact: 1 when a given foot makes its first contact in this step
+        first_contact = self._contact_sensor.compute_first_contact(self.step_dt)[:, self._feet_ids]
+        # last_air_time: how long (in seconds) each foot has been in the air
+        last_air_time = self._contact_sensor.data.last_air_time[:, self._feet_ids]
+
+        # Only reward feet that have been in the air longer than some threshold
+        air_time_threshold = 0.3  # seconds; tune this
+        per_foot = torch.clamp(last_air_time - air_time_threshold, min=0.0) * first_contact
+        air_time = torch.sum(per_foot, dim=1)  # [num_envs]
+
+        # Optional: only reward when the robot is actually moving
+        speed = torch.norm(self.velocity[:, :2], dim=1)  # world-frame XY speed
+        moving_mask = (speed > 0.1).float()
+
+        feet_air_time_reward = self.cfg.feet_air_time_reward_scale * air_time * moving_mask
+        # ------------------------------------------------
+
+        total_reward = base_reward + feet_air_time_reward
         return total_reward
+
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
         self._compute_intermediate_values()

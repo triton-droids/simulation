@@ -59,7 +59,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Velocity control: actions map to desired joint velocities via action_scale
     # If HUMANOID_CFG.actuators["legs"].velocity_limit_sim = 5.0, this makes
     # actions in [-1, 1] → [-5, 5] rad/s
-    action_scale = 5.0
+    action_scale = 1.0
 
     # 10 actuated leg joints
     action_space = 10
@@ -110,7 +110,9 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     dof_vel_scale: float = 0.1
 
     death_cost: float = -1.0
-    termination_height: float = 0.3
+    termination_height: float = 0.4
 
     angular_velocity_scale: float = 0.25
     contact_force_scale: float = 0.01
+
+    feet_air_time_reward_scale: float = 0.3

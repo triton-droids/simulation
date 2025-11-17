@@ -16,7 +16,8 @@ from isaaclab.assets import ArticulationCfg
 HUMANOID_CFG = ArticulationCfg(
     prim_path="",  # you usually override this in the scene cfg
     spawn=sim_utils.UsdFileCfg(
-        usd_path=f"{Path(__file__).parent}/human/human.usd",
+        # usd_path=f"{Path(__file__).parent}/human/human.usd",
+        usd_path=f"{Path(__file__).parent}/human_offset/human_offset.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -35,7 +36,7 @@ HUMANOID_CFG = ArticulationCfg(
     ),
 
     init_state=ArticulationCfg.InitialStateCfg(
-        pos=(0.0, 0.0, 0.0),          # tweak height so feet just touch the ground
+        pos=(0.0, 0.0, 0.6),          # tweak height so feet just touch the ground
         joint_pos={".*": 0.0},
         joint_vel={".*": 0.0},
     ),

@@ -1,6 +1,6 @@
-asset_path: /workspace/simulation/source/tritonhumanoid/tritonhumanoid/assets/human.urdf
-usd_dir: /workspace/simulation/source/tritonhumanoid/tritonhumanoid/assets/human
-usd_file_name: human.usd
+asset_path: /workspace/simulation/source/tritonhumanoid/tritonhumanoid/assets/human_offset.urdf
+usd_dir: /workspace/simulation/source/tritonhumanoid/tritonhumanoid/assets/human_offset
+usd_file_name: human_offset.usd
 force_usd_conversion: true
 make_instanceable: true
 fix_base: false
