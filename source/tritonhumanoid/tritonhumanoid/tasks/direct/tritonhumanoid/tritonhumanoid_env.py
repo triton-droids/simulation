@@ -37,6 +37,20 @@ class LocomotionEnv(DirectRLEnv):
         self._joint_dof_idx, _ = self.robot.find_joints(actuated_joint_regex)
         self.num_actions = len(self._joint_dof_idx)
 
+        # Hip joints only (both sides)
+        hip_joint_regex = "left_hip1_joint|left_hip2_joint|right_hip1_joint|right_hip2_joint"
+        hip_dof_idx, _ = self.robot.find_joints(hip_joint_regex)
+
+        # store as tensor on the correct device
+        self._hip_dof_idx = torch.as_tensor(
+            hip_dof_idx,
+            device=self.sim.device,
+            dtype=torch.long,
+        )
+
+        # default pose for posture penalty
+        self.default_joint_pos = self.robot.data.default_joint_pos[0]
+
         # actions: desired joint velocities (scaled by action_scale)
         self.actions = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
 
@@ -46,19 +60,19 @@ class LocomotionEnv(DirectRLEnv):
         # ---- Identify important body indices ----
         hip_body_indices, _ = self.robot.find_bodies("base_link")
         self._hip_body_idx = int(hip_body_indices[0])
-        
+
         self._feet_ids, _ = self._contact_sensor.find_bodies("left_foot|right_foot")
 
         # ---- Locomotion targets and cached buffers ----
         self.potentials = torch.zeros(self.num_envs, dtype=torch.float32, device=self.sim.device)
         self.prev_potentials = torch.zeros_like(self.potentials)
-        self.targets = torch.tensor([1000, 0, 0], dtype=torch.float32, device=self.sim.device).repeat(
+        self.targets = torch.tensor([0, 1000, 0], dtype=torch.float32, device=self.sim.device).repeat(
             (self.num_envs, 1)
         )
         self.targets += self.scene.env_origins
         self.start_rotation = torch.tensor([1, 0, 0, 0], device=self.sim.device, dtype=torch.float32)
         self.up_vec = torch.tensor([0, 0, 1], dtype=torch.float32, device=self.sim.device).repeat((self.num_envs, 1))
-        self.heading_vec = torch.tensor([1, 0, 0], dtype=torch.float32, device=self.sim.device).repeat(
+        self.heading_vec = torch.tensor([0, 1, 0], dtype=torch.float32, device=self.sim.device).repeat(
             (self.num_envs, 1)
         )
         self.inv_start_rot = quat_conjugate(self.start_rotation).repeat((self.num_envs, 1))
@@ -181,28 +195,124 @@ class LocomotionEnv(DirectRLEnv):
             self.cfg.death_cost,
             self.cfg.alive_reward_scale,
             self.motor_effort_ratio,
+            self.velocity,
+            self.heading_vec,
+            self.cfg.orient_vel_weight,
         )
 
-        # ---------- NEW: feet air-time reward ----------
-        # first_contact: 1 when a given foot makes its first contact in this step
+        # =========================
+        # Feet air-time (biped aware)
+        # =========================
         first_contact = self._contact_sensor.compute_first_contact(self.step_dt)[:, self._feet_ids]
-        # last_air_time: how long (in seconds) each foot has been in the air
-        last_air_time = self._contact_sensor.data.last_air_time[:, self._feet_ids]
+        last_air_time = self._contact_sensor.data.last_air_time[:, self._feet_ids]  # [N, 2]
 
-        # Only reward feet that have been in the air longer than some threshold
-        air_time_threshold = 0.3  # seconds; tune this
-        per_foot = torch.clamp(last_air_time - air_time_threshold, min=0.0) * first_contact
-        air_time = torch.sum(per_foot, dim=1)  # [num_envs]
+        air_time_threshold = 0.05
+        per_foot = torch.clamp(last_air_time - air_time_threshold, min=0.0) * first_contact  # [N, 2]
 
-        # Optional: only reward when the robot is actually moving
-        speed = torch.norm(self.velocity[:, :2], dim=1)  # world-frame XY speed
+        air_mean = per_foot.mean(dim=1)                        # [N]
+        air_asym = torch.abs(per_foot[:, 0] - per_foot[:, 1])  # [N]
+
+        speed = torch.norm(self.velocity[:, :2], dim=1)        # world-frame XY
         moving_mask = (speed > 0.1).float()
 
-        feet_air_time_reward = self.cfg.feet_air_time_reward_scale * air_time * moving_mask
-        # ------------------------------------------------
+        raw_air = air_mean - self.cfg.feet_air_asym_scale * air_asym
+        raw_air = torch.clamp(raw_air, min=0.0)
 
-        total_reward = base_reward + feet_air_time_reward
+        feet_air_time_reward = (
+            self.cfg.feet_air_time_reward_scale
+            * raw_air
+            * moving_mask
+        )
+
+        # =========================
+        # Feet sliding penalty
+        # =========================
+        contact_time = self._contact_sensor.data.current_contact_time[:, self._feet_ids]  # [N, 2]
+        in_contact = contact_time > 0.0                                                   # [N, 2]
+
+        feet_vel_xy = self.robot.data.body_lin_vel_w[:, self._feet_ids, :2]               # [N, 2, 2]
+        feet_speed = torch.norm(feet_vel_xy, dim=-1)                                      # [N, 2]
+
+        sliding = feet_speed * in_contact.float()                                         # [N, 2]
+        feet_slide_penalty = self.cfg.feet_slide_scale * sliding.sum(dim=1)              # [N]
+
+        # =========================
+        # Legs relative to hip heading penalty (make feet less sideways)
+        # =========================
+        hip_xy = self.torso_position[:, :2]                           # [N, 2]
+        feet_pos = self.robot.data.body_pos_w[:, self._feet_ids, :]   # [N, 2, 3]
+        feet_xy = feet_pos[:, :, :2]                                  # [N, 2, 2]
+
+        foot_vecs = feet_xy - hip_xy.unsqueeze(1)                     # [N, 2, 2]
+        foot_vecs_norm = torch.norm(foot_vecs, dim=-1, keepdim=True) + 1e-6
+        foot_dirs = foot_vecs / foot_vecs_norm                        # [N, 2, 2]
+
+        heading_xy = self.heading_vec[:, :2]
+        heading_xy = heading_xy / (torch.norm(heading_xy, dim=-1, keepdim=True) + 1e-6)  # [N, 2]
+
+        dot = (foot_dirs * heading_xy.unsqueeze(1)).sum(dim=-1)      # [N, 2]
+        foot_heading_misalignment = 1.0 - dot                        # [N, 2]
+
+        # Use *max* instead of mean so one very sideways foot gets penalized strongly
+        foot_misalignment_max = foot_heading_misalignment.max(dim=1).values  # [N]
+        leg_heading_penalty = self.cfg.leg_heading_scale * foot_misalignment_max
+
+        # =========================
+        # Hip posture penalty
+        # =========================
+        hip_angles = self.dof_pos[:, self._hip_dof_idx]                     # [N, H]
+        hip_default = self.default_joint_pos[self._hip_dof_idx]             # [H]
+        hip_deviation = hip_angles - hip_default.unsqueeze(0)               # [N, H]
+        hip_posture_cost = (hip_deviation ** 2).mean(dim=1)                 # [N]
+        hip_posture_penalty = self.cfg.hip_posture_scale * hip_posture_cost # [N]
+
+        # =========================
+        # Continuous stance symmetry penalty (anti single-leg dominance)
+        # =========================
+        total_ct = contact_time.sum(dim=1, keepdim=True) + 1e-6      # [N, 1]
+        ct_frac = contact_time / total_ct                            # [N, 2]
+        ct_asym = torch.abs(ct_frac[:, 0] - ct_frac[:, 1])           # [N]
+        symmetry_penalty = self.cfg.sym_scale * ct_asym * moving_mask  # [N]
+
+        # =========================
+        # Smooth hop / bouncing penalty (vertical COM velocity)
+        # =========================
+        v_z = self.velocity[:, 2]                                    # [N]
+        excess_vz = torch.clamp(torch.abs(v_z) - 0.2, min=0.0)       # small dead zone
+        hop_penalty = self.cfg.hop_penalty_scale * (excess_vz ** 2)  # quadratic cost
+
+        # =========================
+        # NEW: torso yaw alignment with direction-of-travel / target
+        # =========================
+        # yaw and angle_to_target were computed in _compute_intermediate_values
+        yaw = self.yaw
+        angle_to_target = self.angle_to_target
+        yaw_error = normalize_angle(yaw - angle_to_target)           # [N], small when facing target
+        yaw_penalty = self.cfg.yaw_penalty_scale * (yaw_error ** 2)
+
+        # =========================
+        # NEW: lateral CoM velocity penalty (discourage side-stepping)
+        # =========================
+        lat_vel = torch.abs(self.velocity[:, 0])                     # x-direction speed
+        lateral_penalty = self.cfg.lateral_vel_scale * lat_vel
+
+        total_reward = (
+            base_reward
+            + feet_air_time_reward
+            - feet_slide_penalty
+            - hip_posture_penalty
+            - leg_heading_penalty
+            - symmetry_penalty
+            - hop_penalty
+            - yaw_penalty
+            - lateral_penalty
+        )
+
         return total_reward
+
+
+
+
 
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
@@ -253,13 +363,18 @@ def compute_rewards(
     death_cost: float,
     alive_reward_scale: float,
     motor_effort_ratio: torch.Tensor,
+    velocity: torch.Tensor,
+    heading_vec: torch.Tensor,
+    orient_vel_weight: float,
 ):
     heading_weight_tensor = torch.ones_like(heading_proj) * heading_weight
     heading_reward = torch.where(heading_proj > 0.8, heading_weight_tensor, heading_weight * heading_proj / 0.8)
 
     # aligning up axis of robot and environment
-    up_reward = torch.zeros_like(heading_reward)
-    up_reward = torch.where(up_proj > 0.93, up_reward + up_weight, up_reward)
+    # continuous upright reward; up_proj ≈ cos(angle between torso-up and world-up)
+    up_clamped = torch.clamp(up_proj, min=0.0)
+    up_reward = up_weight * up_clamped
+
 
     # energy penalty for movement
     actions_cost = torch.sum(actions**2, dim=-1)
@@ -275,11 +390,24 @@ def compute_rewards(
     alive_reward = torch.ones_like(potentials) * alive_reward_scale
     progress_reward = potentials - prev_potentials
 
+    v_xy = velocity[:, :2]
+    h_xy = heading_vec[:, :2]
+
+    v_norm = torch.norm(v_xy, dim=-1) + 1e-6
+    h_norm = torch.norm(h_xy, dim=-1) + 1e-6
+
+    cos_vel_heading = torch.sum(v_xy * h_xy, dim=-1) / (v_norm * h_norm)
+
+    # only care when actually moving
+    move_mask = (v_norm > 0.1).float()
+    orient_vel_reward = orient_vel_weight * cos_vel_heading * move_mask
+
     total_reward = (
         progress_reward
         + alive_reward
         + up_reward
         + heading_reward
+        + orient_vel_reward
         - actions_cost_scale * actions_cost
         - energy_cost_scale * electricity_cost
         - dof_at_limit_cost

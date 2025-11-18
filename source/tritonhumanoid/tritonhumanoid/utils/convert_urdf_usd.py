@@ -4,7 +4,7 @@
 python source/tritonhumanoid/tritonhumanoid/utils/convert_urdf_usd.py \
   --in-dir source/tritonhumanoid/tritonhumanoid/assets/ \
   --out-dir source/tritonhumanoid/tritonhumanoid/assets/ \
-  --merge-joints --headless
+  --headless
   
 python scripts/zero_agent.py --task=Isaac-Hexapod-Velocity-Direct-v0 --num_envs=16
 
