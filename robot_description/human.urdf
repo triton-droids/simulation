@@ -1,5 +1,11 @@
 <?xml version='1.0' encoding='utf-8'?>
 <robot name="ch_robot">
+  <link name="base_link">
+    <inertial>
+      <mass value="0.5"/>  <!-- pick something reasonable -->
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+  </link>
   <link name="hip">
     <inertial>
       <mass value="0.1" />
@@ -178,7 +184,15 @@
         <mesh filename="robot_meshes/visual/right_foot.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </visual>
-  </link><joint name="left_hip1_joint" type="revolute">
+  </link>
+  
+  <joint name="base_to_hip" type="floating">
+    <parent link="base_link"/>
+    <child  link="hip"/>
+    <!-- For now, keep zero offset; we can refine later -->
+    <origin xyz="0.157 0.03 -0.6" rpy="0 0 0"/>
+  </joint>
+  <joint name="left_hip1_joint" type="revolute">
     <parent link="hip" />
     <child link="left_leg1" />
     <origin xyz="-0.068372 -0.029495 0.577401" rpy="0 0 0" />
@@ -190,28 +204,28 @@
     <child link="left_leg2" />
     <origin xyz="0.068324 0 0" rpy="0 0 0" />
     <axis xyz="0.0 1.0 0.0" />
-    <limit lower="-1.57" upper="1.57" effort="100" velocity="5.0" />
+    <limit lower="-1.57" upper="0.436332" effort="100" velocity="5.0" />
     <dynamics damping="1.0" />
   </joint><joint name="left_thigh_joint" type="revolute">
     <parent link="left_leg2" />
     <child link="left_leg3" />
     <origin xyz="0 0 -0.113585" rpy="0 0 0" />
     <axis xyz="0.0 0.0 1.0" />
-    <limit lower="-1.57" upper="1.57" effort="100" velocity="5.0" />
+    <limit lower="-0.785398" upper="0.785398" effort="100" velocity="5.0" />
     <dynamics damping="1.0" />
   </joint><joint name="left_knee_joint" type="revolute">
     <parent link="left_leg3" />
     <child link="left_leg4" />
     <origin xyz="0 0 -0.157478" rpy="0 0 0" />
     <axis xyz="1.0 0.0 0.0" />
-    <limit lower="-1.57" upper="1.57" effort="100" velocity="5.0" />
+    <limit lower="-2.0944" upper="0" effort="100" velocity="5.0" />
     <dynamics damping="1.0" />
   </joint><joint name="left_ankle_joint" type="revolute">
     <parent link="left_leg4" />
     <child link="left_foot" />
     <origin xyz="0.009628 -0.000505 -0.27481" rpy="0 0 0" />
     <axis xyz="1.0 0.0 0.0" />
-    <limit lower="-1.57" upper="1.57" effort="100" velocity="5.0" />
+    <limit lower="-0.6" upper="0.6" effort="100" velocity="5.0" />
     <dynamics damping="1.0" />
   </joint><joint name="right_hip1_joint" type="revolute">
     <parent link="hip" />
@@ -225,28 +239,28 @@
     <child link="right_leg2" />
     <origin xyz="-0.068323 0 0" rpy="0 0 0" />
     <axis xyz="0.0 1.0 0.0" />
-    <limit lower="-1.57" upper="1.57" effort="100" velocity="5.0" />
+    <limit lower="-0.436332" upper="1.57" effort="100" velocity="5.0" />
     <dynamics damping="1.0" />
   </joint><joint name="right_thigh_joint" type="revolute">
     <parent link="right_leg2" />
     <child link="right_leg3" />
     <origin xyz="0 0 -0.113585" rpy="0 0 0" />
     <axis xyz="0.0 0.0 1.0" />
-    <limit lower="-1.57" upper="1.57" effort="100" velocity="5.0" />
+    <limit lower="-0.785398" upper="0.785398" effort="100" velocity="5.0" />
     <dynamics damping="1.0" />
   </joint><joint name="right_knee_joint" type="revolute">
     <parent link="right_leg3" />
     <child link="right_leg4" />
     <origin xyz="0 0 -0.157478" rpy="0 0 0" />
     <axis xyz="1.0 0.0 0.0" />
-    <limit lower="-1.57" upper="1.57" effort="100" velocity="5.0" />
+    <limit lower="-2.0944" upper="0" effort="100" velocity="5.0" />
     <dynamics damping="1.0" />
   </joint><joint name="right_ankle_joint" type="revolute">
     <parent link="right_leg4" />
     <child link="right_foot" />
     <origin xyz="-0.009628 -0.000505 -0.27481" rpy="0 0 0" />
     <axis xyz="1.0 0.0 0.0" />
-    <limit lower="-1.57" upper="1.57" effort="100" velocity="5.0" />
+    <limit lower="-0.6" upper="0.6" effort="100" velocity="5.0" />
     <dynamics damping="1.0" />
   </joint>
 </robot>
