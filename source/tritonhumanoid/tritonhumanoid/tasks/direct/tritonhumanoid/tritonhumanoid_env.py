@@ -58,8 +58,8 @@ class LocomotionEnv(DirectRLEnv):
         self.motor_effort_ratio = torch.ones(self.num_actions, dtype=torch.float32, device=self.sim.device)
 
         # ---- Identify important body indices ----
-        hip_body_indices, _ = self.robot.find_bodies("base_link")
-        self._hip_body_idx = int(hip_body_indices[0])
+        torso_body_indices, _ = self.robot.find_bodies("torso")
+        self._torso_body_idx = int(torso_body_indices[0])
 
         self._feet_ids, _ = self._contact_sensor.find_bodies("left_foot|right_foot")
 
@@ -113,12 +113,12 @@ class LocomotionEnv(DirectRLEnv):
         self.robot.set_joint_velocity_target(vel_targets, joint_ids=self._joint_dof_idx)
 
     def _compute_intermediate_values(self):
-        hip = self._hip_body_idx
+        torso = self._torso_body_idx
 
-        self.torso_position = self.robot.data.body_pos_w[:, hip]
-        self.torso_rotation = self.robot.data.body_quat_w[:, hip]
-        self.velocity = self.robot.data.body_lin_vel_w[:, hip]
-        self.ang_velocity = self.robot.data.body_ang_vel_w[:, hip]
+        self.torso_position = self.robot.data.body_pos_w[:, torso]
+        self.torso_rotation = self.robot.data.body_quat_w[:, torso]
+        self.velocity = self.robot.data.body_lin_vel_w[:, torso]
+        self.ang_velocity = self.robot.data.body_ang_vel_w[:, torso]
 
         self.dof_pos, self.dof_vel = self.robot.data.joint_pos, self.robot.data.joint_vel
 
@@ -198,6 +198,7 @@ class LocomotionEnv(DirectRLEnv):
             self.velocity,
             self.heading_vec,
             self.cfg.orient_vel_weight,
+            self.cfg.forward_vel_weight,
         )
 
         # =========================
@@ -237,13 +238,13 @@ class LocomotionEnv(DirectRLEnv):
         feet_slide_penalty = self.cfg.feet_slide_scale * sliding.sum(dim=1)              # [N]
 
         # =========================
-        # Legs relative to hip heading penalty (make feet less sideways)
+        # Legs relative to torso heading penalty (make feet less sideways)
         # =========================
-        hip_xy = self.torso_position[:, :2]                           # [N, 2]
+        torso_xy = self.torso_position[:, :2]                           # [N, 2]
         feet_pos = self.robot.data.body_pos_w[:, self._feet_ids, :]   # [N, 2, 3]
         feet_xy = feet_pos[:, :, :2]                                  # [N, 2, 2]
 
-        foot_vecs = feet_xy - hip_xy.unsqueeze(1)                     # [N, 2, 2]
+        foot_vecs = feet_xy - torso_xy.unsqueeze(1)                     # [N, 2, 2]
         foot_vecs_norm = torch.norm(foot_vecs, dim=-1, keepdim=True) + 1e-6
         foot_dirs = foot_vecs / foot_vecs_norm                        # [N, 2, 2]
 
@@ -299,26 +300,25 @@ class LocomotionEnv(DirectRLEnv):
         total_reward = (
             base_reward
             + feet_air_time_reward
-            - feet_slide_penalty
-            - hip_posture_penalty
-            - leg_heading_penalty
-            - symmetry_penalty
-            - hop_penalty
-            - yaw_penalty
-            - lateral_penalty
+            # - feet_slide_penalty
+            # - hip_posture_penalty
+            # - leg_heading_penalty
+            # - symmetry_penalty
+            # - hop_penalty
+            # - yaw_penalty
+            # - lateral_penalty
         )
 
         return total_reward
 
-
-
-
-
-
-    def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
+    def _get_dones(self):
         self._compute_intermediate_values()
         time_out = self.episode_length_buf >= self.max_episode_length - 1
-        died = self.torso_position[:, 2] < self.cfg.termination_height
+
+        fell_height = self.torso_position[:, 2] < self.cfg.termination_height
+        too_tilted  = self.up_proj < 0.5    # ~60 degrees from upright
+
+        died = fell_height | too_tilted
         return died, time_out
 
     def _reset_idx(self, env_ids: torch.Tensor | None):
@@ -366,6 +366,7 @@ def compute_rewards(
     velocity: torch.Tensor,
     heading_vec: torch.Tensor,
     orient_vel_weight: float,
+    forward_vel_weight: float,
 ):
     heading_weight_tensor = torch.ones_like(heading_proj) * heading_weight
     heading_reward = torch.where(heading_proj > 0.8, heading_weight_tensor, heading_weight * heading_proj / 0.8)
@@ -396,11 +397,25 @@ def compute_rewards(
     v_norm = torch.norm(v_xy, dim=-1) + 1e-6
     h_norm = torch.norm(h_xy, dim=-1) + 1e-6
 
-    cos_vel_heading = torch.sum(v_xy * h_xy, dim=-1) / (v_norm * h_norm)
+    # direction of the target / heading
+    h_dir = h_xy / h_norm.unsqueeze(-1)        # [N, 2]
 
-    # only care when actually moving
+    # projection of velocity along heading direction (forward speed)
+    forward_speed = (v_xy * h_dir).sum(dim=-1) # [N]
+    forward_speed = torch.clamp(forward_speed, min=0.0)
+
+    # prefer to be around some target walking speed (soft, not hard)
+    target_speed = torch.tensor(0.8, device=velocity.device)
+    speed_error = forward_speed - target_speed
+    # smooth bell-shaped reward around target_speed
+    speed_reward = torch.exp(-0.5 * (speed_error ** 2) / (0.4 ** 2))
+
+    # orientation of velocity vs heading (keep your old term)
+    cos_vel_heading = (v_xy * h_dir).sum(dim=-1) / (v_norm + 1e-6)
+
     move_mask = (v_norm > 0.1).float()
     orient_vel_reward = orient_vel_weight * cos_vel_heading * move_mask
+
 
     total_reward = (
         progress_reward
@@ -408,6 +423,7 @@ def compute_rewards(
         + up_reward
         + heading_reward
         + orient_vel_reward
+        + forward_vel_weight * speed_reward
         - actions_cost_scale * actions_cost
         - energy_cost_scale * electricity_cost
         - dof_at_limit_cost

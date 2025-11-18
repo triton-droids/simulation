@@ -59,7 +59,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Velocity control: actions map to desired joint velocities via action_scale
     # If HUMANOID_CFG.actuators["legs"].velocity_limit_sim = 5.0, this makes
     # actions in [-1, 1] → [-5, 5] rad/s
-    action_scale = 2.0
+    action_scale = 3.0
 
     # 10 actuated leg joints
     action_space = 10
@@ -101,25 +101,21 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     )
 
     # reward weights
-    heading_weight: float = 1.0
-    up_weight: float = 0.1
+    heading_weight: float = 0.5
+    up_weight: float = 0.05
 
     energy_cost_scale: float = 0.05
     actions_cost_scale: float = 0.01
-    alive_reward_scale: float = 2.0
+    alive_reward_scale: float = 0.1
     dof_vel_scale: float = 0.1
 
     death_cost: float = -1.0
-    termination_height: float = 0.55
+    termination_height: float = 0.6
 
     angular_velocity_scale: float = 0.25
     contact_force_scale: float = 0.01
 
     feet_air_time_reward_scale: float = 0.1
-
-    leg_heading_scale: float = 0.3
-    yaw_penalty_scale: float = 0.5      # new: torso yaw alignment
-    lateral_vel_scale: float = 0.2      # new: penalize sideways CoM velocity
 
     orient_vel_weight: float = 0.5
 
@@ -129,7 +125,12 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     single_leg_scale: float = 1.0
 
     hip_posture_scale: float = 0.5   # or 0.1 to start, then tune
-    hop_penalty_scale: float = 0.5
 
-    sym_scale: float = 0.2
+    forward_vel_weight: float = 3.0   # new: reward scale for forward speed
+    target_speed: float = 0.8
 
+    leg_heading_scale: float = 0.15      # softer
+    yaw_penalty_scale: float = 0.3
+    lateral_vel_scale: float = 0.1
+    hop_penalty_scale: float = 0.3
+    sym_scale: float = 0.1

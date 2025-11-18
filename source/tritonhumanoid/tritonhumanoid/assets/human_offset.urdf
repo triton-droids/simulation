@@ -6,11 +6,42 @@
       <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
     </inertial>
   </link>
+  <link name="torso">
+    <inertial>
+      <!-- rough guess; tune later -->
+      <mass value="10.0"/>
+      <inertia ixx="0.05" ixy="0" ixz="0" iyy="0.05" iyz="0" izz="0.05"/>
+    </inertial>
+
+    <collision>
+      <!-- box centered at torso frame -->
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.32 0.16 0.24" />
+      </geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.32 0.16 0.24" />
+      </geometry>
+    </visual>
+  </link>
+
   <link name="hip">
     <inertial>
-      <mass value="0.1" />
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" />
-    </inertial><collision>
+      <origin xyz="-0.155587 -0.02906 0.584318" rpy="0 0 0"/>
+      <mass value="5.159055"/>
+      <inertia ixx="0.0156"
+              ixy="0.000178966"
+              ixz="0.000001857794"
+              iyy="0.02377"
+              iyz="-0.000043706028"
+              izz="0.02517"/>
+    </inertial>
+
+    <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
         <mesh filename="robot_meshes/hip_ch.stl" scale="0.001 0.001 0.001" />
@@ -23,11 +54,20 @@
       </geometry>
     </visual>
   </link>
+
   <link name="left_leg1">
     <inertial>
-      <mass value="0.1" />
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" />
-    </inertial><collision>
+      <origin xyz="-0.005945 -0.035287 0.577433" rpy="0 0 0"/>
+      <mass value="2.189611"/>
+      <inertia ixx="0.002609"
+              ixy="0.000081259088"
+              ixz="0.000001365266"
+              iyy="0.003137"
+              iyz="0.000000223227"
+              izz="0.003391"/>
+    </inertial>
+
+    <collision>
       <origin xyz="0.068372 0.029495 -0.577401" rpy="0 0 0" />
       <geometry>
         <mesh filename="robot_meshes/left_leg1_ch.stl" scale="0.001 0.001 0.001" />
@@ -39,11 +79,21 @@
         <mesh filename="robot_meshes/visual/left_leg1_dumb.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </visual>
-  </link><link name="left_leg2">
+  </link>
+
+  <link name="left_leg2">
     <inertial>
-      <mass value="0.1" />
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" />
-    </inertial><collision>
+      <origin xyz="-0.000018 -0.025475 0.486173" rpy="0 0 0"/>
+      <mass value="1.709674"/>
+      <inertia ixx="0.006082"
+              ixy="0.000025844041"
+              ixz="0.000000765045"
+              iyy="0.005232"
+              iyz="-0.0005798"
+              izz="0.002818"/>
+    </inertial>
+
+    <collision>
       <origin xyz="4.8e-05 0.029495 -0.577401" rpy="0 0 0" />
       <geometry>
         <mesh filename="robot_meshes/left_leg2_ch.stl" scale="0.001 0.001 0.001" />
@@ -55,11 +105,21 @@
         <mesh filename="robot_meshes/visual/left_leg2_dumb.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </visual>
-  </link><link name="left_leg3">
+  </link>
+
+  <link name="left_leg3">
     <inertial>
-      <mass value="0.1" />
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" />
-    </inertial><collision>
+      <origin xyz="0.005174 -0.030248 0.318931" rpy="0 0 0"/>
+      <mass value="3.156742"/>
+      <inertia ixx="0.009368"
+              ixy="0.000046968418"
+              ixz="0.0002014"
+              iyy="0.0081"
+              iyz="-0.000049473856"
+              izz="0.004377"/>
+    </inertial>
+
+    <collision>
       <origin xyz="4.8e-05 0.029495 -0.463816" rpy="0 0 0" />
       <geometry>
         <mesh filename="robot_meshes/left_leg3_ch.stl" scale="0.001 0.001 0.001" />
@@ -71,11 +131,21 @@
         <mesh filename="robot_meshes/visual/left_leg3_dumb.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </visual>
-  </link><link name="left_leg4">
+  </link>
+
+  <link name="left_leg4">
     <inertial>
-      <mass value="0.1" />
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" />
-    </inertial><collision>
+      <origin xyz="0.001337 -0.031134 0.183938" rpy="0 0 0"/>
+      <mass value="1.980828"/>
+      <inertia ixx="0.01171"
+              ixy="-0.000022781438"
+              ixz="0.0002839"
+              iyy="0.01193"
+              iyz="-0.0002341"
+              izz="0.002972"/>
+    </inertial>
+
+    <collision>
       <origin xyz="4.8e-05 0.029495 -0.306338" rpy="0 0 0" />
       <geometry>
         <mesh filename="robot_meshes/left_leg4_ch.stl" scale="0.001 0.001 0.001" />
@@ -87,11 +157,21 @@
         <mesh filename="robot_meshes/visual/left_leg4_dumb.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </visual>
-  </link><link name="left_foot">
+  </link>
+
+  <link name="left_foot">
     <inertial>
-      <mass value="0.1" />
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" />
-    </inertial><collision>
+      <origin xyz="-0.00053 -0.020276 0.011109" rpy="0 0 0"/>
+      <mass value="0.765723"/>
+      <inertia ixx="0.002071"
+              ixy="-0.000017795772"
+              ixz="0.000002818065"
+              iyy="0.0004678"
+              iyz="0.0001167"
+              izz="0.002213"/>
+    </inertial>
+
+    <collision>
       <origin xyz="-0.00958 0.03 -0.031528" rpy="0 0 0" />
       <geometry>
         <mesh filename="robot_meshes/left_foot_ch.stl" scale="0.001 0.001 0.001" />
@@ -103,10 +183,18 @@
         <mesh filename="robot_meshes/visual/left_foot.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </visual>
-  </link><link name="right_leg1">
+  </link>
+
+  <link name="right_leg1">
     <inertial>
-      <mass value="0.1" />
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" />
+      <origin xyz="-0.305326 -0.035287 0.577434" rpy="0 0 0"/>
+      <mass value="2.189548"/>
+      <inertia ixx="0.002609"
+              ixy="-0.000081252869"
+              ixz="-0.00000135392"
+              iyy="0.003137"
+              iyz="0.00000024481"
+              izz="0.003391"/>
     </inertial>
     <collision>
       <origin xyz="0.2429 0.029495 -0.577401" rpy="0 0 0" />
@@ -120,11 +208,20 @@
         <mesh filename="robot_meshes/visual/right_leg1_dumb.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </visual>
-  </link><link name="right_leg2">
+  </link>
+  
+  <link name="right_leg2">
     <inertial>
-      <mass value="0.1" />
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" />
-    </inertial><collision>
+      <origin xyz="-0.311252 -0.025506 0.485714" rpy="0 0 0"/>
+      <mass value="1.72284"/>
+      <inertia ixx="0.006132"
+              ixy="-0.000025837194"
+              ixz="-0.000000742612"
+              iyy="0.005281"
+              iyz="-0.000583"
+              izz="0.002822"/>
+    </inertial>
+    <collision>
       <origin xyz="0.311223 0.029495 -0.577401" rpy="0 0 0" />
       <geometry>
         <mesh filename="robot_meshes/right_leg2_ch.stl" scale="0.001 0.001 0.001" />
@@ -136,11 +233,19 @@
         <mesh filename="robot_meshes/visual/right_leg2_dumb.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </visual>
-  </link><link name="right_leg3">
+  </link>
+  <link name="right_leg3">
     <inertial>
-      <mass value="0.1" />
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" />
-    </inertial><collision>
+      <origin xyz="-0.317293 -0.030266 0.31875" rpy="0 0 0"/>
+      <mass value="3.074969"/>
+      <inertia ixx="0.009174"
+              ixy="-0.000045044639"
+              ixz="-0.0002255"
+              iyy="0.007824"
+              iyz="-0.000049133206"
+              izz="0.004262"/>
+    </inertial>
+    <collision>
       <origin xyz="0.311223 0.029495 -0.463816" rpy="0 0 0" />
       <geometry>
         <mesh filename="robot_meshes/right_leg3_ch.stl" scale="0.001 0.001 0.001" />
@@ -152,11 +257,19 @@
         <mesh filename="robot_meshes/visual/right_leg3_dumb.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </visual>
-  </link><link name="right_leg4">
+  </link>
+  <link name="right_leg4">
     <inertial>
-      <mass value="0.1" />
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" />
-    </inertial><collision>
+      <origin xyz="-0.312608 -0.031134 0.183938" rpy="0 0 0"/>
+      <mass value="1.980828"/>
+      <inertia ixx="0.01171"
+              ixy="0.000022781459"
+              ixz="-0.0002839"
+              iyy="0.01193"
+              iyz="-0.0002341"
+              izz="0.002972"/>
+    </inertial>
+    <collision>
       <origin xyz="0.311223 0.029495 -0.306338" rpy="0 0 0" />
       <geometry>
         <mesh filename="robot_meshes/right_leg4_ch.stl" scale="0.001 0.001 0.001" />
@@ -168,11 +281,20 @@
         <mesh filename="robot_meshes/visual/right_leg4_dumb.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </visual>
-  </link><link name="right_foot">
+  </link>
+  
+  <link name="right_foot">
     <inertial>
-      <mass value="0.1" />
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" />
-    </inertial><collision>
+      <origin xyz="-0.310741 -0.020276 0.011109" rpy="0 0 0"/>
+      <mass value="0.765723"/>
+      <inertia ixx="0.002071"
+              ixy="0.000017795772"
+              ixz="-0.000002818065"
+              iyy="0.0004678"
+              iyz="0.0001167"
+              izz="0.002213"/>
+    </inertial>
+    <collision>
       <origin xyz="0.320851 0.03 -0.031528" rpy="0 0 0" />
       <geometry>
         <mesh filename="robot_meshes/right_foot_ch.stl" scale="0.001 0.001 0.001" />
@@ -185,12 +307,19 @@
       </geometry>
     </visual>
   </link>
+
+  <joint name="hip_to_torso" type="fixed">
+    <parent link="hip"/>
+    <child  link="torso"/>
+    <!-- torso frame position relative to hip frame -->
+    <origin xyz="-0.155 -0.03 0.765" rpy="0 0 0"/>
+  </joint>
+
   
   <joint name="base_to_hip" type="fixed">
     <parent link="base_link"/>
     <child  link="hip"/>
-    <!-- For now, keep zero offset; we can refine later -->
-    <origin xyz="0.157 0.03 -0.6" rpy="0 0 0"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
   </joint>
   <joint name="left_hip1_joint" type="revolute">
     <parent link="hip" />
