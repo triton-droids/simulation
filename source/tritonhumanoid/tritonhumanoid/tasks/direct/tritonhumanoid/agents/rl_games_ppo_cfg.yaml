@@ -67,7 +67,7 @@ params:
     kl_threshold: 0.01
 
     score_to_win: 100000
-    max_epochs: 1500             # start here, increase if learning is slow
+    max_epochs: 3000             # start here, increase if learning is slow
     save_best_after: 100
     save_frequency: 50
 

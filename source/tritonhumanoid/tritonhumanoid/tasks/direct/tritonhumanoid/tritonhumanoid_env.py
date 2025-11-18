@@ -300,9 +300,9 @@ class LocomotionEnv(DirectRLEnv):
         total_reward = (
             base_reward
             + feet_air_time_reward
-            # - feet_slide_penalty
+            - feet_slide_penalty
             # - hip_posture_penalty
-            # - leg_heading_penalty
+            - leg_heading_penalty
             # - symmetry_penalty
             # - hop_penalty
             # - yaw_penalty
