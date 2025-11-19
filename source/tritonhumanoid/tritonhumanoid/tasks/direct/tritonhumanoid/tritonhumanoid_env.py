@@ -244,6 +244,20 @@ class LocomotionEnv(DirectRLEnv):
         feet_pos = self.robot.data.body_pos_w[:, self._feet_ids, :]   # [N, 2, 3]
         feet_xy = feet_pos[:, :, :2]                                  # [N, 2, 2]
 
+        # lateral positions of each foot relative to torso (x-direction)
+        foot_lats = feet_xy[:, :, 0] - torso_xy[:, 0].unsqueeze(1)   # [N, 2]
+
+        # distance between feet in x
+        step_width = torch.abs(foot_lats[:, 0] - foot_lats[:, 1])    # [N]
+
+        # pick a target width ~ initial stance width (just measure from default pose once)
+        target_width = 0.32  # for example, tune this
+
+        # penalize being narrower than target_width (knock-kneed)
+        too_narrow = torch.clamp(target_width - step_width, min=0.0)
+        step_width_penalty = self.cfg.step_width_scale * (too_narrow ** 2)
+
+
         foot_vecs = feet_xy - torso_xy.unsqueeze(1)                     # [N, 2, 2]
         foot_vecs_norm = torch.norm(foot_vecs, dim=-1, keepdim=True) + 1e-6
         foot_dirs = foot_vecs / foot_vecs_norm                        # [N, 2, 2]
@@ -257,6 +271,26 @@ class LocomotionEnv(DirectRLEnv):
         # Use *max* instead of mean so one very sideways foot gets penalized strongly
         foot_misalignment_max = foot_heading_misalignment.max(dim=1).values  # [N]
         leg_heading_penalty = self.cfg.leg_heading_scale * foot_misalignment_max
+
+        # ================
+        # Stride length penalty (too long steps)
+        # ================
+        # foot_vecs: [N, 2, 2] = feet_xy - torso_xy
+        # heading_xy: [N, 2]   = normalized heading direction
+
+        # projection of each foot vector onto heading direction → forward offsets
+        forward_offsets = (foot_vecs * heading_xy.unsqueeze(1)).sum(dim=-1)   # [N, 2]
+
+        # we care about how far any foot is in the forward/back direction
+        max_forward = forward_offsets.abs().max(dim=1).values                 # [N]
+
+        # choose a safe max stride length (meters), tune this:
+        stride_max = 0.30  # e.g. 0.25–0.35 depending on your leg length
+
+        # penalize only when we exceed that length
+        excess_stride = torch.clamp(max_forward - stride_max, min=0.0)        # [N]
+        stride_penalty = self.cfg.stride_penalty_scale * (excess_stride ** 2) # [N]
+
 
         # =========================
         # Hip posture penalty
@@ -302,11 +336,13 @@ class LocomotionEnv(DirectRLEnv):
             + feet_air_time_reward
             - feet_slide_penalty
             # - hip_posture_penalty
-            - leg_heading_penalty
+            # - leg_heading_penalty
             # - symmetry_penalty
             # - hop_penalty
-            # - yaw_penalty
-            # - lateral_penalty
+            - yaw_penalty
+            - lateral_penalty
+            - step_width_penalty
+            - stride_penalty
         )
 
         return total_reward
@@ -404,11 +440,14 @@ def compute_rewards(
     forward_speed = (v_xy * h_dir).sum(dim=-1) # [N]
     forward_speed = torch.clamp(forward_speed, min=0.0)
 
-    # prefer to be around some target walking speed (soft, not hard)
     target_speed = torch.tensor(0.8, device=velocity.device)
     speed_error = forward_speed - target_speed
-    # smooth bell-shaped reward around target_speed
-    speed_reward = torch.exp(-0.5 * (speed_error ** 2) / (0.4 ** 2))
+    speed_reward_raw = torch.exp(-0.5 * (speed_error ** 2) / (0.3 ** 2))
+
+    # Make reward ~0 at speed=0, ≈1 near target
+    baseline = torch.exp(-0.5 * (target_speed ** 2) / (0.3 ** 2))  # reward at 0 speed
+    speed_reward = speed_reward_raw - baseline
+
 
     # orientation of velocity vs heading (keep your old term)
     cos_vel_heading = (v_xy * h_dir).sum(dim=-1) / (v_norm + 1e-6)
@@ -418,8 +457,8 @@ def compute_rewards(
 
 
     total_reward = (
-        progress_reward
-        + alive_reward
+        # progress_reward
+        alive_reward
         + up_reward
         + heading_reward
         + orient_vel_reward
