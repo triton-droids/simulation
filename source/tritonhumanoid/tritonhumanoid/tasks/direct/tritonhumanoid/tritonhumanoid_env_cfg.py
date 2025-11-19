@@ -59,7 +59,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Velocity control: actions map to desired joint velocities via action_scale
     # If HUMANOID_CFG.actuators["legs"].velocity_limit_sim = 5.0, this makes
     # actions in [-1, 1] → [-5, 5] rad/s
-    action_scale = 4.0
+    action_scale = 5.0
 
     # 10 actuated leg joints
     action_space = 10
@@ -102,7 +102,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
 
     # reward weights
     heading_weight: float = 0.5
-    up_weight: float = 0.5
+    up_weight: float = 2.0
 
     energy_cost_scale: float = 0.05
     actions_cost_scale: float = 0.01
@@ -117,7 +117,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
 
     feet_air_time_reward_scale: float = 0.1
 
-    orient_vel_weight: float = 0.5
+    orient_vel_weight: float = 3.0
 
     feet_slide_scale: float = 0.2      # tune
     feet_air_asym_scale: float = 2.0   # for symmetry term below
@@ -130,7 +130,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     target_speed: float = 0.8
 
     leg_heading_scale: float = 0.15      # softer
-    yaw_penalty_scale: float = 0.15
+    yaw_penalty_scale: float = 1.0
     lateral_vel_scale: float = 0.05
     hop_penalty_scale: float = 0.3
     sym_scale: float = 0.1

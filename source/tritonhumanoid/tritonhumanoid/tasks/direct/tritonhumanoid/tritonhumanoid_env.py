@@ -157,17 +157,17 @@ class LocomotionEnv(DirectRLEnv):
     def _get_observations(self) -> dict:
         obs = torch.cat(
             (
-                self.torso_position[:, 2].view(-1, 1),
-                self.vel_loc,
-                self.angvel_loc * self.cfg.angular_velocity_scale,
-                normalize_angle(self.yaw).unsqueeze(-1),
-                normalize_angle(self.roll).unsqueeze(-1),
-                normalize_angle(self.angle_to_target).unsqueeze(-1),
-                self.up_proj.unsqueeze(-1),
-                self.heading_proj.unsqueeze(-1),
-                self.dof_pos_scaled,
-                self.dof_vel * self.cfg.dof_vel_scale,
-                self.actions,
+                self.torso_position[:, 2].view(-1, 1), # torso height
+                self.vel_loc, # local linear velocity
+                self.angvel_loc * self.cfg.angular_velocity_scale, # local angular velocity
+                normalize_angle(self.yaw).unsqueeze(-1), # torso yaw
+                normalize_angle(self.roll).unsqueeze(-1), # torso roll
+                normalize_angle(self.angle_to_target).unsqueeze(-1), # angle to target
+                self.up_proj.unsqueeze(-1), # up projection from torso
+                self.heading_proj.unsqueeze(-1), # heading projection from torso
+                self.dof_pos_scaled, # scaled joint positions
+                self.dof_vel * self.cfg.dof_vel_scale, # joint velocities
+                self.actions, # previous actions
             ),
             dim=-1,
         )
@@ -258,6 +258,11 @@ class LocomotionEnv(DirectRLEnv):
         step_width_penalty = self.cfg.step_width_scale * (too_narrow ** 2)
 
 
+        # =========================
+        # Leg heading alignment penalty
+        # =========================
+        # foot_vecs: [N, 2, 2] = feet_xy - torso_xy
+        # heading_xy: [N, 2]   = normalized heading direction
         foot_vecs = feet_xy - torso_xy.unsqueeze(1)                     # [N, 2, 2]
         foot_vecs_norm = torch.norm(foot_vecs, dim=-1, keepdim=True) + 1e-6
         foot_dirs = foot_vecs / foot_vecs_norm                        # [N, 2, 2]
@@ -317,7 +322,7 @@ class LocomotionEnv(DirectRLEnv):
         hop_penalty = self.cfg.hop_penalty_scale * (excess_vz ** 2)  # quadratic cost
 
         # =========================
-        # NEW: torso yaw alignment with direction-of-travel / target
+        # torso yaw alignment with direction-of-travel / target
         # =========================
         # yaw and angle_to_target were computed in _compute_intermediate_values
         yaw = self.yaw
@@ -326,7 +331,7 @@ class LocomotionEnv(DirectRLEnv):
         yaw_penalty = self.cfg.yaw_penalty_scale * (yaw_error ** 2)
 
         # =========================
-        # NEW: lateral CoM velocity penalty (discourage side-stepping)
+        # lateral CoM velocity penalty (discourage side-stepping)
         # =========================
         lat_vel = torch.abs(self.velocity[:, 0])                     # x-direction speed
         lateral_penalty = self.cfg.lateral_vel_scale * lat_vel
@@ -337,8 +342,8 @@ class LocomotionEnv(DirectRLEnv):
             - feet_slide_penalty
             # - hip_posture_penalty
             # - leg_heading_penalty
-            # - symmetry_penalty
-            # - hop_penalty
+            - symmetry_penalty
+            - hop_penalty
             - yaw_penalty
             - lateral_penalty
             - step_width_penalty
