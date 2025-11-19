@@ -130,7 +130,9 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     target_speed: float = 0.8
 
     leg_heading_scale: float = 0.15      # softer
-    yaw_penalty_scale: float = 0.3
-    lateral_vel_scale: float = 0.1
+    yaw_penalty_scale: float = 0.15
+    lateral_vel_scale: float = 0.05
     hop_penalty_scale: float = 0.3
     sym_scale: float = 0.1
+    step_width_scale: float = 0.5
+    stride_penalty_scale: float = 1.0
