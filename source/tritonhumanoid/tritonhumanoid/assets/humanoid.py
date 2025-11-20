@@ -13,6 +13,15 @@ import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets import ArticulationCfg
 
+import math
+
+qz_minus_90 = (
+    math.cos(math.pi / 4.0),  # ≈ 0.7071
+    0.0,
+    0.0,
+    -math.sin(math.pi / 4.0), # ≈ -0.7071
+)
+
 HUMANOID_CFG = ArticulationCfg(
     prim_path="",  # you usually override this in the scene cfg
     spawn=sim_utils.UsdFileCfg(
@@ -37,6 +46,7 @@ HUMANOID_CFG = ArticulationCfg(
 
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(0.0, 0.0, 0.0),          # tweak height so feet just touch the ground
+        rot=qz_minus_90,
         joint_pos={".*": 0.0},
         joint_vel={".*": 0.0},
     ),
@@ -58,16 +68,16 @@ HUMANOID_CFG = ArticulationCfg(
                 "right_knee_joint",
                 "right_ankle_joint",
             ],
-            effort_limit_sim=100.0,
-            velocity_limit_sim=5.0,
+            effort_limit_sim=120.0,
+            velocity_limit_sim=20.0,
 
             # Velocity-control regime: P ≈ 0, D > 0
             stiffness=0.0,
             damping={
-                ".*hip.*": 8.0,              # hip joints slightly stronger
-                ".*thigh.*": 10.0,
-                ".*knee.*": 8.0,
-                ".*ankle.*": 5.0,
+                ".*hip.*": 30.0,              # hip joints slightly stronger
+                ".*thigh.*": 28.0,
+                ".*knee.*": 22.0,
+                ".*ankle.*": 16.0,
             },
 
             # Optional: very small joint friction/armature so it’s not totally ideal

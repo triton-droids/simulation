@@ -15,6 +15,8 @@ from isaaclab.assets import Articulation
 from isaaclab.envs import DirectRLEnv, DirectRLEnvCfg
 from isaaclab.sensors import ContactSensor
 
+import math
+from isaacsim.core.utils.torch.rotations import quat_conjugate
 
 def normalize_angle(x):
     return torch.atan2(torch.sin(x), torch.cos(x))
@@ -61,23 +63,62 @@ class LocomotionEnv(DirectRLEnv):
         torso_body_indices, _ = self.robot.find_bodies("torso")
         self._torso_body_idx = int(torso_body_indices[0])
 
+        right_foot_body_indices, _ = self.robot.find_bodies("right_foot")
+        self._right_foot_body_idx = int(right_foot_body_indices[0])
+
+        left_foot_body_indices, _ = self.robot.find_bodies("left_foot")
+        self._left_foot_body_idx = int(left_foot_body_indices[0])
+
+        feet_pos_all = self.robot.data.body_pos_w[:]  # [M, num_bodies, 3]
+        left_xy  = feet_pos_all[:, self._left_foot_body_idx, :2]   # [M, 2]
+        right_xy = feet_pos_all[:, self._right_foot_body_idx, :2]  # [M, 2]
+        torso_xy = feet_pos_all[:, self._torso_body_idx, :2]
+
+        # lateral axis is y (x is forward)
+        left_lat  = left_xy[:, 1]  - torso_xy[:, 1]
+        right_lat = right_xy[:, 1] - torso_xy[:, 1]
+
+        step_width = torch.abs(left_lat - right_lat)  # [M]
+        self.default_step_width = step_width
+
         self._feet_ids, _ = self._contact_sensor.find_bodies("left_foot|right_foot")
 
         # ---- Locomotion targets and cached buffers ----
         self.potentials = torch.zeros(self.num_envs, dtype=torch.float32, device=self.sim.device)
         self.prev_potentials = torch.zeros_like(self.potentials)
-        self.targets = torch.tensor([0, 1000, 0], dtype=torch.float32, device=self.sim.device).repeat(
+        self.targets = torch.tensor([1000, 0, 0], dtype=torch.float32, device=self.sim.device).repeat(
             (self.num_envs, 1)
         )
         self.targets += self.scene.env_origins
-        self.start_rotation = torch.tensor([1, 0, 0, 0], device=self.sim.device, dtype=torch.float32)
-        self.up_vec = torch.tensor([0, 0, 1], dtype=torch.float32, device=self.sim.device).repeat((self.num_envs, 1))
-        self.heading_vec = torch.tensor([0, 1, 0], dtype=torch.float32, device=self.sim.device).repeat(
-            (self.num_envs, 1)
+
+        # 1) Don't subtract any initial yaw: use identity start rotation
+        qz_minus_90 = torch.tensor(
+            [
+                math.cos(math.pi / 4.0),  # w
+                0.0,                      # x
+                0.0,                      # y
+                -math.sin(math.pi / 4.0), # z
+            ],
+            device=self.sim.device,
+            dtype=torch.float32,
         )
-        self.inv_start_rot = quat_conjugate(self.start_rotation).repeat((self.num_envs, 1))
-        self.basis_vec0 = self.heading_vec.clone()
-        self.basis_vec1 = self.up_vec.clone()
+        self.start_rotation = qz_minus_90
+        self.inv_start_rot = quat_conjugate(self.start_rotation).unsqueeze(0).repeat(self.num_envs, 1)
+
+        # 2) Define basis vectors in *torso local frame*
+        #    - local +Z is up
+        #    - local +X is "forward" (as you see it in the viewer)
+        self.basis_vec1 = torch.tensor(
+            [0.0, 0.0, 1.0],   # up
+            device=self.sim.device,
+            dtype=torch.float32,
+        ).repeat(self.num_envs, 1)
+
+        self.basis_vec0 = torch.tensor(
+            [1.0, 0.0, 0.0],   # forward
+            device=self.sim.device,
+            dtype=torch.float32,
+        ).repeat(self.num_envs, 1)
 
     def _setup_scene(self):
         self.robot = Articulation(self.cfg.robot)
@@ -238,24 +279,25 @@ class LocomotionEnv(DirectRLEnv):
         feet_slide_penalty = self.cfg.feet_slide_scale * sliding.sum(dim=1)              # [N]
 
         # =========================
-        # Legs relative to torso heading penalty (make feet less sideways)
+        # Step width penalty (tightrope fix)
         # =========================
         torso_xy = self.torso_position[:, :2]                           # [N, 2]
-        feet_pos = self.robot.data.body_pos_w[:, self._feet_ids, :]   # [N, 2, 3]
-        feet_xy = feet_pos[:, :, :2]                                  # [N, 2, 2]
+        feet_pos = self.robot.data.body_pos_w[:, self._feet_ids, :]     # [N, 2, 3]
+        feet_xy  = feet_pos[:, :, :2]                                   # [N, 2, 2]
 
-        # lateral positions of each foot relative to torso (x-direction)
-        foot_lats = feet_xy[:, :, 0] - torso_xy[:, 0].unsqueeze(1)   # [N, 2]
+        # lateral positions (y) of each foot relative to torso
+        foot_lats = feet_xy[:, :, 1] - torso_xy[:, 1].unsqueeze(1)      # [N, 2]
 
-        # distance between feet in x
-        step_width = torch.abs(foot_lats[:, 0] - foot_lats[:, 1])    # [N]
+        # lateral distance between feet (y-axis, since x is forward)
+        step_width = torch.abs(foot_lats[:, 0] - foot_lats[:, 1])       # [N]
 
-        # pick a target width ~ initial stance width (just measure from default pose once)
-        target_width = 0.32  # for example, tune this
+        # target = default lateral width from reset
+        target_width = self.default_step_width                          # [N]
 
-        # penalize being narrower than target_width (knock-kneed)
+        # penalize being narrower than default (tightrope)
         too_narrow = torch.clamp(target_width - step_width, min=0.0)
         step_width_penalty = self.cfg.step_width_scale * (too_narrow ** 2)
+
 
 
         # =========================
@@ -333,14 +375,34 @@ class LocomotionEnv(DirectRLEnv):
         # =========================
         # lateral CoM velocity penalty (discourage side-stepping)
         # =========================
-        lat_vel = torch.abs(self.velocity[:, 0])                     # x-direction speed
-        lateral_penalty = self.cfg.lateral_vel_scale * lat_vel
+        v_y = torch.abs(self.velocity[:, 1])   # side-stepping in world y
+        lateral_penalty = self.cfg.lateral_vel_scale * v_y
+
+        # ================
+        # Lead-leg bias penalty (discourage one foot always leading)
+        # ================
+        # forward_offsets: projection of foot vectors onto heading direction
+        foot_vecs = feet_xy - torso_xy.unsqueeze(1)                     # [N, 2, 2]
+        heading_xy = self.heading_vec[:, :2]
+        heading_xy = heading_xy / (torch.norm(heading_xy, dim=-1, keepdim=True) + 1e-6)  # [N, 2]
+
+        forward_offsets = (foot_vecs * heading_xy.unsqueeze(1)).sum(dim=-1)  # [N, 2]
+
+        # we already have contact_time and in_contact above
+        both_contact = (in_contact.sum(dim=1) == 2).float()                   # [N]
+
+        lead_bias = torch.abs(forward_offsets[:, 0] - forward_offsets[:, 1])  # [N]
+        # small tolerance before we start penalizing
+        excess_lead = torch.clamp(lead_bias - 0.05, min=0.0)
+
+        lead_bias_penalty = self.cfg.lead_bias_scale * (excess_lead ** 2) * both_contact
+
 
         total_reward = (
             base_reward
             + feet_air_time_reward
             - feet_slide_penalty
-            # - hip_posture_penalty
+            - hip_posture_penalty
             # - leg_heading_penalty
             - symmetry_penalty
             - hop_penalty
@@ -348,6 +410,7 @@ class LocomotionEnv(DirectRLEnv):
             - lateral_penalty
             - step_width_penalty
             - stride_penalty
+            - lead_bias_penalty
         )
 
         return total_reward
