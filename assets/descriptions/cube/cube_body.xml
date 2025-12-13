@@ -1,0 +1,11 @@
+<mujocoinclude>
+
+    <body name="cube" pos="-0.25 0.0 0.77">
+      <freejoint/>
+      <geom name="cube_geom" type="box" size="0.015 0.015 0.015" 
+            material="blue_cube" mass="0.1" 
+            contype="1" conaffinity="1"/>
+      <site name="cube_site" pos="0 0 0" size="0.02"/>
+    </body>
+
+</mujocoinclude>
