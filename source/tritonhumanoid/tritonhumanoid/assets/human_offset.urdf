@@ -1,5 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
 <robot name="ch_robot">
+
+  <link name="world"/>
+
   <link name="base_link">
     <inertial>
       <mass value="0.5"/>  <!-- pick something reasonable -->
@@ -8,23 +11,34 @@
   </link>
   <link name="torso">
     <inertial>
-      <!-- rough guess; tune later -->
-      <mass value="10.0"/>
-      <inertia ixx="0.05" ixy="0" ixz="0" iyy="0.05" iyz="0" izz="0.05"/>
+      <!-- Center of mass (meters) relative to the link frame -->
+      <origin xyz="-0.15417 -0.030012 0.697219" rpy="0 0 0"/>
+      <!-- Mass in kilograms -->
+      <mass value="3.175"/>
+      <!-- Inertia about the COM, expressed in the inertial frame axes (kg*m^2) -->
+      <inertia
+        ixx="5.173e-3"
+        ixy="3.126e-17"
+        ixz="1.463904e-6"
+        iyy="1.947e-2"
+        iyz="-1.478e-16"
+        izz="2.099e-2"/>
     </inertial>
 
     <collision>
       <!-- box centered at torso frame -->
-      <origin xyz="0 0 0" rpy="0 0 0" />
+      <origin xyz="-0.154672 -0.03 0.6962" rpy="0 0 0" />
       <geometry>
-        <box size="0.32 0.16 0.24" />
+        <box size="0.28 0.12 0.096" />
+         <!-- <mesh filename="robot_meshes/visual/battery_box.stl" scale="0.001 0.001 0.001" /> -->
       </geometry>
     </collision>
 
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
+      <!-- <origin xyz="0.281672 0.07751 -0.661236" rpy="0 0 0" /> -->
+       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <box size="0.32 0.16 0.24" />
+        <mesh filename="robot_meshes/visual/battery_box.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </visual>
   </link>
@@ -172,15 +186,23 @@
     </inertial>
 
     <collision>
-      <origin xyz="-0.00958 0.03 -0.031528" rpy="0 0 0" />
+      <origin xyz="-0.01 0.025 -0.035" rpy="0 0 0" />
       <geometry>
-        <mesh filename="robot_meshes/left_foot_ch.stl" scale="0.001 0.001 0.001" />
+        <!-- <mesh filename="robot_meshes/left_foot_ch.stl" scale="0.001 0.001 0.001" /> -->
+        <box size="0.08 0.21 0.01526"/>
       </geometry>
     </collision>
     <visual>
       <origin xyz="-0.00958 0.03 -0.031528" rpy="0 0 0" />
       <geometry>
         <mesh filename="robot_meshes/visual/left_foot.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
+
+    <visual>
+      <origin xyz="0.3 0.03 -0.031528" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="robot_meshes/visual/left_foot_sole.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </visual>
   </link>
@@ -295,9 +317,10 @@
               izz="0.002213"/>
     </inertial>
     <collision>
-      <origin xyz="0.320851 0.03 -0.031528" rpy="0 0 0" />
+      <origin xyz="0.01 0.025 -0.035" rpy="0 0 0" />
       <geometry>
-        <mesh filename="robot_meshes/right_foot_ch.stl" scale="0.001 0.001 0.001" />
+        <!-- <mesh filename="robot_meshes/right_foot_ch.stl" scale="0.001 0.001 0.001" /> -->
+        <box size="0.08 0.21 0.01526"/>
       </geometry>
     </collision>
     <visual>
@@ -306,13 +329,28 @@
         <mesh filename="robot_meshes/visual/right_foot.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </visual>
+
+    <visual>
+      <origin xyz="0.01 0.03 -0.031528" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="robot_meshes/visual/right_foot_sole.stl" scale="0.001 0.001 0.001" />
+      </geometry>
+    </visual>
   </link>
 
+  <!-- THIS JOINT MOVES THE ENTIRE BODY  -->
   <joint name="hip_to_torso" type="fixed">
     <parent link="hip"/>
     <child  link="torso"/>
     <!-- torso frame position relative to hip frame -->
-    <origin xyz="-0.155 -0.03 0.765" rpy="0 0 0"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <joint name="world_to_base" type="fixed">
+    <parent link="world"/>
+    <child link="base_link"/>
+    <!-- This is the shift you observed on hip+legs when hip_to_torso was set -->
+    <origin xyz="0.155 0.03 -0.765" rpy="0 0 0"/>
   </joint>
 
   

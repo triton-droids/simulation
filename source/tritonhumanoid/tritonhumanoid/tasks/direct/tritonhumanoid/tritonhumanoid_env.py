@@ -147,6 +147,14 @@ class LocomotionEnv(DirectRLEnv):
         # actions in [-1, 1] → desired joint velocities
         self.actions = actions.clone()
 
+        """
+        left_hip1_joint: RS-04      right_hip1_joint: RS-04
+        left_hip2_joint: RS-03      right_hip2_joint: RS-03
+        left_thigh_joint: RS-03     right_thigh_joint: RS-03
+        left_knee_joint: RS-04      right_knee_joint: RS-04
+        left_ankle_joint: RS-02     right_ankle_joint: RS-02
+        """
+
     def _apply_action(self):
         # Velocity-based control:
         # actions \in [-1, 1] → desired velocity in [-action_scale, action_scale] rad/s
