@@ -72,7 +72,12 @@ HUMANOID_CFG = ArticulationCfg(
             velocity_limit_sim=20.0,
 
             # Velocity-control regime: P ≈ 0, D > 0
-            stiffness=0.0,
+            stiffness={
+                ".*hip.*":   300.0,
+                ".*thigh.*": 300.0,
+                ".*knee.*":  350.0,
+                ".*ankle.*": 150.0,
+            }
             damping={
                 ".*hip.*": 30.0,              # hip joints slightly stronger
                 ".*thigh.*": 28.0,
