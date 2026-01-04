@@ -53,8 +53,18 @@ class LocomotionEnv(DirectRLEnv):
         # default pose for posture penalty
         self.default_joint_pos = self.robot.data.default_joint_pos[0]
 
-        # actions: desired joint velocities (scaled by action_scale)
+        # cache default pose for ONLY actuated joints (shape: [num_actions])
+        self.default_actuated_pos = self.default_joint_pos[self._joint_dof_idx].clone()
+
+        # cache soft joint limits for actuated joints (shape: [num_actions])
+        self.actuated_lower = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 0].clone()
+        self.actuated_upper = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 1].clone()
+
+        # actions: desired POSITION OFFSETS (radians) after scaling by action_scale
         self.actions = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
+
+        # optional buffer if you want to log/debug targets
+        self.q_des = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
 
         # used only for energy penalty; keep as simple scale for now
         self.motor_effort_ratio = torch.ones(self.num_actions, dtype=torch.float32, device=self.sim.device)
@@ -155,11 +165,20 @@ class LocomotionEnv(DirectRLEnv):
         left_ankle_joint: RS-02     right_ankle_joint: RS-02
         """
 
+
     def _apply_action(self):
-        # Velocity-based control:
-        # actions \in [-1, 1] → desired velocity in [-action_scale, action_scale] rad/s
-        vel_targets = self.action_scale * self.actions
-        self.robot.set_joint_velocity_target(vel_targets, joint_ids=self._joint_dof_idx)
+        # Position control:
+        # actions in [-1, 1] -> position offset in [-action_scale, +action_scale] radians
+        pos_offsets = self.action_scale * self.actions  # [N, 10]
+
+        # Convert offsets -> absolute joint position targets around a nominal/default pose
+        q_des = self.default_actuated_pos.unsqueeze(0) + pos_offsets  # [N, 10]
+
+        # Clamp to soft joint limits (recommended)
+        q_des = torch.clamp(q_des, self.actuated_lower.unsqueeze(0), self.actuated_upper.unsqueeze(0))
+
+        self.q_des = q_des
+        self.robot.set_joint_position_target(q_des, joint_ids=self._joint_dof_idx)
 
     def _compute_intermediate_values(self):
         torso = self._torso_body_idx
@@ -226,6 +245,9 @@ class LocomotionEnv(DirectRLEnv):
     def _get_rewards(self) -> torch.Tensor:
         # use only actuated joint velocities for energy cost
         actuated_dof_vel = self.dof_vel[:, self._joint_dof_idx]
+        actuated_dof_pos = self.dof_pos[:, self._joint_dof_idx]
+
+        pos_err = self.q_des - actuated_dof_pos  # [N, 10]
 
         base_reward = compute_rewards(
             self.actions,
@@ -235,6 +257,7 @@ class LocomotionEnv(DirectRLEnv):
             self.heading_proj,
             self.up_proj,
             actuated_dof_vel,
+            pos_err,
             self.dof_pos_scaled,
             self.potentials,
             self.prev_potentials,
@@ -466,6 +489,7 @@ def compute_rewards(
     heading_proj: torch.Tensor,
     up_proj: torch.Tensor,
     dof_vel: torch.Tensor,
+    pos_err: torch.Tensor,
     dof_pos_scaled: torch.Tensor,
     potentials: torch.Tensor,
     prev_potentials: torch.Tensor,
@@ -492,7 +516,7 @@ def compute_rewards(
     # energy penalty for movement
     actions_cost = torch.sum(actions**2, dim=-1)
     electricity_cost = torch.sum(
-        torch.abs(actions * dof_vel * dof_vel_scale) * motor_effort_ratio.unsqueeze(0),
+        torch.abs(pos_err * dof_vel) * motor_effort_ratio.unsqueeze(0),
         dim=-1,
     )
 
