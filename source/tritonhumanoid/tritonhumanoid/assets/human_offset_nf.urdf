@@ -17,9 +17,8 @@
       <mass value="3.175"/>
       <!-- Inertia about the COM, expressed in the inertial frame axes (kg*m^2) -->
       <inertia
-        ixx="0.005173"
+        ixx="5.173e-3"
         ixy="3.126e-17"
-        ixy="0."
         ixz="1.463904e-6"
         iyy="1.947e-2"
         iyz="-1.478e-16"
