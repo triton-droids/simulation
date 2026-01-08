@@ -167,8 +167,6 @@ class LocomotionEnv(DirectRLEnv):
 
 
     def _apply_action(self):
-        return
-
         # Position control:
         # actions in [-1, 1] -> position offset in [-action_scale, +action_scale] radians
         pos_offsets = self.action_scale * self.actions  # [N, 10]
@@ -455,7 +453,7 @@ class LocomotionEnv(DirectRLEnv):
         fell_height = self.torso_position[:, 2] < self.cfg.termination_height
         too_tilted  = self.up_proj < 0.5    # ~60 degrees from upright
 
-        died = torch.zeros_like(self.reset_buf)
+        died = fell_height | too_tilted
         return died, time_out
 
     def _reset_idx(self, env_ids: torch.Tensor | None):

@@ -11,7 +11,8 @@ import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg
 from isaaclab.envs import DirectRLEnvCfg
 from isaaclab.scene import InteractiveSceneCfg
-from isaaclab.sim import SimulationCfg
+from isaaclab.sim import PhysxCfg, SimulationCfg
+from isaaclab.sim.spawners.materials.physics_materials_cfg import RigidBodyMaterialCfg
 from isaaclab.terrains import TerrainImporterCfg
 from isaaclab.utils import configclass
 
@@ -72,7 +73,42 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     state_space = 0
 
     # simulation
-    sim: SimulationCfg = SimulationCfg(dt=1 / 120, render_interval=decimation)
+    sim_cfg = SimulationCfg(
+        dt=1/240,          # if still sinking: try 1/240
+        # physx=sim_utils.PhysxCfg(
+        #     solver_type=1,                     # TGS (0 is PGS)
+        #     min_position_iteration_count=12,
+        #     max_position_iteration_count=12,   # fixed iterations
+        #     min_velocity_iteration_count=2,
+        #     max_velocity_iteration_count=2,    # fixed iterations
+
+        #     # contact_offset=0.02,
+        #     # rest_offset=0.001,
+        #     # max_depenetration_velocity=100.0,
+
+        #     # default_buffer_size_multiplier=2.0,
+        #     # max_gpu_contact_pairs=1048576,  # important with many envs
+
+        #     enable_stabilization=True,
+        #     enable_ccd=False
+
+        #     # keep defaults unless you know why you’re changing them:
+        #     # bounce_threshold_velocity=0.5,
+        #     # friction_offset_threshold=0.04,
+        #     # friction_correlation_distance=0.025,
+        # ),
+        render_interval=decimation,
+        physics_material=RigidBodyMaterialCfg(
+            static_friction=0.2,
+            dynamic_friction=0.4,
+        ),
+        # physx=PhysxCfg(
+            # bounce_threshold_velocity=0.2,
+            # gpu_max_rigid_contact_count=2**25,
+            # gpu_max_rigid_patch_count=2**25
+        # )
+    )
+
     terrain = TerrainImporterCfg(
         prim_path="/World/ground",
         terrain_type="plane",
