@@ -3,12 +3,6 @@
 
   <link name="world"/>
 
-  <link name="base_link">
-    <inertial>
-      <mass value="0.5"/>  <!-- pick something reasonable -->
-      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
-    </inertial>
-  </link>
   <link name="torso">
     <inertial>
       <!-- Center of mass (meters) relative to the link frame -->
@@ -339,26 +333,20 @@
   </link>
 
   <!-- THIS JOINT MOVES THE ENTIRE BODY  -->
-  <joint name="hip_to_torso" type="fixed">
-    <parent link="hip"/>
-    <child  link="torso"/>
-    <!-- torso frame position relative to hip frame -->
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </joint>
-
   <joint name="world_to_base" type="fixed">
     <parent link="world"/>
-    <child link="base_link"/>
+    <child link="torso"/>
     <!-- This is the shift you observed on hip+legs when hip_to_torso was set -->
     <origin xyz="0.155 0.03 -0.765" rpy="0 0 0"/>
   </joint>
 
-  
-  <joint name="base_to_hip" type="fixed">
-    <parent link="base_link"/>
+  <joint name="torso_to_hip" type="fixed">
+    <parent link="torso"/>
     <child  link="hip"/>
+    <!-- torso frame position relative to hip frame -->
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </joint>
+
   <joint name="left_hip1_joint" type="revolute">
     <parent link="hip" />
     <child link="left_leg1" />

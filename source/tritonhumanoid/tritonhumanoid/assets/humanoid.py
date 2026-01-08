@@ -26,7 +26,7 @@ HUMANOID_CFG = ArticulationCfg(
     prim_path="",  # you usually override this in the scene cfg
     spawn=sim_utils.UsdFileCfg(
         # usd_path=f"{Path(__file__).parent}/human/human.usd",
-        usd_path=f"{Path(__file__).parent}/human_offset/human_offset.usd",
+        usd_path=f"{Path(__file__).parent}/human_offset_nf/human_offset_nf.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -45,7 +45,7 @@ HUMANOID_CFG = ArticulationCfg(
     ),
 
     init_state=ArticulationCfg.InitialStateCfg(
-        pos=(0.0, 0.0, 0.0),          # tweak height so feet just touch the ground
+        pos=(0.0, 0.0, 0.77),          # tweak height so feet just touch the ground
         rot=qz_minus_90,
         joint_pos={".*": 0.0},
         joint_vel={".*": 0.0},
@@ -77,7 +77,7 @@ HUMANOID_CFG = ArticulationCfg(
                 ".*thigh.*": 300.0,
                 ".*knee.*":  350.0,
                 ".*ankle.*": 150.0,
-            }
+            },
             damping={
                 ".*hip.*": 30.0,              # hip joints slightly stronger
                 ".*thigh.*": 28.0,

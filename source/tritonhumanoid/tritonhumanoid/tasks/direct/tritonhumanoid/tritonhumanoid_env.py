@@ -70,7 +70,7 @@ class LocomotionEnv(DirectRLEnv):
         self.motor_effort_ratio = torch.ones(self.num_actions, dtype=torch.float32, device=self.sim.device)
 
         # ---- Identify important body indices ----
-        torso_body_indices, _ = self.robot.find_bodies("torso")
+        torso_body_indices, _ = self.robot.find_bodies("world")
         self._torso_body_idx = int(torso_body_indices[0])
 
         right_foot_body_indices, _ = self.robot.find_bodies("right_foot")
@@ -167,6 +167,8 @@ class LocomotionEnv(DirectRLEnv):
 
 
     def _apply_action(self):
+        return
+
         # Position control:
         # actions in [-1, 1] -> position offset in [-action_scale, +action_scale] radians
         pos_offsets = self.action_scale * self.actions  # [N, 10]
@@ -438,7 +440,7 @@ class LocomotionEnv(DirectRLEnv):
             - symmetry_penalty
             - hop_penalty
             - yaw_penalty
-            - lateral_penalty
+            # - lateral_penalty # redundant
             - step_width_penalty
             - stride_penalty
             - lead_bias_penalty
@@ -453,7 +455,7 @@ class LocomotionEnv(DirectRLEnv):
         fell_height = self.torso_position[:, 2] < self.cfg.termination_height
         too_tilted  = self.up_proj < 0.5    # ~60 degrees from upright
 
-        died = fell_height | too_tilted
+        died = torch.zeros_like(self.reset_buf)
         return died, time_out
 
     def _reset_idx(self, env_ids: torch.Tensor | None):
@@ -560,7 +562,7 @@ def compute_rewards(
         # progress_reward
         alive_reward
         + up_reward
-        + heading_reward
+        # + heading_reward # this is redundant with yaw_penalty in compute_rewards()
         + orient_vel_reward
         + forward_vel_weight * speed_reward
         - actions_cost_scale * actions_cost
