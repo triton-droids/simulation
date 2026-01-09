@@ -89,7 +89,7 @@ class LocomotionEnv(DirectRLEnv):
         right_lat = right_xy[:, 1] - torso_xy[:, 1]
 
         step_width = torch.abs(left_lat - right_lat)  # [M]
-        self.default_step_width = step_width
+        self.default_step_width = None
 
         self._feet_ids, _ = self._contact_sensor.find_bodies("left_foot|right_foot")
 
@@ -314,10 +314,10 @@ class LocomotionEnv(DirectRLEnv):
         # =========================
         torso_xy = self.torso_position[:, :2]                           # [N, 2]
         feet_pos = self.robot.data.body_pos_w[:, self._feet_ids, :]     # [N, 2, 3]
-        feet_xy  = feet_pos[:, :, :2]                                   # [N, 2, 2]
+        feet_xy  = feet_pos[:, :, :2]                                   # [N, 2, 2], the x and y positions
 
         # lateral positions (y) of each foot relative to torso
-        foot_lats = feet_xy[:, :, 1] - torso_xy[:, 1].unsqueeze(1)      # [N, 2]
+        foot_lats = feet_xy[:, :, 1] - torso_xy[:, 1].unsqueeze(1)      # [N, 2], 
 
         # lateral distance between feet (y-axis, since x is forward)
         step_width = torch.abs(foot_lats[:, 0] - foot_lats[:, 1])       # [N]
@@ -363,7 +363,7 @@ class LocomotionEnv(DirectRLEnv):
         max_forward = forward_offsets.abs().max(dim=1).values                 # [N]
 
         # choose a safe max stride length (meters), tune this:
-        stride_max = 0.30  # e.g. 0.25–0.35 depending on your leg length
+        stride_max = 0.25  # e.g. 0.25–0.35 depending on your leg length
 
         # penalize only when we exceed that length
         excess_stride = torch.clamp(max_forward - stride_max, min=0.0)        # [N]
@@ -428,20 +428,40 @@ class LocomotionEnv(DirectRLEnv):
 
         lead_bias_penalty = self.cfg.lead_bias_scale * (excess_lead ** 2) * both_contact
 
+        touchdown_reset = (first_contact * (forward_offsets ** 2)).sum(dim=1)  # [N]
+        touchdown_reset_penalty = self.cfg.touchdown_reset_scale * touchdown_reset * moving_mask
+
+        # Single-support mask (exactly one foot in contact)
+        single_support = (in_contact[:, 0] ^ in_contact[:, 1]).float()  # [N]
+
+        # If left is stance (L contact, R swing): want R ahead of L => (R - L) positive
+        # If right is stance: want L ahead of R => (L - R) positive
+        swing_ahead = (
+            in_contact[:, 0].float() * (forward_offsets[:, 1] - forward_offsets[:, 0]) +
+            in_contact[:, 1].float() * (forward_offsets[:, 0] - forward_offsets[:, 1])
+        )  # [N]
+
+        # Optional margin so tiny differences don't matter
+        swing_ahead_margin = 0.03  # meters, tune
+        swing_ahead_reward = self.cfg.swing_ahead_scale * torch.clamp(swing_ahead - swing_ahead_margin, min=0.0)
+        swing_ahead_reward = swing_ahead_reward * single_support * moving_mask
+
 
         total_reward = (
             base_reward
             + feet_air_time_reward
             - feet_slide_penalty
             - hip_posture_penalty
-            # - leg_heading_penalty
+            # - leg_heading_penalty # this one is buggy
             - symmetry_penalty
             - hop_penalty
             - yaw_penalty
             # - lateral_penalty # redundant
             - step_width_penalty
             - stride_penalty
-            - lead_bias_penalty
+            # - lead_bias_penalty
+            - touchdown_reset_penalty
+            + swing_ahead_reward
         )
 
         return total_reward
@@ -470,6 +490,20 @@ class LocomotionEnv(DirectRLEnv):
         self.robot.write_root_pose_to_sim(default_root_state[:, :7], env_ids)
         self.robot.write_root_velocity_to_sim(default_root_state[:, 7:], env_ids)
         self.robot.write_joint_state_to_sim(joint_pos, joint_vel, None, env_ids)
+
+        # Compute default_step_width on first reset when all envs initialize
+        if self.default_step_width is None:
+            feet_pos = self.robot.data.body_pos_w[:, self._feet_ids, :]     # [N, 2, 3]
+            torso_pos = self.robot.data.body_pos_w[:, self._torso_body_idx, :]  # [N, 3]
+            
+            feet_xy = feet_pos[:, :, :2]                                     # [N, 2, 2]
+            torso_xy = torso_pos[:, :2]                                      # [N, 2]
+            
+            # Lateral (y-axis) positions relative to torso
+            foot_lats = feet_xy[:, :, 1] - torso_xy[:, 1].unsqueeze(1)      # [N, 2]
+            
+            # Distance between feet in lateral direction
+            self.default_step_width = torch.abs(foot_lats[:, 0] - foot_lats[:, 1])  # [N]
 
         # reset actions for those envs to zero velocity
         self.actions[env_ids] = 0.0
@@ -540,7 +574,7 @@ def compute_rewards(
     forward_speed = (v_xy * h_dir).sum(dim=-1) # [N]
     forward_speed = torch.clamp(forward_speed, min=0.0)
 
-    target_speed = torch.tensor(0.8, device=velocity.device)
+    target_speed = torch.tensor(0.5, device=velocity.device)
     speed_error = forward_speed - target_speed
     speed_reward_raw = torch.exp(-0.5 * (speed_error ** 2) / (0.3 ** 2))
 

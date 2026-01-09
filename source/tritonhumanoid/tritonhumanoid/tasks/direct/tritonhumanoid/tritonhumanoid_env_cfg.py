@@ -174,3 +174,6 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     step_width_scale: float = 0.5
     stride_penalty_scale: float = 1.0
     lead_bias_scale: float = 0.2
+
+    touchdown_reset_scale: float = 30
+    swing_ahead_scale: float = 2
