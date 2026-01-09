@@ -557,8 +557,8 @@ def compute_rewards(
 
 
     total_reward = (
-        # progress_reward
-        alive_reward
+        progress_reward
+        + alive_reward
         + up_reward
         # + heading_reward # this is redundant with yaw_penalty in compute_rewards()
         + orient_vel_reward
