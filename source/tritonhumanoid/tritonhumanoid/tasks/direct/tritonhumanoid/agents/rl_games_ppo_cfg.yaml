@@ -22,7 +22,7 @@ params:
           name: default
         sigma_init:
           name: const_initializer
-          val: 0
+          val: -1.0  # std ≈ 0.37, reduced from 0 (std=1.0) for less noisy early exploration
         fixed_sigma: True
 
     # humanoid locomotion MLP – similar to rsl_rl configs

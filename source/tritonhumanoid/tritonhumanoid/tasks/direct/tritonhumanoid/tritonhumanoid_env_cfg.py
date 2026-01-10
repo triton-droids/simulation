@@ -1,138 +1,83 @@
-# Copyright (c) 2022-2026, The Isaac Lab Project Developers
+# Copyright (c) 2022-2025, The Isaac Lab Project Developers (https://github.com/isaac-sim/IsaacLab/blob/main/CONTRIBUTORS.md).
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
 
+from ....assets.humanoid import HUMANOID_CFG
+
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg
 from isaaclab.envs import DirectRLEnvCfg
 from isaaclab.scene import InteractiveSceneCfg
-from isaaclab.sim import SimulationCfg
+from isaaclab.sim import PhysxCfg, SimulationCfg
+from isaaclab.sim.spawners.materials.physics_materials_cfg import RigidBodyMaterialCfg
 from isaaclab.terrains import TerrainImporterCfg
 from isaaclab.utils import configclass
-from isaaclab.sim.spawners.materials.physics_materials_cfg import RigidBodyMaterialCfg
 
 import isaaclab.envs.mdp as mdp
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import SceneEntityCfg
-from isaaclab.sensors import ContactSensorCfg
+from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
 
-from ....assets.humanoid import HUMANOID_CFG
-
+from isaaclab_tasks.direct.locomotion.locomotion_env import LocomotionEnv
 
 @configclass
 class EventCfg:
-    """Domain randomization terms (EventManager-based)."""
+    """Configuration for randomization."""
 
-    # --- robot material ---
-    robot_physics_material = EventTerm(
+    physics_material = EventTerm(
         func=mdp.randomize_rigid_body_material,
-        mode="reset",
-        min_step_count_between_reset=0,
+        mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "static_friction_range": (1.0, 1.0),
-            "dynamic_friction_range": (1.0, 1.0),
+            "static_friction_range": (0.8, 0.8),
+            "dynamic_friction_range": (0.6, 0.6),
             "restitution_range": (0.0, 0.0),
-            "num_buckets": 128,
+            "num_buckets": 64,
         },
     )
 
-    # --- actuator PD gains (implicit actuators) ---
-    robot_joint_stiffness_and_damping = EventTerm(
-        func=mdp.randomize_actuator_gains,
-        mode="reset",
-        min_step_count_between_reset=0,
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-            "operation": "scale",
-            "stiffness_distribution_params": (1.0, 1.0),
-            "damping_distribution_params": (1.0, 1.0),
-            "distribution": "uniform",
-        },
-    )
-
-    # --- joint physics params (friction/armature/limits/etc.) ---
-    robot_joint_parameters = EventTerm(
-        func=mdp.randomize_joint_parameters,
-        mode="reset",
-        min_step_count_between_reset=0,
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-            "operation": "scale",
-            # start as no-op, ADR widens
-            "friction_distribution_params": (1.0, 1.0),
-            "armature_distribution_params": (1.0, 1.0),
-            # optional: avoid changing limits unless you really want to
-            # "lower_limit_distribution_params": (1.0, 1.0),
-            # "upper_limit_distribution_params": (1.0, 1.0),
-            "distribution": "uniform",
-        },
-    )
-
-    # --- gravity scale ---
-    gravity = EventTerm(
-        func=mdp.randomize_physics_scene_gravity,
-        mode="reset",
-        min_step_count_between_reset=0,
-        params={
-            "gravity_distribution_params": (1.0, 1.0),
-            "operation": "scale",
-            "distribution": "uniform",
-        },
-    )
+    # add_base_mass = EventTerm(
+    #     func=mdp.randomize_rigid_body_mass,
+    #     mode="startup",
+    #     params={
+    #         # base link name from your URDF
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="base_link"),
+    #         "mass_distribution_params": (-2, 2),
+    #         "operation": "add",
+    #     },
+    # )
 
 
 @configclass
 class HumanoidEnvCfg(DirectRLEnvCfg):
-    """Standing disturbance-rejection env with ADR."""
-
-    # === RL timing ===
+    # env
     episode_length_s = 15.0
     decimation = 2
 
-    # === actions / obs ===
-    action_scale = 5.0
+    # Position control: actions map to POSITION OFFSETS (radians) around default pose
+    # action_scale determines the maximum offset: actions in [-1, 1] → [-action_scale, +action_scale] radians
+    # The actual position command is: q_target = default_pose + action_scale * action
+    action_scale = 0.25  # Lower for early training stability; increase to 0.5 after initial learning
+
+    # 10 actuated leg joints
     action_space = 10
 
-    # position control parameters
-    residual_pos_scale: float = 0.25  # scale actions to position deltas (radians)
-    action_filter_alpha: float = 0.2  # first-order filter for motor dynamics
-    action_rate_scale: float = 0.05   # penalty for action changes
+    # obs_dim = 1 (height) + 3 (lin_vel) + 3 (ang_vel) + 3 (up_b) + 3 (commands) + 10 (pos) + 10 (vel) + 10 (prev_actions) = 43
+    # + 2 (phase clock if use_phase_obs=True) = 45
+    observation_space = 43
 
-    # observation parameters (hardware-only sensors)
-    num_dofs: int = 10
-    angular_velocity_scale: float = 0.25
-    dof_vel_scale: float = 0.1
-    torque_scale: float = 0.01  # scale for joint torques in observation
-    
-    # observation stacking for memory (set >1 to enable)
-    obs_stack_frames: int = 3  # stack last 3 observations
-    
-    # single-frame observation dimension (hardware-only)
-    observation_space_single = (
-        3            # gravity direction in body frame (IMU)
-        + 3          # gyro (IMU angular velocity)
-        + num_dofs   # joint pos (scaled)
-        + num_dofs   # joint vel
-        + num_dofs   # joint torque
-        + action_space  # previous actions
-    )
-    
-    # total observation space (with stacking)
-    observation_space = observation_space_single * obs_stack_frames
     state_space = 0
 
-    # === sim ===
-    sim: SimulationCfg = SimulationCfg(
-        dt=1.0 / 120.0,
+    # simulation
+    sim_cfg = SimulationCfg(
+        dt=1/240,
         render_interval=decimation,
         physics_material=RigidBodyMaterialCfg(
-            static_friction=1.0,
-            dynamic_friction=1.0,
-            restitution=0.0,
+            static_friction=0.2,
+            dynamic_friction=0.4,
         ),
     )
 
@@ -150,122 +95,77 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
         debug_vis=False,
     )
 
-    # === scene ===
+    # scene
     scene: InteractiveSceneCfg = InteractiveSceneCfg(
-        num_envs=4096,
-        env_spacing=4.0,
-        replicate_physics=True,
+        num_envs=4096, env_spacing=4.0, replicate_physics=True
     )
 
-    # === robot + contacts ===
-    robot: ArticulationCfg = HUMANOID_CFG.replace(prim_path="/World/envs/env_.*/Robot")
-
-    contact_sensor: ContactSensorCfg = ContactSensorCfg(
-        prim_path="/World/envs/env_.*/Robot/.*",
-        history_length=3,
-        update_period=0.005,
-        track_air_time=True,
-    )
-
-    # === events ===
+     # events
     events: EventCfg = EventCfg()
 
-    # === pushes (interpreted as delta-velocity kicks in XY) ===
-    push_force_range = (0.0, 0.0)   # start with none if doing ADR curriculum
-    min_push_interval_s = 1.0
-    max_push_interval_s = 3.0
+    # robot
+    robot: ArticulationCfg = HUMANOID_CFG.replace(prim_path="/World/envs/env_.*/Robot")
+    contact_sensor: ContactSensorCfg = ContactSensorCfg(
+        prim_path="/World/envs/env_.*/Robot/.*", history_length=3, update_period=0.005, track_air_time=True
+    )
 
-    # === reward scales ===
-    up_weight: float = 2.0
-    target_root_height: float = 1.0
-    base_height_scale: float = 5.0
-    base_xy_scale: float = 1.0
-    lin_vel_l2_scale: float = 0.1
-    ang_vel_l2_scale: float = 0.1
-
-    step_width_scale: float = 0.5
-    max_stride_length: float = 0.30
-    stride_penalty_scale: float = 1.0
-    hip_posture_scale: float = 0.5
-
-    energy_cost_scale: float = 0.05
-    actions_cost_scale: float = 0.01
+    # Observation scales
+    ang_vel_scale: float = 0.25
     dof_vel_scale: float = 0.1
-    angular_velocity_scale: float = 0.25
 
-    alive_reward_scale: float = 0.1
-    death_cost: float = -2.0
+    # Termination
     termination_height: float = 0.6
-    termination_up_proj: float = 0.5
-    max_xy_displacement: float = 0.6
+    upright_threshold: float = 0.5  # up_b.z
 
-    # =========================
-    # Adaptive Domain Randomization
-    # =========================
-    enable_adr: bool = True
+    # Reward shaping (minimal)
+    lin_vel_reward_scale: float = 1.0
+    yaw_rate_reward_scale: float = 0.5
+    upright_reward_scale: float = 0.5
+    alive_reward: float = 0.05
 
-    # ADR “difficulty” = num_increments / num_adr_increments
-    starting_adr_increments: int = 0
-    num_adr_increments: int = 20
+    action_cost_scale: float = 0.01
+    joint_limit_cost_scale: float = 0.2
+    death_cost: float = -1.0
 
-    # criteria & schedule
-    adr_success_rate_to_increase: float = 0.70   # EMA survival-rate threshold
-    adr_success_rate_to_decrease: float = 0.25   # if struggling badly
-    adr_ema_factor: float = 0.10                 # EMA update factor
-    adr_update_interval_steps: int = 10_000      # policy steps between ADR updates
-    adr_min_steps_before_decrease: int = 10_000  # cooldown before decreasing too
-    adr_print_every_update: bool = True
+    # Tracking sharpness (bigger = easier / smoother)
+    lin_vel_sigma: float = 0.5   # in (m/s)^2 units inside exp; easier for early learning
+    yaw_rate_sigma: float = 0.5  # in (rad/s)^2 units inside exp
 
-    # --- ADR ranges for EventManager terms (max difficulty endpoints) ---
-    # The “min” endpoints come from your EventCfg above.
-    adr_event_cfg_dict = {
-        "robot_physics_material": {
-            "static_friction_range": (0.4, 1.4),
-            "dynamic_friction_range": (0.3, 1.3),
-            "restitution_range": (0.0, 0.2),
-        },
-        "robot_joint_stiffness_and_damping": {
-            # scale factors applied to existing actuator gains
-            "stiffness_distribution_params": (0.6, 1.6),
-            "damping_distribution_params": (0.6, 1.6),
-        },
-        "robot_joint_parameters": {
-            "friction_distribution_params": (0.5, 1.8),
-            "armature_distribution_params": (0.7, 1.5),
-        },
-        "gravity": {
-            "gravity_distribution_params": (0.9, 1.1),
-        },
-    }
+    # Stability costs (prevent hopping/rolling)
+    lin_vel_z_cost_scale: float = 0.02
+    ang_vel_xy_cost_scale: float = 0.01
+    flat_ori_cost_scale: float = 0.05
 
-    # --- ADR ranges for custom (non-event) randomizations ---
-    adr_custom_cfg_dict = {
-        "push": {
-            "push_force_range": ((0.0, 0.0), (0.2, 1.2)),  # (min_range, max_range)
-        },
-        "motor_strength": {
-            "per_joint_mult_range": (0.0, 0.25),  # at max: mult ~ U[1-r, 1+r]
-        },
-        "action_noise": {
-            "std": (0.0, 0.12),
-        },
-        "latency": {
-            "act_steps": (0, 3),
-            "obs_steps": (0, 2),
-        },
-        "obs_noise": {
-            "gravity_std": (0.0, 0.02),      # IMU gravity direction noise
-            "gyro_std": (0.0, 0.08),         # IMU gyroscope noise
-            "joint_pos_std": (0.0, 0.02),
-            "joint_vel_std": (0.0, 0.10),
-            "joint_torque_std": (0.0, 0.5),  # torque sensor noise
-        },
-        "imu_bias": {
-            "gravity_bias_range": (0.0, 0.03),  # constant bias on gravity direction
-            "gyro_bias_range": (0.0, 0.05),     # constant bias on gyroscope
-        },
-    }
+    # Smoothness costs (reduce jitter)
+    action_rate_cost_scale: float = 0.01
+    dof_vel_cost_scale: float = 0.0001
+    dof_vel_delta_cost_scale: float = 0.01  # penalize velocity changes (instead of acceleration)
 
-    # allocate buffers using max latency possible
-    act_max_latency: int = int(adr_custom_cfg_dict["latency"]["act_steps"][1])
-    obs_max_latency: int = int(adr_custom_cfg_dict["latency"]["obs_steps"][1])
+    # Contact-based rewards
+    foot_body_regex: str = "left_foot|right_foot"
+    foot_contact_force_thresh: float = 30.0  # N (20-80N typical for humanoid ground contact)
+    min_air_time: float = 0.1  # seconds
+    feet_air_time_reward_scale: float = 0.2
+    foot_slip_cost_scale: float = 0.02
+    undesired_contact_force_thresh: float = 80.0  # N (50-200N typical)
+    undesired_contact_cost_scale: float = 0.1
+
+    # Optional: phase clock for gait timing
+    use_phase_obs: bool = False
+    gait_period_s: float = 1.0
+
+    # Command curriculum (progressive difficulty) - based on per-env steps
+    use_curriculum: bool = True
+    curriculum_stage1_steps_per_env: int = 5000   # per-env steps before adding yaw (stage 0 -> 1)
+    curriculum_stage2_steps_per_env: int = 10000  # per-env steps before adding lateral (stage 1 -> 2)
+    
+    # Stage 0: encourage forward motion (not standing still)
+    curriculum_stage0_vx_min: float = 0.3  # minimum forward velocity command in stage 0
+    curriculum_stage0_vx_max: float = 1.0  # maximum forward velocity command in stage 0
+
+    # Debug visualization (draw velocity arrows for a single env)
+    debug_vel_vis: bool = False  # disable during training for performance
+    debug_env_id: int = 0            # which env to draw (0..num_envs-1)
+    vel_vis_scale: float = 0.5       # meters of arrow per 1 m/s
+    vel_vis_height: float = 0.25     # arrow origin above torso (m)
+    vel_vis_every_n: int = 2         # draw every N sim steps to reduce overhead

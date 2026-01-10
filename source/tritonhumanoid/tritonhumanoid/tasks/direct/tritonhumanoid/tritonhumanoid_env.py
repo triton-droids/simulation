@@ -7,19 +7,45 @@ from __future__ import annotations
 
 import torch
 
-import isaacsim.core.utils.torch as torch_utils
-from isaacsim.core.utils.torch.rotations import compute_heading_and_up, compute_rot, quat_conjugate
-
 import isaaclab.sim as sim_utils
 from isaaclab.assets import Articulation
 from isaaclab.envs import DirectRLEnv, DirectRLEnvCfg
 from isaaclab.sensors import ContactSensor
+from isaaclab.markers import VisualizationMarkers, VisualizationMarkersCfg
+from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
+import isaaclab.utils.math as math_utils
 
-import math
-from isaacsim.core.utils.torch.rotations import quat_conjugate
 
-def normalize_angle(x):
-    return torch.atan2(torch.sin(x), torch.cos(x))
+def quat_rotate_inverse(q: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
+    """
+    Rotate vector(s) v by the inverse of quaternion(s) q.
+    q: [N,4] in (w,x,y,z)
+    v: [N,3]
+    returns: [N,3]
+    """
+    # inverse rotation by q is rotation by conjugate(q)
+    w = q[:, 0:1]
+    q_xyz = q[:, 1:4]
+    # conjugate: (w, -x, -y, -z)
+    q_xyz = -q_xyz
+
+    # t = 2 * cross(q_xyz, v)
+    t = 2.0 * torch.cross(q_xyz, v, dim=-1)
+    # v' = v + w*t + cross(q_xyz, t)
+    return v + w * t + torch.cross(q_xyz, t, dim=-1)
+
+
+def quat_rotate(q: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
+    """
+    Rotate vector(s) v by quaternion(s) q.
+    q: [N,4] in (w,x,y,z)
+    v: [N,3]
+    returns: [N,3]
+    """
+    w = q[:, 0:1]
+    q_xyz = q[:, 1:4]
+    t = 2.0 * torch.cross(q_xyz, v, dim=-1)
+    return v + w * t + torch.cross(q_xyz, t, dim=-1)
 
 
 class LocomotionEnv(DirectRLEnv):
@@ -28,10 +54,9 @@ class LocomotionEnv(DirectRLEnv):
     def __init__(self, cfg: DirectRLEnvCfg, render_mode: str | None = None, **kwargs):
         super().__init__(cfg, render_mode, **kwargs)
 
-        # ---- Control setup (velocity-based, 10 actuated joints) ----
+        # actions are POSITION OFFSETS for actuated joints
         self.action_scale = self.cfg.action_scale
 
-        # Only control the 10 actuated leg joints
         actuated_joint_regex = (
             "left_hip1_joint|left_hip2_joint|left_thigh_joint|left_knee_joint|left_ankle_joint|"
             "right_hip1_joint|right_hip2_joint|right_thigh_joint|right_knee_joint|right_ankle_joint"
@@ -39,96 +64,48 @@ class LocomotionEnv(DirectRLEnv):
         self._joint_dof_idx, _ = self.robot.find_joints(actuated_joint_regex)
         self.num_actions = len(self._joint_dof_idx)
 
-        # Hip joints only (both sides)
-        hip_joint_regex = "left_hip1_joint|left_hip2_joint|right_hip1_joint|right_hip2_joint"
-        hip_dof_idx, _ = self.robot.find_joints(hip_joint_regex)
+        # torso link is named "world" in your URDF
+        torso_ids, _ = self.robot.find_bodies("world")
+        self._torso_body_idx = int(torso_ids[0])
 
-        # store as tensor on the correct device
-        self._hip_dof_idx = torch.as_tensor(
-            hip_dof_idx,
-            device=self.sim.device,
-            dtype=torch.long,
-        )
+        # pre-create world up for speed (avoid allocating every step)
+        self._world_up = torch.tensor([0.0, 0.0, 1.0], device=self.sim.device).unsqueeze(0).repeat(self.num_envs, 1)
 
-        # default pose for posture penalty
-        self.default_joint_pos = self.robot.data.default_joint_pos[0]
+        # default pose + joint limits (actuated only)
+        default_joint_pos = self.robot.data.default_joint_pos[0]
+        self.default_actuated_pos = default_joint_pos[self._joint_dof_idx].clone()
 
-        # cache default pose for ONLY actuated joints (shape: [num_actions])
-        self.default_actuated_pos = self.default_joint_pos[self._joint_dof_idx].clone()
-
-        # cache soft joint limits for actuated joints (shape: [num_actions])
         self.actuated_lower = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 0].clone()
         self.actuated_upper = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 1].clone()
 
-        # actions: desired POSITION OFFSETS (radians) after scaling by action_scale
+        # buffers
         self.actions = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
-
-        # optional buffer if you want to log/debug targets
+        self.prev_actions = torch.zeros_like(self.actions)
         self.q_des = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
 
-        # used only for energy penalty; keep as simple scale for now
-        self.motor_effort_ratio = torch.ones(self.num_actions, dtype=torch.float32, device=self.sim.device)
+        # control timestep for smoothness costs
+        self._control_dt = float(self.cfg.sim.dt * self.cfg.decimation)
 
-        # ---- Identify important body indices ----
-        torso_body_indices, _ = self.robot.find_bodies("world")
-        self._torso_body_idx = int(torso_body_indices[0])
+        # previous joint velocities for acceleration cost
+        self.prev_act_vel = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
 
-        right_foot_body_indices, _ = self.robot.find_bodies("right_foot")
-        self._right_foot_body_idx = int(right_foot_body_indices[0])
+        # commanded base velocity in BODY frame: [vx, vy, yaw_rate]
+        self.commands = torch.zeros(self.num_envs, 3, device=self.sim.device)
 
-        left_foot_body_indices, _ = self.robot.find_bodies("left_foot")
-        self._left_foot_body_idx = int(left_foot_body_indices[0])
+        # feet tracking flag
+        self._feet_inited = False
 
-        feet_pos_all = self.robot.data.body_pos_w[:]  # [M, num_bodies, 3]
-        left_xy  = feet_pos_all[:, self._left_foot_body_idx, :2]   # [M, 2]
-        right_xy = feet_pos_all[:, self._right_foot_body_idx, :2]  # [M, 2]
-        torso_xy = feet_pos_all[:, self._torso_body_idx, :2]
+        # --- Command curriculum tracking (global env-steps) ---
+        self._global_env_steps = 0
+        self._current_curriculum_stage = 0  # 0=forward, 1=+yaw, 2=+lateral
+        self._curriculum_stage_names = ["forward-only", "forward+yaw", "forward+yaw+lateral"]
 
-        # lateral axis is y (x is forward)
-        left_lat  = left_xy[:, 1]  - torso_xy[:, 1]
-        right_lat = right_xy[:, 1] - torso_xy[:, 1]
-
-        step_width = torch.abs(left_lat - right_lat)  # [M]
-        self.default_step_width = None
-
-        self._feet_ids, _ = self._contact_sensor.find_bodies("left_foot|right_foot")
-
-        # ---- Locomotion targets and cached buffers ----
-        self.potentials = torch.zeros(self.num_envs, dtype=torch.float32, device=self.sim.device)
-        self.prev_potentials = torch.zeros_like(self.potentials)
-        self.targets = torch.tensor([1000, 0, 0], dtype=torch.float32, device=self.sim.device).repeat(
-            (self.num_envs, 1)
-        )
-        self.targets += self.scene.env_origins
-
-        # 1) Don't subtract any initial yaw: use identity start rotation
-        qz_minus_90 = torch.tensor(
-            [
-                math.cos(math.pi / 4.0),  # w
-                0.0,                      # x
-                0.0,                      # y
-                -math.sin(math.pi / 4.0), # z
-            ],
-            device=self.sim.device,
-            dtype=torch.float32,
-        )
-        self.start_rotation = qz_minus_90
-        self.inv_start_rot = quat_conjugate(self.start_rotation).unsqueeze(0).repeat(self.num_envs, 1)
-
-        # 2) Define basis vectors in *torso local frame*
-        #    - local +Z is up
-        #    - local +X is "forward" (as you see it in the viewer)
-        self.basis_vec1 = torch.tensor(
-            [0.0, 0.0, 1.0],   # up
-            device=self.sim.device,
-            dtype=torch.float32,
-        ).repeat(self.num_envs, 1)
-
-        self.basis_vec0 = torch.tensor(
-            [1.0, 0.0, 0.0],   # forward
-            device=self.sim.device,
-            dtype=torch.float32,
-        ).repeat(self.num_envs, 1)
+        # --- Visualization markers setup ---
+        self._visualization_enabled = getattr(self.cfg, "debug_vel_vis", False)
+        if self._visualization_enabled:
+            self.visualization_markers = self.define_markers()
+            self._marker_offset = torch.zeros(3, device=self.sim.device)
+            self._marker_offset[2] = getattr(self.cfg, "vel_vis_height", 0.25)
 
     def _setup_scene(self):
         self.robot = Articulation(self.cfg.robot)
@@ -154,326 +131,287 @@ class LocomotionEnv(DirectRLEnv):
         light_cfg.func("/World/Light", light_cfg)
 
     def _pre_physics_step(self, actions: torch.Tensor):
-        # actions in [-1, 1] → desired joint velocities
+        self.prev_actions[:] = self.actions
         self.actions = actions.clone()
 
-        """
-        left_hip1_joint: RS-04      right_hip1_joint: RS-04
-        left_hip2_joint: RS-03      right_hip2_joint: RS-03
-        left_thigh_joint: RS-03     right_thigh_joint: RS-03
-        left_knee_joint: RS-04      right_knee_joint: RS-04
-        left_ankle_joint: RS-02     right_ankle_joint: RS-02
-        """
+        # Update curriculum based on global env-steps
+        self._global_env_steps += self.num_envs
+        self._update_curriculum()
 
+        if self._visualization_enabled:
+            self._visualize_markers()
 
     def _apply_action(self):
-        # Position control:
-        # actions in [-1, 1] -> position offset in [-action_scale, +action_scale] radians
         pos_offsets = self.action_scale * self.actions  # [N, 10]
-
-        # Convert offsets -> absolute joint position targets around a nominal/default pose
-        q_des = self.default_actuated_pos.unsqueeze(0) + pos_offsets  # [N, 10]
-
-        # Clamp to soft joint limits (recommended)
+        q_des = self.default_actuated_pos.unsqueeze(0) + pos_offsets
         q_des = torch.clamp(q_des, self.actuated_lower.unsqueeze(0), self.actuated_upper.unsqueeze(0))
-
         self.q_des = q_des
         self.robot.set_joint_position_target(q_des, joint_ids=self._joint_dof_idx)
 
-    def _compute_intermediate_values(self):
-        torso = self._torso_body_idx
+    def _update_state(self):
+        i = self._torso_body_idx
 
-        self.torso_position = self.robot.data.body_pos_w[:, torso]
-        self.torso_rotation = self.robot.data.body_quat_w[:, torso]
-        self.velocity = self.robot.data.body_lin_vel_w[:, torso]
-        self.ang_velocity = self.robot.data.body_ang_vel_w[:, torso]
+        # torso (world-frame)
+        self.torso_pos_w  = self.robot.data.body_pos_w[:, i]     # [N,3]
+        self.torso_quat_w = self.robot.data.body_quat_w[:, i]    # [N,4] (w,x,y,z)
+        torso_lin_vel_w   = self.robot.data.body_lin_vel_w[:, i] # [N,3]
+        torso_ang_vel_w   = self.robot.data.body_ang_vel_w[:, i] # [N,3]
 
-        self.dof_pos, self.dof_vel = self.robot.data.joint_pos, self.robot.data.joint_vel
+        self.torso_lin_vel_w = torso_lin_vel_w
+        self.torso_ang_vel_w = torso_ang_vel_w
 
-        (
-            self.up_proj,
-            self.heading_proj,
-            self.up_vec,
-            self.heading_vec,
-            self.vel_loc,
-            self.angvel_loc,
-            self.roll,
-            self.pitch,
-            self.yaw,
-            self.angle_to_target,
-            self.dof_pos_scaled,
-            self.prev_potentials,
-            self.potentials,
-        ) = compute_intermediate_values(
-            self.targets,
-            self.torso_position,
-            self.torso_rotation,
-            self.velocity,
-            self.ang_velocity,
-            self.dof_pos,
-            self.robot.data.soft_joint_pos_limits[0, :, 0],
-            self.robot.data.soft_joint_pos_limits[0, :, 1],
-            self.inv_start_rot,
-            self.basis_vec0,
-            self.basis_vec1,
-            self.potentials,
-            self.prev_potentials,
-            self.cfg.sim.dt,
+        # convert velocities to torso/body frame (for tracking BODY commands)
+        self.torso_lin_vel_b = quat_rotate_inverse(self.torso_quat_w, torso_lin_vel_w)  # [N,3]
+        self.torso_ang_vel_b = quat_rotate_inverse(self.torso_quat_w, torso_ang_vel_w)  # [N,3]
+
+        # IMU-ish "up" expressed in body frame (up_b.z ~ 1 when upright)
+        self.up_b = quat_rotate_inverse(self.torso_quat_w, self._world_up)  # [N,3]
+
+        # joints
+        self.dof_pos = self.robot.data.joint_pos
+        self.dof_vel = self.robot.data.joint_vel
+
+        self.act_pos = self.dof_pos[:, self._joint_dof_idx]
+        self.act_vel = self.dof_vel[:, self._joint_dof_idx]
+
+        lo = self.actuated_lower.unsqueeze(0)
+        hi = self.actuated_upper.unsqueeze(0)
+        self.act_pos_scaled = 2.0 * (self.act_pos - lo) / (hi - lo + 1e-6) - 1.0
+
+    @staticmethod
+    def define_markers() -> VisualizationMarkers:
+        """Define arrow markers for command vs actual velocity."""
+        marker_cfg = VisualizationMarkersCfg(
+            prim_path="/Visuals/humanoidMarkers",
+            markers={
+                # 0: command (red)
+                "command": sim_utils.UsdFileCfg(
+                    usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/UIElements/arrow_x.usd",
+                    scale=(0.25, 0.25, 0.5),
+                    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
+                ),
+                # 1: actual velocity (green)
+                "velocity": sim_utils.UsdFileCfg(
+                    usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/UIElements/arrow_x.usd",
+                    scale=(0.25, 0.25, 0.5),
+                    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0)),
+                ),
+            },
         )
+        return VisualizationMarkers(cfg=marker_cfg)
 
+    def _visualize_markers(self):
+        """Draw arrows for commanded velocity (red) and actual velocity (green) in world frame for single env."""
+        if not self._visualization_enabled:
+            return
+
+        # Ensure state is updated before accessing torso_pos_w
+        if not hasattr(self, 'torso_pos_w'):
+            return
+
+        # Only visualize one environment for performance
+        env_id = int(getattr(self.cfg, "debug_env_id", 0))
+        env_id = max(0, min(env_id, self.num_envs - 1))
+
+        # Get single env data
+        torso_pos = self.torso_pos_w[env_id]  # [3]
+        torso_quat = self.torso_quat_w[env_id]  # [4]
+        cmd = self.commands[env_id]  # [3]
+        vel_w = self.torso_lin_vel_w[env_id]  # [3]
+
+        # Marker location (lifted above robot)
+        marker_loc = torso_pos + self._marker_offset  # [3]
+
+        # --- 1. COMMAND VELOCITY DIRECTION IN WORLD FRAME ---
+        cmd_b_xy = cmd[:2]  # [2]
+        cmd_b = torch.cat([cmd_b_xy, torch.zeros(1, device=self.sim.device)])  # [3]
+
+        # Rotate into WORLD frame
+        cmd_w = math_utils.quat_apply(torso_quat.unsqueeze(0), cmd_b.unsqueeze(0)).squeeze(0)  # [3]
+
+        # Compute yaw for command
+        cmd_xy = cmd_w[:2]
+        cmd_norm = torch.norm(cmd_xy).clamp(min=1e-6)
+        cmd_dir_xy = cmd_xy / cmd_norm
+        cmd_yaw = torch.atan2(cmd_dir_xy[1], cmd_dir_xy[0])
+
+        z_axis = torch.tensor([0.0, 0.0, 1.0], device=self.sim.device)
+        cmd_orient = math_utils.quat_from_angle_axis(cmd_yaw.unsqueeze(0), z_axis).squeeze(0)  # [4]
+
+        # --- 2. ACTUAL VELOCITY DIRECTION IN WORLD FRAME ---
+        vel_xy = vel_w[:2]
+        vel_norm = torch.norm(vel_xy).clamp(min=1e-6)
+        vel_dir_xy = vel_xy / vel_norm
+        vel_yaw = torch.atan2(vel_dir_xy[1], vel_dir_xy[0])
+
+        vel_orient = math_utils.quat_from_angle_axis(vel_yaw.unsqueeze(0), z_axis).squeeze(0)  # [4]
+
+        # --- 3. Visualize 2 markers: command (red) then velocity (green) ---
+        loc = torch.stack([marker_loc, marker_loc])  # [2, 3]
+        rots = torch.stack([cmd_orient, vel_orient])  # [2, 4]
+        indices = torch.tensor([0, 1], device=self.sim.device)  # marker types
+
+        self.visualization_markers.visualize(loc, rots, marker_indices=indices)
 
     def _get_observations(self) -> dict:
+        self._update_state()
         obs = torch.cat(
             (
-                self.torso_position[:, 2].view(-1, 1), # torso height
-                self.vel_loc, # local linear velocity
-                self.angvel_loc * self.cfg.angular_velocity_scale, # local angular velocity
-                normalize_angle(self.yaw).unsqueeze(-1), # torso yaw
-                normalize_angle(self.roll).unsqueeze(-1), # torso roll
-                normalize_angle(self.angle_to_target).unsqueeze(-1), # angle to target
-                self.up_proj.unsqueeze(-1), # up projection from torso
-                self.heading_proj.unsqueeze(-1), # heading projection from torso
-                self.dof_pos_scaled, # scaled joint positions
-                self.dof_vel * self.cfg.dof_vel_scale, # joint velocities
-                self.actions, # previous actions
+                self.torso_pos_w[:, 2:3],                        # height
+                self.torso_lin_vel_b,                            # body lin vel
+                self.torso_ang_vel_b * self.cfg.ang_vel_scale,   # body ang vel
+                self.up_b,                                       # IMU-ish orientation feature
+                self.commands,                                   # commanded [vx, vy, yaw_rate] in BODY frame
+                self.act_pos_scaled,
+                self.act_vel * self.cfg.dof_vel_scale,
+                self.prev_actions,
             ),
             dim=-1,
         )
-        observations = {"policy": obs}
-        return observations
+
+        # Optional: add phase clock for gait timing
+        if self.cfg.use_phase_obs:
+            t = self.episode_length_buf.float() * self._control_dt
+            phase = 2.0 * torch.pi * (t / self.cfg.gait_period_s)
+            clock = torch.stack([torch.sin(phase), torch.cos(phase)], dim=1)
+            obs = torch.cat([obs, clock], dim=-1)
+
+        return {"policy": obs}
 
     def _get_rewards(self) -> torch.Tensor:
-        # use only actuated joint velocities for energy cost
-        actuated_dof_vel = self.dof_vel[:, self._joint_dof_idx]
-        actuated_dof_pos = self.dof_pos[:, self._joint_dof_idx]
+        self._update_state()
 
-        pos_err = self.q_des - actuated_dof_pos  # [N, 10]
+        # --- Base velocity tracking ---
+        vel_err = self.torso_lin_vel_b[:, :2] - self.commands[:, :2]
+        yaw_err = self.torso_ang_vel_b[:, 2]  - self.commands[:, 2]
 
-        base_reward = compute_rewards(
-            self.actions,
-            self.reset_terminated,
-            self.cfg.up_weight,
-            self.cfg.heading_weight,
-            self.heading_proj,
-            self.up_proj,
-            actuated_dof_vel,
-            pos_err,
-            self.dof_pos_scaled,
-            self.potentials,
-            self.prev_potentials,
-            self.cfg.actions_cost_scale,
-            self.cfg.energy_cost_scale,
-            self.cfg.dof_vel_scale,
-            self.cfg.death_cost,
-            self.cfg.alive_reward_scale,
-            self.motor_effort_ratio,
-            self.velocity,
-            self.heading_vec,
-            self.cfg.orient_vel_weight,
-            self.cfg.forward_vel_weight,
+        r_lin = torch.exp(-torch.sum(vel_err * vel_err, dim=1) / self.cfg.lin_vel_sigma)
+        r_yaw = torch.exp(-(yaw_err * yaw_err) / self.cfg.yaw_rate_sigma)
+
+        upright = torch.clamp(self.up_b[:, 2], 0.0, 1.0)
+
+        act_cost = torch.sum(self.actions * self.actions, dim=1)
+        at_limit = torch.sum(torch.abs(self.act_pos_scaled) > 0.98, dim=1).float()
+
+        # --- Stability costs (prevent hopping/rolling) ---
+        lin_vel_z_cost = self.torso_lin_vel_b[:, 2] ** 2
+        ang_vel_xy_cost = torch.sum(self.torso_ang_vel_b[:, :2] ** 2, dim=1)
+        flat_ori_cost = torch.sum(self.up_b[:, :2] ** 2, dim=1)  # up_b ~= [0,0,1] when upright
+
+        # --- Smoothness costs ---
+        action_rate_cost = torch.sum((self.actions - self.prev_actions) ** 2, dim=1)
+        dof_vel_cost = torch.sum(self.act_vel ** 2, dim=1)
+        
+        # Penalize velocity changes (not acceleration, to avoid dt sensitivity)
+        dof_vel_delta = self.act_vel - self.prev_act_vel
+        dof_vel_delta_cost = torch.sum(dof_vel_delta * dof_vel_delta, dim=1)
+
+        self.prev_act_vel[:] = self.act_vel
+
+        # --- Contact-based rewards (air-time, slip, undesired contacts) ---
+        self._init_feet()
+
+        # Latest normal forces (history index 0 is most recent)
+        forces_hist = self._contact_sensor.data.net_forces_w_history  # (N,T,B,3)
+        foot_forces = forces_hist[:, 0, self._feet_sensor_ids, :]     # (N,2,3)
+        
+        # Use vertical force component for contact detection (more robust than magnitude)
+        foot_force_z = torch.abs(foot_forces[:, :, 2])  # (N,2)
+        foot_contact = foot_force_z > self.cfg.foot_contact_force_thresh  # (N,2)
+
+        # (1) air-time reward at touchdown
+        air_time = self._contact_sensor.data.current_air_time[:, self._feet_sensor_ids]  # (N,2)
+        touchdown = foot_contact & (~self.prev_foot_contact)
+        air_rew = torch.sum(torch.clamp(air_time - self.cfg.min_air_time, min=0.0) * touchdown.float(), dim=1)
+
+        # (2) slip penalty when in contact (horizontal foot speed)
+        feet_vel_w = self.robot.data.body_lin_vel_w[:, self._feet_body_ids, :]  # (N,2,3)
+        slip_speed_sq = torch.sum(feet_vel_w[..., :2] ** 2, dim=-1)            # (N,2)
+        slip_cost = torch.sum(slip_speed_sq * foot_contact.float(), dim=1)     # (N,)
+
+        # (3) penalize "non-foot contacts" (knees/shins/torso scraping)
+        all_forces = forces_hist[:, 0, :, :]                 # (N,B,3)
+        all_mag = torch.linalg.norm(all_forces, dim=-1)      # (N,B)
+        all_mag[:, self._feet_sensor_ids] = 0.0
+        undesired = (all_mag > self.cfg.undesired_contact_force_thresh).any(dim=1).float()
+
+        self.prev_foot_contact[:] = foot_contact
+
+        # --- Combine all rewards ---
+        reward = (
+            self.cfg.lin_vel_reward_scale * r_lin
+            + self.cfg.yaw_rate_reward_scale * r_yaw
+            + self.cfg.upright_reward_scale * upright
+            + self.cfg.alive_reward
+            - self.cfg.action_cost_scale * act_cost
+            - self.cfg.joint_limit_cost_scale * at_limit
+            - self.cfg.lin_vel_z_cost_scale * lin_vel_z_cost
+            - self.cfg.ang_vel_xy_cost_scale * ang_vel_xy_cost
+            - self.cfg.flat_ori_cost_scale * flat_ori_cost
+            - self.cfg.action_rate_cost_scale * action_rate_cost
+            - self.cfg.dof_vel_cost_scale * dof_vel_cost
+            - self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost
+            + self.cfg.feet_air_time_reward_scale * air_rew
+            - self.cfg.foot_slip_cost_scale * slip_cost
+            - self.cfg.undesired_contact_cost_scale * undesired
         )
 
-        # =========================
-        # Feet air-time (biped aware)
-        # =========================
-        first_contact = self._contact_sensor.compute_first_contact(self.step_dt)[:, self._feet_ids]
-        last_air_time = self._contact_sensor.data.last_air_time[:, self._feet_ids]  # [N, 2]
+        reward = torch.where(self.reset_terminated, torch.ones_like(reward) * self.cfg.death_cost, reward)
 
-        air_time_threshold = 0.05
-        per_foot = torch.clamp(last_air_time - air_time_threshold, min=0.0) * first_contact  # [N, 2]
+        # --- Logging (every N steps) ---
+        if hasattr(self, 'common_step_counter') and (self.common_step_counter % 200) == 0:
+            # Tracking rewards (what we want to maximize)
+            self.extras["reward_tracking/r_lin"] = float(r_lin.mean().item())
+            self.extras["reward_tracking/r_yaw"] = float(r_yaw.mean().item())
+            self.extras["reward_tracking/upright"] = float(upright.mean().item())
+            self.extras["reward_tracking/alive"] = float(self.cfg.alive_reward)
+            self.extras["reward_tracking/air_time"] = float(air_rew.mean().item())
 
-        air_mean = per_foot.mean(dim=1)                        # [N]
-        air_asym = torch.abs(per_foot[:, 0] - per_foot[:, 1])  # [N]
+            # Penalties (what we want to minimize)
+            self.extras["reward_penalties/action_cost"] = float(act_cost.mean().item())
+            self.extras["reward_penalties/joint_limit"] = float(at_limit.mean().item())
+            self.extras["reward_penalties/lin_vel_z"] = float(lin_vel_z_cost.mean().item())
+            self.extras["reward_penalties/ang_vel_xy"] = float(ang_vel_xy_cost.mean().item())
+            self.extras["reward_penalties/flat_ori"] = float(flat_ori_cost.mean().item())
+            self.extras["reward_penalties/action_rate"] = float(action_rate_cost.mean().item())
+            self.extras["reward_penalties/dof_vel"] = float(dof_vel_cost.mean().item())
+            self.extras["reward_penalties/dof_vel_delta"] = float(dof_vel_delta_cost.mean().item())
+            self.extras["reward_penalties/slip"] = float(slip_cost.mean().item())
+            self.extras["reward_penalties/undesired_contact"] = float(undesired.mean().item())
 
-        speed = torch.norm(self.velocity[:, :2], dim=1)        # world-frame XY
-        moving_mask = (speed > 0.1).float()
+            # Scaled contributions (actual impact on total reward)
+            self.extras["reward_scaled/lin_tracking"] = float((self.cfg.lin_vel_reward_scale * r_lin).mean().item())
+            self.extras["reward_scaled/yaw_tracking"] = float((self.cfg.yaw_rate_reward_scale * r_yaw).mean().item())
+            self.extras["reward_scaled/upright"] = float((self.cfg.upright_reward_scale * upright).mean().item())
+            self.extras["reward_scaled/air_time"] = float((self.cfg.feet_air_time_reward_scale * air_rew).mean().item())
+            self.extras["reward_scaled/slip_cost"] = float((self.cfg.foot_slip_cost_scale * slip_cost).mean().item())
+            self.extras["reward_scaled/undesired_cost"] = float((self.cfg.undesired_contact_cost_scale * undesired).mean().item())
+            self.extras["reward_scaled/dof_vel_delta_cost"] = float((self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost).mean().item())
 
-        raw_air = air_mean - self.cfg.feet_air_asym_scale * air_asym
-        raw_air = torch.clamp(raw_air, min=0.0)
+            # Total reward stats
+            self.extras["reward_total/mean"] = float(reward.mean().item())
+            self.extras["reward_total/std"] = float(reward.std().item())
+            self.extras["reward_total/min"] = float(reward.min().item())
+            self.extras["reward_total/max"] = float(reward.max().item())
 
-        feet_air_time_reward = (
-            self.cfg.feet_air_time_reward_scale
-            * raw_air
-            * moving_mask
-        )
+            # Command tracking errors (diagnostics)
+            self.extras["diagnostics/vel_err_x"] = float(vel_err[:, 0].abs().mean().item())
+            self.extras["diagnostics/vel_err_y"] = float(vel_err[:, 1].abs().mean().item())
+            self.extras["diagnostics/yaw_err"] = float(yaw_err.abs().mean().item())
+            self.extras["diagnostics/contact_rate"] = float(foot_contact.float().mean().item())
+            self.extras["diagnostics/avg_air_time"] = float(air_time.mean().item())
+            self.extras["diagnostics/curriculum_stage"] = float(self._current_curriculum_stage)
 
-        # =========================
-        # Feet sliding penalty
-        # =========================
-        contact_time = self._contact_sensor.data.current_contact_time[:, self._feet_ids]  # [N, 2]
-        in_contact = contact_time > 0.0                                                   # [N, 2]
-
-        feet_vel_xy = self.robot.data.body_lin_vel_w[:, self._feet_ids, :2]               # [N, 2, 2]
-        feet_speed = torch.norm(feet_vel_xy, dim=-1)                                      # [N, 2]
-
-        sliding = feet_speed * in_contact.float()                                         # [N, 2]
-        feet_slide_penalty = self.cfg.feet_slide_scale * sliding.sum(dim=1)              # [N]
-
-        # =========================
-        # Step width penalty (tightrope fix)
-        # =========================
-        torso_xy = self.torso_position[:, :2]                           # [N, 2]
-        feet_pos = self.robot.data.body_pos_w[:, self._feet_ids, :]     # [N, 2, 3]
-        feet_xy  = feet_pos[:, :, :2]                                   # [N, 2, 2], the x and y positions
-
-        # lateral positions (y) of each foot relative to torso
-        foot_lats = feet_xy[:, :, 1] - torso_xy[:, 1].unsqueeze(1)      # [N, 2], 
-
-        # lateral distance between feet (y-axis, since x is forward)
-        step_width = torch.abs(foot_lats[:, 0] - foot_lats[:, 1])       # [N]
-
-        # target = default lateral width from reset
-        target_width = self.default_step_width                          # [N]
-
-        # penalize being narrower than default (tightrope)
-        too_narrow = torch.clamp(target_width - step_width, min=0.0)
-        step_width_penalty = self.cfg.step_width_scale * (too_narrow ** 2)
-
-
-
-        # =========================
-        # Leg heading alignment penalty
-        # =========================
-        # foot_vecs: [N, 2, 2] = feet_xy - torso_xy
-        # heading_xy: [N, 2]   = normalized heading direction
-        foot_vecs = feet_xy - torso_xy.unsqueeze(1)                     # [N, 2, 2]
-        foot_vecs_norm = torch.norm(foot_vecs, dim=-1, keepdim=True) + 1e-6
-        foot_dirs = foot_vecs / foot_vecs_norm                        # [N, 2, 2]
-
-        heading_xy = self.heading_vec[:, :2]
-        heading_xy = heading_xy / (torch.norm(heading_xy, dim=-1, keepdim=True) + 1e-6)  # [N, 2]
-
-        dot = (foot_dirs * heading_xy.unsqueeze(1)).sum(dim=-1)      # [N, 2]
-        foot_heading_misalignment = 1.0 - dot                        # [N, 2]
-
-        # Use *max* instead of mean so one very sideways foot gets penalized strongly
-        foot_misalignment_max = foot_heading_misalignment.max(dim=1).values  # [N]
-        leg_heading_penalty = self.cfg.leg_heading_scale * foot_misalignment_max
-
-        # ================
-        # Stride length penalty (too long steps)
-        # ================
-        # foot_vecs: [N, 2, 2] = feet_xy - torso_xy
-        # heading_xy: [N, 2]   = normalized heading direction
-
-        # projection of each foot vector onto heading direction → forward offsets
-        forward_offsets = (foot_vecs * heading_xy.unsqueeze(1)).sum(dim=-1)   # [N, 2]
-
-        # we care about how far any foot is in the forward/back direction
-        max_forward = forward_offsets.abs().max(dim=1).values                 # [N]
-
-        # choose a safe max stride length (meters), tune this:
-        stride_max = 0.25  # e.g. 0.25–0.35 depending on your leg length
-
-        # penalize only when we exceed that length
-        excess_stride = torch.clamp(max_forward - stride_max, min=0.0)        # [N]
-        stride_penalty = self.cfg.stride_penalty_scale * (excess_stride ** 2) # [N]
-
-
-        # =========================
-        # Hip posture penalty
-        # =========================
-        hip_angles = self.dof_pos[:, self._hip_dof_idx]                     # [N, H]
-        hip_default = self.default_joint_pos[self._hip_dof_idx]             # [H]
-        hip_deviation = hip_angles - hip_default.unsqueeze(0)               # [N, H]
-        hip_posture_cost = (hip_deviation ** 2).mean(dim=1)                 # [N]
-        hip_posture_penalty = self.cfg.hip_posture_scale * hip_posture_cost # [N]
-
-        # =========================
-        # Continuous stance symmetry penalty (anti single-leg dominance)
-        # =========================
-        total_ct = contact_time.sum(dim=1, keepdim=True) + 1e-6      # [N, 1]
-        ct_frac = contact_time / total_ct                            # [N, 2]
-        ct_asym = torch.abs(ct_frac[:, 0] - ct_frac[:, 1])           # [N]
-        symmetry_penalty = self.cfg.sym_scale * ct_asym * moving_mask  # [N]
-
-        # =========================
-        # Smooth hop / bouncing penalty (vertical COM velocity)
-        # =========================
-        v_z = self.velocity[:, 2]                                    # [N]
-        excess_vz = torch.clamp(torch.abs(v_z) - 0.2, min=0.0)       # small dead zone
-        hop_penalty = self.cfg.hop_penalty_scale * (excess_vz ** 2)  # quadratic cost
-
-        # =========================
-        # torso yaw alignment with direction-of-travel / target
-        # =========================
-        # yaw and angle_to_target were computed in _compute_intermediate_values
-        yaw = self.yaw
-        angle_to_target = self.angle_to_target
-        yaw_error = normalize_angle(yaw - angle_to_target)           # [N], small when facing target
-        yaw_penalty = self.cfg.yaw_penalty_scale * (yaw_error ** 2)
-
-        # =========================
-        # lateral CoM velocity penalty (discourage side-stepping)
-        # =========================
-        v_y = torch.abs(self.velocity[:, 1])   # side-stepping in world y
-        lateral_penalty = self.cfg.lateral_vel_scale * v_y
-
-        # ================
-        # Lead-leg bias penalty (discourage one foot always leading)
-        # ================
-        # forward_offsets: projection of foot vectors onto heading direction
-        foot_vecs = feet_xy - torso_xy.unsqueeze(1)                     # [N, 2, 2]
-        heading_xy = self.heading_vec[:, :2]
-        heading_xy = heading_xy / (torch.norm(heading_xy, dim=-1, keepdim=True) + 1e-6)  # [N, 2]
-
-        forward_offsets = (foot_vecs * heading_xy.unsqueeze(1)).sum(dim=-1)  # [N, 2]
-
-        # we already have contact_time and in_contact above
-        both_contact = (in_contact.sum(dim=1) == 2).float()                   # [N]
-
-        lead_bias = torch.abs(forward_offsets[:, 0] - forward_offsets[:, 1])  # [N]
-        # small tolerance before we start penalizing
-        excess_lead = torch.clamp(lead_bias - 0.05, min=0.0)
-
-        lead_bias_penalty = self.cfg.lead_bias_scale * (excess_lead ** 2) * both_contact
-
-        touchdown_reset = (first_contact * (forward_offsets ** 2)).sum(dim=1)  # [N]
-        touchdown_reset_penalty = self.cfg.touchdown_reset_scale * touchdown_reset * moving_mask
-
-        # Single-support mask (exactly one foot in contact)
-        single_support = (in_contact[:, 0] ^ in_contact[:, 1]).float()  # [N]
-
-        # If left is stance (L contact, R swing): want R ahead of L => (R - L) positive
-        # If right is stance: want L ahead of R => (L - R) positive
-        swing_ahead = (
-            in_contact[:, 0].float() * (forward_offsets[:, 1] - forward_offsets[:, 0]) +
-            in_contact[:, 1].float() * (forward_offsets[:, 0] - forward_offsets[:, 1])
-        )  # [N]
-
-        # Optional margin so tiny differences don't matter
-        swing_ahead_margin = 0.03  # meters, tune
-        swing_ahead_reward = self.cfg.swing_ahead_scale * torch.clamp(swing_ahead - swing_ahead_margin, min=0.0)
-        swing_ahead_reward = swing_ahead_reward * single_support * moving_mask
-
-
-        total_reward = (
-            base_reward
-            + feet_air_time_reward
-            - feet_slide_penalty
-            - hip_posture_penalty
-            # - leg_heading_penalty # this one is buggy
-            - symmetry_penalty
-            - hop_penalty
-            - yaw_penalty
-            # - lateral_penalty # redundant
-            - step_width_penalty
-            - stride_penalty
-            # - lead_bias_penalty
-            - touchdown_reset_penalty
-            + swing_ahead_reward
-        )
-
-        return total_reward
+        return reward
 
     def _get_dones(self):
-        self._compute_intermediate_values()
+        self._update_state()
         time_out = self.episode_length_buf >= self.max_episode_length - 1
 
-        fell_height = self.torso_position[:, 2] < self.cfg.termination_height
-        too_tilted  = self.up_proj < 0.5    # ~60 degrees from upright
+        fell = self.torso_pos_w[:, 2] < self.cfg.termination_height
+        too_tilted = self.up_b[:, 2] < self.cfg.upright_threshold
 
-        died = fell_height | too_tilted
+        died = fell | too_tilted
         return died, time_out
 
     def _reset_idx(self, env_ids: torch.Tensor | None):
@@ -484,175 +422,106 @@ class LocomotionEnv(DirectRLEnv):
 
         joint_pos = self.robot.data.default_joint_pos[env_ids]
         joint_vel = self.robot.data.default_joint_vel[env_ids]
-        default_root_state = self.robot.data.default_root_state[env_ids]
-        default_root_state[:, :3] += self.scene.env_origins[env_ids]
+        root = self.robot.data.default_root_state[env_ids]
+        root[:, :3] += self.scene.env_origins[env_ids]
 
-        self.robot.write_root_pose_to_sim(default_root_state[:, :7], env_ids)
-        self.robot.write_root_velocity_to_sim(default_root_state[:, 7:], env_ids)
+        self.robot.write_root_pose_to_sim(root[:, :7], env_ids)
+        self.robot.write_root_velocity_to_sim(root[:, 7:], env_ids)
         self.robot.write_joint_state_to_sim(joint_pos, joint_vel, None, env_ids)
 
-        # Compute default_step_width on first reset when all envs initialize
-        if self.default_step_width is None:
-            feet_pos = self.robot.data.body_pos_w[:, self._feet_ids, :]     # [N, 2, 3]
-            torso_pos = self.robot.data.body_pos_w[:, self._torso_body_idx, :]  # [N, 3]
-            
-            feet_xy = feet_pos[:, :, :2]                                     # [N, 2, 2]
-            torso_xy = torso_pos[:, :2]                                      # [N, 2]
-            
-            # Lateral (y-axis) positions relative to torso
-            foot_lats = feet_xy[:, :, 1] - torso_xy[:, 1].unsqueeze(1)      # [N, 2]
-            
-            # Distance between feet in lateral direction
-            self.default_step_width = torch.abs(foot_lats[:, 0] - foot_lats[:, 1])  # [N]
-
-        # reset actions for those envs to zero velocity
         self.actions[env_ids] = 0.0
+        self.prev_actions[env_ids] = 0.0
 
-        to_target = self.targets[env_ids] - default_root_state[:, :3]
-        to_target[:, 2] = 0.0
-        self.potentials[env_ids] = -torch.norm(to_target, p=2, dim=-1) / self.cfg.sim.dt
+        # Sample commands based on current curriculum stage
+        self._sample_commands(env_ids)
 
-        self._compute_intermediate_values()
+        # Update state before visualization so torso_pos_w exists
+        if self._visualization_enabled:
+            self._update_state()
+            self._visualize_markers()
 
-@torch.jit.script
-def compute_rewards(
-    actions: torch.Tensor,
-    reset_terminated: torch.Tensor,
-    up_weight: float,
-    heading_weight: float,
-    heading_proj: torch.Tensor,
-    up_proj: torch.Tensor,
-    dof_vel: torch.Tensor,
-    pos_err: torch.Tensor,
-    dof_pos_scaled: torch.Tensor,
-    potentials: torch.Tensor,
-    prev_potentials: torch.Tensor,
-    actions_cost_scale: float,
-    energy_cost_scale: float,
-    dof_vel_scale: float,
-    death_cost: float,
-    alive_reward_scale: float,
-    motor_effort_ratio: torch.Tensor,
-    velocity: torch.Tensor,
-    heading_vec: torch.Tensor,
-    orient_vel_weight: float,
-    forward_vel_weight: float,
-):
-    heading_weight_tensor = torch.ones_like(heading_proj) * heading_weight
-    heading_reward = torch.where(heading_proj > 0.8, heading_weight_tensor, heading_weight * heading_proj / 0.8)
+    def _update_curriculum(self):
+        """Check if we should advance to the next curriculum stage based on per-env steps."""
+        if not self.cfg.use_curriculum:
+            return
 
-    # aligning up axis of robot and environment
-    # continuous upright reward; up_proj ≈ cos(angle between torso-up and world-up)
-    up_clamped = torch.clamp(up_proj, min=0.0)
-    up_reward = up_weight * up_clamped
+        old_stage = self._current_curriculum_stage
 
+        # Calculate average steps per environment
+        per_env_steps = self._global_env_steps / float(self.num_envs)
 
-    # energy penalty for movement
-    actions_cost = torch.sum(actions**2, dim=-1)
-    electricity_cost = torch.sum(
-        torch.abs(pos_err * dof_vel) * motor_effort_ratio.unsqueeze(0),
-        dim=-1,
-    )
+        # Stage progression based on per-env steps (independent of num_envs)
+        if per_env_steps >= self.cfg.curriculum_stage2_steps_per_env:
+            self._current_curriculum_stage = 2  # full: vx, vy, yaw
+        elif per_env_steps >= self.cfg.curriculum_stage1_steps_per_env:
+            self._current_curriculum_stage = 1  # vx + yaw
+        else:
+            self._current_curriculum_stage = 0  # vx only
 
-    # dof at limit cost
-    dof_at_limit_cost = torch.sum(dof_pos_scaled > 0.98, dim=-1)
+        # Print when we advance
+        if self._current_curriculum_stage != old_stage:
+            stage_name = self._curriculum_stage_names[self._current_curriculum_stage]
+            print(f"\n{'='*60}")
+            print(f"[Command Curriculum] Advanced to Stage {self._current_curriculum_stage}: {stage_name}")
+            print(f"  Global env-steps: {self._global_env_steps}")
+            print(f"  Per-env steps: {per_env_steps:.1f}")
+            print(f"{'='*60}\n")
 
-    # reward for duration of staying alive
-    alive_reward = torch.ones_like(potentials) * alive_reward_scale
-    progress_reward = potentials - prev_potentials
+    def _sample_commands(self, env_ids: torch.Tensor):
+        """Sample velocity commands based on current curriculum stage."""
+        n = len(env_ids)
 
-    v_xy = velocity[:, :2]
-    h_xy = heading_vec[:, :2]
+        if not self.cfg.use_curriculum:
+            # No curriculum: sample full ranges
+            self.commands[env_ids, 0] = torch.empty(n, device=self.sim.device).uniform_(-1.0, 1.0)  # vx
+            self.commands[env_ids, 1] = torch.empty(n, device=self.sim.device).uniform_(-0.5, 0.5)  # vy
+            self.commands[env_ids, 2] = torch.empty(n, device=self.sim.device).uniform_(-1.0, 1.0)  # yaw rate
+            return
 
-    v_norm = torch.norm(v_xy, dim=-1) + 1e-6
-    h_norm = torch.norm(h_xy, dim=-1) + 1e-6
+        # Curriculum active: sample based on stage
+        stage = self._current_curriculum_stage
 
-    # direction of the target / heading
-    h_dir = h_xy / h_norm.unsqueeze(-1)        # [N, 2]
+        if stage == 0:
+            # Stage 0: forward-only (vx in [0.3, 1.0], no yaw or lateral)
+            # Encourage actual forward motion, not standing still
+            vx_min = self.cfg.curriculum_stage0_vx_min
+            vx_max = self.cfg.curriculum_stage0_vx_max
+            self.commands[env_ids, 0] = torch.empty(n, device=self.sim.device).uniform_(vx_min, vx_max)
+            self.commands[env_ids, 1] = 0.0
+            self.commands[env_ids, 2] = 0.0
 
-    # projection of velocity along heading direction (forward speed)
-    forward_speed = (v_xy * h_dir).sum(dim=-1) # [N]
-    forward_speed = torch.clamp(forward_speed, min=0.0)
+        elif stage == 1:
+            # Stage 1: forward + yaw (vx in [-1, 1], yaw in [-1, 1], no lateral)
+            self.commands[env_ids, 0] = torch.empty(n, device=self.sim.device).uniform_(-1.0, 1.0)
+            self.commands[env_ids, 1] = 0.0
+            self.commands[env_ids, 2] = torch.empty(n, device=self.sim.device).uniform_(-1.0, 1.0)
 
-    target_speed = torch.tensor(0.5, device=velocity.device)
-    speed_error = forward_speed - target_speed
-    speed_reward_raw = torch.exp(-0.5 * (speed_error ** 2) / (0.3 ** 2))
+        else:  # stage == 2
+            # Stage 2: full command space
+            self.commands[env_ids, 0] = torch.empty(n, device=self.sim.device).uniform_(-1.0, 1.0)
+            self.commands[env_ids, 1] = torch.empty(n, device=self.sim.device).uniform_(-0.5, 0.5)
+            self.commands[env_ids, 2] = torch.empty(n, device=self.sim.device).uniform_(-1.0, 1.0)
 
-    # Make reward ~0 at speed=0, ≈1 near target
-    baseline = torch.exp(-0.5 * (target_speed ** 2) / (0.3 ** 2))  # reward at 0 speed
-    speed_reward = speed_reward_raw - baseline
+    def _init_feet(self):
+        """Initialize foot body and contact sensor indices (call once before using contact rewards)."""
+        if self._feet_inited:
+            return
 
+        # 1) feet kinematics indices (for slip / clearance)
+        foot_body_ids, foot_body_names = self.robot.find_bodies(self.cfg.foot_body_regex)
+        if len(foot_body_ids) != 2:
+            raise RuntimeError(f"Expected 2 feet from regex {self.cfg.foot_body_regex}, got {foot_body_names}")
+        self._feet_body_ids = torch.tensor(foot_body_ids, device=self.sim.device, dtype=torch.long)
 
-    # orientation of velocity vs heading (keep your old term)
-    cos_vel_heading = (v_xy * h_dir).sum(dim=-1) / (v_norm + 1e-6)
+        # 2) feet contact-sensor indices (for contact forces / air time)
+        sensor_names = self._contact_sensor.body_names  # list[str]
+        foot_sensor_ids = []
+        for n in foot_body_names:
+            match = next((i for i, sn in enumerate(sensor_names) if (sn.endswith(n) or (n in sn))), None)
+            if match is None:
+                raise RuntimeError(f"Foot body '{n}' not found in contact_sensor.body_names.")
+            foot_sensor_ids.append(match)
 
-    move_mask = (v_norm > 0.1).float()
-    orient_vel_reward = orient_vel_weight * cos_vel_heading * move_mask
-
-
-    total_reward = (
-        progress_reward
-        + alive_reward
-        + up_reward
-        # + heading_reward # this is redundant with yaw_penalty in compute_rewards()
-        + orient_vel_reward
-        + forward_vel_weight * speed_reward
-        - actions_cost_scale * actions_cost
-        - energy_cost_scale * electricity_cost
-        - dof_at_limit_cost
-    )
-    # adjust reward for fallen agents
-    total_reward = torch.where(reset_terminated, torch.ones_like(total_reward) * death_cost, total_reward)
-    return total_reward
-
-
-@torch.jit.script
-def compute_intermediate_values(
-    targets: torch.Tensor,
-    torso_position: torch.Tensor,
-    torso_rotation: torch.Tensor,
-    velocity: torch.Tensor,
-    ang_velocity: torch.Tensor,
-    dof_pos: torch.Tensor,
-    dof_lower_limits: torch.Tensor,
-    dof_upper_limits: torch.Tensor,
-    inv_start_rot: torch.Tensor,
-    basis_vec0: torch.Tensor,
-    basis_vec1: torch.Tensor,
-    potentials: torch.Tensor,
-    prev_potentials: torch.Tensor,
-    dt: float,
-):
-    to_target = targets - torso_position
-    to_target[:, 2] = 0.0
-
-    torso_quat, up_proj, heading_proj, up_vec, heading_vec = compute_heading_and_up(
-        torso_rotation, inv_start_rot, to_target, basis_vec0, basis_vec1, 2
-    )
-
-    vel_loc, angvel_loc, roll, pitch, yaw, angle_to_target = compute_rot(
-        torso_quat, velocity, ang_velocity, targets, torso_position
-    )
-
-    dof_pos_scaled = torch_utils.maths.unscale(dof_pos, dof_lower_limits, dof_upper_limits)
-
-    to_target = targets - torso_position
-    to_target[:, 2] = 0.0
-    prev_potentials[:] = potentials
-    potentials = -torch.norm(to_target, p=2, dim=-1) / dt
-
-    return (
-        up_proj,
-        heading_proj,
-        up_vec,
-        heading_vec,
-        vel_loc,
-        angvel_loc,
-        roll,
-        pitch,
-        yaw,
-        angle_to_target,
-        dof_pos_scaled,
-        prev_potentials,
-        potentials,
-    )
+        self._feet_sensor_ids = torch.tensor(foot_sensor_ids, device=self.sim.device, dtype=torch.long)
+        self.prev_foot_contact = torch.zeros(self.num_envs, 2, dtype=torch.bool, device=self.sim.device)
+        self._feet_inited = True
