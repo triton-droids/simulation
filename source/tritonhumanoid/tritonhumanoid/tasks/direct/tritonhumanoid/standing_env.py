@@ -108,7 +108,7 @@ class StandingADR:
         ):
             return (
                 _lerp(float(spec[0][0]), float(spec[1][0]), t),
-                _lerp(float(spec[0][1]), float(spec[1][1]), t),
+                _lerp(float(spec[0][1]), float(spec[1][1], t)),
             )
 
         return spec
@@ -487,9 +487,8 @@ class StandingEnv(DirectRLEnv):
 
     def _apply_action(self):
         # Position control: residual around nominal standing pose
-        delta_q = float(getattr(self.cfg, "residual_pos_scale", 0.25)) * self.actions
+        delta_q = self.cfg.residual_pos_scale * (self.actions * self.motor_strength_mult)
         q_tgt = self.default_joint_pos_full[self._joint_dof_idx].unsqueeze(0) + delta_q
-        q_tgt = q_tgt * self.motor_strength_mult  # per-joint strength DR
         self.robot.set_joint_position_target(q_tgt, joint_ids=self._joint_dof_idx)
 
     def _compute_intermediate_values(self):
@@ -693,6 +692,22 @@ class StandingEnv(DirectRLEnv):
         hip_deviation = hip_angles - hip_default.unsqueeze(0)
         hip_posture_penalty = self.cfg.hip_posture_scale * (hip_deviation**2).mean(dim=1)
 
+        # --- return-to-default pose (all actuated joints) ---
+        # Encourages returning to nominal configuration when stable
+        q = self.dof_pos_full[:, self._joint_dof_idx]
+        q0 = self.default_joint_pos_full[self._joint_dof_idx].unsqueeze(0)
+        pose_err = q - q0
+        pose_pen = (pose_err ** 2).mean(dim=1)  # per-env
+        
+        # Gate: only apply when mostly upright (doesn't fight recovery steps)
+        stable = (self.up_proj > 0.85)
+        pose_return_penalty = torch.where(stable, self.cfg.pose_return_scale * pose_pen, 0.0)
+        
+        # Gate stride and step width penalties to stable episodes too
+        # (reintroduce these later by setting non-zero scales in config)
+        step_width_penalty = torch.where(stable, self.cfg.step_width_scale * (width_deviation**2), 0.0)
+        stride_penalty = torch.where(stable, self.cfg.stride_penalty_scale * (excess_stride**2), 0.0)
+
         actions_cost = torch.sum(self.actions**2, dim=-1)
         
         # action rate penalty (smoothness)
@@ -720,6 +735,7 @@ class StandingEnv(DirectRLEnv):
             - step_width_penalty
             - stride_penalty
             - hip_posture_penalty
+            - pose_return_penalty
             - self.cfg.actions_cost_scale * actions_cost
             - float(getattr(self.cfg, "action_rate_scale", 0.05)) * action_rate
             - self.cfg.energy_cost_scale * electricity_cost

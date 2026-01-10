@@ -198,10 +198,13 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     ang_vel_l2_scale: float = 0.1
 
     # stance / stepping regularizers
-    step_width_scale: float = 0.5
+    step_width_scale: float = 0.0  # disabled early - reintroduce later at ~0.05
     max_stride_length: float = 0.30  # meters
-    stride_penalty_scale: float = 1.0
+    stride_penalty_scale: float = 0.0  # disabled early - reintroduce later at ~0.1
     hip_posture_scale: float = 0.5
+    
+    # return-to-nominal pose penalty (gated to stable episodes)
+    pose_return_scale: float = 0.5
 
     # action/energy regularization
     energy_cost_scale: float = 0.05
