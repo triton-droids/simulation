@@ -97,24 +97,35 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     action_space = 10
 
     # Observation layout: see HumanoidDisturbanceEnv._get_observations
-    #  1 (height)
-    #+ 3 (local lin vel)
-    #+ 3 (local ang vel)
-    #+ 1 (yaw)
-    #+ 1 (roll)
-    #+ 1 (pitch)
-    #+ 1 (up_proj)
-    #+ 1 (heading_proj)
-    #+ 1 (angle_to_target)
+    #  Hardware-only sensors (IMU + joints):
+    #+ 3 (gravity in body frame - from IMU)
+    #+ 3 (angular velocity in body frame - from IMU gyro)
     #+ num_dofs (joint pos scaled)
     #+ num_dofs (joint vel)
+    #+ num_dofs (joint torques)
     #+ num_actions (last actions)
-    # For your humanoid, num_dofs is likely 16; adjust if needed.
     num_dofs: int = 10
-    observation_space = (
-        1 + 3 + 3 + 1 + 1 + 1 + 1 + 1 + 1 + num_dofs + num_dofs + action_space
-    )
+    
+    # Single frame observation dimension
+    observation_space_single = 3 + 3 + num_dofs + num_dofs + num_dofs + action_space
+    
+    # Observation stacking for memory (frames)
+    obs_stack_frames: int = 1
+    
+    # Total observation space (accounting for stacking)
+    observation_space = observation_space_single * obs_stack_frames
+    
     state_space = 0
+
+    # === Action processing ===
+    residual_pos_scale: float = 0.25  # scaling for residual position control
+    action_filter_alpha: float = 0.2  # first-order filter coefficient
+    action_rate_scale: float = 0.05   # penalty for action changes
+    
+    # === Observation scaling ===
+    angular_velocity_scale: float = 0.25
+    dof_vel_scale: float = 0.1
+    torque_scale: float = 0.01
 
     # === Simulation ===
     sim: SimulationCfg = SimulationCfg(
@@ -204,4 +215,61 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     termination_up_proj: float = 0.5  # ~60 degrees from upright
     max_xy_displacement: float = 0.6  # meters from env origin
 
-    angular_velocity_scale: float = 0.25  # for obs scaling
+    # === ADR configuration ===
+    enable_adr: bool = False
+    num_adr_increments: int = 100
+    starting_adr_increments: int = 0
+    adr_update_interval_steps: int = 10000
+    adr_success_rate_to_increase: float = 0.85
+    adr_success_rate_to_decrease: float = 0.50
+    adr_min_steps_before_decrease: int = 50000
+    adr_ema_factor: float = 0.05
+    adr_print_every_update: bool = True
+    
+    # ADR event randomization ranges (max difficulty)
+    adr_event_cfg_dict: dict = {
+        "robot_physics_material": {
+            "static_friction_range": (0.4, 1.5),
+            "dynamic_friction_range": (0.3, 1.4),
+            "restitution_range": (0.0, 0.4),
+        },
+        "robot_joint_stiffness_and_damping": {
+            "stiffness_distribution_params": (0.5, 1.5),
+            "damping_distribution_params": (0.5, 1.5),
+        },
+        "gravity": {
+            "gravity_distribution_params": (0.8, 1.2),
+        },
+    }
+    
+    # ADR custom parameters (max difficulty)
+    adr_custom_cfg_dict: dict = {
+        "push": {
+            "push_force_range": ((0.2, 0.8), (0.5, 2.0)),  # (min_dv, max_dv) at difficulty=1
+        },
+        "action_noise": {
+            "std": (0.0, 0.1),
+        },
+        "obs_noise": {
+            "gravity_std": (0.0, 0.05),
+            "gyro_std": (0.0, 0.1),
+            "joint_pos_std": (0.0, 0.02),
+            "joint_vel_std": (0.0, 0.5),
+            "joint_torque_std": (0.0, 0.5),
+        },
+        "motor_strength": {
+            "per_joint_mult_range": (0.0, 0.3),  # +/- 30% at max difficulty
+        },
+        "latency": {
+            "act_steps": (0, 5),
+            "obs_steps": (0, 3),
+        },
+        "imu_bias": {
+            "gravity_bias_range": (0.0, 0.1),
+            "gyro_bias_range": (0.0, 0.2),
+        },
+    }
+    
+    # Latency buffer sizes (must be >= max ADR latency)
+    act_max_latency: int = 5
+    obs_max_latency: int = 3
