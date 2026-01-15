@@ -118,7 +118,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     state_space = 0
 
     # === Action processing ===
-    residual_pos_scale: float = 0.25  # scaling for residual position control
+    residual_pos_scale: float = 0.75  # scaling for residual position control
+    compute_action_bounds_from_limits: bool = True
     action_filter_alpha: float = 0.2  # first-order filter coefficient
     action_rate_scale: float = 0.05   # penalty for action changes
     
@@ -214,7 +215,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # alive / termination
     alive_reward_scale: float = 0.1
     death_cost: float = -2.0
-    termination_height: float = 0.6
+    termination_height: float = 0.4
     termination_up_proj: float = 0.5  # ~60 degrees from upright
     max_xy_displacement: float = 0.6  # meters from env origin
 

@@ -20,11 +20,6 @@ from isaaclab.sensors import ContactSensor
 
 from .standing_env_cfg import HumanoidEnvCfg
 
-
-def normalize_angle(x: torch.Tensor) -> torch.Tensor:
-    return torch.atan2(torch.sin(x), torch.cos(x))
-
-
 def _lerp(a: float, b: float, t: float) -> float:
     return a + (b - a) * t
 
@@ -108,7 +103,7 @@ class StandingADR:
         ):
             return (
                 _lerp(float(spec[0][0]), float(spec[1][0]), t),
-                _lerp(float(spec[0][1]), float(spec[1][1], t)),
+                _lerp(float(spec[0][1]), float(spec[1][1]), t),
             )
 
         return spec
@@ -139,8 +134,6 @@ class StandingEnv(DirectRLEnv):
     def __init__(self, cfg: DirectRLEnvCfg, render_mode: str | None = None, **kwargs):
         super().__init__(cfg, render_mode, **kwargs)
 
-        self.action_scale = float(self.cfg.action_scale)
-
         actuated_joint_regex = (
             "left_hip1_joint|left_hip2_joint|left_thigh_joint|left_knee_joint|left_ankle_joint|"
             "right_hip1_joint|right_hip2_joint|right_thigh_joint|right_knee_joint|right_ankle_joint"
@@ -154,6 +147,17 @@ class StandingEnv(DirectRLEnv):
         self._hip_dof_idx = torch.as_tensor(hip_dof_idx, device=self.sim.device, dtype=torch.long)
 
         self.default_joint_pos_full = self.robot.data.default_joint_pos[0].clone()
+
+        # initialize per-joint action bounds from limits (optional via cfg)
+        self.action_min = None
+        self.action_max = None
+        if getattr(self.cfg, "compute_action_bounds_from_limits", True):
+            q0 = self.default_joint_pos_full[self._joint_dof_idx]
+            lower = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 0]
+            upper = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 1]
+            s = float(self.cfg.residual_pos_scale)
+            self.action_min = torch.clamp((lower - q0) / s, -1.0, 1.0)
+            self.action_max = torch.clamp((upper - q0) / s, -1.0, 1.0)
 
         self.actions = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
         self.prev_actions = torch.zeros_like(self.actions)
@@ -478,6 +482,10 @@ class StandingEnv(DirectRLEnv):
         self.filtered_actions = (1 - alpha) * self.filtered_actions + alpha * a
         a = self.filtered_actions
 
+        # clamp actions to per-joint safe range (if initialized)
+        if self.action_min is not None and self.action_max is not None:
+            a = torch.max(torch.min(a, self.action_max.unsqueeze(0)), self.action_min.unsqueeze(0))
+
         # store for action rate penalty
         self.prev_actions = self.actions.clone()
         self.actions = a
@@ -489,6 +497,11 @@ class StandingEnv(DirectRLEnv):
         # Position control: residual around nominal standing pose
         delta_q = self.cfg.residual_pos_scale * (self.actions * self.motor_strength_mult)
         q_tgt = self.default_joint_pos_full[self._joint_dof_idx].unsqueeze(0) + delta_q
+
+        lower = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 0].unsqueeze(0)
+        upper = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 1].unsqueeze(0)
+        q_tgt = torch.clamp(q_tgt, lower, upper)
+
         self.robot.set_joint_position_target(q_tgt, joint_ids=self._joint_dof_idx)
 
     def _compute_intermediate_values(self):
@@ -579,7 +592,7 @@ class StandingEnv(DirectRLEnv):
         joint_torques = self.robot.data.applied_torque[:, self._joint_dof_idx]
         
         # === Previous actions ===
-        prev_actions = self.actions
+        prev_actions = self.prev_actions
         
         # Build observation vector
         obs = torch.cat(
