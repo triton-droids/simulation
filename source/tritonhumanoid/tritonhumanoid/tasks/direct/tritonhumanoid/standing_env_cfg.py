@@ -165,7 +165,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     observation_space_single = 3 + 3 + num_dofs + num_dofs + num_dofs + action_space
     
     # Observation stacking for memory (frames)
-    obs_stack_frames: int = 1
+    obs_stack_frames: int = 3
     
     # Total observation space (accounting for stacking)
     observation_space = observation_space_single * obs_stack_frames
