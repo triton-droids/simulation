@@ -1,23 +1,26 @@
 '''
 Loads the humanoid into a MuJoCo visualizer for debugging purposes
 Press 'Ctrl+R' in terminal to reload the model
+
+Usage:
+    python sim.py       # Load scene with robot (default)
+    python sim.py -h    # Load robot only (no scene)
 '''
 
 import mujoco
 import mujoco.viewer
 import time
 import sys
-import select
-import termios
-import tty
 
-mjcf_path = "robot_description/test.xml"
+# Define model paths
+SCENE_PATH = "robot_description/scene.xml"      # Full scene with floor/lights
+ROBOT_PATH = "robot_description/humanoid.xml"     # Robot only, no scene
 
-def load_model_with_hotreload(mjcf_path=mjcf_path):
+def load_model_with_hotreload(mjcf_path, model_type="scene"):
     """ Loads mjcf model into Mujoco visualizer with hot reload """
     
     print("=" * 60)
-    print("MuJoCo Model Viewer with Hot Reload")
+    print(f"MuJoCo Model Viewer - Loading '{model_type}' model")
     print("=" * 60)
     print("Controls:")
     print("  - Close viewer window to reload model")
@@ -48,6 +51,9 @@ def load_model_with_hotreload(mjcf_path=mjcf_path):
                 com = data.subtree_com[1] if len(data.subtree_com) > 1 else data.subtree_com[0]
                 print(f"  Base height: {data.qpos[2]:.4f}m")
                 print(f"  COM position: x={com[0]:.3f}, y={com[1]:.3f}, z={com[2]:.3f}")
+                print(f"  Model type: Mobile (with freejoint)")
+            else:
+                print(f"  Model type: Fixed base (no freejoint)")
             
             print("\n🚀 Launching viewer... (close window to reload)\n")
             
@@ -61,10 +67,26 @@ def load_model_with_hotreload(mjcf_path=mjcf_path):
         except KeyboardInterrupt:
             print("\n\n👋 Exiting...")
             break
+        except FileNotFoundError as e:
+            print(f"\n❌ Error: Model file not found!")
+            print(f"   Looking for: {mjcf_path}")
+            print(f"   Make sure the file exists and the path is correct.")
+            break
         except Exception as e:
             print(f"\n❌ Error loading model: {e}")
             print("Fix the error and close/reopen the viewer to try again...")
             time.sleep(2)
 
 if __name__ == "__main__":
-    load_model_with_hotreload()
+    # Parse command line arguments
+    if len(sys.argv) > 1 and sys.argv[1] == '-h':
+        # Load humanoid/robot only
+        mjcf_path = ROBOT_PATH
+        model_type = 'humanoid'
+    else:
+        # Default: load scene
+        mjcf_path = SCENE_PATH
+        model_type = 'scene'
+    
+    # Load and run
+    load_model_with_hotreload(mjcf_path, model_type)
