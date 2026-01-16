@@ -164,7 +164,7 @@ class StandingEnv(DirectRLEnv):
         self.filtered_actions = torch.zeros_like(self.actions)
         self.motor_effort_ratio = torch.ones(self.num_actions, dtype=torch.float32, device=self.sim.device)
 
-        torso_body_indices, _ = self.robot.find_bodies("world")
+        torso_body_indices, _ = self.robot.find_bodies("world") # note it is called world because in urdf the torso is linked to world and fixed joints ended up being merged
         self._torso_body_idx = int(torso_body_indices[0])
 
         right_foot_body_indices, _ = self.robot.find_bodies("right_foot")
@@ -270,6 +270,24 @@ class StandingEnv(DirectRLEnv):
             self.obs_hist_buf = torch.zeros(self.num_envs, obs_single_dim, self.obs_max_latency + 1, device=self.sim.device)
         else:
             self.obs_hist_buf = None
+
+        # per-sensor latency buffers (IMU vs joint sensors)
+        self.imu_dim = 6
+        self.joint_dim = self.num_actions * 3
+        self.imu_max_latency = int(getattr(self.cfg, "imu_max_latency", self.obs_max_latency))
+        self.joint_max_latency = int(getattr(self.cfg, "joint_max_latency", self.obs_max_latency))
+
+        self.imu_latency_steps = torch.zeros(self.num_envs, dtype=torch.long, device=self.sim.device)
+        self.joint_latency_steps = torch.zeros(self.num_envs, dtype=torch.long, device=self.sim.device)
+
+        self.imu_hist_buf = (
+            torch.zeros(self.num_envs, self.imu_dim, self.imu_max_latency + 1, device=self.sim.device)
+            if self.imu_max_latency > 0 else None
+        )
+        self.joint_hist_buf = (
+            torch.zeros(self.num_envs, self.joint_dim, self.joint_max_latency + 1, device=self.sim.device)
+            if self.joint_max_latency > 0 else None
+        )
         
         # stacking buffer for multi-frame observations
         if self.obs_stack_frames > 1:
@@ -283,6 +301,14 @@ class StandingEnv(DirectRLEnv):
         # IMU bias (gravity direction + gyro)
         self.imu_bias_gravity = torch.zeros(self.num_envs, 3, device=self.sim.device)
         self.imu_bias_gyro = torch.zeros(self.num_envs, 3, device=self.sim.device)
+
+        # IMU mount misalignment (small axis-angle)
+        self.imu_mount_axis = torch.tensor([1.0, 0.0, 0.0], device=self.sim.device).repeat(self.num_envs, 1)
+        self.imu_mount_ang = torch.zeros(self.num_envs, device=self.sim.device)
+
+        # continuous micro disturbances (OU process)
+        self.micro_lin_acc = torch.zeros(self.num_envs, 3, device=self.sim.device)
+        self.micro_ang_acc = torch.zeros(self.num_envs, 3, device=self.sim.device)
 
         # current ADR “custom” params (filled by _update_adr_custom_params)
         self._push_dv_min = float(self.cfg.push_force_range[0])
@@ -391,6 +417,25 @@ class StandingEnv(DirectRLEnv):
         else:
             self.obs_latency_steps[env_ids] = 0
 
+        # per-sensor latency steps (IMU vs joints)
+        lat_cfg = self.adr.adr_custom_cfg_dict.get("latency", {})
+        imu_key = "imu_steps" if "imu_steps" in lat_cfg else "obs_steps"
+        joint_key = "joint_steps" if "joint_steps" in lat_cfg else "obs_steps"
+
+        imu_max = int(round(float(self.adr.get_custom("latency", imu_key))))
+        imu_max = int(max(0, min(self.imu_max_latency, imu_max)))
+        if self.imu_hist_buf is not None and imu_max > 0:
+            self.imu_latency_steps[env_ids] = torch.randint(0, imu_max + 1, (env_ids.numel(),), device=device)
+        else:
+            self.imu_latency_steps[env_ids] = 0
+
+        joint_max = int(round(float(self.adr.get_custom("latency", joint_key))))
+        joint_max = int(max(0, min(self.joint_max_latency, joint_max)))
+        if self.joint_hist_buf is not None and joint_max > 0:
+            self.joint_latency_steps[env_ids] = torch.randint(0, joint_max + 1, (env_ids.numel(),), device=device)
+        else:
+            self.joint_latency_steps[env_ids] = 0
+
         # IMU bias on gravity direction (small constant offset per episode)
         b_grav = float(self.adr.get_custom("imu_bias", "gravity_bias_range"))
         if b_grav > 0.0:
@@ -404,6 +449,19 @@ class StandingEnv(DirectRLEnv):
             self.imu_bias_gyro[env_ids] = torch.empty((env_ids.numel(), 3), device=device).uniform_(-b_gyro, b_gyro)
         else:
             self.imu_bias_gyro[env_ids] = 0.0
+
+        # IMU mount misalignment (small axis-angle per episode)
+        deg = float(self.adr.get_custom("sensor_extrinsics", "imu_mount_deg"))
+        if deg > 0.0:
+            max_rad = deg * math.pi / 180.0
+            axis = torch.randn((env_ids.numel(), 3), device=device)
+            axis = axis / (torch.norm(axis, dim=-1, keepdim=True) + 1e-6)
+            ang = torch.empty((env_ids.numel(), 1), device=device).uniform_(-max_rad, max_rad)
+            self.imu_mount_axis[env_ids] = axis
+            self.imu_mount_ang[env_ids] = ang.squeeze(-1)
+        else:
+            self.imu_mount_axis[env_ids] = torch.tensor([1.0, 0.0, 0.0], device=device).repeat(env_ids.numel(), 1)
+            self.imu_mount_ang[env_ids] = 0.0
 
     # ----------------------------------------------------------------------
     # Disturbance logic
@@ -425,18 +483,22 @@ class StandingEnv(DirectRLEnv):
         K = env_ids.numel()
         device = self.sim.device
 
-        dirs_xy = torch.randn((K, 2), device=device)
-        dirs_xy /= (torch.norm(dirs_xy, dim=-1, keepdim=True) + 1e-6)
+        dirs = torch.randn((K, 3), device=device)
+        z_frac = float(getattr(self.cfg, "push_z_fraction", 0.25))
+        dirs[:, 2] *= z_frac
+        dirs = dirs / (torch.norm(dirs, dim=-1, keepdim=True) + 1e-6)
 
         mags = torch.empty((K, 1), device=device).uniform_(self._push_dv_min, self._push_dv_max)
-        delta_v_xy = dirs_xy * mags
+        delta_v = dirs * mags
 
         root_vel = self.robot.data.root_vel_w[env_ids].clone()  # [K, 6]
-        root_vel[:, 0:2] += delta_v_xy
+        root_vel[:, 0:3] += delta_v
         
-        # add random yaw/roll disturbance (angular momentum from push)
-        delta_w = torch.zeros((K, 3), device=device)
-        delta_w[:, 2] = torch.empty((K,), device=device).uniform_(-0.5, 0.5)  # yaw impulse
+        # angular delta-v scaled by push magnitude
+        w_scale = float(getattr(self.cfg, "push_angvel_scale", 0.8))
+        delta_w = torch.randn((K, 3), device=device)
+        delta_w = delta_w / (torch.norm(delta_w, dim=-1, keepdim=True) + 1e-6)
+        delta_w = delta_w * (w_scale * mags)
         root_vel[:, 3:6] += delta_w
         
         self.robot.write_root_velocity_to_sim(root_vel, env_ids)
@@ -448,6 +510,33 @@ class StandingEnv(DirectRLEnv):
             (K,),
             device=device,
         )
+
+    def _apply_micro_disturbance(self):
+        """Apply temporally correlated micro-accelerations (OU process)."""
+        if self.adr is None:
+            return
+
+        rho = float(self.adr.get_custom("micro_wrench", "rho"))
+        lin_std = float(self.adr.get_custom("micro_wrench", "lin_acc_std"))
+        ang_std = float(self.adr.get_custom("micro_wrench", "ang_acc_std"))
+        max_lin = float(self.adr.get_custom("micro_wrench", "max_lin_acc"))
+        max_ang = float(self.adr.get_custom("micro_wrench", "max_ang_acc"))
+
+        if lin_std <= 0.0 and ang_std <= 0.0:
+            return
+
+        if lin_std > 0.0:
+            self.micro_lin_acc = rho * self.micro_lin_acc + (1.0 - rho) * torch.randn_like(self.micro_lin_acc) * lin_std
+            self.micro_lin_acc = torch.clamp(self.micro_lin_acc, -max_lin, max_lin)
+
+        if ang_std > 0.0:
+            self.micro_ang_acc = rho * self.micro_ang_acc + (1.0 - rho) * torch.randn_like(self.micro_ang_acc) * ang_std
+            self.micro_ang_acc = torch.clamp(self.micro_ang_acc, -max_ang, max_ang)
+
+        root_vel = self.robot.data.root_vel_w.clone()  # [N, 6]
+        root_vel[:, 0:3] += self.micro_lin_acc * self.dt
+        root_vel[:, 3:6] += self.micro_ang_acc * self.dt
+        self.robot.write_root_velocity_to_sim(root_vel)
 
     # ----------------------------------------------------------------------
     # RL interface
@@ -492,6 +581,9 @@ class StandingEnv(DirectRLEnv):
 
         # scheduled pushes
         self._maybe_apply_pushes()
+
+        # continuous micro disturbances
+        self._apply_micro_disturbance()
 
     def _apply_action(self):
         # Position control: residual around nominal standing pose
@@ -562,111 +654,130 @@ class StandingEnv(DirectRLEnv):
         # mark as valid
         self._intermediates_valid = True
 
-    def _build_obs_no_latency(self) -> torch.Tensor:
-        """Build observation without applying latency (hardware-only sensors: IMU + joints + torques)."""
-        # assumes _compute_intermediate_values already called
-        
+    def _get_gravity_world(self) -> torch.Tensor:
+        """Return current world gravity vector as a torch tensor of shape [3]."""
+        device = self.sim.device
+        dtype = torch.float32
+
+        # Best case: physics sim view exposes gravity
+        if hasattr(self.sim, "physics_sim_view") and hasattr(self.sim.physics_sim_view, "get_gravity"):
+            g = self.sim.physics_sim_view.get_gravity()  # typically (gx, gy, gz)
+            return torch.tensor(g, device=device, dtype=dtype)
+
+        # Fallback: sim cfg gravity (may not reflect runtime DR updates in some versions)
+        if hasattr(self.sim, "cfg") and hasattr(self.sim.cfg, "gravity"):
+            return torch.tensor(self.sim.cfg.gravity, device=device, dtype=dtype)
+
+        # Last resort
+        return torch.tensor([0.0, 0.0, -9.81], device=device, dtype=dtype)
+
+    def _build_obs_components(self) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Build IMU + joint sensor components (no latency)."""
         # === IMU: gravity direction in body frame ===
-        # World gravity is [0, 0, -9.81]; rotate to body frame
-        gravity_world = torch.tensor([0.0, 0.0, -1.0], device=self.sim.device, dtype=torch.float32)
-        gravity_world = gravity_world.unsqueeze(0).expand(self.num_envs, -1)
-        
-        # Rotate by inverse of torso rotation to get gravity in body frame
+        g_world = self._get_gravity_world()                          # [3], e.g. [0, 0, -9.81]
+        g_dir_world = g_world / (torch.norm(g_world) + 1e-6)         # normalize -> direction only
+        gravity_world = g_dir_world.unsqueeze(0).expand(self.num_envs, -1)  # [N,3]
+
         torso_quat = self.torso_rotation
         gravity_body = quat_rotate_inverse(torso_quat, gravity_world)
-        gravity_body = gravity_body + self.imu_bias_gravity  # add bias
-        
+        gravity_body = gravity_body + self.imu_bias_gravity
+
         # === IMU: gyroscope (angular velocity in body frame) ===
-        gyro = self.angvel_loc + self.imu_bias_gyro  # already in body frame
-        
+        gyro = self.angvel_loc + self.imu_bias_gyro
+
+        # IMU mount misalignment (small-angle approx)
+        theta = self.imu_mount_axis * self.imu_mount_ang.unsqueeze(-1)
+        gravity_body = gravity_body + torch.cross(theta, gravity_body, dim=-1)
+        gyro = gyro + torch.cross(theta, gyro, dim=-1)
+
         # === Joint states (actuated only) ===
         dof_pos = self.dof_pos_full[:, self._joint_dof_idx]
         dof_vel = self.dof_vel_full[:, self._joint_dof_idx]
-        
-        # scale joint positions
+
         lower = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 0]
         upper = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 1]
         dof_pos_scaled = torch_utils.maths.unscale(dof_pos, lower, upper)
-        
-        # === Joint torques (measured/commanded effort) ===
+
+        # === Joint torques ===
         joint_torques = self.robot.data.applied_torque[:, self._joint_dof_idx]
-        
-        # === Previous actions ===
-        prev_actions = self.prev_actions
-        
-        # Build observation vector
-        obs = torch.cat(
+
+        # === Noise (ADR) ===
+        if self.adr is not None:
+            if self._obs_noise["gravity_std"] > 0.0:
+                gravity_body = gravity_body + torch.randn_like(gravity_body) * self._obs_noise["gravity_std"]
+            if self._obs_noise["gyro_std"] > 0.0:
+                gyro = gyro + torch.randn_like(gyro) * self._obs_noise["gyro_std"]
+            if self._obs_noise["joint_pos_std"] > 0.0:
+                dof_pos_scaled = dof_pos_scaled + torch.randn_like(dof_pos_scaled) * self._obs_noise["joint_pos_std"]
+            if self._obs_noise["joint_vel_std"] > 0.0:
+                dof_vel = dof_vel + torch.randn_like(dof_vel) * self._obs_noise["joint_vel_std"]
+            if self._obs_noise["joint_torque_std"] > 0.0:
+                joint_torques = joint_torques + torch.randn_like(joint_torques) * self._obs_noise["joint_torque_std"]
+
+        imu_obs = torch.cat(
             (
-                gravity_body,                                      # 3
-                gyro * self.cfg.angular_velocity_scale,            # 3
-                dof_pos_scaled,                                    # num_actions
-                dof_vel * self.cfg.dof_vel_scale,                  # num_actions
-                joint_torques * self.cfg.torque_scale,             # num_actions
-                prev_actions,                                      # num_actions
+                gravity_body,                                  # 3
+                gyro * self.cfg.angular_velocity_scale,        # 3
             ),
             dim=-1,
         )
-        
-        # Observation noise (ADR) - dynamic indexing to avoid hardcoded slices
-        if self.adr is not None:
-            offset = 0
-            
-            # gravity noise
-            if self._obs_noise["gravity_std"] > 0.0:
-                obs[:, offset:offset+3] += torch.randn_like(obs[:, offset:offset+3]) * self._obs_noise["gravity_std"]
-            offset += 3
-            
-            # gyro noise
-            if self._obs_noise["gyro_std"] > 0.0:
-                obs[:, offset:offset+3] += torch.randn_like(obs[:, offset:offset+3]) * self._obs_noise["gyro_std"]
-            offset += 3
-            
-            # joint pos noise
-            if self._obs_noise["joint_pos_std"] > 0.0:
-                obs[:, offset:offset+self.num_actions] += torch.randn_like(obs[:, offset:offset+self.num_actions]) * self._obs_noise["joint_pos_std"]
-            offset += self.num_actions
-            
-            # joint vel noise
-            if self._obs_noise["joint_vel_std"] > 0.0:
-                obs[:, offset:offset+self.num_actions] += torch.randn_like(obs[:, offset:offset+self.num_actions]) * self._obs_noise["joint_vel_std"]
-            offset += self.num_actions
-            
-            # joint torque noise
-            if self._obs_noise["joint_torque_std"] > 0.0:
-                obs[:, offset:offset+self.num_actions] += torch.randn_like(obs[:, offset:offset+self.num_actions]) * self._obs_noise["joint_torque_std"]
-            offset += self.num_actions
-            
-            # no noise on prev_actions
+        joint_obs = torch.cat(
+            (
+                dof_pos_scaled,                                # num_actions
+                dof_vel * self.cfg.dof_vel_scale,              # num_actions
+                joint_torques * self.cfg.torque_scale,         # num_actions
+            ),
+            dim=-1,
+        )
+        prev_actions = self.prev_actions
+        return imu_obs, joint_obs, prev_actions
 
-        return obs
+    def _build_obs_no_latency(self) -> torch.Tensor:
+        """Build observation without applying latency (hardware-only sensors: IMU + joints + torques)."""
+        imu_obs, joint_obs, prev_actions = self._build_obs_components()
+        return torch.cat((imu_obs, joint_obs, prev_actions), dim=-1)
 
     def _get_observations(self) -> dict:
         self._compute_intermediate_values()  # only computes once per step now
 
-        obs = self._build_obs_no_latency()
+        imu_obs, joint_obs, prev_actions = self._build_obs_components()
 
-        # obs latency (ADR)
-        if self.obs_hist_buf is not None:
-            self.obs_hist_buf = torch.roll(self.obs_hist_buf, shifts=-1, dims=2)
-            self.obs_hist_buf[:, :, -1] = obs
+        use_per_sensor = (self.imu_hist_buf is not None) or (self.joint_hist_buf is not None)
+        if use_per_sensor:
+            if self.imu_hist_buf is not None:
+                self.imu_hist_buf = torch.roll(self.imu_hist_buf, shifts=-1, dims=2)
+                self.imu_hist_buf[:, :, -1] = imu_obs
+                idx = (self.imu_max_latency - self.imu_latency_steps).clamp(0, self.imu_max_latency)
+                gather_idx = idx.view(-1, 1, 1).expand(-1, self.imu_dim, 1)
+                imu_obs = torch.gather(self.imu_hist_buf, dim=2, index=gather_idx).squeeze(-1)
 
-            idx = (self.obs_max_latency - self.obs_latency_steps).clamp(0, self.obs_max_latency)
-            gather_idx = idx.view(-1, 1, 1).expand(-1, obs.shape[1], 1)
-            obs = torch.gather(self.obs_hist_buf, dim=2, index=gather_idx).squeeze(-1)
+            if self.joint_hist_buf is not None:
+                self.joint_hist_buf = torch.roll(self.joint_hist_buf, shifts=-1, dims=2)
+                self.joint_hist_buf[:, :, -1] = joint_obs
+                idx = (self.joint_max_latency - self.joint_latency_steps).clamp(0, self.joint_max_latency)
+                gather_idx = idx.view(-1, 1, 1).expand(-1, self.joint_dim, 1)
+                joint_obs = torch.gather(self.joint_hist_buf, dim=2, index=gather_idx).squeeze(-1)
+
+            obs = torch.cat((imu_obs, joint_obs, prev_actions), dim=-1)
+        else:
+            obs = torch.cat((imu_obs, joint_obs, prev_actions), dim=-1)
+            if self.obs_hist_buf is not None:
+                self.obs_hist_buf = torch.roll(self.obs_hist_buf, shifts=-1, dims=2)
+                self.obs_hist_buf[:, :, -1] = obs
+
+                idx = (self.obs_max_latency - self.obs_latency_steps).clamp(0, self.obs_max_latency)
+                gather_idx = idx.view(-1, 1, 1).expand(-1, obs.shape[1], 1)
+                obs = torch.gather(self.obs_hist_buf, dim=2, index=gather_idx).squeeze(-1)
 
         # observation stacking for memory
         if self.obs_stack_buf is not None:
             self.obs_stack_buf = torch.roll(self.obs_stack_buf, shifts=-1, dims=2)
             self.obs_stack_buf[:, :, -1] = obs
-            # flatten stacked frames: [N, D, T] -> [N, D*T]
             obs = self.obs_stack_buf.reshape(self.num_envs, -1)
 
         return {"policy": obs}
 
     def _get_rewards(self) -> torch.Tensor:
-        # intermediate values already computed in _get_observations
-        # self._compute_intermediate_values()  # remove this call
-
         actuated_dof_vel = self._dof_vel_act
 
         up_clamped = torch.clamp(self.up_proj, min=0.0)
@@ -675,10 +786,6 @@ class StandingEnv(DirectRLEnv):
         height = self.torso_position[:, 2]
         height_error = height - self.cfg.target_root_height
         base_height_penalty = self.cfg.base_height_scale * (height_error**2)
-
-        torso_xy = self.torso_position[:, :2] - self.scene.env_origins[:, :2]
-        xy_dist = torch.norm(torso_xy, dim=-1)
-        base_xy_penalty = self.cfg.base_xy_scale * (xy_dist**2)
 
         lin_vel_penalty = self.cfg.lin_vel_l2_scale * torch.sum(self.velocity**2, dim=-1)
         ang_vel_penalty = self.cfg.ang_vel_l2_scale * torch.sum(self.ang_velocity**2, dim=-1)
@@ -703,7 +810,15 @@ class StandingEnv(DirectRLEnv):
         hip_angles = self.dof_pos_full[:, self._hip_dof_idx]
         hip_default = self.default_joint_pos_full[self._hip_dof_idx]
         hip_deviation = hip_angles - hip_default.unsqueeze(0)
-        hip_posture_penalty = self.cfg.hip_posture_scale * (hip_deviation**2).mean(dim=1)
+        stable = self.up_proj > 0.90
+        settled = (torch.norm(self.velocity[:, :2], dim=1) < 0.10) & (torch.norm(self.ang_velocity, dim=1) < 0.30)
+
+        hip_posture_penalty = torch.where(
+            stable & settled,
+            self.cfg.hip_posture_scale * (hip_deviation**2).mean(dim=1),
+            0.0
+        )
+
 
         # --- return-to-default pose (all actuated joints) ---
         # Encourages returning to nominal configuration when stable
@@ -742,13 +857,12 @@ class StandingEnv(DirectRLEnv):
             alive_reward
             + up_reward
             - base_height_penalty
-            - base_xy_penalty
             - lin_vel_penalty
             - ang_vel_penalty
             - step_width_penalty
-            - stride_penalty
-            - hip_posture_penalty
-            - pose_return_penalty
+            # - stride_penalty # 
+            - hip_posture_penalty # enourages having the hip joints near default angles
+            - pose_return_penalty # encourages returning to base standing pose
             - self.cfg.actions_cost_scale * actions_cost
             - float(getattr(self.cfg, "action_rate_scale", 0.05)) * action_rate
             - self.cfg.energy_cost_scale * electricity_cost
@@ -758,16 +872,12 @@ class StandingEnv(DirectRLEnv):
         return total_reward
 
     def _get_dones(self):
-        # intermediate values already computed in _get_observations
-        # self._compute_intermediate_values()  # remove this call
-
         time_out = self.episode_length_buf >= self.max_episode_length - 1
 
         fell_height = self.torso_position[:, 2] < self.cfg.termination_height
         too_tilted = self.up_proj < self.cfg.termination_up_proj
-        too_far_xy = torch.norm(self.torso_position[:, :2] - self.scene.env_origins[:, :2], dim=-1) > self.cfg.max_xy_displacement
 
-        died = fell_height | too_tilted | too_far_xy
+        died = fell_height | too_tilted
         return died, time_out
 
     def _maybe_update_adr(self, batch_success_rate: float) -> None:
@@ -777,6 +887,18 @@ class StandingEnv(DirectRLEnv):
 
         ema_k = float(self.cfg.adr_ema_factor)
         self.success_rate_ema[:] = (1.0 - ema_k) * self.success_rate_ema + ema_k * batch_success_rate
+
+        # --- DEBUG PRINT ---
+        if getattr(self.cfg, "adr_debug_print", True):
+            every = int(getattr(self.cfg, "adr_debug_print_every_steps", 2000))
+            if (self._global_policy_step % every) == 0:
+                print(
+                    f"[ADR] step={self._global_policy_step} "
+                    f"batch_success={batch_success_rate:.3f} "
+                    f"ema={float(self.success_rate_ema.item()):.3f} "
+                    f"inc={self.adr.num_increments()}/{self._num_increments_max if hasattr(self,'_num_increments_max') else self.cfg.num_adr_increments}",
+                    flush=True,
+                )
 
         # log
         self.extras["log"]["adr_success_rate_batch"] = float(batch_success_rate)
@@ -827,6 +949,24 @@ class StandingEnv(DirectRLEnv):
 
         joint_pos = self.robot.data.default_joint_pos[env_ids]
         joint_vel = self.robot.data.default_joint_vel[env_ids]
+
+        # --- Initial pose randomization (ADR) ---
+        if self.adr is not None:
+            jpos_w = float(self.adr.get_custom("robot_spawn", "joint_pos_noise"))
+            jvel_w = float(self.adr.get_custom("robot_spawn", "joint_vel_noise"))
+
+            if jpos_w > 0.0:
+                noise = torch.empty_like(joint_pos).uniform_(-jpos_w, jpos_w)
+                joint_pos = joint_pos + noise
+
+                # clamp to soft limits (all joints)
+                lo = self.robot.data.soft_joint_pos_limits[0, :, 0].unsqueeze(0)
+                hi = self.robot.data.soft_joint_pos_limits[0, :, 1].unsqueeze(0)
+                joint_pos = torch.clamp(joint_pos, lo, hi)
+
+            if jvel_w > 0.0:
+                joint_vel = joint_vel + torch.empty_like(joint_vel).uniform_(-jvel_w, jvel_w)
+
         default_root_state = self.robot.data.default_root_state[env_ids]
         default_root_state[:, :3] += self.scene.env_origins[env_ids]
 
@@ -860,8 +1000,14 @@ class StandingEnv(DirectRLEnv):
         
         if self.obs_hist_buf is not None:
             obs0 = self._build_obs_no_latency()
-            # fill all history slots with obs0 for the reset envs
             self.obs_hist_buf[env_ids] = obs0[env_ids].unsqueeze(-1).expand(-1, -1, self.obs_max_latency + 1)
+
+        if self.imu_hist_buf is not None or self.joint_hist_buf is not None:
+            imu0, joint0, _ = self._build_obs_components()
+            if self.imu_hist_buf is not None:
+                self.imu_hist_buf[env_ids] = imu0[env_ids].unsqueeze(-1).expand(-1, -1, self.imu_max_latency + 1)
+            if self.joint_hist_buf is not None:
+                self.joint_hist_buf[env_ids] = joint0[env_ids].unsqueeze(-1).expand(-1, -1, self.joint_max_latency + 1)
         
         # warm-start observation stacking buffer
         if self.obs_stack_buf is not None:

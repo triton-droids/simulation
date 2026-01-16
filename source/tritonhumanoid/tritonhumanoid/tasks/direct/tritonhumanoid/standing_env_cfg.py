@@ -83,6 +83,62 @@ class EventCfg:
     # )
 
 
+    # Link mass scaling
+    robot_scale_mass = EventTerm(
+        func=mdp.randomize_rigid_body_mass,
+        mode="reset",
+        min_step_count_between_reset=0,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+            "mass_distribution_params": (0.8, 1.2),
+            "operation": "scale",
+            "distribution": "uniform",
+        },
+    )
+
+    # Link COM offset (if available in this Isaac Lab version)
+    if hasattr(mdp, "randomize_rigid_body_com"):
+        robot_com_offset = EventTerm(
+            func=mdp.randomize_rigid_body_com,
+            mode="reset",
+            min_step_count_between_reset=0,
+            params={
+                "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+                "com_distribution_params": (0.0, 0.005),
+                "operation": "add",
+                "distribution": "uniform",
+            },
+        )
+
+    # Inertia scaling (if available in this Isaac Lab version)
+    if hasattr(mdp, "randomize_rigid_body_inertia"):
+        robot_inertia_scale = EventTerm(
+            func=mdp.randomize_rigid_body_inertia,
+            mode="reset",
+            min_step_count_between_reset=0,
+            params={
+                "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+                "inertia_distribution_params": (0.85, 1.15),
+                "operation": "scale",
+                "distribution": "uniform",
+            },
+        )
+
+    # Joint friction/armature
+    robot_joint_friction_armature = EventTerm(
+        func=mdp.randomize_joint_parameters,
+        mode="reset",
+        min_step_count_between_reset=0,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+            "friction_distribution_params": (0.5, 1.5),
+            "armature_distribution_params": (0.5, 1.5),
+            "operation": "scale",
+            "distribution": "uniform",
+        },
+    )
+
+
 @configclass
 class HumanoidEnvCfg(DirectRLEnvCfg):
     """Config for humanoid standing disturbance rejection."""
@@ -93,7 +149,6 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
 
     # === Actions / observations ===
     # 10 leg DOFs, velocity control
-    action_scale = 5.0
     action_space = 10
 
     # Observation layout: see HumanoidDisturbanceEnv._get_observations
@@ -118,7 +173,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     state_space = 0
 
     # === Action processing ===
-    residual_pos_scale: float = 0.75  # scaling for residual position control
+    residual_pos_scale: float = 0.9  # scaling for residual position control
     compute_action_bounds_from_limits: bool = True
     action_filter_alpha: float = 0.2  # first-order filter coefficient
     action_rate_scale: float = 0.05   # penalty for action changes
@@ -182,13 +237,15 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     push_force_range = (0.2, 0.8)   # start small
     min_push_interval_s = 1.0
     max_push_interval_s = 3.0
+    push_z_fraction: float = 0.25
+    push_angvel_scale: float = 0.8
 
 
     # === Reward / penalty scales ===
     up_weight: float = 2.0
 
     # keep CoM height near nominal (tune target_root_height from initial pose)
-    target_root_height: float = 1.0
+    target_root_height: float = 0.78
     base_height_scale: float = 5.0
 
     # penalize wandering in XY (soft to allow small steps)
@@ -202,10 +259,10 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     step_width_scale: float = 0.0  # disabled early - reintroduce later at ~0.05
     max_stride_length: float = 0.30  # meters
     stride_penalty_scale: float = 0.0  # disabled early - reintroduce later at ~0.1
-    hip_posture_scale: float = 0.5
+    hip_posture_scale: float = 0.8
     
     # return-to-nominal pose penalty (gated to stable episodes)
-    pose_return_scale: float = 0.5
+    pose_return_scale: float = 1.0
 
     # action/energy regularization
     energy_cost_scale: float = 0.05
@@ -220,15 +277,17 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     max_xy_displacement: float = 0.6  # meters from env origin
 
     # === ADR configuration ===
-    enable_adr: bool = False
+    enable_adr: bool = True
     num_adr_increments: int = 100
     starting_adr_increments: int = 0
-    adr_update_interval_steps: int = 10000
+    adr_update_interval_steps: int = 2000
     adr_success_rate_to_increase: float = 0.85
-    adr_success_rate_to_decrease: float = 0.50
-    adr_min_steps_before_decrease: int = 50000
+    adr_success_rate_to_decrease: float = 0.2
+    adr_min_steps_before_decrease: int = 10000
     adr_ema_factor: float = 0.05
     adr_print_every_update: bool = True
+    adr_debug_print: bool = True
+    adr_debug_print_every_steps: int = 2000   # print cadence
     
     # ADR event randomization ranges (max difficulty)
     adr_event_cfg_dict: dict = {
@@ -244,12 +303,33 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
         "gravity": {
             "gravity_distribution_params": (0.8, 1.2),
         },
+        "robot_scale_mass": {
+            "mass_distribution_params": (0.7, 1.3),
+        },
+        "robot_joint_friction_armature": {
+            "friction_distribution_params": (0.5, 1.5),
+            "armature_distribution_params": (0.5, 1.5),
+        },
     }
-    
-    # ADR custom parameters (max difficulty)
+    if hasattr(mdp, "randomize_rigid_body_com"):
+        adr_event_cfg_dict["robot_com_offset"] = {
+            "com_distribution_params": (0.0, 0.005),
+        }
+    if hasattr(mdp, "randomize_rigid_body_inertia"):
+        adr_event_cfg_dict["robot_inertia_scale"] = {
+            "inertia_distribution_params": (0.85, 1.15),
+        }
+
     adr_custom_cfg_dict: dict = {
         "push": {
             "push_force_range": ((0.2, 0.8), (0.5, 2.0)),  # (min_dv, max_dv) at difficulty=1
+        },
+        "robot_spawn": {
+            "joint_pos_noise": (0.0, 0.06),
+            "joint_vel_noise": (0.0, 0.20),
+        },
+        "sensor_extrinsics": {
+            "imu_mount_deg": (0.0, 5.0),
         },
         "action_noise": {
             "std": (0.0, 0.1),
@@ -267,13 +347,23 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
         "latency": {
             "act_steps": (0, 5),
             "obs_steps": (0, 3),
+            "imu_steps": (0, 3),
+            "joint_steps": (0, 3),
         },
         "imu_bias": {
             "gravity_bias_range": (0.0, 0.1),
             "gyro_bias_range": (0.0, 0.2),
         },
+        # continuous micro disturbances (OU process)
+        "micro_wrench": {
+            "lin_acc_std": (0.0, 1.0),
+            "ang_acc_std": (0.0, 3.0),
+            "rho": (0.0, 0.95),
+            "max_lin_acc": (0.0, 3.0),
+            "max_ang_acc": (0.0, 8.0),
+        },
     }
-    
+
     # Latency buffer sizes (must be >= max ADR latency)
     act_max_latency: int = 5
     obs_max_latency: int = 3
