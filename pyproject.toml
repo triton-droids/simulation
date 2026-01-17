@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "humanoid-simulation"
+version = "0.1.0"
+description = "MuJoCo-based validation environment for humanoid policies trained in IsaacSim"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [
+    {name = "Oren Gershony", email = "ogershony@ucsd.edu"}  # Update with your information
+]
+keywords = ["robotics", "simulation", "mujoco", "humanoid", "reinforcement-learning"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "mujoco>=3.4.0",
+    "numpy>=2.2.4",
+    "torch>=2.9.1",
+    "opencv-python>=4.12.0",
+    "imageio>=2.37.0",
+    "Pillow>=10.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/humanoid-simulation"  # Update with your repository URL
+Repository = "https://github.com/yourusername/humanoid-simulation"
+Issues = "https://github.com/yourusername/humanoid-simulation/issues"
+
+[tool.setuptools]
+py-modules = ["disturbance_env", "locomotion_env", "visualize", "sim"]
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+select = ["E", "F", "I", "N", "W"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
