@@ -157,6 +157,9 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     pose_return_scale: float = 0.2
     pose_return_upright_threshold: float = 0.7
 
+    # Left/right symmetry penalty (actuated joints)
+    symmetry_cost_scale: float = 0.05
+
     # Gate smoothness/energy penalties to swing phase (set swing_gate_alpha=0.0 to disable gating)
     gate_smoothness_to_swing: bool = True
     swing_gate_alpha: float = 1.0

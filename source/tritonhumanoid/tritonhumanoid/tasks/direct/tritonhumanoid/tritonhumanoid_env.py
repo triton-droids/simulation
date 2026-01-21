@@ -73,6 +73,31 @@ class LocomotionEnv(DirectRLEnv):
         self._joint_dof_idx, _ = self.robot.find_joints(actuated_joint_regex)
         self.num_actions = len(self._joint_dof_idx)
 
+        # Left/right joint pairs for symmetry penalty (action indices)
+        joint_id_to_action = {int(jid): i for i, jid in enumerate(self._joint_dof_idx)}
+        sym_pairs = [
+            ("left_hip1_joint", "right_hip1_joint"),
+            ("left_hip2_joint", "right_hip2_joint"),
+            ("left_thigh_joint", "right_thigh_joint"),
+            ("left_knee_joint", "right_knee_joint"),
+            ("left_ankle_joint", "right_ankle_joint"),
+        ]
+        sym_left = []
+        sym_right = []
+        for left_name, right_name in sym_pairs:
+            left_ids, _ = self.robot.find_joints(left_name)
+            right_ids, _ = self.robot.find_joints(right_name)
+            if len(left_ids) == 0 or len(right_ids) == 0:
+                continue
+            left_id = int(left_ids[0])
+            right_id = int(right_ids[0])
+            if left_id not in joint_id_to_action or right_id not in joint_id_to_action:
+                continue
+            sym_left.append(joint_id_to_action[left_id])
+            sym_right.append(joint_id_to_action[right_id])
+        self._sym_left_action_ids = torch.tensor(sym_left, device=self.sim.device, dtype=torch.long)
+        self._sym_right_action_ids = torch.tensor(sym_right, device=self.sim.device, dtype=torch.long)
+
         # torso link is named "world" in your URDF
         torso_ids, _ = self.robot.find_bodies("world")
         self._torso_body_idx = int(torso_ids[0])
@@ -376,6 +401,12 @@ class LocomotionEnv(DirectRLEnv):
             torch.zeros_like(pose_pen),
         )
 
+        sym_pen = torch.zeros_like(pose_pen)
+        if self._sym_left_action_ids.numel() > 0:
+            left_off = self.act_pos[:, self._sym_left_action_ids] - self.default_actuated_pos[self._sym_left_action_ids].unsqueeze(0)
+            right_off = self.act_pos[:, self._sym_right_action_ids] - self.default_actuated_pos[self._sym_right_action_ids].unsqueeze(0)
+            sym_pen = torch.mean((torch.abs(left_off) - torch.abs(right_off)) ** 2, dim=1)
+
         # --- Stability costs (prevent hopping/rolling) ---
         lin_vel_z_cost = self.torso_lin_vel_b[:, 2] ** 2
         ang_vel_xy_cost = torch.sum(self.torso_ang_vel_b[:, :2] ** 2, dim=1)
@@ -445,6 +476,7 @@ class LocomotionEnv(DirectRLEnv):
             - self.cfg.dof_vel_cost_scale * dof_vel_cost
             - self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost
             - self.cfg.standstill_penalty_scale * standstill
+            - self.cfg.symmetry_cost_scale * sym_pen
             + self.cfg.feet_air_time_reward_scale * air_rew
             - self.cfg.foot_slip_cost_scale * slip_cost
             - self.cfg.undesired_contact_cost_scale * undesired
@@ -472,6 +504,7 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["reward_penalties/dof_vel"] = float(dof_vel_cost.mean().item())
             self.extras["reward_penalties/dof_vel_delta"] = float(dof_vel_delta_cost.mean().item())
             self.extras["reward_penalties/standstill"] = float(standstill.mean().item())
+            self.extras["reward_penalties/symmetry"] = float(sym_pen.mean().item())
             self.extras["reward_penalties/slip"] = float(slip_cost.mean().item())
             self.extras["reward_penalties/undesired_contact"] = float(undesired.mean().item())
 
@@ -485,6 +518,7 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["reward_scaled/undesired_cost"] = float((self.cfg.undesired_contact_cost_scale * undesired).mean().item())
             self.extras["reward_scaled/standstill_cost"] = float((self.cfg.standstill_penalty_scale * standstill).mean().item())
             self.extras["reward_scaled/dof_vel_delta_cost"] = float((self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost).mean().item())
+            self.extras["reward_scaled/symmetry_cost"] = float((self.cfg.symmetry_cost_scale * sym_pen).mean().item())
 
             # Total reward stats
             self.extras["reward_total/mean"] = float(reward.mean().item())
