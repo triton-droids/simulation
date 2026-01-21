@@ -52,6 +52,14 @@ class LocomotionEnv(DirectRLEnv):
     cfg: DirectRLEnvCfg
 
     def __init__(self, cfg: DirectRLEnvCfg, render_mode: str | None = None, **kwargs):
+        obs_stack_frames = max(1, int(getattr(cfg, "obs_stack_frames", 1)))
+        obs_single_dim = 1 + 3 + 3 + 3 + 3 + cfg.action_space * 3
+        if cfg.use_phase_obs:
+            obs_single_dim += 2
+        cfg.observation_space_single = obs_single_dim
+        cfg.obs_stack_frames = obs_stack_frames
+        cfg.observation_space = obs_single_dim * obs_stack_frames
+
         super().__init__(cfg, render_mode, **kwargs)
 
         # actions are POSITION OFFSETS for actuated joints
@@ -106,6 +114,19 @@ class LocomotionEnv(DirectRLEnv):
             self.visualization_markers = self.define_markers()
             self._marker_offset = torch.zeros(3, device=self.sim.device)
             self._marker_offset[2] = getattr(self.cfg, "vel_vis_height", 0.25)
+
+        # observation stacking for memory
+        self.obs_stack_frames = obs_stack_frames
+        self._obs_single_dim = obs_single_dim
+        if self.obs_stack_frames > 1:
+            self.obs_stack_buf = torch.zeros(
+                self.num_envs,
+                self._obs_single_dim,
+                self.obs_stack_frames,
+                device=self.sim.device,
+            )
+        else:
+            self.obs_stack_buf = None
 
     def _setup_scene(self):
         self.robot = Articulation(self.cfg.robot)
@@ -253,8 +274,7 @@ class LocomotionEnv(DirectRLEnv):
 
         self.visualization_markers.visualize(loc, rots, marker_indices=indices)
 
-    def _get_observations(self) -> dict:
-        self._update_state()
+    def _compute_single_observation(self) -> torch.Tensor:
         obs = torch.cat(
             (
                 self.torso_pos_w[:, 2:3],                        # height
@@ -269,12 +289,22 @@ class LocomotionEnv(DirectRLEnv):
             dim=-1,
         )
 
-        # Optional: add phase clock for gait timing
         if self.cfg.use_phase_obs:
             t = self.episode_length_buf.float() * self._control_dt
             phase = 2.0 * torch.pi * (t / self.cfg.gait_period_s)
             clock = torch.stack([torch.sin(phase), torch.cos(phase)], dim=1)
             obs = torch.cat([obs, clock], dim=-1)
+
+        return obs
+
+    def _get_observations(self) -> dict:
+        self._update_state()
+        obs = self._compute_single_observation()
+
+        if self.obs_stack_buf is not None:
+            self.obs_stack_buf = torch.roll(self.obs_stack_buf, shifts=-1, dims=2)
+            self.obs_stack_buf[:, :, -1] = obs
+            obs = self.obs_stack_buf.reshape(self.num_envs, -1)
 
         return {"policy": obs}
 
@@ -289,6 +319,11 @@ class LocomotionEnv(DirectRLEnv):
         r_yaw = torch.exp(-(yaw_err * yaw_err) / self.cfg.yaw_rate_sigma)
 
         upright = torch.clamp(self.up_b[:, 2], 0.0, 1.0)
+
+        cmd_speed = torch.norm(self.commands[:, :2], dim=1)
+        act_speed = torch.norm(self.torso_lin_vel_b[:, :2], dim=1)
+        standstill = torch.clamp(self.cfg.standstill_speed_threshold - act_speed, min=0.0)
+        standstill = standstill * (cmd_speed > self.cfg.command_speed_threshold).float()
 
         act_cost = torch.sum(self.actions * self.actions, dim=1)
         at_limit = torch.sum(torch.abs(self.act_pos_scaled) > 0.98, dim=1).float()
@@ -351,6 +386,7 @@ class LocomotionEnv(DirectRLEnv):
             - self.cfg.action_rate_cost_scale * action_rate_cost
             - self.cfg.dof_vel_cost_scale * dof_vel_cost
             - self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost
+            - self.cfg.standstill_penalty_scale * standstill
             + self.cfg.feet_air_time_reward_scale * air_rew
             - self.cfg.foot_slip_cost_scale * slip_cost
             - self.cfg.undesired_contact_cost_scale * undesired
@@ -376,6 +412,7 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["reward_penalties/action_rate"] = float(action_rate_cost.mean().item())
             self.extras["reward_penalties/dof_vel"] = float(dof_vel_cost.mean().item())
             self.extras["reward_penalties/dof_vel_delta"] = float(dof_vel_delta_cost.mean().item())
+            self.extras["reward_penalties/standstill"] = float(standstill.mean().item())
             self.extras["reward_penalties/slip"] = float(slip_cost.mean().item())
             self.extras["reward_penalties/undesired_contact"] = float(undesired.mean().item())
 
@@ -386,6 +423,7 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["reward_scaled/air_time"] = float((self.cfg.feet_air_time_reward_scale * air_rew).mean().item())
             self.extras["reward_scaled/slip_cost"] = float((self.cfg.foot_slip_cost_scale * slip_cost).mean().item())
             self.extras["reward_scaled/undesired_cost"] = float((self.cfg.undesired_contact_cost_scale * undesired).mean().item())
+            self.extras["reward_scaled/standstill_cost"] = float((self.cfg.standstill_penalty_scale * standstill).mean().item())
             self.extras["reward_scaled/dof_vel_delta_cost"] = float((self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost).mean().item())
 
             # Total reward stats
@@ -435,10 +473,16 @@ class LocomotionEnv(DirectRLEnv):
         # Sample commands based on current curriculum stage
         self._sample_commands(env_ids)
 
+        if self._visualization_enabled or self.obs_stack_buf is not None:
+            self._update_state()
+
         # Update state before visualization so torso_pos_w exists
         if self._visualization_enabled:
-            self._update_state()
             self._visualize_markers()
+
+        if self.obs_stack_buf is not None:
+            obs0 = self._compute_single_observation()
+            self.obs_stack_buf[env_ids] = obs0[env_ids].unsqueeze(-1).expand(-1, -1, self.obs_stack_frames)
 
     def _update_curriculum(self):
         """Check if we should advance to the next curriculum stage based on per-env steps."""

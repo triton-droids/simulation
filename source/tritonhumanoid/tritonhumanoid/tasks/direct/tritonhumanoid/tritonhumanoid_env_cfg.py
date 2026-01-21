@@ -67,7 +67,9 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
 
     # obs_dim = 1 (height) + 3 (lin_vel) + 3 (ang_vel) + 3 (up_b) + 3 (commands) + 10 (pos) + 10 (vel) + 10 (prev_actions) = 43
     # + 2 (phase clock if use_phase_obs=True) = 45
-    observation_space = 43
+    observation_space_single = 43
+    obs_stack_frames: int = 1
+    observation_space = observation_space_single * obs_stack_frames
 
     state_space = 0
 
@@ -118,23 +120,28 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     upright_threshold: float = 0.5  # up_b.z
 
     # Reward shaping (minimal)
-    lin_vel_reward_scale: float = 1.0
+    lin_vel_reward_scale: float = 1.5
     yaw_rate_reward_scale: float = 0.5
     upright_reward_scale: float = 0.5
     alive_reward: float = 0.05
 
-    action_cost_scale: float = 0.01
+    action_cost_scale: float = 0.005
     joint_limit_cost_scale: float = 0.2
     death_cost: float = -1.0
 
     # Tracking sharpness (bigger = easier / smoother)
-    lin_vel_sigma: float = 0.5   # in (m/s)^2 units inside exp; easier for early learning
+    lin_vel_sigma: float = 0.25  # in (m/s)^2 units inside exp; sharper tracking
     yaw_rate_sigma: float = 0.5  # in (rad/s)^2 units inside exp
 
     # Stability costs (prevent hopping/rolling)
     lin_vel_z_cost_scale: float = 0.02
     ang_vel_xy_cost_scale: float = 0.01
     flat_ori_cost_scale: float = 0.05
+
+    # Penalize standing still when a command asks for motion
+    command_speed_threshold: float = 0.2  # m/s, only apply penalty above this command
+    standstill_speed_threshold: float = 0.15  # m/s, penalize if actual speed below this
+    standstill_penalty_scale: float = 0.2
 
     # Smoothness costs (reduce jitter)
     action_rate_cost_scale: float = 0.01
