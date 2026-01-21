@@ -64,7 +64,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Position control: actions map to POSITION OFFSETS (radians) around default pose
     # action_scale determines the maximum offset: actions in [-1, 1] → [-action_scale, +action_scale] radians
     # The actual position command is: q_target = default_pose + action_scale * action
-    action_scale = 0.25  # Lower for early training stability; increase to 0.5 after initial learning
+    action_scale = 1.0  # Lower for early training stability; increase to 0.5 after initial learning
 
     # 10 actuated leg joints
     action_space = 10
@@ -72,7 +72,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # obs_dim = 1 (height) + 3 (lin_vel) + 3 (ang_vel) + 3 (up_b) + 3 (commands) + 10 (pos) + 10 (vel) + 10 (prev_actions) = 43
     # + 2 (phase clock if use_phase_obs=True) = 45
     observation_space_single = 43
-    obs_stack_frames: int = 1
+    obs_stack_frames: int = 3
     observation_space = observation_space_single * obs_stack_frames
 
     state_space = 0
@@ -121,12 +121,12 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     command_yaw_offset: float = -math.pi / 2.0  # rotate body-frame vectors to align +Y forward with +X commands
 
     # Termination
-    termination_height: float = 0.6
+    termination_height: float = 0.4
     upright_threshold: float = 0.5  # up_b.z
 
     # Reward shaping (minimal)
-    lin_vel_reward_scale: float = 1.5
-    yaw_rate_reward_scale: float = 0.5
+    lin_vel_reward_scale: float = 3.0
+    yaw_rate_reward_scale: float = 2.0
     upright_reward_scale: float = 0.5
     alive_reward: float = 0.05
 
