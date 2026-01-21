@@ -57,6 +57,8 @@ class EventCfg:
 class HumanoidEnvCfg(DirectRLEnvCfg):
     # env
     episode_length_s = 15.0
+    min_episode_length_s: float = 5.0
+    randomize_episode_length: bool = True
     decimation = 2
 
     # Position control: actions map to POSITION OFFSETS (radians) around default pose
@@ -150,6 +152,10 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     action_rate_cost_scale: float = 0.01
     dof_vel_cost_scale: float = 0.0001
     dof_vel_delta_cost_scale: float = 0.01  # penalize velocity changes (instead of acceleration)
+
+    # Gate smoothness/energy penalties to swing phase (set swing_gate_alpha=0.0 to disable gating)
+    gate_smoothness_to_swing: bool = True
+    swing_gate_alpha: float = 1.0
 
     # Contact-based rewards
     foot_body_regex: str = "left_foot|right_foot"

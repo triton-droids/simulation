@@ -137,6 +137,19 @@ class LocomotionEnv(DirectRLEnv):
         else:
             self.obs_stack_buf = None
 
+        # randomized episode lengths
+        self._randomize_episode_length = bool(getattr(self.cfg, "randomize_episode_length", False))
+        self._min_episode_length_steps = max(
+            1, int(self.cfg.min_episode_length_s / self._control_dt)
+        )
+        self.randomized_episode_lengths = torch.full(
+            (self.num_envs,),
+            self.max_episode_length,
+            dtype=torch.long,
+            device=self.sim.device,
+        )
+        self._resample_episode_lengths(self.robot._ALL_INDICES)
+
     def _setup_scene(self):
         self.robot = Articulation(self.cfg.robot)
 
@@ -399,6 +412,15 @@ class LocomotionEnv(DirectRLEnv):
 
         self.prev_foot_contact[:] = foot_contact
 
+        # --- Swing-phase gating for energy/smoothness costs ---
+        if self.cfg.gate_smoothness_to_swing:
+            swing_frac = (~foot_contact).float().mean(dim=1)
+            swing_gate = (1.0 - self.cfg.swing_gate_alpha) + self.cfg.swing_gate_alpha * swing_frac
+            action_cost = action_cost * swing_gate
+            action_rate_cost = action_rate_cost * swing_gate
+            dof_vel_cost = dof_vel_cost * swing_gate
+            dof_vel_delta_cost = dof_vel_delta_cost * swing_gate
+
         # --- Combine all rewards ---
         reward = (
             self.cfg.lin_vel_reward_scale * r_lin
@@ -471,7 +493,7 @@ class LocomotionEnv(DirectRLEnv):
 
     def _get_dones(self):
         self._update_state()
-        time_out = self.episode_length_buf >= self.max_episode_length - 1
+        time_out = self.episode_length_buf >= self.randomized_episode_lengths - 1
 
         fell = self.torso_pos_w[:, 2] < self.cfg.termination_height
         too_tilted = self.up_b[:, 2] < self.cfg.upright_threshold
@@ -484,6 +506,7 @@ class LocomotionEnv(DirectRLEnv):
             env_ids = self.robot._ALL_INDICES
         self.robot.reset(env_ids)
         super()._reset_idx(env_ids)
+        self._resample_episode_lengths(env_ids)
 
         joint_pos = self.robot.data.default_joint_pos[env_ids]
         joint_vel = self.robot.data.default_joint_vel[env_ids]
@@ -596,3 +619,17 @@ class LocomotionEnv(DirectRLEnv):
         self._feet_sensor_ids = torch.tensor(foot_sensor_ids, device=self.sim.device, dtype=torch.long)
         self.prev_foot_contact = torch.zeros(self.num_envs, 2, dtype=torch.bool, device=self.sim.device)
         self._feet_inited = True
+
+    def _resample_episode_lengths(self, env_ids: torch.Tensor):
+        if not self._randomize_episode_length:
+            self.randomized_episode_lengths[env_ids] = self.max_episode_length
+            return
+
+        min_steps = min(self._min_episode_length_steps, self.max_episode_length)
+        self.randomized_episode_lengths[env_ids] = torch.randint(
+            min_steps,
+            self.max_episode_length + 1,
+            (env_ids.numel(),),
+            dtype=torch.long,
+            device=self.sim.device,
+        )
