@@ -98,6 +98,19 @@ class LocomotionEnv(DirectRLEnv):
         self._sym_left_action_ids = torch.tensor(sym_left, device=self.sim.device, dtype=torch.long)
         self._sym_right_action_ids = torch.tensor(sym_right, device=self.sim.device, dtype=torch.long)
 
+        thigh_left_ids, _ = self.robot.find_joints("left_thigh_joint")
+        thigh_right_ids, _ = self.robot.find_joints("right_thigh_joint")
+        thigh_action_ids = []
+        if len(thigh_left_ids) > 0:
+            left_thigh_id = int(thigh_left_ids[0])
+            if left_thigh_id in joint_id_to_action:
+                thigh_action_ids.append(joint_id_to_action[left_thigh_id])
+        if len(thigh_right_ids) > 0:
+            right_thigh_id = int(thigh_right_ids[0])
+            if right_thigh_id in joint_id_to_action:
+                thigh_action_ids.append(joint_id_to_action[right_thigh_id])
+        self._thigh_action_ids = torch.tensor(thigh_action_ids, device=self.sim.device, dtype=torch.long)
+
         # torso link is named "world" in your URDF
         torso_ids, _ = self.robot.find_bodies("world")
         self._torso_body_idx = int(torso_ids[0])
@@ -407,6 +420,16 @@ class LocomotionEnv(DirectRLEnv):
             right_off = self.act_pos[:, self._sym_right_action_ids] - self.default_actuated_pos[self._sym_right_action_ids].unsqueeze(0)
             sym_pen = torch.mean((torch.abs(left_off) - torch.abs(right_off)) ** 2, dim=1)
 
+        thigh_pose_pen = torch.zeros_like(pose_pen)
+        if self._thigh_action_ids.numel() > 0:
+            thigh_off = self.act_pos[:, self._thigh_action_ids] - self.default_actuated_pos[self._thigh_action_ids].unsqueeze(0)
+            thigh_pose_pen = torch.mean(thigh_off * thigh_off, dim=1)
+            thigh_pose_pen = torch.where(
+                self.up_b[:, 2] > self.cfg.pose_return_upright_threshold,
+                thigh_pose_pen,
+                torch.zeros_like(thigh_pose_pen),
+            )
+
         # --- Stability costs (prevent hopping/rolling) ---
         lin_vel_z_cost = self.torso_lin_vel_b[:, 2] ** 2
         ang_vel_xy_cost = torch.sum(self.torso_ang_vel_b[:, :2] ** 2, dim=1)
@@ -477,6 +500,7 @@ class LocomotionEnv(DirectRLEnv):
             - self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost
             - self.cfg.standstill_penalty_scale * standstill
             - self.cfg.symmetry_cost_scale * sym_pen
+            - self.cfg.thigh_pose_cost_scale * thigh_pose_pen
             + self.cfg.feet_air_time_reward_scale * air_rew
             - self.cfg.foot_slip_cost_scale * slip_cost
             - self.cfg.undesired_contact_cost_scale * undesired
@@ -505,6 +529,7 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["reward_penalties/dof_vel_delta"] = float(dof_vel_delta_cost.mean().item())
             self.extras["reward_penalties/standstill"] = float(standstill.mean().item())
             self.extras["reward_penalties/symmetry"] = float(sym_pen.mean().item())
+            self.extras["reward_penalties/thigh_pose"] = float(thigh_pose_pen.mean().item())
             self.extras["reward_penalties/slip"] = float(slip_cost.mean().item())
             self.extras["reward_penalties/undesired_contact"] = float(undesired.mean().item())
 
@@ -519,6 +544,7 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["reward_scaled/standstill_cost"] = float((self.cfg.standstill_penalty_scale * standstill).mean().item())
             self.extras["reward_scaled/dof_vel_delta_cost"] = float((self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost).mean().item())
             self.extras["reward_scaled/symmetry_cost"] = float((self.cfg.symmetry_cost_scale * sym_pen).mean().item())
+            self.extras["reward_scaled/thigh_pose_cost"] = float((self.cfg.thigh_pose_cost_scale * thigh_pose_pen).mean().item())
 
             # Total reward stats
             self.extras["reward_total/mean"] = float(reward.mean().item())
