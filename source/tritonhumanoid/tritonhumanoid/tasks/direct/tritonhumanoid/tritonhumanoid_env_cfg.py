@@ -153,6 +153,10 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     dof_vel_cost_scale: float = 0.0001
     dof_vel_delta_cost_scale: float = 0.01  # penalize velocity changes (instead of acceleration)
 
+    # Return-to-default pose penalty (actuated joints)
+    pose_return_scale: float = 0.02
+    pose_return_upright_threshold: float = 0.85
+
     # Gate smoothness/energy penalties to swing phase (set swing_gate_alpha=0.0 to disable gating)
     gate_smoothness_to_swing: bool = True
     swing_gate_alpha: float = 1.0

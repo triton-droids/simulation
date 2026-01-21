@@ -368,6 +368,14 @@ class LocomotionEnv(DirectRLEnv):
         act_cost = torch.sum(self.actions * self.actions, dim=1)
         at_limit = torch.sum(torch.abs(self.act_pos_scaled) > 0.98, dim=1).float()
 
+        pose_err = self.act_pos - self.default_actuated_pos.unsqueeze(0)
+        pose_pen = (pose_err * pose_err).mean(dim=1)
+        pose_return_penalty = torch.where(
+            self.up_b[:, 2] > self.cfg.pose_return_upright_threshold,
+            self.cfg.pose_return_scale * pose_pen,
+            torch.zeros_like(pose_pen),
+        )
+
         # --- Stability costs (prevent hopping/rolling) ---
         lin_vel_z_cost = self.torso_lin_vel_b[:, 2] ** 2
         ang_vel_xy_cost = torch.sum(self.torso_ang_vel_b[:, :2] ** 2, dim=1)
@@ -429,6 +437,7 @@ class LocomotionEnv(DirectRLEnv):
             + self.cfg.alive_reward
             - self.cfg.action_cost_scale * act_cost
             - self.cfg.joint_limit_cost_scale * at_limit
+            - pose_return_penalty
             - self.cfg.lin_vel_z_cost_scale * lin_vel_z_cost
             - self.cfg.ang_vel_xy_cost_scale * ang_vel_xy_cost
             - self.cfg.flat_ori_cost_scale * flat_ori_cost
@@ -455,6 +464,7 @@ class LocomotionEnv(DirectRLEnv):
             # Penalties (what we want to minimize)
             self.extras["reward_penalties/action_cost"] = float(act_cost.mean().item())
             self.extras["reward_penalties/joint_limit"] = float(at_limit.mean().item())
+            self.extras["reward_penalties/pose_return"] = float(pose_return_penalty.mean().item())
             self.extras["reward_penalties/lin_vel_z"] = float(lin_vel_z_cost.mean().item())
             self.extras["reward_penalties/ang_vel_xy"] = float(ang_vel_xy_cost.mean().item())
             self.extras["reward_penalties/flat_ori"] = float(flat_ori_cost.mean().item())
@@ -469,6 +479,7 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["reward_scaled/lin_tracking"] = float((self.cfg.lin_vel_reward_scale * r_lin).mean().item())
             self.extras["reward_scaled/yaw_tracking"] = float((self.cfg.yaw_rate_reward_scale * r_yaw).mean().item())
             self.extras["reward_scaled/upright"] = float((self.cfg.upright_reward_scale * upright).mean().item())
+            self.extras["reward_scaled/pose_return"] = float(pose_return_penalty.mean().item())
             self.extras["reward_scaled/air_time"] = float((self.cfg.feet_air_time_reward_scale * air_rew).mean().item())
             self.extras["reward_scaled/slip_cost"] = float((self.cfg.foot_slip_cost_scale * slip_cost).mean().item())
             self.extras["reward_scaled/undesired_cost"] = float((self.cfg.undesired_contact_cost_scale * undesired).mean().item())
