@@ -58,7 +58,7 @@ for i, urdf in enumerate(urdfs, 1):
         fix_base=False,                           # Static Base
         merge_fixed_joints=args.merge_joints,
         force_usd_conversion=True,
-        link_density=1240,                  # roughly PLA plastic
+        link_density=2000,                  # roughly sheet metal
         joint_drive=UrdfConverterCfg.JointDriveCfg(
             drive_type="force",                  # Drive type: Force
             target_type="position",
