@@ -416,7 +416,7 @@ class LocomotionEnv(DirectRLEnv):
         if self.cfg.gate_smoothness_to_swing:
             swing_frac = (~foot_contact).float().mean(dim=1)
             swing_gate = (1.0 - self.cfg.swing_gate_alpha) + self.cfg.swing_gate_alpha * swing_frac
-            action_cost = action_cost * swing_gate
+            act_cost = act_cost * swing_gate
             action_rate_cost = action_rate_cost * swing_gate
             dof_vel_cost = dof_vel_cost * swing_gate
             dof_vel_delta_cost = dof_vel_delta_cost * swing_gate
