@@ -65,6 +65,11 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # action_scale determines the maximum offset: actions in [-1, 1] → [-action_scale, +action_scale] radians
     # The actual position command is: q_target = default_pose + action_scale * action
     action_scale = 1.0  # Lower for early training stability; increase to 0.5 after initial learning
+    # Per-joint multipliers applied on top of action_scale
+    action_scale_by_joint: dict[str, float] = {
+        "left_thigh_joint": 0.3,
+        "right_thigh_joint": 0.3,
+    }
 
     # 10 actuated leg joints
     action_space = 10

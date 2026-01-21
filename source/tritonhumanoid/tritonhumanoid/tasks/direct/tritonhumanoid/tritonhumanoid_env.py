@@ -75,6 +75,17 @@ class LocomotionEnv(DirectRLEnv):
 
         # Left/right joint pairs for symmetry penalty (action indices)
         joint_id_to_action = {int(jid): i for i, jid in enumerate(self._joint_dof_idx)}
+
+        action_scale_by_joint = getattr(self.cfg, "action_scale_by_joint", {})
+        self._action_scale_per_joint = torch.ones(self.num_actions, device=self.sim.device)
+        for joint_name, scale in action_scale_by_joint.items():
+            joint_ids, _ = self.robot.find_joints(joint_name)
+            if len(joint_ids) == 0:
+                continue
+            joint_id = int(joint_ids[0])
+            if joint_id not in joint_id_to_action:
+                continue
+            self._action_scale_per_joint[joint_id_to_action[joint_id]] = float(scale)
         sym_pairs = [
             ("left_hip1_joint", "right_hip1_joint"),
             ("left_hip2_joint", "right_hip2_joint"),
@@ -223,7 +234,7 @@ class LocomotionEnv(DirectRLEnv):
             self._visualize_markers()
 
     def _apply_action(self):
-        pos_offsets = self.action_scale * self.actions  # [N, 10]
+        pos_offsets = self.action_scale * self._action_scale_per_joint.unsqueeze(0) * self.actions  # [N, 10]
         q_des = self.default_actuated_pos.unsqueeze(0) + pos_offsets
         q_des = torch.clamp(q_des, self.actuated_lower.unsqueeze(0), self.actuated_upper.unsqueeze(0))
         self.q_des = q_des
