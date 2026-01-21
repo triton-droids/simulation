@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import math
 import torch
 
 import isaaclab.sim as sim_utils
@@ -100,6 +101,14 @@ class LocomotionEnv(DirectRLEnv):
         # commanded base velocity in BODY frame: [vx, vy, yaw_rate]
         self.commands = torch.zeros(self.num_envs, 3, device=self.sim.device)
 
+        # rotate body-frame vectors to align forward axis with command frame
+        self._command_yaw_offset = float(getattr(self.cfg, "command_yaw_offset", 0.0))
+        self._cmd_yaw_cos = math.cos(self._command_yaw_offset)
+        self._cmd_yaw_sin = math.sin(self._command_yaw_offset)
+        self._cmd_yaw_inv_cos = self._cmd_yaw_cos
+        self._cmd_yaw_inv_sin = -self._cmd_yaw_sin
+        self._use_cmd_yaw_offset = abs(self._command_yaw_offset) > 1e-6
+
         # feet tracking flag
         self._feet_inited = False
 
@@ -181,12 +190,22 @@ class LocomotionEnv(DirectRLEnv):
         self.torso_lin_vel_w = torso_lin_vel_w
         self.torso_ang_vel_w = torso_ang_vel_w
 
-        # convert velocities to torso/body frame (for tracking BODY commands)
+        # convert velocities to torso/body frame
         self.torso_lin_vel_b = quat_rotate_inverse(self.torso_quat_w, torso_lin_vel_w)  # [N,3]
         self.torso_ang_vel_b = quat_rotate_inverse(self.torso_quat_w, torso_ang_vel_w)  # [N,3]
+        if self._use_cmd_yaw_offset:
+            self.torso_lin_vel_cmd = self._rotate_xy(self.torso_lin_vel_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
+            self.torso_ang_vel_cmd = self._rotate_xy(self.torso_ang_vel_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
+        else:
+            self.torso_lin_vel_cmd = self.torso_lin_vel_b
+            self.torso_ang_vel_cmd = self.torso_ang_vel_b
 
         # IMU-ish "up" expressed in body frame (up_b.z ~ 1 when upright)
         self.up_b = quat_rotate_inverse(self.torso_quat_w, self._world_up)  # [N,3]
+        if self._use_cmd_yaw_offset:
+            self.up_cmd = self._rotate_xy(self.up_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
+        else:
+            self.up_cmd = self.up_b
 
         # joints
         self.dof_pos = self.robot.data.joint_pos
@@ -221,6 +240,12 @@ class LocomotionEnv(DirectRLEnv):
         )
         return VisualizationMarkers(cfg=marker_cfg)
 
+    @staticmethod
+    def _rotate_xy(v: torch.Tensor, cos_yaw: float, sin_yaw: float) -> torch.Tensor:
+        x = v[..., 0] * cos_yaw - v[..., 1] * sin_yaw
+        y = v[..., 0] * sin_yaw + v[..., 1] * cos_yaw
+        return torch.stack((x, y, v[..., 2]), dim=-1)
+
     def _visualize_markers(self):
         """Draw arrows for commanded velocity (red) and actual velocity (green) in world frame for single env."""
         if not self._visualization_enabled:
@@ -246,6 +271,8 @@ class LocomotionEnv(DirectRLEnv):
         # --- 1. COMMAND VELOCITY DIRECTION IN WORLD FRAME ---
         cmd_b_xy = cmd[:2]  # [2]
         cmd_b = torch.cat([cmd_b_xy, torch.zeros(1, device=self.sim.device)])  # [3]
+        if self._use_cmd_yaw_offset:
+            cmd_b = self._rotate_xy(cmd_b, self._cmd_yaw_inv_cos, self._cmd_yaw_inv_sin)
 
         # Rotate into WORLD frame
         cmd_w = math_utils.quat_apply(torso_quat.unsqueeze(0), cmd_b.unsqueeze(0)).squeeze(0)  # [3]
@@ -278,9 +305,9 @@ class LocomotionEnv(DirectRLEnv):
         obs = torch.cat(
             (
                 self.torso_pos_w[:, 2:3],                        # height
-                self.torso_lin_vel_b,                            # body lin vel
-                self.torso_ang_vel_b * self.cfg.ang_vel_scale,   # body ang vel
-                self.up_b,                                       # IMU-ish orientation feature
+                self.torso_lin_vel_cmd,                          # command-frame lin vel
+                self.torso_ang_vel_cmd * self.cfg.ang_vel_scale, # command-frame ang vel
+                self.up_cmd,                                     # IMU-ish orientation feature
                 self.commands,                                   # commanded [vx, vy, yaw_rate] in BODY frame
                 self.act_pos_scaled,
                 self.act_vel * self.cfg.dof_vel_scale,
@@ -312,8 +339,8 @@ class LocomotionEnv(DirectRLEnv):
         self._update_state()
 
         # --- Base velocity tracking ---
-        vel_err = self.torso_lin_vel_b[:, :2] - self.commands[:, :2]
-        yaw_err = self.torso_ang_vel_b[:, 2]  - self.commands[:, 2]
+        vel_err = self.torso_lin_vel_cmd[:, :2] - self.commands[:, :2]
+        yaw_err = self.torso_ang_vel_cmd[:, 2]  - self.commands[:, 2]
 
         r_lin = torch.exp(-torch.sum(vel_err * vel_err, dim=1) / self.cfg.lin_vel_sigma)
         r_yaw = torch.exp(-(yaw_err * yaw_err) / self.cfg.yaw_rate_sigma)

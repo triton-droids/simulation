@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from ....assets.humanoid import HUMANOID_CFG
 
+import math
+
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg
 from isaaclab.envs import DirectRLEnvCfg
@@ -114,6 +116,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Observation scales
     ang_vel_scale: float = 0.25
     dof_vel_scale: float = 0.1
+    command_yaw_offset: float = -math.pi / 2.0  # rotate body-frame vectors to align +Y forward with +X commands
 
     # Termination
     termination_height: float = 0.6
