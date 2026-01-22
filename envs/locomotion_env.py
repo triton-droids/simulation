@@ -25,7 +25,7 @@ class HumanoidLocomotionEnv:
             "left_thigh_joint": 0.3,
             "right_thigh_joint": 0.3,
         },
-        dt: float = 1/60,  # 50 Hz control
+        dt: float = 2/240,  # 50 Hz control
     ):
         # Load MuJoCo model
         self.model = mujoco.MjModel.from_xml_path(xml_path)
@@ -200,42 +200,52 @@ class HumanoidLocomotionEnv:
         Step the environment.
 
         Args:
-            action: Joint positions normalized to [-1, 1]
+            action: Joint position offsets normalized to [-1, 1]
+                    These are offsets from the standing pose, NOT absolute positions.
 
         Returns:
-            obs
+            obs: Observation array
         """
-
+        # Reorder actions to match actuator ordering
         reorder_indices = np.array([0, 5, 1, 6, 2, 7, 3, 8, 4, 9])
-        inverse_reorder = np.argsort(reorder_indices)
-        action = action[inverse_reorder]
+        action = action[reorder_indices]
 
-        # Scale and clip actions
-        # Apply both global action_scale and per-joint multipliers
-        target_positions = action * self._action_scale * self._joint_action_scales
+        # Extract actuated joint positions from standing pose
+        # standing_qpos = [root_pos(3), root_quat(4), joint_pos(10)]
+        standing_joint_pos = self._standing_qpos[7:7 + self._nu]
+        
+        # Scale actions to position offsets (in radians)
+        # action_scale controls the maximum offset magnitude
+        # Per-joint multipliers further modulate specific joints
+        pos_offsets = action * self._action_scale * self._joint_action_scales
+        
+        # Compute target positions: standing_pose + offset
+        target_positions = standing_joint_pos + pos_offsets
+        
+        # Clip to joint limits for safety
         target_positions = np.clip(
             target_positions,
             self._joint_range_lower,
             self._joint_range_upper
         )
 
-        # Set control
+        # Set control signals (position targets for MuJoCo's position actuators)
         self.data.ctrl[:] = target_positions
         
-        # Apply disturbance
+        # Apply random disturbances (if enabled)
         self._apply_disturbance()
         
-        # Step physics (multiple substeps)
+        # Step physics multiple times per control step
         for _ in range(self.n_substeps):
             mujoco.mj_step(self.model, self.data)
         
-        # Update state
-        self._last_act = action.copy()
+        # Update state tracking
+        self._last_act = action.copy()  # Store for observation
         self._step_count += 1
         
         # Get observation
         obs = self._get_obs()
-    
+
         return obs
 
     def _apply_disturbance(self):
@@ -262,72 +272,7 @@ class HumanoidLocomotionEnv:
         # Apply as angular velocity impulse
         disturbance_ang_velocity = disturbance_torque * self.dt / self._approx_inertia
         self.data.qvel[3:6] += disturbance_ang_velocity
-    '''
-    def _get_obs(self) -> np.ndarray:
-        """
-        Get observation matching IsaacSim observation space.
 
-        Observation structure (single frame):
-        - 1: height
-        - 3: command-frame linear velocity
-        - 3: command-frame angular velocity (scaled)
-        - 3: up_cmd (IMU-ish orientation feature)
-        - 3: commands [vx, vy, yaw_rate] in BODY frame
-        - num_dofs: joint positions (scaled)
-        - num_dofs: joint velocities (scaled)
-        - num_dofs: previous actions
-        """
-        # Get torso orientation (quaternion)
-        torso_quat = self.data.xquat[self._torso_body_id].copy()
-
-        # Height (torso_top site z-position in world frame)
-        height = np.array([self.data.site_xpos[self._torso_top_site_id, 2]])
-
-        # Linear velocity in command/body frame
-        lin_vel_world = self.data.qvel[:3].copy()
-        torso_lin_vel_cmd = self._rotate_vector(lin_vel_world, torso_quat, inverse=True)
-
-        # Angular velocity in command/body frame
-        ang_vel_world = self.data.qvel[3:6].copy()
-        ang_vel_cmd = self._rotate_vector(ang_vel_world, torso_quat, inverse=True)
-        ang_vel_cmd_scaled = ang_vel_cmd * self._ang_vel_scale
-
-        # Up command (IMU-ish orientation feature - up direction in body frame)
-        up_world = np.array([0, 0, 1.0])  # Normalized up direction
-        up_cmd = self._rotate_vector(up_world, torso_quat, inverse=True)
-
-        # Commands [vx, vy, yaw_rate] in body frame
-        commands = self._commands.copy()
-
-        # Joint states
-        joint_pos = self.data.qpos[self._q_joint_start:self._q_joint_start + self._nu]
-        joint_vel = self.data.qvel[self._qd_joint_start:self._qd_joint_start + self._nu]
-
-        # Scale observations
-        act_pos_scaled = joint_pos / 1.57  # Normalized by joint range
-        act_vel = joint_vel * self._dof_vel_scale
-
-        # Construct single frame
-        obs_frame = np.concatenate([
-            height,                  # 1
-            torso_lin_vel_cmd,       # 3
-            ang_vel_cmd_scaled,      # 3
-            up_cmd,                  # 3
-            commands,                # 3
-            act_pos_scaled,          # num_dofs
-            act_vel,                 # num_dofs
-            self._last_act,          # num_dofs
-        ])
-
-        # Clip
-        obs_frame = np.clip(obs_frame, -10.0, 10.0)
-
-        # Stack with history (roll to make room for new frame at the beginning)
-        self._obs_history = np.roll(self._obs_history, self._single_frame_size)
-        self._obs_history[:self._single_frame_size] = obs_frame
-
-        return self._obs_history.copy()
-    '''
     def _get_obs(self) -> np.ndarray:
         # Get torso orientation (quaternion)
         torso_quat = self.data.xquat[self._torso_body_id].copy()
