@@ -168,10 +168,15 @@ class LocomotionEnv(DirectRLEnv):
 
         # --- Visualization markers setup ---
         self._visualization_enabled = getattr(self.cfg, "debug_vel_vis", False)
+        self._visualize_all_envs = False
         if self._visualization_enabled:
             self.visualization_markers = self.define_markers()
             self._marker_offset = torch.zeros(3, device=self.sim.device)
             self._marker_offset[2] = getattr(self.cfg, "vel_vis_height", 0.25)
+            self._visualize_all_envs = bool(getattr(self.cfg, "debug_vel_vis_all_envs", False))
+            if not self._visualize_all_envs:
+                max_envs = int(getattr(self.cfg, "debug_vel_vis_all_envs_max_envs", 0))
+                self._visualize_all_envs = max_envs > 0 and self.num_envs <= max_envs
 
         # observation stacking for memory
         self.obs_stack_frames = obs_stack_frames
@@ -317,49 +322,58 @@ class LocomotionEnv(DirectRLEnv):
         if not hasattr(self, 'torso_pos_w'):
             return
 
-        # Only visualize one environment for performance
-        env_id = int(getattr(self.cfg, "debug_env_id", 0))
-        env_id = max(0, min(env_id, self.num_envs - 1))
+        if self._visualize_all_envs:
+            env_ids = torch.arange(self.num_envs, device=self.sim.device)
+        else:
+            env_id = int(getattr(self.cfg, "debug_env_id", 0))
+            env_id = max(0, min(env_id, self.num_envs - 1))
+            env_ids = torch.tensor([env_id], device=self.sim.device)
 
         # Get single env data
-        torso_pos = self.torso_pos_w[env_id]  # [3]
-        torso_quat = self.torso_quat_w[env_id]  # [4]
-        cmd = self.commands[env_id]  # [3]
-        vel_w = self.torso_lin_vel_w[env_id]  # [3]
+        torso_pos = self.torso_pos_w[env_ids]  # [N,3]
+        torso_quat = self.torso_quat_w[env_ids]  # [N,4]
+        cmd = self.commands[env_ids]  # [N,3]
+        vel_w = self.torso_lin_vel_w[env_ids]  # [N,3]
 
         # Marker location (lifted above robot)
-        marker_loc = torso_pos + self._marker_offset  # [3]
+        marker_loc = torso_pos + self._marker_offset  # [N,3]
 
         # --- 1. COMMAND VELOCITY DIRECTION IN WORLD FRAME ---
-        cmd_b_xy = cmd[:2]  # [2]
-        cmd_b = torch.cat([cmd_b_xy, torch.zeros(1, device=self.sim.device)])  # [3]
+        cmd_b = torch.cat([cmd[:, :2], torch.zeros((cmd.shape[0], 1), device=self.sim.device)], dim=1)  # [N,3]
         if self._use_cmd_yaw_offset:
             cmd_b = self._rotate_xy(cmd_b, self._cmd_yaw_inv_cos, self._cmd_yaw_inv_sin)
 
         # Rotate into WORLD frame
-        cmd_w = math_utils.quat_apply(torso_quat.unsqueeze(0), cmd_b.unsqueeze(0)).squeeze(0)  # [3]
+        cmd_w = math_utils.quat_apply(torso_quat, cmd_b)  # [N,3]
 
         # Compute yaw for command
-        cmd_xy = cmd_w[:2]
-        cmd_norm = torch.norm(cmd_xy).clamp(min=1e-6)
-        cmd_dir_xy = cmd_xy / cmd_norm
-        cmd_yaw = torch.atan2(cmd_dir_xy[1], cmd_dir_xy[0])
+        cmd_xy = cmd_w[:, :2]
+        cmd_norm = torch.norm(cmd_xy, dim=1).clamp(min=1e-6)
+        cmd_dir_xy = cmd_xy / cmd_norm.unsqueeze(1)
+        cmd_yaw = torch.atan2(cmd_dir_xy[:, 1], cmd_dir_xy[:, 0])
 
-        z_axis = torch.tensor([0.0, 0.0, 1.0], device=self.sim.device)
-        cmd_orient = math_utils.quat_from_angle_axis(cmd_yaw.unsqueeze(0), z_axis).squeeze(0)  # [4]
+        cmd_half = 0.5 * cmd_yaw
+        cmd_orient = torch.stack(
+            (torch.cos(cmd_half), torch.zeros_like(cmd_half), torch.zeros_like(cmd_half), torch.sin(cmd_half)),
+            dim=1,
+        )  # [N,4]
 
         # --- 2. ACTUAL VELOCITY DIRECTION IN WORLD FRAME ---
-        vel_xy = vel_w[:2]
-        vel_norm = torch.norm(vel_xy).clamp(min=1e-6)
-        vel_dir_xy = vel_xy / vel_norm
-        vel_yaw = torch.atan2(vel_dir_xy[1], vel_dir_xy[0])
+        vel_xy = vel_w[:, :2]
+        vel_norm = torch.norm(vel_xy, dim=1).clamp(min=1e-6)
+        vel_dir_xy = vel_xy / vel_norm.unsqueeze(1)
+        vel_yaw = torch.atan2(vel_dir_xy[:, 1], vel_dir_xy[:, 0])
 
-        vel_orient = math_utils.quat_from_angle_axis(vel_yaw.unsqueeze(0), z_axis).squeeze(0)  # [4]
+        vel_half = 0.5 * vel_yaw
+        vel_orient = torch.stack(
+            (torch.cos(vel_half), torch.zeros_like(vel_half), torch.zeros_like(vel_half), torch.sin(vel_half)),
+            dim=1,
+        )  # [N,4]
 
         # --- 3. Visualize 2 markers: command (red) then velocity (green) ---
-        loc = torch.stack([marker_loc, marker_loc])  # [2, 3]
-        rots = torch.stack([cmd_orient, vel_orient])  # [2, 4]
-        indices = torch.tensor([0, 1], device=self.sim.device)  # marker types
+        loc = torch.repeat_interleave(marker_loc, repeats=2, dim=0)  # [2N,3]
+        rots = torch.stack([cmd_orient, vel_orient], dim=1).reshape(-1, 4)  # [2N,4]
+        indices = torch.tensor([0, 1], device=self.sim.device).repeat(marker_loc.shape[0])  # [2N]
 
         self.visualization_markers.visualize(loc, rots, marker_indices=indices)
 

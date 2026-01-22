@@ -132,7 +132,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Reward shaping (minimal)
     lin_vel_reward_scale: float = 3.0
     yaw_rate_reward_scale: float = 2.0
-    upright_reward_scale: float = 0.5
+    upright_reward_scale: float = 1.0
     alive_reward: float = 0.05
 
     action_cost_scale: float = 0.005
@@ -146,7 +146,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Stability costs (prevent hopping/rolling)
     lin_vel_z_cost_scale: float = 0.02
     ang_vel_xy_cost_scale: float = 0.01
-    flat_ori_cost_scale: float = 0.05
+    flat_ori_cost_scale: float = 0.1
 
     # Penalize standing still when a command asks for motion
     command_speed_threshold: float = 0.2  # m/s, only apply penalty above this command
@@ -173,8 +173,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Contact-based rewards
     foot_body_regex: str = "left_foot|right_foot"
     foot_contact_force_thresh: float = 30.0  # N (20-80N typical for humanoid ground contact)
-    min_air_time: float = 0.1  # seconds
-    feet_air_time_reward_scale: float = 0.2
+    min_air_time: float = 0.08  # seconds
+    feet_air_time_reward_scale: float = 0.4
     foot_slip_cost_scale: float = 0.02
     undesired_contact_force_thresh: float = 80.0  # N (50-200N typical)
     undesired_contact_cost_scale: float = 0.1
@@ -194,6 +194,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
 
     # Debug visualization (draw velocity arrows for a single env)
     debug_vel_vis: bool = False  # disable during training for performance
+    debug_vel_vis_all_envs: bool = False  # override to visualize all envs
+    debug_vel_vis_all_envs_max_envs: int = 64  # auto-enable all-envs when num_envs is small
     debug_env_id: int = 0            # which env to draw (0..num_envs-1)
     vel_vis_scale: float = 0.5       # meters of arrow per 1 m/s
     vel_vis_height: float = 0.25     # arrow origin above torso (m)
