@@ -310,6 +310,23 @@ class LocomotionEnv(DirectRLEnv):
         self._debug_obs_print_every = max(1, int(getattr(self.cfg, "debug_obs_print_every", 1)))
         self._debug_obs_print_env = int(getattr(self.cfg, "debug_obs_print_env", 0))
         self._debug_obs_step = 0
+        self._obs_debug_slices = []
+        offset = 0
+        def _add_obs_slice(name: str, size: int) -> None:
+            nonlocal offset
+            self._obs_debug_slices.append((name, offset, offset + size))
+            offset += size
+        _add_obs_slice("height", 1)
+        _add_obs_slice("lin_vel_cmd", 3)
+        _add_obs_slice("ang_vel_cmd_scaled", 3)
+        _add_obs_slice("up_cmd", 3)
+        _add_obs_slice("commands", 3)
+        _add_obs_slice("act_pos_scaled", self.num_actions)
+        _add_obs_slice("act_vel_scaled", self.num_actions)
+        _add_obs_slice("prev_actions", self.num_actions)
+        if bool(getattr(self.cfg, "use_phase_obs", False)):
+            _add_obs_slice("phase_clock", 2)
+        self._obs_debug_dim = offset
 
         # randomized episode lengths
         self._randomize_episode_length = bool(getattr(self.cfg, "randomize_episode_length", False))
@@ -936,11 +953,17 @@ class LocomotionEnv(DirectRLEnv):
                 if self.obs_stack_buf is not None:
                     frames = self.obs_stack_buf[env_id].detach().cpu()
                     for i in range(self.obs_stack_frames):
-                        frame = frames[:, i].tolist()
-                        print(f"[ObsDebug] env={env_id} step={self._debug_obs_step} frame={i}: {frame}")
+                        frame = frames[:, i]
+                        print(f"[ObsDebug] env={env_id} step={self._debug_obs_step} frame={i}")
+                        for name, s, e in self._obs_debug_slices:
+                            vals = frame[s:e].tolist()
+                            print(f"  {name}: {vals}")
                 else:
-                    frame = obs[env_id].detach().cpu().tolist()
-                    print(f"[ObsDebug] env={env_id} step={self._debug_obs_step} frame=0: {frame}")
+                    frame = obs[env_id].detach().cpu()
+                    print(f"[ObsDebug] env={env_id} step={self._debug_obs_step} frame=0")
+                    for name, s, e in self._obs_debug_slices:
+                        vals = frame[s:e].tolist()
+                        print(f"  {name}: {vals}")
             self._debug_obs_step += 1
 
         return {"policy": obs}
