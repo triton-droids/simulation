@@ -47,6 +47,11 @@ class HumanoidLocomotionEnv:
         self._torso_body_id = mujoco.mj_name2id(
             self.model, mujoco.mjtObj.mjOBJ_BODY, 'torso'
         )
+
+        # Find torso_top site for height measurement
+        self._torso_top_site_id = mujoco.mj_name2id(
+            self.model, mujoco.mjtObj.mjOBJ_SITE, 'torso_top'
+        )
         
         # Get DOF info
         self._nu = self.model.nu  # Number of actuators
@@ -112,6 +117,7 @@ class HumanoidLocomotionEnv:
         print(f"Number of position DOFs: {self._nq}")
         print(f"Number of velocity DOFs: {self._nv}")
         print(f"Torso body ID: {self._torso_body_id}")
+        print(f"Torso_top site ID: {self._torso_top_site_id}")
         print(f"Action scale: ±{self._action_scale} rad")
         print(f"Control frequency: {1/self.dt:.1f} Hz")
         print(f"Physics timestep: {self.model.opt.timestep}s")
@@ -152,22 +158,34 @@ class HumanoidLocomotionEnv:
         # Get initial observation
         obs = self._get_obs()
 
+        # Replicate the first frame across all frames in the stack
+        first_frame = obs[-self._single_frame_size:]  # Get the newest frame (at the end)
+        for i in range(self._frame_stack):
+            start_idx = i * self._single_frame_size
+            end_idx = (i + 1) * self._single_frame_size
+            obs[start_idx:end_idx] = first_frame
 
-        
-        print(f"\nReset complete. Initial torso height: {self.data.xpos[self._torso_body_id, 2]:.3f}m")
-        
+        # Update the history with the replicated observation
+        self._obs_history = obs.copy()
+
+        print(f"\nReset complete. Initial torso_top height: {self.data.site_xpos[self._torso_top_site_id, 2]:.3f}m")
+
         return obs
 
     def step(self, action: np.ndarray) -> np.ndarray:
         """
         Step the environment.
-        
+
         Args:
             action: Joint positions normalized to [-1, 1]
-        
+
         Returns:
             obs
         """
+
+        reorder_indices = np.array([0, 5, 1, 6, 2, 7, 3, 8, 4, 9])
+        action = action[reorder_indices]
+
         # Scale and clip actions
         # Apply both global action_scale and per-joint multipliers
         target_positions = action * self._action_scale * self._joint_action_scales
@@ -176,7 +194,7 @@ class HumanoidLocomotionEnv:
             self._joint_range_lower,
             self._joint_range_upper
         )
-        
+
         # Set control
         self.data.ctrl[:] = target_positions
         
@@ -238,8 +256,8 @@ class HumanoidLocomotionEnv:
         # Get torso orientation (quaternion)
         torso_quat = self.data.xquat[self._torso_body_id].copy()
 
-        # Height (torso z-position in world frame)
-        height = np.array([self.data.xpos[self._torso_body_id, 2]])
+        # Height (torso_top site z-position in world frame)
+        height = np.array([self.data.site_xpos[self._torso_top_site_id, 2]])
 
         # Linear velocity in command/body frame
         lin_vel_world = self.data.qvel[:3].copy()
@@ -250,9 +268,9 @@ class HumanoidLocomotionEnv:
         ang_vel_cmd = self._rotate_vector(ang_vel_world, torso_quat, inverse=True)
         ang_vel_cmd_scaled = ang_vel_cmd * self._ang_vel_scale
 
-        # Up command (IMU-ish orientation feature - gravity direction in body frame)
-        gravity_world = np.array([0, 0, -1.0])  # Normalized up direction
-        up_cmd = self._rotate_vector(gravity_world, torso_quat, inverse=True)
+        # Up command (IMU-ish orientation feature - up direction in body frame)
+        up_world = np.array([0, 0, 1.0])  # Normalized up direction
+        up_cmd = self._rotate_vector(up_world, torso_quat, inverse=True)
 
         # Commands [vx, vy, yaw_rate] in body frame
         commands = self._commands.copy()
@@ -290,8 +308,8 @@ class HumanoidLocomotionEnv:
         # Get torso orientation (quaternion)
         torso_quat = self.data.xquat[self._torso_body_id].copy()
 
-        # Height (torso z-position in world frame)
-        height = np.array([self.data.xpos[self._torso_body_id, 2]])
+        # Height (torso_top site z-position in world frame)
+        height = np.array([self.data.site_xpos[self._torso_top_site_id, 2]])
 
         # Linear velocity in BODY frame first
         lin_vel_world = self.data.qvel[:3].copy()
@@ -317,8 +335,8 @@ class HumanoidLocomotionEnv:
         ang_vel_cmd_scaled = ang_vel_cmd * self._ang_vel_scale
 
         # Up vector in BODY frame first
-        gravity_world = np.array([0, 0, -1.0])
-        up_b = self._rotate_vector(gravity_world, torso_quat, inverse=True)
+        up_world = np.array([0, 0, 1.0])
+        up_b = self._rotate_vector(up_world, torso_quat, inverse=True)
         
         # Then rotate to COMMAND frame
         up_cmd = self._rotate_xy(
@@ -334,10 +352,16 @@ class HumanoidLocomotionEnv:
         joint_pos = self.data.qpos[self._q_joint_start:self._q_joint_start + self._nu]
         joint_vel = self.data.qvel[self._qd_joint_start:self._qd_joint_start + self._nu]
 
+        # Reorder: 0 5 1 6 2 7 3 8 4 9
+        reorder_indices = np.array([0, 5, 1, 6, 2, 7, 3, 8, 4, 9])
+        joint_pos = joint_pos[reorder_indices]
+        joint_vel = joint_vel[reorder_indices]
+
         # Scale observations (FIX: use proper scaling like IsaacLab)
-        lo = self._joint_range_lower
-        hi = self._joint_range_upper
+        lo = self._joint_range_lower * 0.95
+        hi = self._joint_range_upper * 0.95
         act_pos_scaled = 2.0 * (joint_pos - lo) / (hi - lo + 1e-6) - 1.0
+        #act_pos_scaled = joint_pos / 1.57  # Normalized by joint range
         act_vel = joint_vel * self._dof_vel_scale
 
         # Construct single frame

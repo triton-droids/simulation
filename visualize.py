@@ -46,10 +46,61 @@ device = "cpu"
 env = Env(xml_path="robot_description/scene.xml")
 obs = env.reset()
 
+# Print first observation divided by frames
+print("\n" + "="*60)
+print("FIRST OBSERVATION (detailed format)")
+print("="*60)
+single_frame_size = env._single_frame_size
+frame_stack = env._frame_stack
+num_dofs = env._nu
+
+for i in range(frame_stack):
+    start_idx = i * single_frame_size
+    idx = start_idx
+
+    # Parse observation components
+    height = obs[idx:idx+1]
+    idx += 1
+
+    lin_vel_cmd = obs[idx:idx+3]
+    idx += 3
+
+    ang_vel_cmd_scaled = obs[idx:idx+3]
+    idx += 3
+
+    up_cmd = obs[idx:idx+3]
+    idx += 3
+
+    commands = obs[idx:idx+3]
+    idx += 3
+
+    act_pos_scaled = obs[idx:idx+num_dofs]
+    idx += num_dofs
+
+    act_vel_scaled = obs[idx:idx+num_dofs]
+    idx += num_dofs
+
+    prev_actions = obs[idx:idx+num_dofs]
+
+    # Print in the specified format
+    print(f"[ObsDebug] env=0 step=0 frame={i}")
+    print(f"  height: {height.tolist()}")
+    print(f"  lin_vel_cmd: {lin_vel_cmd.tolist()}")
+    print(f"  ang_vel_cmd_scaled: {ang_vel_cmd_scaled.tolist()}")
+    print(f"  up_cmd: {up_cmd.tolist()}")
+    print(f"  commands: {commands.tolist()}")
+    print(f"  act_pos_scaled: {act_pos_scaled.tolist()}")
+    print(f"  act_vel_scaled: {act_vel_scaled.tolist()}")
+    print(f"  prev_actions: {prev_actions.tolist()}")
+    if i < frame_stack - 1:
+        print()  # Empty line between frames
+
+print("="*60 + "\n")
+
 #Debugging
 torso_quat = env.data.xquat[env._torso_body_id]
-gravity_world = np.array([0, 0, -1.0])
-up_b = env._rotate_vector(gravity_world, torso_quat, inverse=True)
+up_world = np.array([0, 0, 1.0])
+up_b = env._rotate_vector(up_world, torso_quat, inverse=True)
 up_cmd = env._rotate_xy(up_b, env._cmd_yaw_cos, env._cmd_yaw_sin)
 
 print(f"Up in body frame: {up_b}")
@@ -100,6 +151,7 @@ if use_trained_policy:
 
             # Step environment
             obs = env.step(action)
+            #print(obs)
             frames.append(env.render())
 
             if (step + 1) % args.fps == 0:

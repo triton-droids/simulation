@@ -88,6 +88,7 @@
 
     <!-- TORSO (URDF: link "torso") -->
     <body name="torso" pos="0 0 0.2">
+      <site name="torso_top" pos="0 0 0.55" size="0.01" rgba="1 0 0 1"/>
       <freejoint name="root"/>
 
       <geom mesh="torso_visual" material="metal_silver"/>
@@ -120,7 +121,7 @@
                     fullinertia="0.002609 0.003137 0.003391 0.000081259088 0.000001365266 0.000000223227"/>
 
           <body name="left_leg2" pos="0 0 0">
-            <joint name="left_hip2_joint" type="hinge" axis="0 1 0" range="-1.57 1.57" pos="-0.000048 -0.029495 0.577401"/>
+            <joint name="left_hip2_joint" type="hinge" axis="0 1 0" range="-1.57 0.436332" pos="-0.000048 -0.029495 0.577401"/>
             <geom mesh="left_leg2" contype="1" conaffinity="1" group="1"/>
             <geom mesh="left_leg2_visual" material="metal_silver"/>
             <inertial pos="-0.000018 -0.025475 0.486173"
@@ -128,7 +129,7 @@
                       fullinertia="0.006082 0.005232 0.002818 0.000025844041 0.000000765045 -0.0005798"/>
 
             <body name="left_leg3" pos="0 0 0">
-              <joint name="left_thigh_joint" type="hinge" axis="0 0 1" range="-1.57 1.57" pos="-0.000048 -0.029495 0.463816"/>
+              <joint name="left_thigh_joint" type="hinge" axis="0 0 1" range="-0.785398 0.785398" pos="-0.000048 -0.029495 0.463816"/>
               <geom mesh="left_leg3" contype="1" conaffinity="1" group="1"/>
               <geom mesh="left_leg3_visual" material="metal_silver"/>
               <inertial pos="0.005174 -0.030248 0.318931"
@@ -136,7 +137,7 @@
                         fullinertia="0.009368 0.0081 0.004377 0.000046968418 0.0002014 -0.000049473856"/>
 
               <body name="left_leg4" pos="0 0 0">
-                <joint name="left_knee_joint" type="hinge" axis="1 0 0" range="-1.57 1.57" pos="-0.000048 -0.029495 0.306338"/>
+                <joint name="left_knee_joint" type="hinge" axis="1 0 0" range="-2.0944 0" pos="-0.000048 -0.029495 0.306338"/>
                 <geom mesh="left_leg4" contype="1" conaffinity="1" group="1"/>
                 <geom mesh="left_leg4_visual" material="metal_silver"/>
                 <inertial pos="0.001337 -0.031134 0.183938"
@@ -144,7 +145,7 @@
                           fullinertia="0.01171 0.01193 0.002972 -0.000022781438 0.0002839 -0.0002341"/>
 
                 <body name="left_foot" pos="0 0 0">
-                  <joint name="left_ankle_joint" type="hinge" axis="1 0 0" range="-1.57 1.57" pos="0.00958 -0.03 0.031528"/>
+                  <joint name="left_ankle_joint" type="hinge" axis="1 0 0" range="-0.6 0.6" pos="0.00958 -0.03 0.031528"/>
 
                   <!-- Foot collision box positioned to match URDF *in the mesh/body frame*:
                        left: urdf_collision(-0.01, 0.025, -0.035) - urdf_visual(-0.00958, 0.03, -0.031528)
@@ -176,7 +177,7 @@
                     fullinertia="0.002609 0.003137 0.003391 -0.000081252869 -0.00000135392 0.00000024481"/>
 
           <body name="right_leg2" pos="0 0 0">
-            <joint name="right_hip2_joint" type="hinge" axis="0 1 0" range="-1.57 1.57" pos="-0.311223 -0.029495 0.577401"/>
+            <joint name="right_hip2_joint" type="hinge" axis="0 1 0" range="-0.436332 1.57" pos="-0.311223 -0.029495 0.577401"/>
             <geom mesh="right_leg2" contype="1" conaffinity="1" group="1"/>
             <geom mesh="right_leg2_visual" material="metal_silver"/>
             <inertial pos="-0.311252 -0.025506 0.485714"
@@ -184,7 +185,7 @@
                       fullinertia="0.006132 0.005281 0.002822 -0.000025837194 -0.000000742612 -0.000583"/>
 
             <body name="right_leg3" pos="0 0 0">
-              <joint name="right_thigh_joint" type="hinge" axis="0 0 1" range="-1.57 1.57" pos="-0.311223 -0.029495 0.463816"/>
+              <joint name="right_thigh_joint" type="hinge" axis="0 0 1" range="-0.785398 0.785398" pos="-0.311223 -0.029495 0.463816"/>
               <geom mesh="right_leg3" contype="1" conaffinity="1" group="1"/>
               <geom mesh="right_leg3_visual" material="metal_silver"/>
               <inertial pos="-0.317293 -0.030266 0.31875"
@@ -192,7 +193,7 @@
                         fullinertia="0.009174 0.007824 0.004262 -0.000045044639 -0.0002255 -0.000049133206"/>
 
               <body name="right_leg4" pos="0 0 0">
-                <joint name="right_knee_joint" type="hinge" axis="1 0 0" range="-1.57 1.57" pos="-0.311223 -0.029495 0.306338"/>
+                <joint name="right_knee_joint" type="hinge" axis="1 0 0" range="-2.0944 0" pos="-0.311223 -0.029495 0.306338"/>
                 <geom mesh="right_leg4" contype="1" conaffinity="1" group="1"/>
                 <geom mesh="right_leg4_visual" material="metal_silver"/>
                 <inertial pos="-0.312608 -0.031134 0.183938"
@@ -200,7 +201,7 @@
                           fullinertia="0.01171 0.01193 0.002972 0.000022781459 -0.0002839 -0.0002341"/>
 
                 <body name="right_foot" pos="0 0 0">
-                  <joint name="right_ankle_joint" type="hinge" axis="1 0 0" range="-1.57 1.57" pos="-0.320851 -0.03 0.031528"/>
+                  <joint name="right_ankle_joint" type="hinge" axis="1 0 0" range="-0.6 0.6" pos="-0.320851 -0.03 0.031528"/>
 
                   <!-- Foot collision box positioned to match URDF *in the mesh/body frame*:
                        right: urdf_collision(0.01, 0.025, -0.035) - urdf_visual(0.320851, 0.03, -0.031528)
