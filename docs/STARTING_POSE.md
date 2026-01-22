@@ -26,6 +26,6 @@ python sim.py -h
 
 ## Tips
 
-1. Try to maintain 2-3 keyframes at once, and use a "binary search" methodology to eventually close in on the values that will support the robot.
+1. Try to maintain 2-3 keyframes at once, and use a binary search methodology to eventually close in on the values that will support the robot.
 
 2. Once you need more reifined tweaking than what the simulator supports, try to isolate just one joint area and manually change the values in [scene.xml](../robot_description/scene.xml) until you get something good.

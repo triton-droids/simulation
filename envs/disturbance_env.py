@@ -14,12 +14,12 @@ class HumanoidDisturbanceEnv:
     def __init__(
         self,
         xml_path: str,
-        frame_stack: int = 3,
+        frame_stack: int = 1,
         disturbance_force_max: float = 25.0,
         disturbance_torque_max: float = 10.0,
         disturbance_prob: float = 0.02,
         action_scale: float = 1.0,
-        dt: float = 0.02,  # 50 Hz control
+        dt: float = 1/60,  # 50 Hz control
     ):
         # Load MuJoCo model
         self.model = mujoco.MjModel.from_xml_path(xml_path)
