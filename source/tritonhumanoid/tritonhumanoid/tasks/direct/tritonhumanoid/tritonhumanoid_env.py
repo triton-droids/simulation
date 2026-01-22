@@ -315,6 +315,12 @@ class LocomotionEnv(DirectRLEnv):
         self._last_adr_update_step = 0
         self._last_adr_decrease_step = 0
         self.success_rate_ema = torch.zeros(1, device=self.sim.device)
+        self.lin_err_ema = torch.zeros(1, device=self.sim.device)
+        self.yaw_err_ema = torch.zeros(1, device=self.sim.device)
+
+        self._ep_lin_err_sum = torch.zeros(self.num_envs, device=self.sim.device)
+        self._ep_yaw_err_sum = torch.zeros(self.num_envs, device=self.sim.device)
+        self._ep_len = torch.zeros(self.num_envs, device=self.sim.device)
 
         # action latency buffers
         self.act_max_latency = int(getattr(self.cfg, "act_max_latency", 0))
@@ -577,13 +583,20 @@ class LocomotionEnv(DirectRLEnv):
         root_vel[:, 3:6] += self.micro_ang_acc * self.dt
         self.robot.write_root_velocity_to_sim(root_vel)
 
-    def _maybe_update_adr(self, batch_success_rate: float) -> None:
+    def _maybe_update_adr(self, batch_success_rate: float, batch_lin_err: float, batch_yaw_err: float) -> None:
         """Increase/decrease ADR based on EMA survival rate."""
         if self.adr is None:
             return
 
+        if self._global_policy_step < int(getattr(self.cfg, "adr_warmup_steps", 0)):
+            return
+        if self._current_curriculum_stage < int(getattr(self.cfg, "adr_min_stage", 0)):
+            return
+
         ema_k = float(self.cfg.adr_ema_factor)
         self.success_rate_ema[:] = (1.0 - ema_k) * self.success_rate_ema + ema_k * batch_success_rate
+        self.lin_err_ema[:] = (1.0 - ema_k) * self.lin_err_ema + ema_k * batch_lin_err
+        self.yaw_err_ema[:] = (1.0 - ema_k) * self.yaw_err_ema + ema_k * batch_yaw_err
 
         if getattr(self.cfg, "adr_debug_print", True):
             every = int(getattr(self.cfg, "adr_debug_print_every_steps", 2000))
@@ -592,27 +605,48 @@ class LocomotionEnv(DirectRLEnv):
                     f"[ADR] step={self._global_policy_step} "
                     f"batch_success={batch_success_rate:.3f} "
                     f"ema={float(self.success_rate_ema.item()):.3f} "
+                    f"lin_err_ema={float(self.lin_err_ema.item()):.3f} "
+                    f"yaw_err_ema={float(self.yaw_err_ema.item()):.3f} "
                     f"inc={self.adr.num_increments()}/{self.cfg.num_adr_increments}",
                     flush=True,
                 )
 
         self.extras["log"]["adr_success_rate_batch"] = float(batch_success_rate)
         self.extras["log"]["adr_success_rate_ema"] = float(self.success_rate_ema.item())
+        self.extras["log"]["adr_tracking_lin_err_batch"] = float(batch_lin_err)
+        self.extras["log"]["adr_tracking_yaw_err_batch"] = float(batch_yaw_err)
+        self.extras["log"]["adr_tracking_lin_err_ema"] = float(self.lin_err_ema.item())
+        self.extras["log"]["adr_tracking_yaw_err_ema"] = float(self.yaw_err_ema.item())
         self.extras["log"]["adr_increments"] = int(self.adr.num_increments())
 
         if (self._global_policy_step - self._last_adr_update_step) < int(self.cfg.adr_update_interval_steps):
             return
 
         ema = float(self.success_rate_ema.item())
+        lin_ema = float(self.lin_err_ema.item())
+        yaw_ema = float(self.yaw_err_ema.item())
 
-        if ema >= float(self.cfg.adr_success_rate_to_increase):
+        lin_inc = float(getattr(self.cfg, "adr_track_err_lin_increase_threshold", 0.0))
+        lin_dec = float(getattr(self.cfg, "adr_track_err_lin_decrease_threshold", 1e6))
+        yaw_inc = float(getattr(self.cfg, "adr_track_err_yaw_increase_threshold", 0.0))
+        yaw_dec = float(getattr(self.cfg, "adr_track_err_yaw_decrease_threshold", 1e6))
+
+        if (
+            ema >= float(self.cfg.adr_success_rate_to_increase)
+            and lin_ema <= lin_inc
+            and yaw_ema <= yaw_inc
+        ):
             self.adr.increase(1)
             self._last_adr_update_step = self._global_policy_step
             self._update_adr_custom_params()
             if getattr(self.cfg, "adr_print_every_update", True):
                 print(self.adr.print_params())
 
-        elif ema <= float(self.cfg.adr_success_rate_to_decrease):
+        elif (
+            ema <= float(self.cfg.adr_success_rate_to_decrease)
+            or lin_ema >= lin_dec
+            or yaw_ema >= yaw_dec
+        ):
             if (self._global_policy_step - self._last_adr_decrease_step) >= int(self.cfg.adr_min_steps_before_decrease):
                 self.adr.decrease(1)
                 self._last_adr_decrease_step = self._global_policy_step
@@ -874,6 +908,12 @@ class LocomotionEnv(DirectRLEnv):
         r_lin = torch.exp(-torch.sum(vel_err * vel_err, dim=1) / self.cfg.lin_vel_sigma)
         r_yaw = torch.exp(-(yaw_err * yaw_err) / self.cfg.yaw_rate_sigma)
 
+        vel_err_norm = torch.norm(vel_err, dim=1)
+        yaw_err_abs = torch.abs(yaw_err)
+        self._ep_lin_err_sum += vel_err_norm
+        self._ep_yaw_err_sum += yaw_err_abs
+        self._ep_len += 1.0
+
         upright = torch.clamp(self.up_b[:, 2], 0.0, 1.0)
 
         cmd_speed = torch.norm(self.commands[:, :2], dim=1)
@@ -920,6 +960,9 @@ class LocomotionEnv(DirectRLEnv):
         # Penalize velocity changes (not acceleration, to avoid dt sensitivity)
         dof_vel_delta = self.act_vel - self.prev_act_vel
         dof_vel_delta_cost = torch.sum(dof_vel_delta * dof_vel_delta, dim=1)
+
+        joint_torques = self.robot.data.applied_torque[:, self._joint_dof_idx]
+        energy_cost = torch.sum(torch.abs(joint_torques * self.act_vel), dim=1)
 
         self.prev_act_vel[:] = self.act_vel
 
@@ -977,6 +1020,7 @@ class LocomotionEnv(DirectRLEnv):
             - self.cfg.action_rate_cost_scale * action_rate_cost
             - self.cfg.dof_vel_cost_scale * dof_vel_cost
             - self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost
+            - self.cfg.energy_cost_scale * energy_cost
             - self.cfg.standstill_penalty_scale * standstill
             - self.cfg.symmetry_cost_scale * sym_pen
             - self.cfg.thigh_pose_cost_scale * thigh_pose_pen
@@ -1007,6 +1051,7 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["reward_penalties/action_rate"] = float(action_rate_cost.mean().item())
             self.extras["reward_penalties/dof_vel"] = float(dof_vel_cost.mean().item())
             self.extras["reward_penalties/dof_vel_delta"] = float(dof_vel_delta_cost.mean().item())
+            self.extras["reward_penalties/energy"] = float(energy_cost.mean().item())
             self.extras["reward_penalties/standstill"] = float(standstill.mean().item())
             self.extras["reward_penalties/symmetry"] = float(sym_pen.mean().item())
             self.extras["reward_penalties/thigh_pose"] = float(thigh_pose_pen.mean().item())
@@ -1024,6 +1069,7 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["reward_scaled/undesired_cost"] = float((self.cfg.undesired_contact_cost_scale * undesired).mean().item())
             self.extras["reward_scaled/standstill_cost"] = float((self.cfg.standstill_penalty_scale * standstill).mean().item())
             self.extras["reward_scaled/dof_vel_delta_cost"] = float((self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost).mean().item())
+            self.extras["reward_scaled/energy_cost"] = float((self.cfg.energy_cost_scale * energy_cost).mean().item())
             self.extras["reward_scaled/symmetry_cost"] = float((self.cfg.symmetry_cost_scale * sym_pen).mean().item())
             self.extras["reward_scaled/thigh_pose_cost"] = float((self.cfg.thigh_pose_cost_scale * thigh_pose_pen).mean().item())
             self.extras["reward_scaled/air_time_symmetry_cost"] = float((self.cfg.air_time_symmetry_cost_scale * air_time_sym_pen).mean().item())
@@ -1063,7 +1109,10 @@ class LocomotionEnv(DirectRLEnv):
             if self._global_policy_step > 0:
                 timed_out = self.episode_length_buf[env_ids] >= (self.randomized_episode_lengths[env_ids] - 1)
                 batch_success = timed_out.float().mean().item()
-                self._maybe_update_adr(batch_success)
+                ep_len = self._ep_len[env_ids].clamp(min=1.0)
+                batch_lin_err = (self._ep_lin_err_sum[env_ids] / ep_len).mean().item()
+                batch_yaw_err = (self._ep_yaw_err_sum[env_ids] / ep_len).mean().item()
+                self._maybe_update_adr(batch_success, batch_lin_err, batch_yaw_err)
 
         self.robot.reset(env_ids)
         super()._reset_idx(env_ids)
@@ -1098,6 +1147,9 @@ class LocomotionEnv(DirectRLEnv):
         self.actions[env_ids] = 0.0
         self.prev_actions[env_ids] = 0.0
         self.prev_act_vel[env_ids] = 0.0
+        self._ep_lin_err_sum[env_ids] = 0.0
+        self._ep_yaw_err_sum[env_ids] = 0.0
+        self._ep_len[env_ids] = 0.0
 
         if self.act_hist_buf is not None:
             self.act_hist_buf[env_ids, :, :] = 0.0
@@ -1207,8 +1259,12 @@ class LocomotionEnv(DirectRLEnv):
             self.commands[env_ids, 1] = torch.empty(n, device=self.sim.device).uniform_(-0.5, 0.5)
             self.commands[env_ids, 2] = torch.empty(n, device=self.sim.device).uniform_(-1.0, 1.0)
 
-        if self._command_scale != 1.0:
-            self.commands[env_ids] *= float(self._command_scale)
+        command_scale = float(self._command_scale)
+        min_stage = int(getattr(self.cfg, "adr_command_scale_min_stage", 0))
+        if self._current_curriculum_stage < min_stage:
+            command_scale = 1.0
+        if command_scale != 1.0:
+            self.commands[env_ids] *= command_scale
 
         if zero_mask is not None:
             self.commands[env_ids[zero_mask]] = 0.0

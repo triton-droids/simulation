@@ -229,6 +229,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     action_rate_cost_scale: float = 0.01
     dof_vel_cost_scale: float = 0.0001
     dof_vel_delta_cost_scale: float = 0.01  # penalize velocity changes (instead of acceleration)
+    energy_cost_scale: float = 0.0005  # penalize mechanical power |tau * qdot|
 
     # Return-to-default pose penalty (actuated joints)
     pose_return_scale: float = 0.3
@@ -287,6 +288,13 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     adr_success_rate_to_decrease: float = 0.2
     adr_min_steps_before_decrease: int = 10000
     adr_ema_factor: float = 0.05
+    adr_warmup_steps: int = 10000
+    adr_min_stage: int = 2
+    adr_track_err_lin_increase_threshold: float = 0.15
+    adr_track_err_lin_decrease_threshold: float = 0.35
+    adr_track_err_yaw_increase_threshold: float = 0.15
+    adr_track_err_yaw_decrease_threshold: float = 0.4
+    adr_command_scale_min_stage: int = 2
     adr_print_every_update: bool = True
     adr_debug_print: bool = True
     adr_debug_print_every_steps: int = 2000   # print cadence
