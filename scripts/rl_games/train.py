@@ -26,6 +26,13 @@ parser.add_argument(
 parser.add_argument("--checkpoint", type=str, default=None, help="Path to model checkpoint.")
 parser.add_argument("--sigma", type=str, default=None, help="The policy's initial standard deviation.")
 parser.add_argument("--max_iterations", type=int, default=None, help="RL Policy training iterations.")
+parser.add_argument("--wandb", action="store_true", default=False, help="Enable Weights & Biases logging.")
+parser.add_argument("--wandb_project", type=str, default="isaaclab", help="Weights & Biases project name.")
+parser.add_argument("--wandb_entity", type=str, default=None, help="Weights & Biases entity (team/user).")
+parser.add_argument("--wandb_group", type=str, default=None, help="Weights & Biases group name.")
+parser.add_argument("--wandb_name", type=str, default=None, help="Weights & Biases run name.")
+parser.add_argument("--wandb_tags", type=str, default=None, help="Comma-separated list of W&B tags.")
+parser.add_argument("--wandb_mode", type=str, default=None, help="W&B mode (online/offline/disabled).")
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -119,6 +126,39 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     agent_cfg["params"]["config"]["train_dir"] = log_root_path
     agent_cfg["params"]["config"]["full_experiment_name"] = log_dir
 
+    # optional W&B logging (syncs TensorBoard summaries)
+    wandb_run = None
+    if args_cli.wandb:
+        try:
+            import wandb
+        except ImportError:
+            print("[WARN] W&B logging requested but 'wandb' is not installed.")
+        else:
+            tags = [t.strip() for t in (args_cli.wandb_tags or "").split(",") if t.strip()]
+            wandb_kwargs = {
+                "project": args_cli.wandb_project,
+                "entity": args_cli.wandb_entity,
+                "group": args_cli.wandb_group,
+                "name": args_cli.wandb_name or log_dir,
+                "dir": log_root_path,
+                "tags": tags or None,
+            }
+            if args_cli.wandb_mode:
+                wandb_kwargs["mode"] = args_cli.wandb_mode
+            wandb_run = wandb.init(**{k: v for k, v in wandb_kwargs.items() if v is not None})
+            if wandb_run is not None:
+                wandb.tensorboard.patch(root_logdir=log_root_path)
+                wandb.config.update(
+                    {
+                        "task": args_cli.task,
+                        "num_envs": env_cfg.scene.num_envs,
+                        "seed": agent_cfg["params"]["seed"],
+                        "train_dir": log_root_path,
+                        "run_dir": log_dir,
+                    },
+                    allow_val_change=True,
+                )
+
     # dump the configuration into log-directory
     dump_yaml(os.path.join(log_root_path, log_dir, "params", "env.yaml"), env_cfg)
     dump_yaml(os.path.join(log_root_path, log_dir, "params", "agent.yaml"), agent_cfg)
@@ -168,10 +208,14 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # reset the agent and env
     runner.reset()
     # train the agent
-    if args_cli.checkpoint is not None:
-        runner.run({"train": True, "play": False, "sigma": train_sigma, "checkpoint": resume_path})
-    else:
-        runner.run({"train": True, "play": False, "sigma": train_sigma})
+    try:
+        if args_cli.checkpoint is not None:
+            runner.run({"train": True, "play": False, "sigma": train_sigma, "checkpoint": resume_path})
+        else:
+            runner.run({"train": True, "play": False, "sigma": train_sigma})
+    finally:
+        if wandb_run is not None:
+            wandb_run.finish()
 
     # close the simulator
     env.close()

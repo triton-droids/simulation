@@ -295,6 +295,10 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     adr_track_err_yaw_increase_threshold: float = 0.15
     adr_track_err_yaw_decrease_threshold: float = 0.4
     adr_command_scale_min_stage: int = 2
+    adr_push_start_difficulty: float = 0.3
+    adr_push_ramp_difficulty: float = 0.3
+    adr_micro_wrench_start_difficulty: float = 0.4
+    adr_micro_wrench_ramp_difficulty: float = 0.3
     adr_print_every_update: bool = True
     adr_debug_print: bool = True
     adr_debug_print_every_steps: int = 2000   # print cadence

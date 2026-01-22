@@ -58,6 +58,14 @@ def _lerp_tuple(a: tuple[float, float], b: tuple[float, float], t: float) -> tup
     return (_lerp(a[0], b[0], t), _lerp(a[1], b[1], t))
 
 
+def _ramp_scale(difficulty: float, start: float, ramp: float) -> float:
+    if difficulty <= start:
+        return 0.0
+    if ramp <= 0.0:
+        return 1.0
+    return float(min(1.0, (difficulty - start) / ramp))
+
+
 class LocomotionADR:
     """
     Minimal ADR controller:
@@ -363,6 +371,8 @@ class LocomotionEnv(DirectRLEnv):
             "joint_torque_std": 0.0,
         }
         self._command_scale = 1.0
+        self._push_scale = 1.0
+        self._micro_wrench_scale = 1.0
 
         # push timers
         self.dt = self.cfg.sim.dt * self.cfg.decimation
@@ -434,11 +444,20 @@ class LocomotionEnv(DirectRLEnv):
             for k in self._obs_noise.keys():
                 self._obs_noise[k] = 0.0
             self._command_scale = 1.0
+            self._push_scale = 1.0
+            self._micro_wrench_scale = 1.0
             return
 
         pr = self.adr.get_custom("push", "push_force_range")
         self._push_dv_min = float(pr[0])
         self._push_dv_max = float(pr[1])
+
+        difficulty = float(self.adr.difficulty())
+        push_start = float(getattr(self.cfg, "adr_push_start_difficulty", 0.0))
+        push_ramp = float(getattr(self.cfg, "adr_push_ramp_difficulty", 0.0))
+        self._push_scale = _ramp_scale(difficulty, push_start, push_ramp)
+        self._push_dv_min *= self._push_scale
+        self._push_dv_max *= self._push_scale
 
         self._action_noise_std = float(self.adr.get_custom("action_noise", "std"))
 
@@ -452,6 +471,10 @@ class LocomotionEnv(DirectRLEnv):
             self._command_scale = float(self.adr.get_custom("command_scale", "scale"))
         else:
             self._command_scale = 1.0
+
+        micro_start = float(getattr(self.cfg, "adr_micro_wrench_start_difficulty", 0.0))
+        micro_ramp = float(getattr(self.cfg, "adr_micro_wrench_ramp_difficulty", 0.0))
+        self._micro_wrench_scale = _ramp_scale(difficulty, micro_start, micro_ramp)
 
     def _sample_custom_dr_for_resets(self, env_ids: torch.Tensor) -> None:
         """Sample per-episode random variables: latency, motor strength, IMU bias."""
@@ -561,11 +584,15 @@ class LocomotionEnv(DirectRLEnv):
         if self.adr is None:
             return
 
+        scale = float(self._micro_wrench_scale)
+        if scale <= 0.0:
+            return
+
         rho = float(self.adr.get_custom("micro_wrench", "rho"))
-        lin_std = float(self.adr.get_custom("micro_wrench", "lin_acc_std"))
-        ang_std = float(self.adr.get_custom("micro_wrench", "ang_acc_std"))
-        max_lin = float(self.adr.get_custom("micro_wrench", "max_lin_acc"))
-        max_ang = float(self.adr.get_custom("micro_wrench", "max_ang_acc"))
+        lin_std = float(self.adr.get_custom("micro_wrench", "lin_acc_std")) * scale
+        ang_std = float(self.adr.get_custom("micro_wrench", "ang_acc_std")) * scale
+        max_lin = float(self.adr.get_custom("micro_wrench", "max_lin_acc")) * scale
+        max_ang = float(self.adr.get_custom("micro_wrench", "max_ang_acc")) * scale
 
         if lin_std <= 0.0 and ang_std <= 0.0:
             return
