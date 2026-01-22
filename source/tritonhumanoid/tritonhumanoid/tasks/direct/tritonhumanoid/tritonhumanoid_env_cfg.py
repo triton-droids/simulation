@@ -27,30 +27,102 @@ from isaaclab_tasks.direct.locomotion.locomotion_env import LocomotionEnv
 
 @configclass
 class EventCfg:
-    """Configuration for randomization."""
+    """Domain randomization terms for humanoid locomotion."""
 
-    physics_material = EventTerm(
+    # Robot material
+    robot_physics_material = EventTerm(
         func=mdp.randomize_rigid_body_material,
-        mode="startup",
+        mode="reset",  # randomize each reset
+        min_step_count_between_reset=0,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "static_friction_range": (0.8, 0.8),
-            "dynamic_friction_range": (0.6, 0.6),
-            "restitution_range": (0.0, 0.0),
-            "num_buckets": 64,
+            "static_friction_range": (0.6, 1.2),
+            "dynamic_friction_range": (0.5, 1.1),
+            "restitution_range": (0.0, 0.2),
+            "num_buckets": 128,
         },
     )
 
-    # add_base_mass = EventTerm(
-    #     func=mdp.randomize_rigid_body_mass,
-    #     mode="startup",
-    #     params={
-    #         # base link name from your URDF
-    #         "asset_cfg": SceneEntityCfg("robot", body_names="base_link"),
-    #         "mass_distribution_params": (-2, 2),
-    #         "operation": "add",
-    #     },
-    # )
+    # Joint stiffness & damping
+    robot_joint_stiffness_and_damping = EventTerm(
+        func=mdp.randomize_actuator_gains,
+        mode="reset",
+        min_step_count_between_reset=0,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+            "operation": "scale",
+            "stiffness_distribution_params": (0.7, 1.3),
+            "damping_distribution_params": (0.7, 1.3),
+            "distribution": "uniform",
+        },
+    )
+
+    # Small gravity variations (sim2real robustness)
+    gravity = EventTerm(
+        func=mdp.randomize_physics_scene_gravity,
+        mode="reset",
+        min_step_count_between_reset=0,
+        params={
+            "gravity_distribution_params": (0.9, 1.1),  # scale factor range
+            "operation": "scale",
+            "distribution": "uniform",
+        },
+    )
+
+    # Link mass scaling
+    robot_scale_mass = EventTerm(
+        func=mdp.randomize_rigid_body_mass,
+        mode="reset",
+        min_step_count_between_reset=0,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+            "mass_distribution_params": (0.8, 1.2),
+            "operation": "scale",
+            "distribution": "uniform",
+        },
+    )
+
+    # Link COM offset (if available in this Isaac Lab version)
+    if hasattr(mdp, "randomize_rigid_body_com"):
+        robot_com_offset = EventTerm(
+            func=mdp.randomize_rigid_body_com,
+            mode="reset",
+            min_step_count_between_reset=0,
+            params={
+                "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+                "com_distribution_params": (0.0, 0.005),
+                "operation": "add",
+                "distribution": "uniform",
+            },
+        )
+
+    # Inertia scaling (if available in this Isaac Lab version)
+    if hasattr(mdp, "randomize_rigid_body_inertia"):
+        robot_inertia_scale = EventTerm(
+            func=mdp.randomize_rigid_body_inertia,
+            mode="reset",
+            min_step_count_between_reset=0,
+            params={
+                "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+                "inertia_distribution_params": (0.85, 1.15),
+                "operation": "scale",
+                "distribution": "uniform",
+            },
+        )
+
+    # Joint friction/armature
+    robot_joint_friction_armature = EventTerm(
+        func=mdp.randomize_joint_parameters,
+        mode="reset",
+        min_step_count_between_reset=0,
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+            "friction_distribution_params": (0.5, 1.5),
+            "armature_distribution_params": (0.5, 1.5),
+            "operation": "scale",
+            "distribution": "uniform",
+        },
+    )
 
 
 @configclass
@@ -192,6 +264,112 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Stage 0: encourage forward motion (not standing still)
     curriculum_stage0_vx_min: float = 0.3  # minimum forward velocity command in stage 0
     curriculum_stage0_vx_max: float = 1.0  # maximum forward velocity command in stage 0
+    zero_command_probability: float = 0.1  # chance to sample a standstill command (vx=vy=yaw=0)
+    turn_in_place_probability: float = 0.05  # chance to sample vx=vy=0, yaw!=0
+    turn_in_place_yaw_min: float = 0.3
+    turn_in_place_yaw_max: float = 1.0
+    turn_in_place_min_stage: int = 1  # only allow in-place turns once yaw commands are introduced
+
+    # === Disturbance (push) parameters ===
+    # treat as delta-velocity, not force
+    push_force_range = (0.2, 0.8)
+    min_push_interval_s = 1.0
+    max_push_interval_s = 3.0
+    push_z_fraction: float = 0.25
+    push_angvel_scale: float = 0.8
+
+    # === ADR configuration ===
+    enable_adr: bool = True
+    num_adr_increments: int = 100
+    starting_adr_increments: int = 0
+    adr_update_interval_steps: int = 2000
+    adr_success_rate_to_increase: float = 0.85
+    adr_success_rate_to_decrease: float = 0.2
+    adr_min_steps_before_decrease: int = 10000
+    adr_ema_factor: float = 0.05
+    adr_print_every_update: bool = True
+    adr_debug_print: bool = True
+    adr_debug_print_every_steps: int = 2000   # print cadence
+
+    # ADR event randomization ranges (max difficulty)
+    adr_event_cfg_dict: dict = {
+        "robot_physics_material": {
+            "static_friction_range": (0.4, 1.5),
+            "dynamic_friction_range": (0.3, 1.4),
+            "restitution_range": (0.0, 0.4),
+        },
+        "robot_joint_stiffness_and_damping": {
+            "stiffness_distribution_params": (0.5, 1.5),
+            "damping_distribution_params": (0.5, 1.5),
+        },
+        "gravity": {
+            "gravity_distribution_params": (0.8, 1.2),
+        },
+        "robot_scale_mass": {
+            "mass_distribution_params": (0.7, 1.3),
+        },
+        "robot_joint_friction_armature": {
+            "friction_distribution_params": (0.5, 1.5),
+            "armature_distribution_params": (0.5, 1.5),
+        },
+    }
+    if hasattr(mdp, "randomize_rigid_body_com"):
+        adr_event_cfg_dict["robot_com_offset"] = {
+            "com_distribution_params": (0.0, 0.005),
+        }
+    if hasattr(mdp, "randomize_rigid_body_inertia"):
+        adr_event_cfg_dict["robot_inertia_scale"] = {
+            "inertia_distribution_params": (0.85, 1.15),
+        }
+
+    adr_custom_cfg_dict: dict = {
+        "push": {
+            "push_force_range": ((0.2, 0.8), (0.5, 2.0)),
+        },
+        "robot_spawn": {
+            "joint_pos_noise": (0.0, 0.06),
+            "joint_vel_noise": (0.0, 0.20),
+        },
+        "sensor_extrinsics": {
+            "imu_mount_deg": (0.0, 5.0),
+        },
+        "action_noise": {
+            "std": (0.0, 0.1),
+        },
+        "obs_noise": {
+            "gravity_std": (0.0, 0.05),
+            "gyro_std": (0.0, 0.1),
+            "joint_pos_std": (0.0, 0.02),
+            "joint_vel_std": (0.0, 0.5),
+            "joint_torque_std": (0.0, 0.5),
+        },
+        "motor_strength": {
+            "per_joint_mult_range": (0.0, 0.3),
+        },
+        "latency": {
+            "act_steps": (0, 5),
+            "obs_steps": (0, 3),
+        },
+        "imu_bias": {
+            "gravity_bias_range": (0.0, 0.1),
+            "gyro_bias_range": (0.0, 0.2),
+        },
+        "micro_wrench": {
+            "lin_acc_std": (0.0, 1.0),
+            "ang_acc_std": (0.0, 3.0),
+            "rho": (0.0, 0.95),
+            "max_lin_acc": (0.0, 3.0),
+            "max_ang_acc": (0.0, 8.0),
+        },
+        # command magnitude scaling
+        "command_scale": {
+            "scale": (1.0, 1.5),
+        },
+    }
+
+    # Latency buffer sizes (must be >= max ADR latency)
+    act_max_latency: int = 5
+    obs_max_latency: int = 3
 
     # Debug visualization (draw velocity arrows for a single env)
     debug_vel_vis: bool = False  # disable during training for performance

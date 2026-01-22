@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import math
+from copy import deepcopy
 import torch
 
 import isaaclab.sim as sim_utils
@@ -47,6 +48,110 @@ def quat_rotate(q: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
     q_xyz = q[:, 1:4]
     t = 2.0 * torch.cross(q_xyz, v, dim=-1)
     return v + w * t + torch.cross(q_xyz, t, dim=-1)
+
+
+def _lerp(a: float, b: float, t: float) -> float:
+    return a + (b - a) * t
+
+
+def _lerp_tuple(a: tuple[float, float], b: tuple[float, float], t: float) -> tuple[float, float]:
+    return (_lerp(a[0], b[0], t), _lerp(a[1], b[1], t))
+
+
+class LocomotionADR:
+    """
+    Minimal ADR controller:
+      - EventManager-backed: widens term cfg ranges via event_manager.get_term_cfg/set_term_cfg
+      - Custom params: provides “current” values (push range, noise, latency, etc.)
+    """
+
+    def __init__(self, event_manager, adr_event_cfg_dict: dict, adr_custom_cfg_dict: dict, num_increments: int):
+        self.event_manager = event_manager
+        self.adr_event_cfg_dict = deepcopy(adr_event_cfg_dict)
+        self.adr_custom_cfg_dict = deepcopy(adr_custom_cfg_dict)
+        self._num_increments_max = int(num_increments)
+        self._num_increments_cur = 0
+
+        # snapshot “base” event params (increment=0 endpoints)
+        self._base_event_params: dict[str, dict[str, tuple[float, float]]] = {}
+        for term_name, term_updates in self.adr_event_cfg_dict.items():
+            term_cfg = self.event_manager.get_term_cfg(term_name)
+            self._base_event_params[term_name] = {}
+            for k in term_updates.keys():
+                self._base_event_params[term_name][k] = deepcopy(term_cfg.params[k])
+
+    def num_increments(self) -> int:
+        return self._num_increments_cur
+
+    def set_num_increments(self, n: int) -> None:
+        self._num_increments_cur = int(max(0, min(self._num_increments_max, n)))
+        self.apply_event_ranges()
+
+    def difficulty(self) -> float:
+        if self._num_increments_max <= 0:
+            return 0.0
+        return float(self._num_increments_cur) / float(self._num_increments_max)
+
+    def increase(self, k: int = 1) -> None:
+        self.set_num_increments(self._num_increments_cur + int(k))
+
+    def decrease(self, k: int = 1) -> None:
+        self.set_num_increments(self._num_increments_cur - int(k))
+
+    def apply_event_ranges(self) -> None:
+        """Update EventManager term cfgs according to current difficulty."""
+        t = self.difficulty()
+
+        for term_name, max_updates in self.adr_event_cfg_dict.items():
+            term_cfg = self.event_manager.get_term_cfg(term_name)
+            for param_name, max_range in max_updates.items():
+                base_range = self._base_event_params[term_name][param_name]
+                term_cfg.params[param_name] = _lerp_tuple(base_range, max_range, t)
+            self.event_manager.set_term_cfg(term_name, term_cfg)
+
+    def get_custom(self, group: str, key: str):
+        """
+        Returns "current" custom ADR value. Supports:
+          - (min,max) tuples: lerp base->max
+          - ((min0,max0),(min1,max1)) for push_force_range: lerp each endpoint tuple
+        """
+        t = self.difficulty()
+        spec = self.adr_custom_cfg_dict[group][key]
+
+        if isinstance(spec, (tuple, list)) and len(spec) == 2 and all(isinstance(x, (int, float)) for x in spec):
+            return _lerp(float(spec[0]), float(spec[1]), t)
+
+        if (
+            isinstance(spec, (tuple, list)) and len(spec) == 2
+            and isinstance(spec[0], (tuple, list)) and isinstance(spec[1], (tuple, list))
+            and len(spec[0]) == 2 and len(spec[1]) == 2
+            and all(isinstance(x, (int, float)) for x in spec[0])
+            and all(isinstance(x, (int, float)) for x in spec[1])
+        ):
+            return (
+                _lerp(float(spec[0][0]), float(spec[1][0]), t),
+                _lerp(float(spec[0][1]), float(spec[1][1]), t),
+            )
+
+        return spec
+
+    def print_params(self) -> str:
+        t = self.difficulty()
+        lines = [f"[ADR] increments={self._num_increments_cur}/{self._num_increments_max}  difficulty={t:.3f}"]
+        for term_name, max_updates in self.adr_event_cfg_dict.items():
+            term_cfg = self.event_manager.get_term_cfg(term_name)
+            for param_name in max_updates.keys():
+                lines.append(f"  - {term_name}.{param_name} = {term_cfg.params[param_name]}")
+        if "push" in self.adr_custom_cfg_dict:
+            lines.append(f"  - push.push_force_range = {self.get_custom('push','push_force_range')}")
+        if "action_noise" in self.adr_custom_cfg_dict:
+            lines.append(f"  - action_noise.std = {self.get_custom('action_noise','std')}")
+        if "latency" in self.adr_custom_cfg_dict:
+            lines.append(f"  - latency.act_steps = {self.get_custom('latency','act_steps')}")
+            lines.append(f"  - latency.obs_steps = {self.get_custom('latency','obs_steps')}")
+        if "command_scale" in self.adr_custom_cfg_dict:
+            lines.append(f"  - command_scale.scale = {self.get_custom('command_scale','scale')}")
+        return "\n".join(lines)
 
 
 class LocomotionEnv(DirectRLEnv):
@@ -202,6 +307,91 @@ class LocomotionEnv(DirectRLEnv):
             dtype=torch.long,
             device=self.sim.device,
         )
+
+        # -----------------------
+        # ADR state + buffers
+        # -----------------------
+        self._global_policy_step = 0
+        self._last_adr_update_step = 0
+        self._last_adr_decrease_step = 0
+        self.success_rate_ema = torch.zeros(1, device=self.sim.device)
+
+        # action latency buffers
+        self.act_max_latency = int(getattr(self.cfg, "act_max_latency", 0))
+        self.act_latency_steps = torch.zeros(self.num_envs, dtype=torch.long, device=self.sim.device)
+        if self.act_max_latency > 0:
+            self.act_hist_buf = torch.zeros(self.num_envs, self.num_actions, self.act_max_latency + 1, device=self.sim.device)
+        else:
+            self.act_hist_buf = None
+
+        # observation latency buffers
+        self.obs_max_latency = int(getattr(self.cfg, "obs_max_latency", 0))
+        self.obs_latency_steps = torch.zeros(self.num_envs, dtype=torch.long, device=self.sim.device)
+        if self.obs_max_latency > 0:
+            self.obs_hist_buf = torch.zeros(self.num_envs, self._obs_single_dim, self.obs_max_latency + 1, device=self.sim.device)
+        else:
+            self.obs_hist_buf = None
+
+        # per-env motor strength multipliers
+        self.motor_strength_mult = torch.ones(self.num_envs, self.num_actions, device=self.sim.device)
+
+        # IMU bias (gravity direction + gyro) and mount misalignment
+        self.imu_bias_gravity = torch.zeros(self.num_envs, 3, device=self.sim.device)
+        self.imu_bias_gyro = torch.zeros(self.num_envs, 3, device=self.sim.device)
+        self.imu_mount_axis = torch.tensor([1.0, 0.0, 0.0], device=self.sim.device).repeat(self.num_envs, 1)
+        self.imu_mount_ang = torch.zeros(self.num_envs, device=self.sim.device)
+
+        # continuous micro disturbances (OU process)
+        self.micro_lin_acc = torch.zeros(self.num_envs, 3, device=self.sim.device)
+        self.micro_ang_acc = torch.zeros(self.num_envs, 3, device=self.sim.device)
+
+        # current ADR “custom” params (filled by _update_adr_custom_params)
+        self._push_dv_min = float(self.cfg.push_force_range[0])
+        self._push_dv_max = float(self.cfg.push_force_range[1])
+        self._action_noise_std = 0.0
+        self._obs_noise = {
+            "gravity_std": 0.0,
+            "gyro_std": 0.0,
+            "joint_pos_std": 0.0,
+            "joint_vel_std": 0.0,
+            "joint_torque_std": 0.0,
+        }
+        self._command_scale = 1.0
+
+        # push timers
+        self.dt = self.cfg.sim.dt * self.cfg.decimation
+        min_steps = max(1, int(self.cfg.min_push_interval_s / self.dt))
+        max_steps = max(min_steps, int(self.cfg.max_push_interval_s / self.dt))
+        self._push_interval_steps_min = min_steps
+        self._push_interval_steps_max = max_steps
+        self.push_counters = torch.zeros(self.num_envs, dtype=torch.int32, device=self.sim.device)
+        self.next_push_steps = torch.randint(
+            self._push_interval_steps_min,
+            self._push_interval_steps_max + 1,
+            (self.num_envs,),
+            device=self.sim.device,
+        )
+
+        # init ADR controller after event_manager exists
+        self.adr = None
+        if getattr(self.cfg, "enable_adr", False):
+            self.adr = LocomotionADR(
+                self.event_manager,
+                self.cfg.adr_event_cfg_dict,
+                self.cfg.adr_custom_cfg_dict,
+                num_increments=self.cfg.num_adr_increments,
+            )
+            self.adr.set_num_increments(self.cfg.starting_adr_increments)
+            self._update_adr_custom_params()
+            if getattr(self.cfg, "adr_print_every_update", True):
+                print(self.adr.print_params())
+
+        # extras logging
+        if not hasattr(self, "extras") or self.extras is None:
+            self.extras = {}
+        if "log" not in self.extras:
+            self.extras["log"] = {}
+
         self._resample_episode_lengths(self.robot._ALL_INDICES)
 
     def _setup_scene(self):
@@ -227,19 +417,250 @@ class LocomotionEnv(DirectRLEnv):
         light_cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
         light_cfg.func("/World/Light", light_cfg)
 
+    # ----------------------------------------------------------------------
+    # ADR helpers (custom params)
+    # ----------------------------------------------------------------------
+    def _update_adr_custom_params(self) -> None:
+        if self.adr is None:
+            self._push_dv_min = float(self.cfg.push_force_range[0])
+            self._push_dv_max = float(self.cfg.push_force_range[1])
+            self._action_noise_std = 0.0
+            for k in self._obs_noise.keys():
+                self._obs_noise[k] = 0.0
+            self._command_scale = 1.0
+            return
+
+        pr = self.adr.get_custom("push", "push_force_range")
+        self._push_dv_min = float(pr[0])
+        self._push_dv_max = float(pr[1])
+
+        self._action_noise_std = float(self.adr.get_custom("action_noise", "std"))
+
+        for k in self._obs_noise.keys():
+            if "obs_noise" in self.adr.adr_custom_cfg_dict and k in self.adr.adr_custom_cfg_dict["obs_noise"]:
+                self._obs_noise[k] = float(self.adr.get_custom("obs_noise", k))
+            else:
+                self._obs_noise[k] = 0.0
+
+        if "command_scale" in self.adr.adr_custom_cfg_dict:
+            self._command_scale = float(self.adr.get_custom("command_scale", "scale"))
+        else:
+            self._command_scale = 1.0
+
+    def _sample_custom_dr_for_resets(self, env_ids: torch.Tensor) -> None:
+        """Sample per-episode random variables: latency, motor strength, IMU bias."""
+        if self.adr is None or env_ids.numel() == 0:
+            self.motor_strength_mult[env_ids] = 1.0
+            self.act_latency_steps[env_ids] = 0
+            self.obs_latency_steps[env_ids] = 0
+            self.imu_bias_gravity[env_ids] = 0.0
+            self.imu_bias_gyro[env_ids] = 0.0
+            self.imu_mount_axis[env_ids] = torch.tensor([1.0, 0.0, 0.0], device=self.sim.device).repeat(env_ids.numel(), 1)
+            self.imu_mount_ang[env_ids] = 0.0
+            return
+
+        device = self.sim.device
+
+        r = float(self.adr.get_custom("motor_strength", "per_joint_mult_range"))
+        if r > 0.0:
+            lo, hi = 1.0 - r, 1.0 + r
+            self.motor_strength_mult[env_ids] = torch.empty((env_ids.numel(), self.num_actions), device=device).uniform_(lo, hi)
+        else:
+            self.motor_strength_mult[env_ids] = 1.0
+
+        act_max = int(round(float(self.adr.get_custom("latency", "act_steps"))))
+        act_max = int(max(0, min(self.act_max_latency, act_max)))
+        if act_max > 0:
+            self.act_latency_steps[env_ids] = torch.randint(0, act_max + 1, (env_ids.numel(),), device=device)
+        else:
+            self.act_latency_steps[env_ids] = 0
+
+        obs_max = int(round(float(self.adr.get_custom("latency", "obs_steps"))))
+        obs_max = int(max(0, min(self.obs_max_latency, obs_max)))
+        if obs_max > 0:
+            self.obs_latency_steps[env_ids] = torch.randint(0, obs_max + 1, (env_ids.numel(),), device=device)
+        else:
+            self.obs_latency_steps[env_ids] = 0
+
+        b_grav = float(self.adr.get_custom("imu_bias", "gravity_bias_range"))
+        if b_grav > 0.0:
+            self.imu_bias_gravity[env_ids] = torch.empty((env_ids.numel(), 3), device=device).uniform_(-b_grav, b_grav)
+        else:
+            self.imu_bias_gravity[env_ids] = 0.0
+
+        b_gyro = float(self.adr.get_custom("imu_bias", "gyro_bias_range"))
+        if b_gyro > 0.0:
+            self.imu_bias_gyro[env_ids] = torch.empty((env_ids.numel(), 3), device=device).uniform_(-b_gyro, b_gyro)
+        else:
+            self.imu_bias_gyro[env_ids] = 0.0
+
+        deg = float(self.adr.get_custom("sensor_extrinsics", "imu_mount_deg"))
+        if deg > 0.0:
+            max_rad = deg * math.pi / 180.0
+            axis = torch.randn((env_ids.numel(), 3), device=device)
+            axis = axis / (torch.norm(axis, dim=-1, keepdim=True) + 1e-6)
+            ang = torch.empty((env_ids.numel(), 1), device=device).uniform_(-max_rad, max_rad)
+            self.imu_mount_axis[env_ids] = axis
+            self.imu_mount_ang[env_ids] = ang.squeeze(-1)
+        else:
+            self.imu_mount_axis[env_ids] = torch.tensor([1.0, 0.0, 0.0], device=device).repeat(env_ids.numel(), 1)
+            self.imu_mount_ang[env_ids] = 0.0
+
+    def _maybe_apply_pushes(self):
+        """Apply random horizontal velocity kicks to the base at random intervals."""
+        if self._push_dv_max <= 0.0:
+            return
+
+        self.push_counters += 1
+        ready = self.push_counters >= self.next_push_steps
+        if not torch.any(ready):
+            return
+
+        env_ids = torch.nonzero(ready, as_tuple=False).squeeze(-1)
+        if env_ids.numel() == 0:
+            return
+
+        k = env_ids.numel()
+        device = self.sim.device
+
+        dirs = torch.randn((k, 3), device=device)
+        z_frac = float(getattr(self.cfg, "push_z_fraction", 0.25))
+        dirs[:, 2] *= z_frac
+        dirs = dirs / (torch.norm(dirs, dim=-1, keepdim=True) + 1e-6)
+
+        mags = torch.empty((k, 1), device=device).uniform_(self._push_dv_min, self._push_dv_max)
+        delta_v = dirs * mags
+
+        root_vel = self.robot.data.root_vel_w[env_ids].clone()  # [K, 6]
+        root_vel[:, 0:3] += delta_v
+
+        w_scale = float(getattr(self.cfg, "push_angvel_scale", 0.8))
+        delta_w = torch.randn((k, 3), device=device)
+        delta_w = delta_w / (torch.norm(delta_w, dim=-1, keepdim=True) + 1e-6)
+        delta_w = delta_w * (w_scale * mags)
+        root_vel[:, 3:6] += delta_w
+
+        self.robot.write_root_velocity_to_sim(root_vel, env_ids)
+
+        self.push_counters[env_ids] = 0
+        self.next_push_steps[env_ids] = torch.randint(
+            self._push_interval_steps_min,
+            self._push_interval_steps_max + 1,
+            (k,),
+            device=device,
+        )
+
+    def _apply_micro_disturbance(self):
+        """Apply temporally correlated micro-accelerations (OU process)."""
+        if self.adr is None:
+            return
+
+        rho = float(self.adr.get_custom("micro_wrench", "rho"))
+        lin_std = float(self.adr.get_custom("micro_wrench", "lin_acc_std"))
+        ang_std = float(self.adr.get_custom("micro_wrench", "ang_acc_std"))
+        max_lin = float(self.adr.get_custom("micro_wrench", "max_lin_acc"))
+        max_ang = float(self.adr.get_custom("micro_wrench", "max_ang_acc"))
+
+        if lin_std <= 0.0 and ang_std <= 0.0:
+            return
+
+        if lin_std > 0.0:
+            self.micro_lin_acc = rho * self.micro_lin_acc + (1.0 - rho) * torch.randn_like(self.micro_lin_acc) * lin_std
+            self.micro_lin_acc = torch.clamp(self.micro_lin_acc, -max_lin, max_lin)
+
+        if ang_std > 0.0:
+            self.micro_ang_acc = rho * self.micro_ang_acc + (1.0 - rho) * torch.randn_like(self.micro_ang_acc) * ang_std
+            self.micro_ang_acc = torch.clamp(self.micro_ang_acc, -max_ang, max_ang)
+
+        root_vel = self.robot.data.root_vel_w.clone()  # [N, 6]
+        root_vel[:, 0:3] += self.micro_lin_acc * self.dt
+        root_vel[:, 3:6] += self.micro_ang_acc * self.dt
+        self.robot.write_root_velocity_to_sim(root_vel)
+
+    def _maybe_update_adr(self, batch_success_rate: float) -> None:
+        """Increase/decrease ADR based on EMA survival rate."""
+        if self.adr is None:
+            return
+
+        ema_k = float(self.cfg.adr_ema_factor)
+        self.success_rate_ema[:] = (1.0 - ema_k) * self.success_rate_ema + ema_k * batch_success_rate
+
+        if getattr(self.cfg, "adr_debug_print", True):
+            every = int(getattr(self.cfg, "adr_debug_print_every_steps", 2000))
+            if (self._global_policy_step % every) == 0:
+                print(
+                    f"[ADR] step={self._global_policy_step} "
+                    f"batch_success={batch_success_rate:.3f} "
+                    f"ema={float(self.success_rate_ema.item()):.3f} "
+                    f"inc={self.adr.num_increments()}/{self.cfg.num_adr_increments}",
+                    flush=True,
+                )
+
+        self.extras["log"]["adr_success_rate_batch"] = float(batch_success_rate)
+        self.extras["log"]["adr_success_rate_ema"] = float(self.success_rate_ema.item())
+        self.extras["log"]["adr_increments"] = int(self.adr.num_increments())
+
+        if (self._global_policy_step - self._last_adr_update_step) < int(self.cfg.adr_update_interval_steps):
+            return
+
+        ema = float(self.success_rate_ema.item())
+
+        if ema >= float(self.cfg.adr_success_rate_to_increase):
+            self.adr.increase(1)
+            self._last_adr_update_step = self._global_policy_step
+            self._update_adr_custom_params()
+            if getattr(self.cfg, "adr_print_every_update", True):
+                print(self.adr.print_params())
+
+        elif ema <= float(self.cfg.adr_success_rate_to_decrease):
+            if (self._global_policy_step - self._last_adr_decrease_step) >= int(self.cfg.adr_min_steps_before_decrease):
+                self.adr.decrease(1)
+                self._last_adr_decrease_step = self._global_policy_step
+                self._last_adr_update_step = self._global_policy_step
+                self._update_adr_custom_params()
+                if getattr(self.cfg, "adr_print_every_update", True):
+                    print(self.adr.print_params())
+
     def _pre_physics_step(self, actions: torch.Tensor):
+        self._global_policy_step += 1
+
+        a = actions.clone().clamp(-1.0, 1.0)
+
+        # action noise (ADR)
+        if self._action_noise_std > 0.0:
+            a = a + torch.randn_like(a) * self._action_noise_std
+            a = a.clamp(-1.0, 1.0)
+
+        # action latency (ADR)
+        if self.act_hist_buf is not None:
+            self.act_hist_buf = torch.roll(self.act_hist_buf, shifts=-1, dims=2)
+            self.act_hist_buf[:, :, -1] = a
+
+            idx = (self.act_max_latency - self.act_latency_steps).clamp(0, self.act_max_latency)
+            gather_idx = idx.view(-1, 1, 1).expand(-1, self.num_actions, 1)
+            a = torch.gather(self.act_hist_buf, dim=2, index=gather_idx).squeeze(-1)
+
         self.prev_actions[:] = self.actions
-        self.actions = actions.clone()
+        self.actions = a
 
         # Update curriculum based on global env-steps
         self._global_env_steps += self.num_envs
         self._update_curriculum()
 
+        # scheduled pushes + micro disturbances (ADR)
+        self._maybe_apply_pushes()
+        self._apply_micro_disturbance()
+
         if self._visualization_enabled:
             self._visualize_markers()
 
     def _apply_action(self):
-        pos_offsets = self.action_scale * self._action_scale_per_joint.unsqueeze(0) * self.actions  # [N, 10]
+        pos_offsets = (
+            self.action_scale
+            * self._action_scale_per_joint.unsqueeze(0)
+            * self.actions
+            * self.motor_strength_mult
+        )  # [N, 10]
         q_des = self.default_actuated_pos.unsqueeze(0) + pos_offsets
         q_des = torch.clamp(q_des, self.actuated_lower.unsqueeze(0), self.actuated_upper.unsqueeze(0))
         self.q_des = q_des
@@ -378,15 +799,39 @@ class LocomotionEnv(DirectRLEnv):
         self.visualization_markers.visualize(loc, rots, marker_indices=indices)
 
     def _compute_single_observation(self) -> torch.Tensor:
+        up_cmd = self.up_cmd
+        ang_vel_cmd = self.torso_ang_vel_cmd
+        act_pos_scaled = self.act_pos_scaled
+        act_vel = self.act_vel
+
+        # IMU biases + mount misalignment (ADR)
+        up_cmd = up_cmd + self.imu_bias_gravity
+        ang_vel_cmd = ang_vel_cmd + self.imu_bias_gyro
+
+        theta = self.imu_mount_axis * self.imu_mount_ang.unsqueeze(-1)
+        up_cmd = up_cmd + torch.cross(theta, up_cmd, dim=-1)
+        ang_vel_cmd = ang_vel_cmd + torch.cross(theta, ang_vel_cmd, dim=-1)
+
+        # Observation noise (ADR)
+        if self.adr is not None:
+            if self._obs_noise["gravity_std"] > 0.0:
+                up_cmd = up_cmd + torch.randn_like(up_cmd) * self._obs_noise["gravity_std"]
+            if self._obs_noise["gyro_std"] > 0.0:
+                ang_vel_cmd = ang_vel_cmd + torch.randn_like(ang_vel_cmd) * self._obs_noise["gyro_std"]
+            if self._obs_noise["joint_pos_std"] > 0.0:
+                act_pos_scaled = act_pos_scaled + torch.randn_like(act_pos_scaled) * self._obs_noise["joint_pos_std"]
+            if self._obs_noise["joint_vel_std"] > 0.0:
+                act_vel = act_vel + torch.randn_like(act_vel) * self._obs_noise["joint_vel_std"]
+
         obs = torch.cat(
             (
                 self.torso_pos_w[:, 2:3],                        # height
                 self.torso_lin_vel_cmd,                          # command-frame lin vel
-                self.torso_ang_vel_cmd * self.cfg.ang_vel_scale, # command-frame ang vel
-                self.up_cmd,                                     # IMU-ish orientation feature
+                ang_vel_cmd * self.cfg.ang_vel_scale,            # command-frame ang vel
+                up_cmd,                                          # IMU-ish orientation feature
                 self.commands,                                   # commanded [vx, vy, yaw_rate] in BODY frame
-                self.act_pos_scaled,
-                self.act_vel * self.cfg.dof_vel_scale,
+                act_pos_scaled,
+                act_vel * self.cfg.dof_vel_scale,
                 self.prev_actions,
             ),
             dim=-1,
@@ -403,6 +848,14 @@ class LocomotionEnv(DirectRLEnv):
     def _get_observations(self) -> dict:
         self._update_state()
         obs = self._compute_single_observation()
+
+        if self.obs_hist_buf is not None:
+            self.obs_hist_buf = torch.roll(self.obs_hist_buf, shifts=-1, dims=2)
+            self.obs_hist_buf[:, :, -1] = obs
+
+            idx = (self.obs_max_latency - self.obs_latency_steps).clamp(0, self.obs_max_latency)
+            gather_idx = idx.view(-1, 1, 1).expand(-1, obs.shape[1], 1)
+            obs = torch.gather(self.obs_hist_buf, dim=2, index=gather_idx).squeeze(-1)
 
         if self.obs_stack_buf is not None:
             self.obs_stack_buf = torch.roll(self.obs_stack_buf, shifts=-1, dims=2)
@@ -604,12 +1057,37 @@ class LocomotionEnv(DirectRLEnv):
     def _reset_idx(self, env_ids: torch.Tensor | None):
         if env_ids is None or len(env_ids) == self.num_envs:
             env_ids = self.robot._ALL_INDICES
+        env_ids = torch.as_tensor(env_ids, device=self.sim.device, dtype=torch.long)
+
+        if self.adr is not None and env_ids.numel() > 0:
+            if self._global_policy_step > 0:
+                timed_out = self.episode_length_buf[env_ids] >= (self.randomized_episode_lengths[env_ids] - 1)
+                batch_success = timed_out.float().mean().item()
+                self._maybe_update_adr(batch_success)
+
         self.robot.reset(env_ids)
         super()._reset_idx(env_ids)
         self._resample_episode_lengths(env_ids)
 
         joint_pos = self.robot.data.default_joint_pos[env_ids]
         joint_vel = self.robot.data.default_joint_vel[env_ids]
+
+        # Initial pose randomization (ADR)
+        if self.adr is not None:
+            jpos_w = float(self.adr.get_custom("robot_spawn", "joint_pos_noise"))
+            jvel_w = float(self.adr.get_custom("robot_spawn", "joint_vel_noise"))
+
+            if jpos_w > 0.0:
+                noise = torch.empty_like(joint_pos).uniform_(-jpos_w, jpos_w)
+                joint_pos = joint_pos + noise
+
+                lo = self.robot.data.soft_joint_pos_limits[0, :, 0].unsqueeze(0)
+                hi = self.robot.data.soft_joint_pos_limits[0, :, 1].unsqueeze(0)
+                joint_pos = torch.clamp(joint_pos, lo, hi)
+
+            if jvel_w > 0.0:
+                joint_vel = joint_vel + torch.empty_like(joint_vel).uniform_(-jvel_w, jvel_w)
+
         root = self.robot.data.default_root_state[env_ids]
         root[:, :3] += self.scene.env_origins[env_ids]
 
@@ -619,16 +1097,36 @@ class LocomotionEnv(DirectRLEnv):
 
         self.actions[env_ids] = 0.0
         self.prev_actions[env_ids] = 0.0
+        self.prev_act_vel[env_ids] = 0.0
+
+        if self.act_hist_buf is not None:
+            self.act_hist_buf[env_ids, :, :] = 0.0
+
+        # reset push timers
+        self.push_counters[env_ids] = 0
+        self.next_push_steps[env_ids] = torch.randint(
+            self._push_interval_steps_min,
+            self._push_interval_steps_max + 1,
+            (env_ids.numel(),),
+            device=self.sim.device,
+        )
+
+        # sample per-episode DR variables (latency, strength, imu bias)
+        self._sample_custom_dr_for_resets(env_ids)
 
         # Sample commands based on current curriculum stage
         self._sample_commands(env_ids)
 
-        if self._visualization_enabled or self.obs_stack_buf is not None:
+        if self._visualization_enabled or self.obs_stack_buf is not None or self.obs_hist_buf is not None:
             self._update_state()
 
         # Update state before visualization so torso_pos_w exists
         if self._visualization_enabled:
             self._visualize_markers()
+
+        if self.obs_hist_buf is not None:
+            obs0 = self._compute_single_observation()
+            self.obs_hist_buf[env_ids] = obs0[env_ids].unsqueeze(-1).expand(-1, -1, self.obs_max_latency + 1)
 
         if self.obs_stack_buf is not None:
             obs0 = self._compute_single_observation()
@@ -664,12 +1162,25 @@ class LocomotionEnv(DirectRLEnv):
     def _sample_commands(self, env_ids: torch.Tensor):
         """Sample velocity commands based on current curriculum stage."""
         n = len(env_ids)
+        zero_prob = float(getattr(self.cfg, "zero_command_probability", 0.0))
+        turn_prob = float(getattr(self.cfg, "turn_in_place_probability", 0.0))
+        turn_min_stage = int(getattr(self.cfg, "turn_in_place_min_stage", 1))
+        turn_mask = None
+        zero_mask = None
+        if turn_prob > 0.0 and self._current_curriculum_stage >= turn_min_stage:
+            turn_mask = torch.rand(n, device=self.sim.device) < turn_prob
+        if zero_prob > 0.0:
+            zero_mask = torch.rand(n, device=self.sim.device) < zero_prob
+            if turn_mask is not None:
+                zero_mask = zero_mask & (~turn_mask)
 
         if not self.cfg.use_curriculum:
             # No curriculum: sample full ranges
             self.commands[env_ids, 0] = torch.empty(n, device=self.sim.device).uniform_(-1.0, 1.0)  # vx
             self.commands[env_ids, 1] = torch.empty(n, device=self.sim.device).uniform_(-0.5, 0.5)  # vy
             self.commands[env_ids, 2] = torch.empty(n, device=self.sim.device).uniform_(-1.0, 1.0)  # yaw rate
+            if zero_mask is not None:
+                self.commands[env_ids[zero_mask]] = 0.0
             return
 
         # Curriculum active: sample based on stage
@@ -695,6 +1206,21 @@ class LocomotionEnv(DirectRLEnv):
             self.commands[env_ids, 0] = torch.empty(n, device=self.sim.device).uniform_(-1.0, 1.0)
             self.commands[env_ids, 1] = torch.empty(n, device=self.sim.device).uniform_(-0.5, 0.5)
             self.commands[env_ids, 2] = torch.empty(n, device=self.sim.device).uniform_(-1.0, 1.0)
+
+        if self._command_scale != 1.0:
+            self.commands[env_ids] *= float(self._command_scale)
+
+        if zero_mask is not None:
+            self.commands[env_ids[zero_mask]] = 0.0
+
+        if turn_mask is not None:
+            yaw_min = float(getattr(self.cfg, "turn_in_place_yaw_min", 0.3))
+            yaw_max = float(getattr(self.cfg, "turn_in_place_yaw_max", 1.0))
+            yaw = torch.empty(n, device=self.sim.device).uniform_(-yaw_max, yaw_max)
+            yaw = torch.where(torch.abs(yaw) < yaw_min, torch.sign(yaw) * yaw_min, yaw)
+            self.commands[env_ids[turn_mask], 0] = 0.0
+            self.commands[env_ids[turn_mask], 1] = 0.0
+            self.commands[env_ids[turn_mask], 2] = yaw[turn_mask]
 
     def _init_feet(self):
         """Initialize foot body and contact sensor indices (call once before using contact rewards)."""

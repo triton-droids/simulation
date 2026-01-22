@@ -539,6 +539,9 @@ def main():
     # Force full command range during play (highest curriculum stage).
     if hasattr(env_cfg, "use_curriculum"):
         env_cfg.use_curriculum = False
+    # Enable velocity visualization during play by default.
+    if hasattr(env_cfg, "debug_vel_vis"):
+        env_cfg.debug_vel_vis = True
     agent_cfg = load_cfg_from_registry(args_cli.task, "rl_games_cfg_entry_point")
 
     # specify directory for logging experiments
