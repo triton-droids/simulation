@@ -397,3 +397,4 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     debug_obs_print_steps: int = 5
     debug_obs_print_every: int = 1
     debug_obs_print_env: int = 0
+    debug_print_orderings: bool = False

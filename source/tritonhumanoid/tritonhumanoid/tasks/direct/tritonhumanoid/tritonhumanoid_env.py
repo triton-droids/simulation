@@ -328,6 +328,20 @@ class LocomotionEnv(DirectRLEnv):
             _add_obs_slice("phase_clock", 2)
         self._obs_debug_dim = offset
 
+        if bool(getattr(self.cfg, "debug_print_orderings", False)):
+            try:
+                joint_names = self.robot.data.joint_names
+            except Exception:
+                joint_names = None
+            print("[DebugOrder] action/act_pos order (index -> joint name):")
+            for i, jid in enumerate(self._joint_dof_idx):
+                name = joint_names[jid] if joint_names is not None and jid < len(joint_names) else str(jid)
+                print(f"  {i}: {name}")
+            print("[DebugOrder] commands order: [vx, vy, yaw_rate]")
+            print("[DebugOrder] observation slices (single frame):")
+            for name, s, e in self._obs_debug_slices:
+                print(f"  {name}: [{s}, {e})")
+
         # randomized episode lengths
         self._randomize_episode_length = bool(getattr(self.cfg, "randomize_episode_length", False))
         self._min_episode_length_steps = max(
