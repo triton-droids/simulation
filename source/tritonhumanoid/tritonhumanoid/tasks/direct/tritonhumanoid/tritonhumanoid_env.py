@@ -304,6 +304,13 @@ class LocomotionEnv(DirectRLEnv):
         else:
             self.obs_stack_buf = None
 
+        # debug observation printing
+        self._debug_obs_print = bool(getattr(self.cfg, "debug_obs_print", False))
+        self._debug_obs_print_steps = int(getattr(self.cfg, "debug_obs_print_steps", 0))
+        self._debug_obs_print_every = max(1, int(getattr(self.cfg, "debug_obs_print_every", 1)))
+        self._debug_obs_print_env = int(getattr(self.cfg, "debug_obs_print_env", 0))
+        self._debug_obs_step = 0
+
         # randomized episode lengths
         self._randomize_episode_length = bool(getattr(self.cfg, "randomize_episode_length", False))
         self._min_episode_length_steps = max(
@@ -922,6 +929,19 @@ class LocomotionEnv(DirectRLEnv):
             self.obs_stack_buf = torch.roll(self.obs_stack_buf, shifts=-1, dims=2)
             self.obs_stack_buf[:, :, -1] = obs
             obs = self.obs_stack_buf.reshape(self.num_envs, -1)
+
+        if self._debug_obs_print and self._debug_obs_step < self._debug_obs_print_steps:
+            if (self._debug_obs_step % self._debug_obs_print_every) == 0:
+                env_id = max(0, min(self._debug_obs_print_env, self.num_envs - 1))
+                if self.obs_stack_buf is not None:
+                    frames = self.obs_stack_buf[env_id].detach().cpu()
+                    for i in range(self.obs_stack_frames):
+                        frame = frames[:, i].tolist()
+                        print(f"[ObsDebug] env={env_id} step={self._debug_obs_step} frame={i}: {frame}")
+                else:
+                    frame = obs[env_id].detach().cpu().tolist()
+                    print(f"[ObsDebug] env={env_id} step={self._debug_obs_step} frame=0: {frame}")
+            self._debug_obs_step += 1
 
         return {"policy": obs}
 

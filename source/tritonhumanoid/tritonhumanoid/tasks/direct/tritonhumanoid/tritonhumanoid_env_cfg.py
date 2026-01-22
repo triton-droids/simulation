@@ -391,3 +391,9 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     vel_vis_scale: float = 0.5       # meters of arrow per 1 m/s
     vel_vis_height: float = 0.25     # arrow origin above torso (m)
     vel_vis_every_n: int = 2         # draw every N sim steps to reduce overhead
+
+    # Debug observation printing
+    debug_obs_print: bool = False
+    debug_obs_print_steps: int = 5
+    debug_obs_print_every: int = 1
+    debug_obs_print_env: int = 0
