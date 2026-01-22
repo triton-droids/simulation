@@ -76,9 +76,32 @@ class HumanoidLocomotionEnv:
         )
         self._standing_qpos = self.model.key_qpos[standing_key_id].copy()
         
-        # Joint limits
-        self._joint_range_lower = np.full(self._nu, -1.57)
-        self._joint_range_upper = np.full(self._nu, 1.57)
+        # Joint limits (in IsaacSim observation order: lh1, rh1, lh2, rh2, lt, rt, lk, rk, la, ra)
+        self._joint_range_lower = np.array([
+            -1.57,      # left_hip1_joint
+            -1.57,      # right_hip1_joint
+            -1.57,      # left_hip2_joint
+            -0.436332,  # right_hip2_joint
+            -0.785398,  # left_thigh_joint
+            -0.785398,  # right_thigh_joint
+            -2.0944,    # left_knee_joint
+            -2.0944,    # right_knee_joint
+            -0.6,       # left_ankle_joint
+            -0.6        # right_ankle_joint
+        ])
+        self._joint_range_upper = np.array([
+            1.57,       # left_hip1_joint
+            1.57,       # right_hip1_joint
+            0.436332,   # left_hip2_joint
+            1.57,       # right_hip2_joint
+            0.785398,   # left_thigh_joint
+            0.785398,   # right_thigh_joint
+            0,          # left_knee_joint
+            0,          # right_knee_joint
+            0.6,        # left_ankle_joint
+            0.6         # right_ankle_joint
+        ])
+
         
         # Observation size calculation
         # Single frame: 1 (height) + 3 (lin_vel_cmd) + 3 (ang_vel_cmd) + 3 (up_cmd) + 3 (commands) + nu (joint_pos) + nu (joint_vel) + nu (last_actions)
@@ -184,7 +207,8 @@ class HumanoidLocomotionEnv:
         """
 
         reorder_indices = np.array([0, 5, 1, 6, 2, 7, 3, 8, 4, 9])
-        action = action[reorder_indices]
+        inverse_reorder = np.argsort(reorder_indices)
+        action = action[inverse_reorder]
 
         # Scale and clip actions
         # Apply both global action_scale and per-joint multipliers
