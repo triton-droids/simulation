@@ -485,6 +485,7 @@ class LocomotionEnv(DirectRLEnv):
         air_time = self._contact_sensor.data.current_air_time[:, self._feet_sensor_ids]  # (N,2)
         touchdown = foot_contact & (~self.prev_foot_contact)
         air_rew = torch.sum(torch.clamp(air_time - self.cfg.min_air_time, min=0.0) * touchdown.float(), dim=1)
+        air_time_sym_pen = (air_time[:, 0] - air_time[:, 1]) ** 2
 
         # (2) slip penalty when in contact (horizontal foot speed)
         feet_vel_w = self.robot.data.body_lin_vel_w[:, self._feet_body_ids, :]  # (N,2,3)
@@ -527,6 +528,7 @@ class LocomotionEnv(DirectRLEnv):
             - self.cfg.symmetry_cost_scale * sym_pen
             - self.cfg.thigh_pose_cost_scale * thigh_pose_pen
             + self.cfg.feet_air_time_reward_scale * air_rew
+            - self.cfg.air_time_symmetry_cost_scale * air_time_sym_pen
             - self.cfg.foot_slip_cost_scale * slip_cost
             - self.cfg.undesired_contact_cost_scale * undesired
         )
@@ -555,6 +557,7 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["reward_penalties/standstill"] = float(standstill.mean().item())
             self.extras["reward_penalties/symmetry"] = float(sym_pen.mean().item())
             self.extras["reward_penalties/thigh_pose"] = float(thigh_pose_pen.mean().item())
+            self.extras["reward_penalties/air_time_symmetry"] = float(air_time_sym_pen.mean().item())
             self.extras["reward_penalties/slip"] = float(slip_cost.mean().item())
             self.extras["reward_penalties/undesired_contact"] = float(undesired.mean().item())
 
@@ -570,6 +573,7 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["reward_scaled/dof_vel_delta_cost"] = float((self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost).mean().item())
             self.extras["reward_scaled/symmetry_cost"] = float((self.cfg.symmetry_cost_scale * sym_pen).mean().item())
             self.extras["reward_scaled/thigh_pose_cost"] = float((self.cfg.thigh_pose_cost_scale * thigh_pose_pen).mean().item())
+            self.extras["reward_scaled/air_time_symmetry_cost"] = float((self.cfg.air_time_symmetry_cost_scale * air_time_sym_pen).mean().item())
 
             # Total reward stats
             self.extras["reward_total/mean"] = float(reward.mean().item())

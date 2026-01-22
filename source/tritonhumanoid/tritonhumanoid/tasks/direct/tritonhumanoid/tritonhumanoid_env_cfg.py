@@ -175,6 +175,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     foot_contact_force_thresh: float = 30.0  # N (20-80N typical for humanoid ground contact)
     min_air_time: float = 0.08  # seconds
     feet_air_time_reward_scale: float = 0.4
+    air_time_symmetry_cost_scale: float = 0.05
     foot_slip_cost_scale: float = 0.02
     undesired_contact_force_thresh: float = 80.0  # N (50-200N typical)
     undesired_contact_cost_scale: float = 0.1

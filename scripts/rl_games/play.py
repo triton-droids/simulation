@@ -536,6 +536,9 @@ def main():
     env_cfg = parse_env_cfg(
         args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric
     )
+    # Force full command range during play (highest curriculum stage).
+    if hasattr(env_cfg, "use_curriculum"):
+        env_cfg.use_curriculum = False
     agent_cfg = load_cfg_from_registry(args_cli.task, "rl_games_cfg_entry_point")
 
     # specify directory for logging experiments
