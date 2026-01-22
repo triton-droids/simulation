@@ -393,8 +393,34 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     vel_vis_every_n: int = 2         # draw every N sim steps to reduce overhead
 
     # Debug observation printing
-    debug_obs_print: bool = False
+    debug_obs_print: bool = True
     debug_obs_print_steps: int = 5
     debug_obs_print_every: int = 1
     debug_obs_print_env: int = 0
-    debug_print_orderings: bool = False
+    debug_print_orderings: bool = True
+
+
+""" ORDERINGS OF STUFF:
+
+[DebugOrder] action/act_pos order (index -> joint name):
+  0: left_hip1_joint
+  1: right_hip1_joint
+  2: left_hip2_joint
+  3: right_hip2_joint
+  4: left_thigh_joint
+  5: right_thigh_joint
+  6: left_knee_joint
+  7: right_knee_joint
+  8: left_ankle_joint
+  9: right_ankle_joint
+[DebugOrder] commands order: [vx, vy, yaw_rate]
+[DebugOrder] observation slices (single frame):
+  height: [0, 1)
+  lin_vel_cmd: [1, 4)
+  ang_vel_cmd_scaled: [4, 7)
+  up_cmd: [7, 10)
+  commands: [10, 13)
+  act_pos_scaled: [13, 23)
+  act_vel_scaled: [23, 33)
+  prev_actions: [33, 43)
+"""
