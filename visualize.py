@@ -144,6 +144,11 @@ if use_trained_policy:
 
             # Get action from policy
             action_tensor = policy(obs_tensor)
+
+
+            if step == 0:
+                print(f"First action from trained policy: {action_tensor}")
+
             action = action_tensor.squeeze(0).numpy()  # Remove batch dimension, convert to numpy
 
             # Clip action to valid range
@@ -155,8 +160,8 @@ if use_trained_policy:
             frames.append(env.render())
 
             if (step + 1) % args.fps == 0:
-                print(f"Observation shape: {obs.shape}")
-                print(f"Observation: {obs}")
+                #print(f"Observation shape: {obs.shape}")
+                #print(f"Observation: {obs}")
                 print(f"  {(step + 1) / args.fps:.1f}s")
 else:
     # Use standing pose policy
