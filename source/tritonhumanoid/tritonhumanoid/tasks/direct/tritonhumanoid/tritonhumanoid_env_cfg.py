@@ -393,11 +393,11 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     vel_vis_every_n: int = 2         # draw every N sim steps to reduce overhead
 
     # Debug observation printing
-    debug_obs_print: bool = True
+    debug_obs_print: bool = False
     debug_obs_print_steps: int = 5
     debug_obs_print_every: int = 1
     debug_obs_print_env: int = 0
-    debug_print_orderings: bool = True
+    debug_print_orderings: bool = False
 
 
 """ ORDERINGS OF STUFF:
