@@ -283,17 +283,17 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     enable_adr: bool = True
     num_adr_increments: int = 100
     starting_adr_increments: int = 0
-    adr_update_interval_steps: int = 2000
+    adr_update_interval_steps: int = 500
     adr_success_rate_to_increase: float = 0.85
     adr_success_rate_to_decrease: float = 0.2
     adr_min_steps_before_decrease: int = 10000
     adr_ema_factor: float = 0.05
-    adr_warmup_steps: int = 10000
-    adr_min_stage: int = 2
-    adr_track_err_lin_increase_threshold: float = 0.15
-    adr_track_err_lin_decrease_threshold: float = 0.35
-    adr_track_err_yaw_increase_threshold: float = 0.15
-    adr_track_err_yaw_decrease_threshold: float = 0.4
+    adr_warmup_steps: int = 2000
+    adr_min_stage: int = 1
+    adr_track_err_lin_increase_threshold: float = 0.25
+    adr_track_err_lin_decrease_threshold: float = 0.45
+    adr_track_err_yaw_increase_threshold: float = 0.25
+    adr_track_err_yaw_decrease_threshold: float = 0.6
     adr_command_scale_min_stage: int = 2
     adr_push_start_difficulty: float = 0.3
     adr_push_ramp_difficulty: float = 0.3
@@ -423,4 +423,19 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
   act_pos_scaled: [13, 23)
   act_vel_scaled: [23, 33)
   prev_actions: [33, 43)
+
+
+[JointLimits]
+  left_hip1_joint   axis=1.0 0.0 0.0   limits=[-1.57, 1.57]
+  left_hip2_joint   axis=0.0 1.0 0.0   limits=[-1.57, 0.436332]
+  left_thigh_joint  axis=0.0 0.0 -1.0  limits=[-0.785398, 0.785398]
+  left_knee_joint   axis=1.0 0.0 0.0   limits=[-2.0944, 0]
+  left_ankle_joint  axis=1.0 0.0 0.0   limits=[-0.6, 0.6]
+
+  right_hip1_joint  axis=1.0 0.0 0.0   limits=[-1.57, 1.57]
+  right_hip2_joint  axis=0.0 1.0 0.0   limits=[-0.436332, 1.57]
+  right_thigh_joint axis=0.0 0.0 1.0   limits=[-0.785398, 0.785398]
+  right_knee_joint  axis=1.0 0.0 0.0   limits=[-2.0944, 0]
+  right_ankle_joint axis=1.0 0.0 0.0   limits=[-0.6, 0.6]
+
 """
