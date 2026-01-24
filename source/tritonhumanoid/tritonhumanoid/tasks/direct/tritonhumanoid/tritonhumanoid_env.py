@@ -275,7 +275,7 @@ class LocomotionEnv(DirectRLEnv):
         # previous joint velocities for acceleration cost
         self.prev_act_vel = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
 
-        # commanded base velocity in BODY frame: [vx, vy, yaw_rate]
+        # commanded base velocity in command frame (yaw-offset frame): [vx, vy, yaw_rate]
         self.commands = torch.zeros(self.num_envs, 3, device=self.sim.device)
         self._commands_for_reward = torch.zeros_like(self.commands)
 
@@ -1063,9 +1063,14 @@ class LocomotionEnv(DirectRLEnv):
         return names, sizes
 
     def _compute_single_observation(self) -> torch.Tensor:
-        projected_gravity = -self.up_b
-        base_ang_vel = self.torso_ang_vel_b
-        base_lin_vel = self.torso_lin_vel_b
+        if self._use_cmd_yaw_offset:
+            projected_gravity = -self.up_cmd
+            base_ang_vel = self.torso_ang_vel_cmd
+            base_lin_vel = self.torso_lin_vel_cmd
+        else:
+            projected_gravity = -self.up_b
+            base_ang_vel = self.torso_ang_vel_b
+            base_lin_vel = self.torso_lin_vel_b
 
         # IMU biases + mount misalignment (ADR)
         projected_gravity = projected_gravity + self.imu_bias_gravity
@@ -1161,8 +1166,11 @@ class LocomotionEnv(DirectRLEnv):
         self._update_state()
 
         # --- Base velocity tracking ---
-        vel_err = self.torso_lin_vel_b[:, :2] - self._commands_for_reward[:, :2]
-        yaw_err = self.torso_ang_vel_b[:, 2]  - self._commands_for_reward[:, 2]
+        lin_vel = self.torso_lin_vel_cmd if self._use_cmd_yaw_offset else self.torso_lin_vel_b
+        ang_vel = self.torso_ang_vel_cmd if self._use_cmd_yaw_offset else self.torso_ang_vel_b
+
+        vel_err = lin_vel[:, :2] - self._commands_for_reward[:, :2]
+        yaw_err = ang_vel[:, 2]  - self._commands_for_reward[:, 2]
 
         r_lin = torch.exp(-torch.sum(vel_err * vel_err, dim=1) / self.cfg.lin_vel_sigma)
         r_yaw = torch.exp(-(yaw_err * yaw_err) / self.cfg.yaw_rate_sigma)
@@ -1176,7 +1184,7 @@ class LocomotionEnv(DirectRLEnv):
         upright = torch.clamp(self.up_b[:, 2], 0.0, 1.0)
 
         cmd_speed = torch.norm(self._commands_for_reward[:, :2], dim=1)
-        act_speed = torch.norm(self.torso_lin_vel_b[:, :2], dim=1)
+        act_speed = torch.norm(lin_vel[:, :2], dim=1)
         standstill = torch.clamp(self.cfg.standstill_speed_threshold - act_speed, min=0.0)
         standstill = standstill * (cmd_speed > self.cfg.command_speed_threshold).float()
 
