@@ -22,17 +22,17 @@ class HumanoidLocomotionEnv:
         disturbance_prob: float = 0.00,
         action_scale: float = 1.0,
         action_scale_by_joint: dict[str, float] = {
-            "left_thigh_joint": 0.3,
-            "right_thigh_joint": 0.3,
+            "left_thigh_act": 0.3,
+            "right_thigh_act": 0.3,
         },
-        dt: float = 2/240,  # 50 Hz control
+        dt: float = 1/120,  # 60 Hz control
     ):
         # Load MuJoCo model
         self.model = mujoco.MjModel.from_xml_path(xml_path)
         self.data = mujoco.MjData(self.model)
         
         # Set timestep
-        self.model.opt.timestep = 0.002
+        self.model.opt.timestep = 1/240
         self.dt = dt
         self.n_substeps = int(dt / self.model.opt.timestep)
         
@@ -61,6 +61,9 @@ class HumanoidLocomotionEnv:
         # Joint indices (skip freejoint)
         self._q_joint_start = 7   # Skip 3 pos + 4 quat
         self._qd_joint_start = 6  # Skip 3 linear + 3 angular
+        # MuJoCo -> Isaac observation order mapping
+        self._mj_to_isaac = np.array([0, 5, 1, 6, 2, 7, 3, 8, 4, 9])
+        self._isaac_to_mj = np.argsort(self._mj_to_isaac)
 
         # Build per-joint action scale array
         self._joint_action_scales = np.ones(self._nu)
@@ -77,7 +80,7 @@ class HumanoidLocomotionEnv:
         self._standing_qpos = self.model.key_qpos[standing_key_id].copy()
         
         # Joint limits (in IsaacSim observation order: lh1, rh1, lh2, rh2, lt, rt, lk, rk, la, ra)
-        self._joint_range_lower = np.array([
+        self._joint_range_lower_isaac = np.array([
             -1.57,      # left_hip1_joint
             -1.57,      # right_hip1_joint
             -1.57,      # left_hip2_joint
@@ -89,7 +92,7 @@ class HumanoidLocomotionEnv:
             -0.6,       # left_ankle_joint
             -0.6        # right_ankle_joint
         ])
-        self._joint_range_upper = np.array([
+        self._joint_range_upper_isaac = np.array([
             1.57,       # left_hip1_joint
             1.57,       # right_hip1_joint
             0.436332,   # left_hip2_joint
@@ -101,6 +104,9 @@ class HumanoidLocomotionEnv:
             0.6,        # left_ankle_joint
             0.6         # right_ankle_joint
         ])
+        self._joint_range_lower_mj = self._joint_range_lower_isaac[self._isaac_to_mj]
+        self._joint_range_upper_mj = self._joint_range_upper_isaac[self._isaac_to_mj]
+        self._soft_joint_limit_factor = 0.95
 
         
         # Observation size calculation
@@ -168,7 +174,7 @@ class HumanoidLocomotionEnv:
         self.data.qvel[:] = 0.0
         
         #Set control to match standing joint positions
-        self.data.ctrl[:] = self._standing_qpos[self._q_joint_start:]
+        self.data.ctrl[:] = self._standing_qpos[self._q_joint_start:self._q_joint_start + self._nu]
         
         # Forward kinematics
         mujoco.mj_forward(self.model, self.data)
@@ -206,28 +212,27 @@ class HumanoidLocomotionEnv:
         Returns:
             obs: Observation array
         """
-        # Reorder actions to match actuator ordering
-        reorder_indices = np.array([0, 5, 1, 6, 2, 7, 3, 8, 4, 9])
-        action = action[reorder_indices]
+        # Actions are Isaac-ordered; keep that for obs and convert for MuJoCo actuators
+        action_isaac = action.copy()
+        self._last_act = np.clip(action_isaac, -1.0, 1.0)
+        action_mj = action_isaac[self._isaac_to_mj]
 
         # Extract actuated joint positions from standing pose
         # standing_qpos = [root_pos(3), root_quat(4), joint_pos(10)]
-        standing_joint_pos = self._standing_qpos[7:7 + self._nu]
+        standing_joint_pos = self._standing_qpos[self._q_joint_start:self._q_joint_start + self._nu]
         
         # Scale actions to position offsets (in radians)
         # action_scale controls the maximum offset magnitude
         # Per-joint multipliers further modulate specific joints
-        pos_offsets = action * self._action_scale * self._joint_action_scales
+        pos_offsets = action_mj * self._action_scale * self._joint_action_scales
         
         # Compute target positions: standing_pose + offset
         target_positions = standing_joint_pos + pos_offsets
         
         # Clip to joint limits for safety
-        target_positions = np.clip(
-            target_positions,
-            self._joint_range_lower,
-            self._joint_range_upper
-        )
+        soft_lo = self._joint_range_lower_mj * self._soft_joint_limit_factor
+        soft_hi = self._joint_range_upper_mj * self._soft_joint_limit_factor
+        target_positions = np.clip(target_positions, soft_lo, soft_hi)
 
         # Set control signals (position targets for MuJoCo's position actuators)
         self.data.ctrl[:] = target_positions
@@ -240,7 +245,6 @@ class HumanoidLocomotionEnv:
             mujoco.mj_step(self.model, self.data)
         
         # Update state tracking
-        self._last_act = action.copy()  # Store for observation
         self._step_count += 1
         
         # Get observation
@@ -314,21 +318,26 @@ class HumanoidLocomotionEnv:
             self._cmd_yaw_sin
         )
 
-        # Commands are already in BODY frame, keep as-is
+        # Keep commands in the same frame as lin/ang vel + up (command frame)
         commands = self._commands.copy()
+        if self._use_cmd_yaw_offset:
+            commands = self._rotate_xy(
+                commands,
+                self._cmd_yaw_cos,
+                self._cmd_yaw_sin
+            )
 
         # Joint states
         joint_pos = self.data.qpos[self._q_joint_start:self._q_joint_start + self._nu]
         joint_vel = self.data.qvel[self._qd_joint_start:self._qd_joint_start + self._nu]
 
         # Reorder: 0 5 1 6 2 7 3 8 4 9
-        reorder_indices = np.array([0, 5, 1, 6, 2, 7, 3, 8, 4, 9])
-        joint_pos = joint_pos[reorder_indices]
-        joint_vel = joint_vel[reorder_indices]
+        joint_pos = joint_pos[self._mj_to_isaac]
+        joint_vel = joint_vel[self._mj_to_isaac]
 
         # Scale observations (FIX: use proper scaling like IsaacLab)
-        lo = self._joint_range_lower * 0.95
-        hi = self._joint_range_upper * 0.95
+        lo = self._joint_range_lower_isaac * self._soft_joint_limit_factor
+        hi = self._joint_range_upper_isaac * self._soft_joint_limit_factor
         act_pos_scaled = 2.0 * (joint_pos - lo) / (hi - lo + 1e-6) - 1.0
         #act_pos_scaled = joint_pos / 1.57  # Normalized by joint range
         act_vel = joint_vel * self._dof_vel_scale

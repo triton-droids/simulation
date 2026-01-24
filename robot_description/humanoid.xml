@@ -8,6 +8,9 @@
     <default class="servo">
       <position kp="1" kv="0"/>
     </default>
+    <default class="contact_surface">
+      <geom friction="1.0 0.005 0.0001" solref="0.01 2" solimp="0.9 0.95 0.001"/>
+    </default>
     <geom type="mesh" contype="0" conaffinity="0" group="0"/>
   </default>
 
@@ -65,6 +68,7 @@
   <worldbody>
     <!-- TORSO (now fixed in space) -->
     <body name="torso" pos="0 0 0.2">
+      <site name="torso_top" pos="-0.155 -0.03 0.75" size="0.01" rgba="1 0 0 1"/>
       <geom mesh="torso_visual" material="metal_silver"/>
       <geom name="torso_collision_box" type="box" size="0.14 0.06 0.048"
             pos="-0.154672 -0.03 0.6962" contype="1" conaffinity="1" group="1" material="metal_silver"/>
@@ -119,7 +123,7 @@
                   <joint name="left_ankle_joint" type="hinge" axis="1 0 0" range="-1.57 1.57" pos="0.00958 -0.03 0.031528"/>
 
                   <geom name="left_foot_collision_box" type="box" size="0.04 0.105 0.00763"
-                        pos="-0.00042 -0.005 -0.0045" contype="1" conaffinity="1" group="1"/>
+                        pos="-0.00042 -0.005 -0.0045" class="contact_surface" contype="1" conaffinity="1" group="1"/>
 
                   <geom mesh="left_foot_visual" material="metal_silver"/>
                   <geom mesh="left_foot_sole_visual" material="metal_silver" pos="0.30958 0 0"/>
@@ -170,7 +174,7 @@
                   <joint name="right_ankle_joint" type="hinge" axis="1 0 0" range="-1.57 1.57" pos="-0.320851 -0.03 0.031528"/>
 
                   <geom name="right_foot_collision_box" type="box" size="0.04 0.105 0.00763"
-                        pos="-0.310851 -0.005 -0.0045" contype="1" conaffinity="1" group="1"/>
+                        pos="-0.310851 -0.005 -0.0045" class="contact_surface" contype="1" conaffinity="1" group="1"/>
 
                   <geom mesh="right_foot_visual" material="metal_silver"/>
                   <geom mesh="right_foot_sole_visual" material="metal_silver" pos="-0.310851 0 0"/>

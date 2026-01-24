@@ -9,6 +9,9 @@
     <default class="servo">
       <position kp="1" kv="0"/>
     </default>
+    <default class="contact_surface">
+      <geom friction="1.0 0.005 0.0001" solref="0.01 2" solimp="0.9 0.95 0.001"/>
+    </default>
     <geom type="mesh" contype="0" conaffinity="0" group="0"/>
   </default>
 
@@ -59,7 +62,7 @@
 
   <keyframe>
     <key name="standing_pose" time="0"
-        qpos="0 0 0.025 1 0 0 0 0.3611 0 0 -0.60080008 0.2512 0.3611 0 0 -0.60080008 0.2512"
+        qpos="0 0 0.017 1 0 0 0 0.3 0 0 -0.8 0.4 0.3 0 0 -0.8 0.4"
         qvel="0 0 0  0 0 0   0 0 0 0 0 0 0 0 0 0"
         ctrl="0.3611 0 0 -0.60080008 0.2512 0.3611 0 0 -0.60080008 0.2512"/>
   </keyframe>
@@ -68,7 +71,7 @@
     <key name="locomotion_standing_pose" time="0"
         qpos="0 0 0.025  1 0 0 0 0.3 0 0 -0.8 0.4 0.3 0 0 -0.8 0.4"
         qvel="0 0 0  0 0 0   0 0 0 0 0 0 0 0 0 0"
-        ctrl="-0.8 0.4 0.3 0 0 -0.8 0.4"/>
+        ctrl="-0.8 0.4 0.3 0 0 -0.8 0.4 0.3 0 0"/>
   </keyframe>
 
 
@@ -81,14 +84,12 @@
     <light pos="-2 2 3" dir="0.5 -0.5 -1" diffuse="0.5 0.5 0.5" specular="0.1 0.1 0.1" directional="false"/>
 
     <geom name="floor" type="plane" size="5 5 0.1" material="grid"
-      contype="1" conaffinity="1"
-      solref="0.01 2" solimp="0.9 0.95 0.001"
-      friction="0.3 0.02 0.001"/>
+      class="contact_surface" contype="1" conaffinity="1"/>
 
 
     <!-- TORSO (URDF: link "torso") -->
-    <body name="torso" pos="0 0 0.2">
-      <site name="torso_top" pos="0 0 0.725" size="0.01" rgba="1 0 0 1"/>
+    <body name="torso" pos="0 0 0.03">
+      <site name="torso_top" pos="-0.155 -0.03 0.77" size="0.01" rgba="1 0 0 1"/>
       <freejoint name="root"/>
 
       <geom mesh="torso_visual" material="metal_silver"/>
@@ -129,7 +130,7 @@
                       fullinertia="0.006082 0.005232 0.002818 0.000025844041 0.000000765045 -0.0005798"/>
 
             <body name="left_leg3" pos="0 0 0">
-              <joint name="left_thigh_joint" type="hinge" axis="0 0 1" range="-0.785398 0.785398" pos="-0.000048 -0.029495 0.463816"/>
+              <joint name="left_thigh_joint" type="hinge" axis="0 0 -1" range="-0.785398 0.785398" pos="-0.000048 -0.029495 0.463816"/>
               <geom mesh="left_leg3" contype="1" conaffinity="1" group="1"/>
               <geom mesh="left_leg3_visual" material="metal_silver"/>
               <inertial pos="0.005174 -0.030248 0.318931"
@@ -151,7 +152,7 @@
                        left: urdf_collision(-0.01, 0.025, -0.035) - urdf_visual(-0.00958, 0.03, -0.031528)
                              = (-0.00042, -0.005, -0.003472) -->
                   <geom name="left_foot_collision_box" type="box" size="0.04 0.105 0.00763"
-                        pos="-0.00042 -0.005 -0.0045" contype="1" conaffinity="1" group="1"/>
+                        pos="-0.00042 -0.005 -0.0045" class="contact_surface" contype="1" conaffinity="1" group="1"/>
 
                   <!-- Foot visuals -->
                   <geom mesh="left_foot_visual" material="metal_silver"/>
@@ -207,7 +208,7 @@
                        right: urdf_collision(0.01, 0.025, -0.035) - urdf_visual(0.320851, 0.03, -0.031528)
                               = (-0.310851, -0.005, -0.003472) -->
                   <geom name="right_foot_collision_box" type="box" size="0.04 0.105 0.00763"
-                        pos="-0.310851 -0.005 -0.0045" contype="1" conaffinity="1" group="1"/>
+                        pos="-0.310851 -0.005 -0.0045" class="contact_surface" contype="1" conaffinity="1" group="1"/>
 
                   <!-- Foot visuals -->
                   <geom mesh="right_foot_visual" material="metal_silver"/>

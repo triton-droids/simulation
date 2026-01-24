@@ -49,7 +49,12 @@ def load_model_with_hotreload(mjcf_path, model_type="scene"):
             # Run diagnostics
             if model.nq >= 7:  # Has freejoint
                 com = data.subtree_com[1] if len(data.subtree_com) > 1 else data.subtree_com[0]
-                print(f"  Base height: {data.qpos[2]:.4f}m")
+                site_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, "torso_top")
+                if site_id != -1:
+                    base_height = data.site_xpos[site_id, 2]
+                else:
+                    base_height = data.qpos[2]
+                print(f"  Base height: {base_height:.4f}m")
                 print(f"  COM position: x={com[0]:.3f}, y={com[1]:.3f}, z={com[2]:.3f}")
                 print(f"  Model type: Mobile (with freejoint)")
             else:
