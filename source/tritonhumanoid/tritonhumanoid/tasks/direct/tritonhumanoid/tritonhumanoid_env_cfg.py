@@ -367,11 +367,11 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
             "gyro_bias_range": (0.0, 0.2),
         },
         "micro_wrench": {
-            "lin_acc_std": (0.0, 1.0),
-            "ang_acc_std": (0.0, 3.0),
-            "rho": (0.0, 0.95),
-            "max_lin_acc": (0.0, 3.0),
-            "max_ang_acc": (0.0, 8.0),
+            "lin_acc_std": (0.0, 0.2),
+            "ang_acc_std": (0.0, 0.5),
+            "rho": (0.0, 0.6),
+            "max_lin_acc": (0.0, 0.5),
+            "max_ang_acc": (0.0, 1.5),
         },
         # command magnitude scaling
         "command_scale": {
