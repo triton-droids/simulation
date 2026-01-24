@@ -299,11 +299,6 @@ class LocomotionEnv(DirectRLEnv):
         # feet tracking flag
         self._feet_inited = False
 
-        # --- Command curriculum tracking (global env-steps) ---
-        self._global_env_steps = 0
-        self._current_curriculum_stage = 0  # 0=forward, 1=+yaw, 2=+lateral
-        self._curriculum_stage_names = ["forward-only", "forward+yaw", "forward+yaw+lateral"]
-
         # --- Visualization markers setup ---
         self._visualization_enabled = getattr(self.cfg, "debug_vel_vis", False)
         self._visualize_all_envs = False
@@ -745,8 +740,6 @@ class LocomotionEnv(DirectRLEnv):
 
         if self._global_policy_step < int(getattr(self.cfg, "adr_warmup_steps", 0)):
             return
-        if self._current_curriculum_stage < int(getattr(self.cfg, "adr_min_stage", 0)):
-            return
         ema_k = float(self.cfg.adr_ema_factor)
         self.success_rate_ema[:] = (1.0 - ema_k) * self.success_rate_ema + ema_k * batch_success_rate
         self.lin_err_ema[:] = (1.0 - ema_k) * self.lin_err_ema + ema_k * batch_lin_err
@@ -876,10 +869,6 @@ class LocomotionEnv(DirectRLEnv):
 
         self.prev_actions[:] = self.actions
         self.actions = a
-
-        # Update curriculum based on global env-steps
-        self._global_env_steps += self.num_envs
-        self._update_curriculum()
 
         # scheduled pushes + micro disturbances (ADR)
         self._maybe_apply_pushes()
@@ -1381,7 +1370,6 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["diagnostics/yaw_err"] = float(yaw_err.abs().mean().item())
             self.extras["diagnostics/contact_rate"] = float(foot_contact.float().mean().item())
             self.extras["diagnostics/avg_air_time"] = float(air_time.mean().item())
-            self.extras["diagnostics/curriculum_stage"] = float(self._current_curriculum_stage)
 
         return reward
 
@@ -1489,33 +1477,6 @@ class LocomotionEnv(DirectRLEnv):
             self.obs_stack_buf[env_ids] = 0.0
             self.obs_stack_buf[env_ids, :, -1] = obs0[env_ids]
 
-    def _update_curriculum(self):
-        """Check if we should advance to the next curriculum stage based on per-env steps."""
-        if not self.cfg.use_curriculum:
-            return
-
-        old_stage = self._current_curriculum_stage
-
-        # Calculate average steps per environment
-        per_env_steps = self._global_env_steps / float(self.num_envs)
-
-        # Stage progression based on per-env steps (independent of num_envs)
-        if per_env_steps >= self.cfg.curriculum_stage2_steps_per_env:
-            self._current_curriculum_stage = 2  # full: vx, vy, yaw
-        elif per_env_steps >= self.cfg.curriculum_stage1_steps_per_env:
-            self._current_curriculum_stage = 1  # vx + yaw
-        else:
-            self._current_curriculum_stage = 0  # vx only
-
-        # Print when we advance
-        if self._current_curriculum_stage != old_stage:
-            stage_name = self._curriculum_stage_names[self._current_curriculum_stage]
-            print(f"\n{'='*60}")
-            print(f"[Command Curriculum] Advanced to Stage {self._current_curriculum_stage}: {stage_name}")
-            print(f"  Global env-steps: {self._global_env_steps}")
-            print(f"  Per-env steps: {per_env_steps:.1f}")
-            print(f"{'='*60}\n")
-
     def _sample_commands(self, env_ids: torch.Tensor):
         """Sample velocity commands from configured ranges."""
         n = len(env_ids)
@@ -1528,9 +1489,6 @@ class LocomotionEnv(DirectRLEnv):
         self.commands[env_ids, 2] = torch.empty(n, device=self.sim.device).uniform_(yaw_min, yaw_max)
 
         command_scale = float(self._command_scale)
-        min_stage = int(getattr(self.cfg, "adr_command_scale_min_stage", 0))
-        if self.cfg.use_curriculum and self._current_curriculum_stage < min_stage:
-            command_scale = 1.0
         if command_scale != 1.0:
             self.commands[env_ids] *= command_scale
 
