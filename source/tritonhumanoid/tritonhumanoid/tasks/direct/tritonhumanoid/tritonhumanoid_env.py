@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import math
 from copy import deepcopy
+from collections import deque
 import torch
 
 import isaaclab.sim as sim_utils
@@ -167,9 +168,9 @@ class LocomotionEnv(DirectRLEnv):
 
     def __init__(self, cfg: DirectRLEnvCfg, render_mode: str | None = None, **kwargs):
         obs_stack_frames = max(1, int(getattr(cfg, "obs_stack_frames", 1)))
-        obs_single_dim = 1 + 3 + 3 + 3 + 3 + cfg.action_space * 3
+        obs_single_dim = 3 + 3 + 3 + 3 + cfg.action_space * 3
         if cfg.use_phase_obs:
-            obs_single_dim += 2
+            obs_single_dim += 4
         cfg.observation_space_single = obs_single_dim
         cfg.obs_stack_frames = obs_stack_frames
         cfg.observation_space = obs_single_dim * obs_stack_frames
@@ -248,6 +249,20 @@ class LocomotionEnv(DirectRLEnv):
 
         self.actuated_lower = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 0].clone()
         self.actuated_upper = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 1].clone()
+        # effective limits with margin
+        margin_abs = float(getattr(self.cfg, "action_limit_margin", 0.0))
+        margin_frac = float(getattr(self.cfg, "action_limit_margin_frac", 0.0))
+        joint_range = self.actuated_upper - self.actuated_lower
+        margin = torch.clamp(joint_range * margin_frac, min=0.0) + margin_abs
+        self.actuated_lower_eff = self.actuated_lower + margin
+        self.actuated_upper_eff = self.actuated_upper - margin
+        # ensure lower < upper
+        slack = torch.full_like(self.actuated_lower_eff, 1e-4)
+        self.actuated_lower_eff = torch.minimum(self.actuated_lower_eff, self.actuated_upper_eff - slack)
+        self.actuated_upper_eff = torch.maximum(self.actuated_upper_eff, self.actuated_lower_eff + slack)
+        # per-joint distances from default pose to effective limits
+        self._d_neg = (self.default_actuated_pos - self.actuated_lower_eff).clamp(min=1e-6)
+        self._d_pos = (self.actuated_upper_eff - self.default_actuated_pos).clamp(min=1e-6)
 
         # buffers
         self.actions = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
@@ -262,6 +277,16 @@ class LocomotionEnv(DirectRLEnv):
 
         # commanded base velocity in BODY frame: [vx, vy, yaw_rate]
         self.commands = torch.zeros(self.num_envs, 3, device=self.sim.device)
+        self._commands_for_reward = torch.zeros_like(self.commands)
+
+        # gait phase state (2D: left/right)
+        self._two_pi = 2.0 * math.pi
+        self._pi = math.pi
+        self.phase_offset = torch.zeros(self.num_envs, 2, device=self.sim.device)
+        self.phase = torch.zeros(self.num_envs, 2, device=self.sim.device)
+        self.gait_freq = torch.zeros(self.num_envs, device=self.sim.device)
+        self.phase_dt = torch.zeros(self.num_envs, device=self.sim.device)
+        self._was_standing = torch.zeros(self.num_envs, dtype=torch.bool, device=self.sim.device)
 
         # rotate body-frame vectors to align forward axis with command frame
         self._command_yaw_offset = float(getattr(self.cfg, "command_yaw_offset", 0.0))
@@ -304,6 +329,10 @@ class LocomotionEnv(DirectRLEnv):
         else:
             self.obs_stack_buf = None
 
+        # observation term config (noise/scale/clip)
+        self._obs_term_cfg = self._init_obs_term_cfg()
+        self._obs_term_names, self._obs_term_sizes = self._build_obs_term_layout()
+
         # debug observation printing
         self._debug_obs_print = bool(getattr(self.cfg, "debug_obs_print", False))
         self._debug_obs_print_steps = int(getattr(self.cfg, "debug_obs_print_steps", 0))
@@ -316,16 +345,8 @@ class LocomotionEnv(DirectRLEnv):
             nonlocal offset
             self._obs_debug_slices.append((name, offset, offset + size))
             offset += size
-        _add_obs_slice("height", 1)
-        _add_obs_slice("lin_vel_cmd", 3)
-        _add_obs_slice("ang_vel_cmd_scaled", 3)
-        _add_obs_slice("up_cmd", 3)
-        _add_obs_slice("commands", 3)
-        _add_obs_slice("act_pos_scaled", self.num_actions)
-        _add_obs_slice("act_vel_scaled", self.num_actions)
-        _add_obs_slice("prev_actions", self.num_actions)
-        if bool(getattr(self.cfg, "use_phase_obs", False)):
-            _add_obs_slice("phase_clock", 2)
+        for name in self._obs_term_names:
+            _add_obs_slice(name, self._obs_term_sizes[name])
         self._obs_debug_dim = offset
 
         if bool(getattr(self.cfg, "debug_print_orderings", False)):
@@ -353,6 +374,56 @@ class LocomotionEnv(DirectRLEnv):
             dtype=torch.long,
             device=self.sim.device,
         )
+
+        # command resampling cadence
+        steps_cfg = int(getattr(self.cfg, "command_resample_interval_steps", 0))
+        if steps_cfg > 0:
+            self._command_resample_interval_steps = steps_cfg
+        else:
+            resample_s = float(getattr(self.cfg, "command_resample_interval_s", 0.0))
+            if resample_s > 0.0:
+                self._command_resample_interval_steps = max(1, int(resample_s / self._control_dt))
+            else:
+                self._command_resample_interval_steps = 0
+        self._last_command_resample_step = torch.full(
+            (self.num_envs,),
+            -1,
+            dtype=torch.long,
+            device=self.sim.device,
+        )
+        self._reset_gait_state(self.robot._ALL_INDICES)
+
+        # penalty curriculum state (episode-length driven)
+        self._penalty_curriculum_enabled = bool(getattr(self.cfg, "penalty_curriculum_enabled", False))
+        self._penalty_scale = float(getattr(self.cfg, "penalty_curriculum_min_scale", 1.0)) if self._penalty_curriculum_enabled else 1.0
+        self._avg_ep_len = 0.0
+        self._penalty_use_ema = bool(getattr(self.cfg, "penalty_curriculum_use_ema", True))
+        self._penalty_ema_alpha = float(getattr(self.cfg, "penalty_curriculum_ema_alpha", 0.05))
+        self._penalty_recent_lens = None
+        if self._penalty_curriculum_enabled and not self._penalty_use_ema:
+            window = int(getattr(self.cfg, "penalty_curriculum_window", 256))
+            self._penalty_recent_lens = deque(maxlen=max(1, window))
+        self._penalty_mode = str(getattr(self.cfg, "penalty_curriculum_mode", "smooth"))
+        self._penalty_base_weights = {
+            "action_cost_scale": float(self.cfg.action_cost_scale),
+            "pose_return_scale": float(self.cfg.pose_return_scale),
+            "lin_vel_z_cost_scale": float(self.cfg.lin_vel_z_cost_scale),
+            "ang_vel_xy_cost_scale": float(self.cfg.ang_vel_xy_cost_scale),
+            "flat_ori_cost_scale": float(self.cfg.flat_ori_cost_scale),
+            "action_rate_cost_scale": float(self.cfg.action_rate_cost_scale),
+            "dof_vel_cost_scale": float(self.cfg.dof_vel_cost_scale),
+            "dof_vel_delta_cost_scale": float(self.cfg.dof_vel_delta_cost_scale),
+            "energy_cost_scale": float(self.cfg.energy_cost_scale),
+            "standstill_penalty_scale": float(self.cfg.standstill_penalty_scale),
+            "symmetry_cost_scale": float(self.cfg.symmetry_cost_scale),
+            "thigh_pose_cost_scale": float(self.cfg.thigh_pose_cost_scale),
+            "air_time_symmetry_cost_scale": float(self.cfg.air_time_symmetry_cost_scale),
+            "foot_slip_cost_scale": float(self.cfg.foot_slip_cost_scale),
+        }
+        self._penalty_fixed_weights = {
+            "joint_limit_cost_scale": float(self.cfg.joint_limit_cost_scale),
+            "undesired_contact_cost_scale": float(self.cfg.undesired_contact_cost_scale),
+        }
 
         # -----------------------
         # ADR state + buffers
@@ -414,8 +485,14 @@ class LocomotionEnv(DirectRLEnv):
 
         # push timers
         self.dt = self.cfg.sim.dt * self.cfg.decimation
-        min_steps = max(1, int(self.cfg.min_push_interval_s / self.dt))
-        max_steps = max(min_steps, int(self.cfg.max_push_interval_s / self.dt))
+        if bool(getattr(self.cfg, "push_strong", False)):
+            min_s = float(getattr(self.cfg, "strong_min_push_interval_s", 1.0))
+            max_s = float(getattr(self.cfg, "strong_max_push_interval_s", 3.0))
+        else:
+            min_s = float(getattr(self.cfg, "min_push_interval_s", 5.0))
+            max_s = float(getattr(self.cfg, "max_push_interval_s", 10.0))
+        min_steps = max(1, int(min_s / self.dt))
+        max_steps = max(min_steps, int(max_s / self.dt))
         self._push_interval_steps_min = min_steps
         self._push_interval_steps_max = max_steps
         self.push_counters = torch.zeros(self.num_envs, dtype=torch.int32, device=self.sim.device)
@@ -516,18 +593,31 @@ class LocomotionEnv(DirectRLEnv):
 
     def _sample_custom_dr_for_resets(self, env_ids: torch.Tensor) -> None:
         """Sample per-episode random variables: latency, motor strength, IMU bias."""
-        if self.adr is None or env_ids.numel() == 0:
-            self.motor_strength_mult[env_ids] = 1.0
-            self.act_latency_steps[env_ids] = 0
-            self.obs_latency_steps[env_ids] = 0
-            self.imu_bias_gravity[env_ids] = 0.0
-            self.imu_bias_gyro[env_ids] = 0.0
-            self.imu_mount_axis[env_ids] = torch.tensor([1.0, 0.0, 0.0], device=self.sim.device).repeat(env_ids.numel(), 1)
-            self.imu_mount_ang[env_ids] = 0.0
+        if env_ids.numel() == 0:
             return
 
         device = self.sim.device
 
+        # --- Action latency (always sampled; reuses existing latency buffers) ---
+        lo_lat, hi_lat = getattr(self.cfg, "act_latency_reset_range", (0, 0))
+        lo_lat = int(max(0, lo_lat))
+        hi_lat = int(max(lo_lat, min(self.act_max_latency, hi_lat)))
+        if hi_lat > 0:
+            self.act_latency_steps[env_ids] = torch.randint(lo_lat, hi_lat + 1, (env_ids.numel(),), device=device)
+        else:
+            self.act_latency_steps[env_ids] = 0
+
+        # If ADR is disabled, neutralize other DR terms and return
+        if self.adr is None:
+            self.motor_strength_mult[env_ids] = 1.0
+            self.obs_latency_steps[env_ids] = 0
+            self.imu_bias_gravity[env_ids] = 0.0
+            self.imu_bias_gyro[env_ids] = 0.0
+            self.imu_mount_axis[env_ids] = torch.tensor([1.0, 0.0, 0.0], device=device).repeat(env_ids.numel(), 1)
+            self.imu_mount_ang[env_ids] = 0.0
+            return
+
+        # --- ADR-driven ranges (when enabled) ---
         r = float(self.adr.get_custom("motor_strength", "per_joint_mult_range"))
         if r > 0.0:
             lo, hi = 1.0 - r, 1.0 + r
@@ -657,7 +747,6 @@ class LocomotionEnv(DirectRLEnv):
             return
         if self._current_curriculum_stage < int(getattr(self.cfg, "adr_min_stage", 0)):
             return
-
         ema_k = float(self.cfg.adr_ema_factor)
         self.success_rate_ema[:] = (1.0 - ema_k) * self.success_rate_ema + ema_k * batch_success_rate
         self.lin_err_ema[:] = (1.0 - ema_k) * self.lin_err_ema + ema_k * batch_lin_err
@@ -720,8 +809,54 @@ class LocomotionEnv(DirectRLEnv):
                 if getattr(self.cfg, "adr_print_every_update", True):
                     print(self.adr.print_params())
 
+    def _update_penalty_curriculum(self, env_ids: torch.Tensor, time_out_buf: torch.Tensor) -> None:
+        if not self._penalty_curriculum_enabled or env_ids.numel() == 0:
+            return
+
+        exclude_timeouts = bool(getattr(self.cfg, "penalty_curriculum_exclude_timeouts", False))
+        if exclude_timeouts:
+            valid = ~time_out_buf
+            env_ids = env_ids[valid]
+            if env_ids.numel() == 0:
+                return
+
+        ep_lens = self.episode_length_buf[env_ids].float()
+        batch_mean = float(ep_lens.mean().item())
+
+        if self._penalty_use_ema:
+            self._avg_ep_len = (1.0 - self._penalty_ema_alpha) * self._avg_ep_len + self._penalty_ema_alpha * batch_mean
+        else:
+            if self._penalty_recent_lens is not None:
+                for L in ep_lens.tolist():
+                    self._penalty_recent_lens.append(int(L))
+                self._avg_ep_len = float(sum(self._penalty_recent_lens)) / float(max(1, len(self._penalty_recent_lens)))
+
+        min_scale = float(getattr(self.cfg, "penalty_curriculum_min_scale", 0.1))
+        max_scale = float(getattr(self.cfg, "penalty_curriculum_max_scale", 1.0))
+        max_steps = float(self.max_episode_length)
+
+        if self._penalty_mode == "threshold":
+            degree = float(getattr(self.cfg, "penalty_curriculum_degree", 0.02))
+            low_frac = float(getattr(self.cfg, "penalty_curriculum_low_len_frac", 0.2))
+            high_frac = float(getattr(self.cfg, "penalty_curriculum_high_len_frac", 0.8))
+            low_len = max(1.0, low_frac * max_steps)
+            high_len = max(low_len + 1.0, high_frac * max_steps)
+            if self._avg_ep_len < low_len:
+                self._penalty_scale *= (1.0 - degree)
+            elif self._avg_ep_len > high_len:
+                self._penalty_scale *= (1.0 + degree)
+            self._penalty_scale = float(max(min_scale, min(max_scale, self._penalty_scale)))
+
+        else:
+            target_frac = float(getattr(self.cfg, "penalty_curriculum_target_len_frac", 0.8))
+            power = float(getattr(self.cfg, "penalty_curriculum_power", 2.0))
+            target_len = max(1.0, target_frac * max_steps)
+            progress = max(0.0, min(1.0, self._avg_ep_len / target_len))
+            self._penalty_scale = float(min_scale + (max_scale - min_scale) * (progress ** power))
+
     def _pre_physics_step(self, actions: torch.Tensor):
         self._global_policy_step += 1
+        self._commands_for_reward.copy_(self.commands)
 
         a = actions.clone().clamp(-1.0, 1.0)
 
@@ -754,14 +889,21 @@ class LocomotionEnv(DirectRLEnv):
             self._visualize_markers()
 
     def _apply_action(self):
-        pos_offsets = (
+        # piecewise joint-limit-aware scaling
+        d_pos = self._d_pos.unsqueeze(0)  # [1, J]
+        d_neg = self._d_neg.unsqueeze(0)  # [1, J]
+        a = self.actions
+        offsets = torch.where(a >= 0.0, a * d_pos, a * d_neg)
+
+        offsets = (
             self.action_scale
             * self._action_scale_per_joint.unsqueeze(0)
-            * self.actions
+            * offsets
             * self.motor_strength_mult
-        )  # [N, 10]
-        q_des = self.default_actuated_pos.unsqueeze(0) + pos_offsets
-        q_des = torch.clamp(q_des, self.actuated_lower.unsqueeze(0), self.actuated_upper.unsqueeze(0))
+        )
+
+        q_des = self.default_actuated_pos.unsqueeze(0) + offsets
+        q_des = torch.clamp(q_des, self.actuated_lower_eff.unsqueeze(0), self.actuated_upper_eff.unsqueeze(0))
         self.q_des = q_des
         self.robot.set_joint_position_target(q_des, joint_ids=self._joint_dof_idx)
 
@@ -897,54 +1039,98 @@ class LocomotionEnv(DirectRLEnv):
 
         self.visualization_markers.visualize(loc, rots, marker_indices=indices)
 
+    def _init_obs_term_cfg(self) -> dict[str, dict]:
+        base_cfg = {
+            "base_ang_vel": {"noise": 0.05, "scale": float(self.cfg.ang_vel_scale), "clip": 5.0},
+            "base_lin_vel": {"noise": 0.05, "scale": 1.0, "clip": 5.0},
+            "commands": {"noise": 0.0, "scale": 1.0, "clip": 1.0},
+            "dof_pos_delta": {"noise": 0.01, "scale": 1.0, "clip": 2.0},
+            "dof_vel": {"noise": 0.1, "scale": float(self.cfg.dof_vel_scale), "clip": 5.0},
+            "prev_actions": {"noise": 0.0, "scale": 1.0, "clip": 1.0},
+            "projected_gravity": {"noise": 0.01, "scale": 1.0, "clip": 1.0},
+            "phase": {"noise": 0.0, "scale": 1.0, "clip": 1.0},
+        }
+        cfg_terms = deepcopy(getattr(self.cfg, "obs_term_cfg", {}))
+        for name, overrides in cfg_terms.items():
+            if name not in base_cfg:
+                base_cfg[name] = {}
+            if isinstance(overrides, dict):
+                base_cfg[name].update(overrides)
+        return base_cfg
+
+    def _build_obs_term_layout(self) -> tuple[list[str], dict[str, int]]:
+        sizes = {
+            "base_ang_vel": 3,
+            "base_lin_vel": 3,
+            "commands": 3,
+            "dof_pos_delta": self.num_actions,
+            "dof_vel": self.num_actions,
+            "prev_actions": self.num_actions,
+            "projected_gravity": 3,
+        }
+        if bool(getattr(self.cfg, "use_phase_obs", False)):
+            sizes["phase"] = 4
+        names = sorted(sizes.keys())
+        return names, sizes
+
     def _compute_single_observation(self) -> torch.Tensor:
-        up_cmd = self.up_cmd
-        ang_vel_cmd = self.torso_ang_vel_cmd
-        act_pos_scaled = self.act_pos_scaled
-        act_vel = self.act_vel
+        projected_gravity = -self.up_b
+        base_ang_vel = self.torso_ang_vel_b
+        base_lin_vel = self.torso_lin_vel_b
 
         # IMU biases + mount misalignment (ADR)
-        up_cmd = up_cmd + self.imu_bias_gravity
-        ang_vel_cmd = ang_vel_cmd + self.imu_bias_gyro
+        projected_gravity = projected_gravity + self.imu_bias_gravity
+        base_ang_vel = base_ang_vel + self.imu_bias_gyro
 
         theta = self.imu_mount_axis * self.imu_mount_ang.unsqueeze(-1)
-        up_cmd = up_cmd + torch.cross(theta, up_cmd, dim=-1)
-        ang_vel_cmd = ang_vel_cmd + torch.cross(theta, ang_vel_cmd, dim=-1)
+        projected_gravity = projected_gravity + torch.cross(theta, projected_gravity, dim=-1)
+        base_ang_vel = base_ang_vel + torch.cross(theta, base_ang_vel, dim=-1)
 
-        # Observation noise (ADR)
-        if self.adr is not None:
-            if self._obs_noise["gravity_std"] > 0.0:
-                up_cmd = up_cmd + torch.randn_like(up_cmd) * self._obs_noise["gravity_std"]
-            if self._obs_noise["gyro_std"] > 0.0:
-                ang_vel_cmd = ang_vel_cmd + torch.randn_like(ang_vel_cmd) * self._obs_noise["gyro_std"]
-            if self._obs_noise["joint_pos_std"] > 0.0:
-                act_pos_scaled = act_pos_scaled + torch.randn_like(act_pos_scaled) * self._obs_noise["joint_pos_std"]
-            if self._obs_noise["joint_vel_std"] > 0.0:
-                act_vel = act_vel + torch.randn_like(act_vel) * self._obs_noise["joint_vel_std"]
+        dof_pos_delta = self.act_pos - self.default_actuated_pos.unsqueeze(0)
+        dof_vel = self.act_vel
 
-        obs = torch.cat(
-            (
-                self.torso_pos_w[:, 2:3],                        # height
-                self.torso_lin_vel_cmd,                          # command-frame lin vel
-                ang_vel_cmd * self.cfg.ang_vel_scale,            # command-frame ang vel
-                up_cmd,                                          # IMU-ish orientation feature
-                self.commands,                                   # commanded [vx, vy, yaw_rate] in BODY frame
-                act_pos_scaled,
-                act_vel * self.cfg.dof_vel_scale,
-                self.prev_actions,
-            ),
-            dim=-1,
-        )
+        terms: dict[str, torch.Tensor] = {
+            "base_ang_vel": base_ang_vel,
+            "base_lin_vel": base_lin_vel,
+            "commands": self.commands,
+            "dof_pos_delta": dof_pos_delta,
+            "dof_vel": dof_vel,
+            "prev_actions": self.prev_actions,
+            "projected_gravity": projected_gravity,
+        }
+        if bool(getattr(self.cfg, "use_phase_obs", False)):
+            sin_phase = torch.sin(self.phase)
+            cos_phase = torch.cos(self.phase)
+            terms["phase"] = torch.cat([sin_phase, cos_phase], dim=1)
 
-        if self.cfg.use_phase_obs:
-            t = self.episode_length_buf.float() * self._control_dt
-            phase = 2.0 * torch.pi * (t / self.cfg.gait_period_s)
-            clock = torch.stack([torch.sin(phase), torch.cos(phase)], dim=1)
-            obs = torch.cat([obs, clock], dim=-1)
+        obs_pieces = []
+        for name in self._obs_term_names:
+            x = terms[name]
+            cfg = self._obs_term_cfg.get(name, {})
+            noise = float(cfg.get("noise", 0.0))
+            if noise > 0.0:
+                x = x + (torch.rand_like(x) * 2.0 - 1.0) * noise
+            scale = cfg.get("scale", 1.0)
+            if isinstance(scale, (list, tuple)):
+                scale_t = torch.tensor(scale, device=x.device, dtype=x.dtype)
+                if scale_t.numel() == x.shape[-1]:
+                    x = x * scale_t
+                else:
+                    x = x * float(scale_t.flatten()[0].item())
+            else:
+                x = x * float(scale)
+            clip = cfg.get("clip", None)
+            if clip is not None:
+                clip_val = float(clip)
+                if clip_val > 0.0:
+                    x = torch.clamp(x, -clip_val, clip_val)
+            obs_pieces.append(x)
 
-        return obs
+        return torch.cat(obs_pieces, dim=-1)
 
     def _get_observations(self) -> dict:
+        self._maybe_resample_commands()
+        self._update_gait_phase()
         self._update_state()
         obs = self._compute_single_observation()
 
@@ -986,8 +1172,8 @@ class LocomotionEnv(DirectRLEnv):
         self._update_state()
 
         # --- Base velocity tracking ---
-        vel_err = self.torso_lin_vel_cmd[:, :2] - self.commands[:, :2]
-        yaw_err = self.torso_ang_vel_cmd[:, 2]  - self.commands[:, 2]
+        vel_err = self.torso_lin_vel_b[:, :2] - self._commands_for_reward[:, :2]
+        yaw_err = self.torso_ang_vel_b[:, 2]  - self._commands_for_reward[:, 2]
 
         r_lin = torch.exp(-torch.sum(vel_err * vel_err, dim=1) / self.cfg.lin_vel_sigma)
         r_yaw = torch.exp(-(yaw_err * yaw_err) / self.cfg.yaw_rate_sigma)
@@ -1000,10 +1186,28 @@ class LocomotionEnv(DirectRLEnv):
 
         upright = torch.clamp(self.up_b[:, 2], 0.0, 1.0)
 
-        cmd_speed = torch.norm(self.commands[:, :2], dim=1)
+        cmd_speed = torch.norm(self._commands_for_reward[:, :2], dim=1)
         act_speed = torch.norm(self.torso_lin_vel_b[:, :2], dim=1)
         standstill = torch.clamp(self.cfg.standstill_speed_threshold - act_speed, min=0.0)
         standstill = standstill * (cmd_speed > self.cfg.command_speed_threshold).float()
+
+        penalty_scale = self._penalty_scale if self._penalty_curriculum_enabled else 1.0
+        w_action_cost = self._penalty_base_weights["action_cost_scale"] * penalty_scale
+        w_joint_limit = self._penalty_fixed_weights["joint_limit_cost_scale"]
+        w_pose_return = self._penalty_base_weights["pose_return_scale"] * penalty_scale
+        w_lin_vel_z = self._penalty_base_weights["lin_vel_z_cost_scale"] * penalty_scale
+        w_ang_vel_xy = self._penalty_base_weights["ang_vel_xy_cost_scale"] * penalty_scale
+        w_flat_ori = self._penalty_base_weights["flat_ori_cost_scale"] * penalty_scale
+        w_action_rate = self._penalty_base_weights["action_rate_cost_scale"] * penalty_scale
+        w_dof_vel = self._penalty_base_weights["dof_vel_cost_scale"] * penalty_scale
+        w_dof_vel_delta = self._penalty_base_weights["dof_vel_delta_cost_scale"] * penalty_scale
+        w_energy = self._penalty_base_weights["energy_cost_scale"] * penalty_scale
+        w_standstill = self._penalty_base_weights["standstill_penalty_scale"] * penalty_scale
+        w_symmetry = self._penalty_base_weights["symmetry_cost_scale"] * penalty_scale
+        w_thigh_pose = self._penalty_base_weights["thigh_pose_cost_scale"] * penalty_scale
+        w_air_time_sym = self._penalty_base_weights["air_time_symmetry_cost_scale"] * penalty_scale
+        w_slip = self._penalty_base_weights["foot_slip_cost_scale"] * penalty_scale
+        w_undesired = self._penalty_fixed_weights["undesired_contact_cost_scale"]
 
         act_cost = torch.sum(self.actions * self.actions, dim=1)
         at_limit = torch.sum(torch.abs(self.act_pos_scaled) > 0.98, dim=1).float()
@@ -1012,7 +1216,7 @@ class LocomotionEnv(DirectRLEnv):
         pose_pen = (pose_err * pose_err).mean(dim=1)
         pose_return_penalty = torch.where(
             self.up_b[:, 2] > self.cfg.pose_return_upright_threshold,
-            self.cfg.pose_return_scale * pose_pen,
+            w_pose_return * pose_pen,
             torch.zeros_like(pose_pen),
         )
 
@@ -1095,23 +1299,23 @@ class LocomotionEnv(DirectRLEnv):
             + self.cfg.yaw_rate_reward_scale * r_yaw
             + self.cfg.upright_reward_scale * upright
             + self.cfg.alive_reward
-            - self.cfg.action_cost_scale * act_cost
-            - self.cfg.joint_limit_cost_scale * at_limit
+            - w_action_cost * act_cost
+            - w_joint_limit * at_limit
             - pose_return_penalty
-            - self.cfg.lin_vel_z_cost_scale * lin_vel_z_cost
-            - self.cfg.ang_vel_xy_cost_scale * ang_vel_xy_cost
-            - self.cfg.flat_ori_cost_scale * flat_ori_cost
-            - self.cfg.action_rate_cost_scale * action_rate_cost
-            - self.cfg.dof_vel_cost_scale * dof_vel_cost
-            - self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost
-            - self.cfg.energy_cost_scale * energy_cost
-            - self.cfg.standstill_penalty_scale * standstill
-            - self.cfg.symmetry_cost_scale * sym_pen
-            - self.cfg.thigh_pose_cost_scale * thigh_pose_pen
+            - w_lin_vel_z * lin_vel_z_cost
+            - w_ang_vel_xy * ang_vel_xy_cost
+            - w_flat_ori * flat_ori_cost
+            - w_action_rate * action_rate_cost
+            - w_dof_vel * dof_vel_cost
+            - w_dof_vel_delta * dof_vel_delta_cost
+            - w_energy * energy_cost
+            - w_standstill * standstill
+            - w_symmetry * sym_pen
+            - w_thigh_pose * thigh_pose_pen
             + self.cfg.feet_air_time_reward_scale * air_rew
-            - self.cfg.air_time_symmetry_cost_scale * air_time_sym_pen
-            - self.cfg.foot_slip_cost_scale * slip_cost
-            - self.cfg.undesired_contact_cost_scale * undesired
+            - w_air_time_sym * air_time_sym_pen
+            - w_slip * slip_cost
+            - w_undesired * undesired
         )
 
         reward = torch.where(self.reset_terminated, torch.ones_like(reward) * self.cfg.death_cost, reward)
@@ -1149,14 +1353,21 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["reward_scaled/upright"] = float((self.cfg.upright_reward_scale * upright).mean().item())
             self.extras["reward_scaled/pose_return"] = float(pose_return_penalty.mean().item())
             self.extras["reward_scaled/air_time"] = float((self.cfg.feet_air_time_reward_scale * air_rew).mean().item())
-            self.extras["reward_scaled/slip_cost"] = float((self.cfg.foot_slip_cost_scale * slip_cost).mean().item())
-            self.extras["reward_scaled/undesired_cost"] = float((self.cfg.undesired_contact_cost_scale * undesired).mean().item())
-            self.extras["reward_scaled/standstill_cost"] = float((self.cfg.standstill_penalty_scale * standstill).mean().item())
-            self.extras["reward_scaled/dof_vel_delta_cost"] = float((self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost).mean().item())
-            self.extras["reward_scaled/energy_cost"] = float((self.cfg.energy_cost_scale * energy_cost).mean().item())
-            self.extras["reward_scaled/symmetry_cost"] = float((self.cfg.symmetry_cost_scale * sym_pen).mean().item())
-            self.extras["reward_scaled/thigh_pose_cost"] = float((self.cfg.thigh_pose_cost_scale * thigh_pose_pen).mean().item())
-            self.extras["reward_scaled/air_time_symmetry_cost"] = float((self.cfg.air_time_symmetry_cost_scale * air_time_sym_pen).mean().item())
+            self.extras["reward_scaled/slip_cost"] = float((w_slip * slip_cost).mean().item())
+            self.extras["reward_scaled/undesired_cost"] = float((w_undesired * undesired).mean().item())
+            self.extras["reward_scaled/standstill_cost"] = float((w_standstill * standstill).mean().item())
+            self.extras["reward_scaled/dof_vel_delta_cost"] = float((w_dof_vel_delta * dof_vel_delta_cost).mean().item())
+            self.extras["reward_scaled/energy_cost"] = float((w_energy * energy_cost).mean().item())
+            self.extras["reward_scaled/symmetry_cost"] = float((w_symmetry * sym_pen).mean().item())
+            self.extras["reward_scaled/thigh_pose_cost"] = float((w_thigh_pose * thigh_pose_pen).mean().item())
+            self.extras["reward_scaled/air_time_symmetry_cost"] = float((w_air_time_sym * air_time_sym_pen).mean().item())
+
+            # Penalty curriculum stats
+            self.extras["penalty_curriculum/avg_ep_len"] = float(self._avg_ep_len)
+            self.extras["penalty_curriculum/scale"] = float(self._penalty_scale)
+            self.extras["penalty_curriculum/w_action_rate"] = float(w_action_rate)
+            self.extras["penalty_curriculum/w_pose_return"] = float(w_pose_return)
+            self.extras["penalty_curriculum/w_flat_ori"] = float(w_flat_ori)
 
             # Total reward stats
             self.extras["reward_total/mean"] = float(reward.mean().item())
@@ -1197,6 +1408,9 @@ class LocomotionEnv(DirectRLEnv):
                 batch_lin_err = (self._ep_lin_err_sum[env_ids] / ep_len).mean().item()
                 batch_yaw_err = (self._ep_yaw_err_sum[env_ids] / ep_len).mean().item()
                 self._maybe_update_adr(batch_success, batch_lin_err, batch_yaw_err)
+        if self._penalty_curriculum_enabled and env_ids.numel() > 0 and self._global_policy_step > 0:
+            timed_out = self.episode_length_buf[env_ids] >= (self.randomized_episode_lengths[env_ids] - 1)
+            self._update_penalty_curriculum(env_ids, timed_out)
 
         self.robot.reset(env_ids)
         super()._reset_idx(env_ids)
@@ -1205,21 +1419,24 @@ class LocomotionEnv(DirectRLEnv):
         joint_pos = self.robot.data.default_joint_pos[env_ids]
         joint_vel = self.robot.data.default_joint_vel[env_ids]
 
-        # Initial pose randomization (ADR)
+        # Initial pose randomization (always-on; ADR widens ranges)
         if self.adr is not None:
             jpos_w = float(self.adr.get_custom("robot_spawn", "joint_pos_noise"))
             jvel_w = float(self.adr.get_custom("robot_spawn", "joint_vel_noise"))
+        else:
+            jpos_w = float(getattr(self.cfg, "reset_joint_pos_noise", 0.0))
+            jvel_w = float(getattr(self.cfg, "reset_joint_vel_noise", 0.0))
 
-            if jpos_w > 0.0:
-                noise = torch.empty_like(joint_pos).uniform_(-jpos_w, jpos_w)
-                joint_pos = joint_pos + noise
+        if jpos_w > 0.0:
+            noise = torch.empty_like(joint_pos).uniform_(-jpos_w, jpos_w)
+            joint_pos = joint_pos + noise
 
-                lo = self.robot.data.soft_joint_pos_limits[0, :, 0].unsqueeze(0)
-                hi = self.robot.data.soft_joint_pos_limits[0, :, 1].unsqueeze(0)
-                joint_pos = torch.clamp(joint_pos, lo, hi)
+            lo = self.robot.data.soft_joint_pos_limits[0, :, 0].unsqueeze(0)
+            hi = self.robot.data.soft_joint_pos_limits[0, :, 1].unsqueeze(0)
+            joint_pos = torch.clamp(joint_pos, lo, hi)
 
-            if jvel_w > 0.0:
-                joint_vel = joint_vel + torch.empty_like(joint_vel).uniform_(-jvel_w, jvel_w)
+        if jvel_w > 0.0:
+            joint_vel = joint_vel + torch.empty_like(joint_vel).uniform_(-jvel_w, jvel_w)
 
         root = self.robot.data.default_root_state[env_ids]
         root[:, :3] += self.scene.env_origins[env_ids]
@@ -1250,8 +1467,11 @@ class LocomotionEnv(DirectRLEnv):
         # sample per-episode DR variables (latency, strength, imu bias)
         self._sample_custom_dr_for_resets(env_ids)
 
-        # Sample commands based on current curriculum stage
+        # Sample commands for new episode
         self._sample_commands(env_ids)
+        self._commands_for_reward[env_ids] = self.commands[env_ids]
+        self._last_command_resample_step[env_ids] = self.episode_length_buf[env_ids]
+        self._reset_gait_state(env_ids)
 
         if self._visualization_enabled or self.obs_stack_buf is not None or self.obs_hist_buf is not None:
             self._update_state()
@@ -1266,7 +1486,8 @@ class LocomotionEnv(DirectRLEnv):
 
         if self.obs_stack_buf is not None:
             obs0 = self._compute_single_observation()
-            self.obs_stack_buf[env_ids] = obs0[env_ids].unsqueeze(-1).expand(-1, -1, self.obs_stack_frames)
+            self.obs_stack_buf[env_ids] = 0.0
+            self.obs_stack_buf[env_ids, :, -1] = obs0[env_ids]
 
     def _update_curriculum(self):
         """Check if we should advance to the next curriculum stage based on per-env steps."""
@@ -1296,71 +1517,119 @@ class LocomotionEnv(DirectRLEnv):
             print(f"{'='*60}\n")
 
     def _sample_commands(self, env_ids: torch.Tensor):
-        """Sample velocity commands based on current curriculum stage."""
+        """Sample velocity commands from configured ranges."""
         n = len(env_ids)
-        zero_prob = float(getattr(self.cfg, "zero_command_probability", 0.0))
-        turn_prob = float(getattr(self.cfg, "turn_in_place_probability", 0.0))
-        turn_min_stage = int(getattr(self.cfg, "turn_in_place_min_stage", 1))
-        turn_mask = None
-        zero_mask = None
-        if turn_prob > 0.0 and self._current_curriculum_stage >= turn_min_stage:
-            turn_mask = torch.rand(n, device=self.sim.device) < turn_prob
-        if zero_prob > 0.0:
-            zero_mask = torch.rand(n, device=self.sim.device) < zero_prob
-            if turn_mask is not None:
-                zero_mask = zero_mask & (~turn_mask)
+        vx_min, vx_max = self.cfg.lin_vel_x_range
+        vy_min, vy_max = self.cfg.lin_vel_y_range
+        yaw_min, yaw_max = self.cfg.ang_vel_yaw_range
 
-        if not self.cfg.use_curriculum:
-            # No curriculum: sample full ranges
-            self.commands[env_ids, 0] = torch.empty(n, device=self.sim.device).uniform_(-1.0, 1.0)  # vx
-            self.commands[env_ids, 1] = torch.empty(n, device=self.sim.device).uniform_(-0.5, 0.5)  # vy
-            self.commands[env_ids, 2] = torch.empty(n, device=self.sim.device).uniform_(-1.0, 1.0)  # yaw rate
-            if zero_mask is not None:
-                self.commands[env_ids[zero_mask]] = 0.0
-            return
-
-        # Curriculum active: sample based on stage
-        stage = self._current_curriculum_stage
-
-        if stage == 0:
-            # Stage 0: forward-only (vx in [0.3, 1.0], no yaw or lateral)
-            # Encourage actual forward motion, not standing still
-            vx_min = self.cfg.curriculum_stage0_vx_min
-            vx_max = self.cfg.curriculum_stage0_vx_max
-            self.commands[env_ids, 0] = torch.empty(n, device=self.sim.device).uniform_(vx_min, vx_max)
-            self.commands[env_ids, 1] = 0.0
-            self.commands[env_ids, 2] = 0.0
-
-        elif stage == 1:
-            # Stage 1: forward + yaw (vx in [-1, 1], yaw in [-1, 1], no lateral)
-            self.commands[env_ids, 0] = torch.empty(n, device=self.sim.device).uniform_(-1.0, 1.0)
-            self.commands[env_ids, 1] = 0.0
-            self.commands[env_ids, 2] = torch.empty(n, device=self.sim.device).uniform_(-1.0, 1.0)
-
-        else:  # stage == 2
-            # Stage 2: full command space
-            self.commands[env_ids, 0] = torch.empty(n, device=self.sim.device).uniform_(-1.0, 1.0)
-            self.commands[env_ids, 1] = torch.empty(n, device=self.sim.device).uniform_(-0.5, 0.5)
-            self.commands[env_ids, 2] = torch.empty(n, device=self.sim.device).uniform_(-1.0, 1.0)
+        self.commands[env_ids, 0] = torch.empty(n, device=self.sim.device).uniform_(vx_min, vx_max)
+        self.commands[env_ids, 1] = torch.empty(n, device=self.sim.device).uniform_(vy_min, vy_max)
+        self.commands[env_ids, 2] = torch.empty(n, device=self.sim.device).uniform_(yaw_min, yaw_max)
 
         command_scale = float(self._command_scale)
         min_stage = int(getattr(self.cfg, "adr_command_scale_min_stage", 0))
-        if self._current_curriculum_stage < min_stage:
+        if self.cfg.use_curriculum and self._current_curriculum_stage < min_stage:
             command_scale = 1.0
         if command_scale != 1.0:
             self.commands[env_ids] *= command_scale
 
-        if zero_mask is not None:
-            self.commands[env_ids[zero_mask]] = 0.0
+        stand_prob = float(getattr(self.cfg, "stand_prob", 0.0))
+        if stand_prob > 0.0:
+            stand_mask = torch.rand(n, device=self.sim.device) < stand_prob
+            self.commands[env_ids[stand_mask], :3] = 0.0
 
-        if turn_mask is not None:
-            yaw_min = float(getattr(self.cfg, "turn_in_place_yaw_min", 0.3))
-            yaw_max = float(getattr(self.cfg, "turn_in_place_yaw_max", 1.0))
-            yaw = torch.empty(n, device=self.sim.device).uniform_(-yaw_max, yaw_max)
-            yaw = torch.where(torch.abs(yaw) < yaw_min, torch.sign(yaw) * yaw_min, yaw)
-            self.commands[env_ids[turn_mask], 0] = 0.0
-            self.commands[env_ids[turn_mask], 1] = 0.0
-            self.commands[env_ids[turn_mask], 2] = yaw[turn_mask]
+    def _reset_gait_state(self, env_ids: torch.Tensor) -> None:
+        if env_ids.numel() == 0:
+            return
+
+        n = env_ids.numel()
+        if bool(getattr(self.cfg, "randomize_phase", False)):
+            self.phase_offset[env_ids] = torch.empty((n, 2), device=self.sim.device).uniform_(0.0, self._two_pi)
+        else:
+            default_offset = getattr(self.cfg, "phase_offset_default", (0.0, math.pi))
+            offset = torch.tensor(default_offset, device=self.sim.device)
+            self.phase_offset[env_ids] = offset.unsqueeze(0).repeat(n, 1)
+
+        self._resample_gait_frequency(env_ids)
+        steps = self.episode_length_buf[env_ids].to(self.phase_dt.dtype).unsqueeze(-1)
+        phase = steps * self.phase_dt[env_ids].unsqueeze(-1) + self.phase_offset[env_ids]
+        self.phase[env_ids] = torch.remainder(phase + self._pi, self._two_pi) - self._pi
+        self._was_standing[env_ids] = False
+
+    def _resample_gait_frequency(self, env_ids: torch.Tensor, keep_phase: bool = False) -> None:
+        if env_ids.numel() == 0:
+            return
+
+        n = env_ids.numel()
+        cur_phase = None
+        if keep_phase:
+            cur_phase = self.phase[env_ids].clone()
+        base_period = max(1e-3, float(getattr(self.cfg, "gait_period_s", 1.0)))
+        width = float(getattr(self.cfg, "gait_period_randomization_width", 0.0))
+        if width > 0.0:
+            min_p = max(1e-3, base_period - width)
+            max_p = max(min_p + 1e-3, base_period + width)
+            period = torch.empty((n,), device=self.sim.device).uniform_(min_p, max_p)
+        else:
+            period = torch.full((n,), base_period, device=self.sim.device)
+
+        self.gait_freq[env_ids] = 1.0 / period
+        self.phase_dt[env_ids] = self._two_pi * self.gait_freq[env_ids] * self._control_dt
+        if keep_phase and cur_phase is not None:
+            steps = self.episode_length_buf[env_ids].to(self.phase_dt.dtype).unsqueeze(-1)
+            new_offset = cur_phase - steps * self.phase_dt[env_ids].unsqueeze(-1)
+            new_offset = torch.remainder(new_offset + self._pi, self._two_pi) - self._pi
+            self.phase_offset[env_ids] = new_offset
+
+    def _update_gait_phase(self) -> None:
+        steps = self.episode_length_buf.to(self.phase_dt.dtype)
+
+        lin_thresh = float(getattr(self.cfg, "stand_phase_lin_threshold", 0.01))
+        yaw_thresh = float(getattr(self.cfg, "stand_phase_yaw_threshold", 0.01))
+        lin_norm = torch.norm(self.commands[:, :2], dim=1)
+        yaw_abs = torch.abs(self.commands[:, 2])
+        stand_mask = (lin_norm < lin_thresh) & (yaw_abs < yaw_thresh)
+
+        leaving_stand = (~stand_mask) & self._was_standing
+        if torch.any(leaving_stand):
+            default_offset = getattr(self.cfg, "phase_offset_default", (0.0, math.pi))
+            offset = torch.tensor(default_offset, device=self.sim.device)
+            target = offset.unsqueeze(0).repeat(int(leaving_stand.sum().item()), 1)
+            steps_leaving = steps[leaving_stand].unsqueeze(-1)
+            phase_dt_leaving = self.phase_dt[leaving_stand].unsqueeze(-1)
+            new_offset = target - steps_leaving * phase_dt_leaving
+            new_offset = torch.remainder(new_offset + self._pi, self._two_pi) - self._pi
+            self.phase_offset[leaving_stand] = new_offset
+
+        phase = steps.unsqueeze(-1) * self.phase_dt.unsqueeze(-1) + self.phase_offset
+        phase = torch.remainder(phase + self._pi, self._two_pi) - self._pi
+
+        if torch.any(stand_mask):
+            stand_val = float(getattr(self.cfg, "stand_phase_value", math.pi))
+            phase[stand_mask] = stand_val
+
+        self.phase = phase
+        self._was_standing = stand_mask
+
+    def _maybe_resample_commands(self) -> None:
+        interval = int(self._command_resample_interval_steps)
+        if interval <= 0:
+            return
+
+        steps = self.episode_length_buf
+        ready = (steps % interval == 0) & (steps != self._last_command_resample_step)
+        if not torch.any(ready):
+            return
+
+        env_ids = torch.nonzero(ready, as_tuple=False).squeeze(-1)
+        if env_ids.numel() == 0:
+            return
+
+        self._sample_commands(env_ids)
+        if float(getattr(self.cfg, "gait_period_randomization_width", 0.0)) > 0.0:
+            self._resample_gait_frequency(env_ids, keep_phase=True)
+        self._last_command_resample_step[env_ids] = steps[env_ids]
 
     def _init_feet(self):
         """Initialize foot body and contact sensor indices (call once before using contact rewards)."""

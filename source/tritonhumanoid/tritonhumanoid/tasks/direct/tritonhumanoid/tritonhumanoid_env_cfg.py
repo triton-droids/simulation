@@ -15,7 +15,8 @@ from isaaclab.envs import DirectRLEnvCfg
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sim import PhysxCfg, SimulationCfg
 from isaaclab.sim.spawners.materials.physics_materials_cfg import RigidBodyMaterialCfg
-from isaaclab.terrains import TerrainImporterCfg
+from isaaclab.terrains import TerrainImporterCfg, TerrainGeneratorCfg
+from isaaclab.terrains.height_field.hf_terrains_cfg import HfRandomUniformTerrainCfg
 from isaaclab.utils import configclass
 
 import isaaclab.envs.mdp as mdp
@@ -128,10 +129,10 @@ class EventCfg:
 @configclass
 class HumanoidEnvCfg(DirectRLEnvCfg):
     # env
-    episode_length_s = 15.0
+    episode_length_s = 20.0
     min_episode_length_s: float = 5.0
     randomize_episode_length: bool = True
-    decimation = 2
+    decimation = 5
 
     # Position control: actions map to POSITION OFFSETS (radians) around default pose
     # action_scale determines the maximum offset: actions in [-1, 1] → [-action_scale, +action_scale] radians
@@ -142,13 +143,17 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
         "left_thigh_joint": 0.3,
         "right_thigh_joint": 0.3,
     }
+    # Joint-limit-aware action bounds margin (to avoid hard stops)
+    action_limit_margin: float = 0.02          # radians, added each side
+    action_limit_margin_frac: float = 0.05     # fraction of joint range, added each side
 
     # 10 actuated leg joints
     action_space = 10
 
-    # obs_dim = 1 (height) + 3 (lin_vel) + 3 (ang_vel) + 3 (up_b) + 3 (commands) + 10 (pos) + 10 (vel) + 10 (prev_actions) = 43
-    # + 2 (phase clock if use_phase_obs=True) = 45
-    observation_space_single = 43
+    # obs_dim = 3 (lin_vel) + 3 (ang_vel) + 3 (projected_gravity) + 3 (commands)
+    #        + 10 (pos_delta) + 10 (vel) + 10 (prev_actions) = 42
+    # + 4 (phase clock if use_phase_obs=True) = 46
+    observation_space_single = 42
     obs_stack_frames: int = 3
     observation_space = observation_space_single * obs_stack_frames
 
@@ -156,7 +161,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
 
     # simulation
     sim_cfg = SimulationCfg(
-        dt=1/240,
+        dt=1/250,
         render_interval=decimation,
         physics_material=RigidBodyMaterialCfg(
             static_friction=0.2,
@@ -166,7 +171,23 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
 
     terrain = TerrainImporterCfg(
         prim_path="/World/ground",
-        terrain_type="plane",
+        terrain_type="generator",
+        terrain_generator=TerrainGeneratorCfg(
+            sub_terrains={
+                "flat": HfRandomUniformTerrainCfg(
+                    proportion=0.3,
+                    height_range=(0.0, 0.0),
+                    slope_range=(0.0, 0.0),
+                    step_height_range=(0.0, 0.0),
+                ),
+                "rough": HfRandomUniformTerrainCfg(
+                    proportion=0.7,
+                    height_range=(0.0, 0.04),   # ~4cm variation to start
+                    slope_range=(0.0, 0.05),    # gentle slopes
+                    step_height_range=(0.0, 0.0),
+                ),
+            }
+        ),
         collision_group=-1,
         physics_material=sim_utils.RigidBodyMaterialCfg(
             friction_combine_mode="average",
@@ -196,6 +217,18 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     ang_vel_scale: float = 0.25
     dof_vel_scale: float = 0.1
     command_yaw_offset: float = -math.pi / 2.0  # rotate body-frame vectors to align +Y forward with +X commands
+
+    # Observation term config (uniform noise, scale, clip)
+    obs_term_cfg: dict = {
+        "projected_gravity": {"noise": 0.01, "scale": 1.0, "clip": 1.0},
+        "base_ang_vel": {"noise": 0.05, "scale": 0.25, "clip": 5.0},
+        "base_lin_vel": {"noise": 0.05, "scale": 1.0, "clip": 5.0},
+        "dof_pos_delta": {"noise": 0.01, "scale": 1.0, "clip": 2.0},
+        "dof_vel": {"noise": 0.1, "scale": 0.1, "clip": 5.0},
+        "prev_actions": {"noise": 0.0, "scale": 1.0, "clip": 1.0},
+        "commands": {"noise": 0.0, "scale": 1.0, "clip": 1.0},
+        "phase": {"noise": 0.0, "scale": 1.0, "clip": 1.0},
+    }
 
     # Termination
     termination_height: float = 0.4
@@ -253,12 +286,35 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     undesired_contact_force_thresh: float = 80.0  # N (50-200N typical)
     undesired_contact_cost_scale: float = 0.1
 
-    # Optional: phase clock for gait timing
+    # Penalty curriculum (episode-length driven)
+    penalty_curriculum_enabled: bool = True
+    penalty_curriculum_mode: str = "smooth"  # "smooth" or "threshold"
+    penalty_curriculum_min_scale: float = 0.1
+    penalty_curriculum_max_scale: float = 1.0
+    penalty_curriculum_use_ema: bool = True
+    penalty_curriculum_ema_alpha: float = 0.05
+    penalty_curriculum_window: int = 256
+    penalty_curriculum_exclude_timeouts: bool = True
+    # Threshold mode params (fractions of max episode steps)
+    penalty_curriculum_degree: float = 0.02
+    penalty_curriculum_low_len_frac: float = 0.2
+    penalty_curriculum_high_len_frac: float = 0.8
+    # Smooth mode params (fraction of max episode steps)
+    penalty_curriculum_target_len_frac: float = 0.8
+    penalty_curriculum_power: float = 2.0
+
+    # Optional: gait phase for timing
     use_phase_obs: bool = False
     gait_period_s: float = 1.0
+    gait_period_randomization_width: float = 0.0
+    randomize_phase: bool = False
+    phase_offset_default: tuple[float, float] = (0.0, math.pi)
+    stand_phase_value: float = math.pi
+    stand_phase_lin_threshold: float = 0.01
+    stand_phase_yaw_threshold: float = 0.01
 
     # Command curriculum (progressive difficulty) - based on per-env steps
-    use_curriculum: bool = True
+    use_curriculum: bool = False
     curriculum_stage1_steps_per_env: int = 5000   # per-env steps before adding yaw (stage 0 -> 1)
     curriculum_stage2_steps_per_env: int = 10000  # per-env steps before adding lateral (stage 1 -> 2)
     
@@ -270,12 +326,31 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     turn_in_place_yaw_min: float = 0.3
     turn_in_place_yaw_max: float = 1.0
     turn_in_place_min_stage: int = 1  # only allow in-place turns once yaw commands are introduced
+    
+    # Command resampling (per-episode step count)
+    command_resample_interval_s: float = 10.0
+    command_resample_interval_steps: int = 0  # if >0, overrides seconds-based interval
+    lin_vel_x_range: tuple[float, float] = (-1.0, 1.0)
+    lin_vel_y_range: tuple[float, float] = (-0.5, 0.5)
+    ang_vel_yaw_range: tuple[float, float] = (-1.0, 1.0)
+    stand_prob: float = 0.2  # chance to force standstill (vx=vy=yaw=0)
+
+    # --- Per-episode reset randomization (always-on, ADR or not) ---
+    # Action latency sampling (reuses act_hist_buf path)
+    act_latency_reset_range: tuple[int, int] = (0, 3)
+    # Joint state noise at reset (actuated joints only)
+    reset_joint_pos_noise: float = 0.05
+    reset_joint_vel_noise: float = 0.2
 
     # === Disturbance (push) parameters ===
     # treat as delta-velocity, not force
     push_force_range = (0.2, 0.8)
-    min_push_interval_s = 1.0
-    max_push_interval_s = 3.0
+    # Push timing profiles (in seconds)
+    push_strong: bool = False  # True -> 1–3s, False -> 5–10s
+    strong_min_push_interval_s = 1.0
+    strong_max_push_interval_s = 3.0
+    min_push_interval_s = 5.0
+    max_push_interval_s = 10.0
     push_z_fraction: float = 0.25
     push_angvel_scale: float = 0.8
 
@@ -415,14 +490,14 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
   9: right_ankle_joint
 [DebugOrder] commands order: [vx, vy, yaw_rate]
 [DebugOrder] observation slices (single frame):
-  height: [0, 1)
-  lin_vel_cmd: [1, 4)
-  ang_vel_cmd_scaled: [4, 7)
-  up_cmd: [7, 10)
-  commands: [10, 13)
-  act_pos_scaled: [13, 23)
-  act_vel_scaled: [23, 33)
+  base_ang_vel: [0, 3)
+  base_lin_vel: [3, 6)
+  commands: [6, 9)
+  dof_pos_delta: [9, 19)
+  dof_vel: [19, 29)
+  phase: [29, 33)  # if use_phase_obs=True
   prev_actions: [33, 43)
+  projected_gravity: [43, 46)
 
 
 [JointLimits]
