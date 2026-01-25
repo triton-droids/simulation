@@ -169,6 +169,7 @@ class LocomotionEnv(DirectRLEnv):
     def __init__(self, cfg: DirectRLEnvCfg, render_mode: str | None = None, **kwargs):
         obs_stack_frames = max(1, int(getattr(cfg, "obs_stack_frames", 1)))
         obs_single_dim = 3 + 3 + 3 + 3 + cfg.action_space * 3
+        obs_single_dim = 3 + 3 + 3 + 3 + cfg.action_space * 3
         if cfg.use_phase_obs:
             obs_single_dim += 4
         cfg.observation_space_single = obs_single_dim

@@ -150,9 +150,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # 10 actuated leg joints
     action_space = 10
 
-    # obs_dim = 3 (lin_vel) + 3 (ang_vel) + 3 (projected_gravity) + 3 (commands)
-    #        + 10 (pos_delta) + 10 (vel) + 10 (prev_actions) = 42
-    # + 4 (phase clock if use_phase_obs=True) = 46
+    # obs_dim = 3 (lin_vel) + 3 (ang_vel) + 3 (up_b) + 3 (commands) + 10 (pos) + 10 (vel) + 10 (prev_actions) = 42
+    # + 2 (phase clock if use_phase_obs=True) = 44
     observation_space_single = 42
     obs_stack_frames: int = 3
     observation_space = observation_space_single * obs_stack_frames
@@ -279,7 +278,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Contact-based rewards
     foot_body_regex: str = "left_foot|right_foot"
     foot_contact_force_thresh: float = 30.0  # N (20-80N typical for humanoid ground contact)
-    min_air_time: float = 0.08  # seconds
+    min_air_time: float = 0.3  # seconds
     feet_air_time_reward_scale: float = 0.4
     air_time_symmetry_cost_scale: float = 0.05
     foot_slip_cost_scale: float = 0.02
@@ -287,9 +286,9 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     undesired_contact_cost_scale: float = 0.1
 
     # Penalty curriculum (episode-length driven)
-    penalty_curriculum_enabled: bool = True
+    penalty_curriculum_enabled: bool = False
     penalty_curriculum_mode: str = "smooth"  # "smooth" or "threshold"
-    penalty_curriculum_min_scale: float = 0.1
+    penalty_curriculum_min_scale: float = 1.0
     penalty_curriculum_max_scale: float = 1.0
     penalty_curriculum_use_ema: bool = True
     penalty_curriculum_ema_alpha: float = 0.05
@@ -442,11 +441,11 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
             "gyro_bias_range": (0.0, 0.2),
         },
         "micro_wrench": {
-            "lin_acc_std": (0.0, 0.2),
-            "ang_acc_std": (0.0, 0.5),
+            "lin_acc_std": (0.0, 0.01),
+            "ang_acc_std": (0.0, 0.02),
             "rho": (0.0, 0.6),
-            "max_lin_acc": (0.0, 0.5),
-            "max_ang_acc": (0.0, 1.5),
+            "max_lin_acc": (0.0, 0.03),
+            "max_ang_acc": (0.0, 0.05),
         },
         # command magnitude scaling
         "command_scale": {
@@ -490,14 +489,13 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
   9: right_ankle_joint
 [DebugOrder] commands order: [vx, vy, yaw_rate]
 [DebugOrder] observation slices (single frame):
-  base_ang_vel: [0, 3)
-  base_lin_vel: [3, 6)
-  commands: [6, 9)
-  dof_pos_delta: [9, 19)
-  dof_vel: [19, 29)
-  phase: [29, 33)  # if use_phase_obs=True
-  prev_actions: [33, 43)
-  projected_gravity: [43, 46)
+    lin_vel_cmd: [0, 3)
+    ang_vel_cmd_scaled: [3, 6)
+    up_cmd: [6, 9)
+    commands: [9, 12)
+    act_pos_scaled: [12, 22)
+    act_vel_scaled: [22, 32)
+    prev_actions: [32, 42)
 
 
 [JointLimits]
