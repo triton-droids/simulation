@@ -167,7 +167,7 @@ class LocomotionEnv(DirectRLEnv):
 
     def __init__(self, cfg: DirectRLEnvCfg, render_mode: str | None = None, **kwargs):
         obs_stack_frames = max(1, int(getattr(cfg, "obs_stack_frames", 1)))
-        obs_single_dim = 1 + 3 + 3 + 3 + 3 + cfg.action_space * 3
+        obs_single_dim = 3 + 3 + 3 + 3 + cfg.action_space * 3
         if cfg.use_phase_obs:
             obs_single_dim += 2
         cfg.observation_space_single = obs_single_dim
@@ -316,7 +316,6 @@ class LocomotionEnv(DirectRLEnv):
             nonlocal offset
             self._obs_debug_slices.append((name, offset, offset + size))
             offset += size
-        _add_obs_slice("height", 1)
         _add_obs_slice("lin_vel_cmd", 3)
         _add_obs_slice("ang_vel_cmd_scaled", 3)
         _add_obs_slice("up_cmd", 3)
@@ -924,7 +923,6 @@ class LocomotionEnv(DirectRLEnv):
 
         obs = torch.cat(
             (
-                self.torso_pos_w[:, 2:3],                        # height
                 self.torso_lin_vel_cmd,                          # command-frame lin vel
                 ang_vel_cmd * self.cfg.ang_vel_scale,            # command-frame ang vel
                 up_cmd,                                          # IMU-ish orientation feature

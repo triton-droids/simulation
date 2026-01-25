@@ -146,9 +146,9 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # 10 actuated leg joints
     action_space = 10
 
-    # obs_dim = 1 (height) + 3 (lin_vel) + 3 (ang_vel) + 3 (up_b) + 3 (commands) + 10 (pos) + 10 (vel) + 10 (prev_actions) = 43
-    # + 2 (phase clock if use_phase_obs=True) = 45
-    observation_space_single = 43
+    # obs_dim = 3 (lin_vel) + 3 (ang_vel) + 3 (up_b) + 3 (commands) + 10 (pos) + 10 (vel) + 10 (prev_actions) = 42
+    # + 2 (phase clock if use_phase_obs=True) = 44
+    observation_space_single = 42
     obs_stack_frames: int = 3
     observation_space = observation_space_single * obs_stack_frames
 
@@ -367,11 +367,11 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
             "gyro_bias_range": (0.0, 0.2),
         },
         "micro_wrench": {
-            "lin_acc_std": (0.0, 0.2),
-            "ang_acc_std": (0.0, 0.5),
+            "lin_acc_std": (0.0, 0.01),
+            "ang_acc_std": (0.0, 0.02),
             "rho": (0.0, 0.6),
-            "max_lin_acc": (0.0, 0.5),
-            "max_ang_acc": (0.0, 1.5),
+            "max_lin_acc": (0.0, 0.03),
+            "max_ang_acc": (0.0, 0.05),
         },
         # command magnitude scaling
         "command_scale": {
@@ -415,14 +415,13 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
   9: right_ankle_joint
 [DebugOrder] commands order: [vx, vy, yaw_rate]
 [DebugOrder] observation slices (single frame):
-  height: [0, 1)
-  lin_vel_cmd: [1, 4)
-  ang_vel_cmd_scaled: [4, 7)
-  up_cmd: [7, 10)
-  commands: [10, 13)
-  act_pos_scaled: [13, 23)
-  act_vel_scaled: [23, 33)
-  prev_actions: [33, 43)
+    lin_vel_cmd: [0, 3)
+    ang_vel_cmd_scaled: [3, 6)
+    up_cmd: [6, 9)
+    commands: [9, 12)
+    act_pos_scaled: [12, 22)
+    act_vel_scaled: [22, 32)
+    prev_actions: [32, 42)
 
 
 [JointLimits]
