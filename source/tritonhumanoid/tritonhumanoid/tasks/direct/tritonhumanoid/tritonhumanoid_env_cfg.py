@@ -168,24 +168,26 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
         ),
     )
 
+    # 4096 envs -> 64
+    _grid = int(math.sqrt(4096))
+
     terrain = TerrainImporterCfg(
         prim_path="/World/ground",
         terrain_type="generator",
         terrain_generator=TerrainGeneratorCfg(
+            size=(4.0, 4.0),        # REQUIRED: (x_width, y_length) per tile :contentReference[oaicite:1]{index=1}
+            num_rows=_grid,         # 64
+            num_cols=_grid,         # 64
+            horizontal_scale=0.1,   # optional (defaults exist)
+            vertical_scale=0.005,
             sub_terrains={
                 "flat": HfRandomUniformTerrainCfg(
-                    proportion=0.3,
-                    height_range=(0.0, 0.0),
-                    slope_range=(0.0, 0.0),
-                    step_height_range=(0.0, 0.0),
+                    proportion=0.3, noise_range=(0.0, 0.0), noise_step=0.005
                 ),
                 "rough": HfRandomUniformTerrainCfg(
-                    proportion=0.7,
-                    height_range=(0.0, 0.04),   # ~4cm variation to start
-                    slope_range=(0.0, 0.05),    # gentle slopes
-                    step_height_range=(0.0, 0.0),
+                    proportion=0.7, noise_range=(0.0, 0.04), noise_step=0.005
                 ),
-            }
+            },
         ),
         collision_group=-1,
         physics_material=sim_utils.RigidBodyMaterialCfg(
@@ -197,6 +199,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
         ),
         debug_vis=False,
     )
+
 
     # scene
     scene: InteractiveSceneCfg = InteractiveSceneCfg(
