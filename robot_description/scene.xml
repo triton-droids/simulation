@@ -10,7 +10,7 @@
       <position kp="1" kv="0"/>
     </default>
     <default class="contact_surface">
-      <geom friction="1.0 0.005 0.0001" solref="0.01 2" solimp="0.9 0.95 0.001"/>
+      <geom friction="1.5 0.005 0.0001" solref="0.01 2" solimp="0.9 0.95 0.001"/>
     </default>
     <geom type="mesh" contype="0" conaffinity="0" group="0"/>
   </default>
@@ -62,14 +62,14 @@
 
   <keyframe>
     <key name="standing_pose" time="0"
-        qpos="0 0 0.017 1 0 0 0.3611 0 0 -0.60080008 0.2512 0.3611 0 0 -0.60080008 0.2512"
+        qpos="0 0 0.017 1 0 0 0 0.3611 0 0 -0.60080008 0.2512 0.3611 0 0 -0.60080008 0.2512"
         qvel="0 0 0  0 0 0   0 0 0 0 0 0 0 0 0 0"
         ctrl="0.3611 0 0 -0.60080008 0.2512 0.3611 0 0 -0.60080008 0.2512"/>
   </keyframe>
 
   <keyframe>
     <key name="locomotion_standing_pose" time="0"
-        qpos="0 0 0.025  1 0 0 0 0.3 0 0 -0.8 0.4 0.3 0 0 -0.8 0.4"
+        qpos="0 0 0.005  1 0 0 0 0.3 0 0 -0.8 0.4 0.3 0 0 -0.8 0.4"
         qvel="0 0 0  0 0 0   0 0 0 0 0 0 0 0 0 0"
         ctrl="0.3 0 0 -0.8 0.4 0.3 0 0 -0.8 0.4"/>
   </keyframe>
@@ -89,7 +89,7 @@
 
     <!-- TORSO (URDF: link "torso") -->
     <body name="torso" pos="0 0 0.03">
-      <site name="torso_top" pos="-0.155 -0.03 0.77" size="0.01" rgba="1 0 0 1"/>
+      <site name="torso_top" pos="-0.155 -0.03 0.745" size="0.01" rgba="1 0 0 1"/>
       <freejoint name="root"/>
 
       <geom mesh="torso_visual" material="metal_silver"/>

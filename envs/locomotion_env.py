@@ -16,6 +16,7 @@ class HumanoidLocomotionEnv:
         self,
         xml_path: str,
         frame_stack: int = 3,
+        include_height = False,
         #Significantly reduced disturbances for mujoco
         disturbance_force_max: float = 5.0,
         disturbance_torque_max: float = 2.0,
@@ -42,6 +43,7 @@ class HumanoidLocomotionEnv:
         self._disturbance_force_max = disturbance_force_max
         self._disturbance_torque_max = disturbance_torque_max
         self._disturbance_prob = disturbance_prob
+        self._include_height = include_height
         
         # Find torso body
         self._torso_body_id = mujoco.mj_name2id(
@@ -111,7 +113,7 @@ class HumanoidLocomotionEnv:
         
         # Observation size calculation
         # Single frame: 1 (height) + 3 (lin_vel_cmd) + 3 (ang_vel_cmd) + 3 (up_cmd) + 3 (commands) + nu (joint_pos) + nu (joint_vel) + nu (last_actions)
-        self._single_frame_size = 1 + 3 + 3 + 3 + 3 + self._nu + self._nu + self._nu
+        self._single_frame_size = (1 if include_height else 0) + 3 + 3 + 3 + 3 + self._nu + self._nu + self._nu
         self._obs_size = self._single_frame_size * self._frame_stack
 
         # Scaling factors
@@ -342,16 +344,15 @@ class HumanoidLocomotionEnv:
         #act_pos_scaled = joint_pos / 1.57  # Normalized by joint range
         act_vel = joint_vel * self._dof_vel_scale
 
-        # Construct single frame
         obs_frame = np.concatenate([
-            height,                  # 1
-            torso_lin_vel_cmd,       # 3
-            ang_vel_cmd_scaled,      # 3
-            up_cmd,                  # 3
-            commands,                # 3
-            act_pos_scaled,          # num_dofs
-            act_vel,                 # num_dofs
-            self._last_act,          # num_dofs
+            *([height] if self._include_height else []),
+            torso_lin_vel_cmd,
+            ang_vel_cmd_scaled,
+            up_cmd,
+            commands,
+            act_pos_scaled,
+            act_vel,
+            self._last_act
         ])
 
         # Clip

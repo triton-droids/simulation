@@ -13,15 +13,11 @@ import numpy as np
 import torch
 import os
 
+from debug import format_obs_detailed, policies, height_policies
 from policy_exporter import save_as_gif, save_as_mp4
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description='Generate validation videos for humanoid environments')
-group = parser.add_mutually_exclusive_group()
-group.add_argument('-l', '--locomotion', action='store_true',
-                   help='Use locomotion_env.py')
-group.add_argument('-d', '--disturbance', action='store_true',
-                   help='Use disturbance_env.py (default)')
 parser.add_argument('--duration', type=float, default=5.0,
                     help='Video duration in seconds (default: 5.0)')
 parser.add_argument('--fps', type=int, default=50,
@@ -30,117 +26,29 @@ parser.add_argument('--policy', type=str, default=None,
                     help='Path to policy .pth file (default: None, uses standing pose policy)')
 args = parser.parse_args()
 
+include_height = args.policy in height_policies if args.policy is not None else False
+
+
+
 # Import appropriate environment (default to disturbance)
-if args.locomotion:
-    from envs.locomotion_env import HumanoidLocomotionEnv as Env
-    env_name = "Locomotion"
-    print("Using locomotion_env.py")
+if args.policy:
+    env_name = policies[args.policy]
+    if env_name == "locomotion_env":
+        from envs.locomotion_env import HumanoidLocomotionEnv as Env
+        env_name = "Locomotion"
+        print("Using locomotion_env.py")
+    else:
+        from envs.disturbance_env import HumanoidDisturbanceEnv as Env
+        env_name = "Disturbance"
+        print("Using disturbance_env.py")
 else:
     from envs.disturbance_env import HumanoidDisturbanceEnv as Env
     env_name = "Disturbance"
     print("Using disturbance_env.py")
 
-device = "cpu"
-
-def _format_obs_detailed(obs: np.ndarray, env: Env) -> str:
-    single_frame_size = env._single_frame_size
-    frame_stack = env._frame_stack
-    num_dofs = env._nu
-    lines = []
-    for i in range(frame_stack):
-        start_idx = i * single_frame_size
-        idx = start_idx
-
-        height = obs[idx:idx+1]
-        idx += 1
-
-        lin_vel_cmd = obs[idx:idx+3]
-        idx += 3
-
-        ang_vel_cmd_scaled = obs[idx:idx+3]
-        idx += 3
-
-        up_cmd = obs[idx:idx+3]
-        idx += 3
-
-        commands = obs[idx:idx+3]
-        idx += 3
-
-        act_pos_scaled = obs[idx:idx+num_dofs]
-        idx += num_dofs
-
-        act_vel_scaled = obs[idx:idx+num_dofs]
-        idx += num_dofs
-
-        prev_actions = obs[idx:idx+num_dofs]
-
-        lines.append(f"[ObsDebug] env=0 frame={i}")
-        lines.append(f"  height: {height.tolist()}")
-        lines.append(f"  lin_vel_cmd: {lin_vel_cmd.tolist()}")
-        lines.append(f"  ang_vel_cmd_scaled: {ang_vel_cmd_scaled.tolist()}")
-        lines.append(f"  up_cmd: {up_cmd.tolist()}")
-        lines.append(f"  commands: {commands.tolist()}")
-        lines.append(f"  act_pos_scaled: {act_pos_scaled.tolist()}")
-        lines.append(f"  act_vel_scaled: {act_vel_scaled.tolist()}")
-        lines.append(f"  prev_actions: {prev_actions.tolist()}")
-        if i < frame_stack - 1:
-            lines.append("")
-    return "\n".join(lines)
-
 # Create environment to get dimensions (60Hz control frequency)
-env = Env(xml_path="robot_description/scene.xml")
+env = Env(xml_path="robot_description/scene.xml", include_height=include_height)
 obs = env.reset()
-
-# Print first observation divided by frames
-print("\n" + "="*60)
-print("FIRST OBSERVATION (detailed format)")
-print("="*60)
-single_frame_size = env._single_frame_size
-frame_stack = env._frame_stack
-num_dofs = env._nu
-
-for i in range(frame_stack):
-    start_idx = i * single_frame_size
-    idx = start_idx
-
-    # Parse observation components
-    height = obs[idx:idx+1]
-    idx += 1
-
-    lin_vel_cmd = obs[idx:idx+3]
-    idx += 3
-
-    ang_vel_cmd_scaled = obs[idx:idx+3]
-    idx += 3
-
-    up_cmd = obs[idx:idx+3]
-    idx += 3
-
-    commands = obs[idx:idx+3]
-    idx += 3
-
-    act_pos_scaled = obs[idx:idx+num_dofs]
-    idx += num_dofs
-
-    act_vel_scaled = obs[idx:idx+num_dofs]
-    idx += num_dofs
-
-    prev_actions = obs[idx:idx+num_dofs]
-
-    # Print in the specified format
-    print(f"[ObsDebug] env=0 step=0 frame={i}")
-    print(f"  height: {height.tolist()}")
-    print(f"  lin_vel_cmd: {lin_vel_cmd.tolist()}")
-    print(f"  ang_vel_cmd_scaled: {ang_vel_cmd_scaled.tolist()}")
-    print(f"  up_cmd: {up_cmd.tolist()}")
-    print(f"  commands: {commands.tolist()}")
-    print(f"  act_pos_scaled: {act_pos_scaled.tolist()}")
-    print(f"  act_vel_scaled: {act_vel_scaled.tolist()}")
-    print(f"  prev_actions: {prev_actions.tolist()}")
-    if i < frame_stack - 1:
-        print()  # Empty line between frames
-
-print("="*60 + "\n")
 
 #Debugging
 torso_quat = env.data.xquat[env._torso_body_id]
@@ -205,9 +113,7 @@ if use_trained_policy:
             frames.append(env.render())
 
             if (step + 1) % args.fps == 0:
-                #print(f"Observation shape: {obs.shape}")
-                #print(f"Observation: {obs}")
-                print(_format_obs_detailed(obs, env))
+                print(format_obs_detailed(obs, env, include_height))
                 print(f"  {(step + 1) / args.fps:.1f}s")
 else:
     # Use standing pose policy
