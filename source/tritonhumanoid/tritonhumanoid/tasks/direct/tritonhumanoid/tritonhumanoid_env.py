@@ -167,14 +167,14 @@ class LocomotionEnv(DirectRLEnv):
     cfg: DirectRLEnvCfg
 
     def __init__(self, cfg: DirectRLEnvCfg, render_mode: str | None = None, **kwargs):
+        if hasattr(cfg, "compute_observation_space"):
+            cfg.compute_observation_space()
+
+        # max between 1 and cfg.obs_stack_frames if it exists, otherwise 1
         obs_stack_frames = max(1, int(getattr(cfg, "obs_stack_frames", 1)))
-        obs_single_dim = 3 + 3 + 3 + 3 + cfg.action_space * 3
-        obs_single_dim = 3 + 3 + 3 + 3 + cfg.action_space * 3
-        if cfg.use_phase_obs:
-            obs_single_dim += 4
-        cfg.observation_space_single = obs_single_dim
-        cfg.obs_stack_frames = obs_stack_frames
-        cfg.observation_space = obs_single_dim * obs_stack_frames
+        obs_single_dim = int(getattr(cfg, "observation_space_single", 0))
+        if obs_single_dim <= 0:
+            raise ValueError("observation_space_single must be > 0; compute it in the env config.")
 
         super().__init__(cfg, render_mode, **kwargs)
 
@@ -185,12 +185,21 @@ class LocomotionEnv(DirectRLEnv):
             "left_hip1_joint|left_hip2_joint|left_thigh_joint|left_knee_joint|left_ankle_joint|"
             "right_hip1_joint|right_hip2_joint|right_thigh_joint|right_knee_joint|right_ankle_joint"
         )
+
+        # find_joints is a 
         self._joint_dof_idx, _ = self.robot.find_joints(actuated_joint_regex)
+        print("\n")
+        print(_)
+        print(self._joint_dof_idx)
+        print("\n")
+
         self.num_actions = len(self._joint_dof_idx)
 
         # Left/right joint pairs for symmetry penalty (action indices)
         joint_id_to_action = {int(jid): i for i, jid in enumerate(self._joint_dof_idx)}
 
+        #### TODO: get locomotion working without action scaling constraints
+        # temporary workaround to get locomotion working by
         action_scale_by_joint = getattr(self.cfg, "action_scale_by_joint", {})
         self._action_scale_per_joint = torch.ones(self.num_actions, device=self.sim.device)
         for joint_name, scale in action_scale_by_joint.items():
@@ -201,6 +210,8 @@ class LocomotionEnv(DirectRLEnv):
             if joint_id not in joint_id_to_action:
                 continue
             self._action_scale_per_joint[joint_id_to_action[joint_id]] = float(scale)
+
+        # joint ids by symmetry for symmetry penalty and mirroring observations
         sym_pairs = [
             ("left_hip1_joint", "right_hip1_joint"),
             ("left_hip2_joint", "right_hip2_joint"),
@@ -224,6 +235,7 @@ class LocomotionEnv(DirectRLEnv):
         self._sym_left_action_ids = torch.tensor(sym_left, device=self.sim.device, dtype=torch.long)
         self._sym_right_action_ids = torch.tensor(sym_right, device=self.sim.device, dtype=torch.long)
 
+        # thigh joints for thigh pose penalty
         thigh_left_ids, _ = self.robot.find_joints("left_thigh_joint")
         thigh_right_ids, _ = self.robot.find_joints("right_thigh_joint")
         thigh_action_ids = []
@@ -237,7 +249,7 @@ class LocomotionEnv(DirectRLEnv):
                 thigh_action_ids.append(joint_id_to_action[right_thigh_id])
         self._thigh_action_ids = torch.tensor(thigh_action_ids, device=self.sim.device, dtype=torch.long)
 
-        # torso link is named "world" in your URDF
+        # torso link is named "world" in the URDF
         torso_ids, _ = self.robot.find_bodies("world")
         self._torso_body_idx = int(torso_ids[0])
 
@@ -247,23 +259,17 @@ class LocomotionEnv(DirectRLEnv):
         # default pose + joint limits (actuated only)
         default_joint_pos = self.robot.data.default_joint_pos[0]
         self.default_actuated_pos = default_joint_pos[self._joint_dof_idx].clone()
+        print("\n")
+        print("Default actuated joint positions:")
+        print(self.default_actuated_pos)
+        print("\n")
 
+        # use soft joint limits defined by soft_joint_pos_limit_factor from humanoid.py
         self.actuated_lower = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 0].clone()
         self.actuated_upper = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 1].clone()
-        # effective limits with margin
-        margin_abs = float(getattr(self.cfg, "action_limit_margin", 0.0))
-        margin_frac = float(getattr(self.cfg, "action_limit_margin_frac", 0.0))
-        joint_range = self.actuated_upper - self.actuated_lower
-        margin = torch.clamp(joint_range * margin_frac, min=0.0) + margin_abs
-        self.actuated_lower_eff = self.actuated_lower + margin
-        self.actuated_upper_eff = self.actuated_upper - margin
-        # ensure lower < upper
-        slack = torch.full_like(self.actuated_lower_eff, 1e-4)
-        self.actuated_lower_eff = torch.minimum(self.actuated_lower_eff, self.actuated_upper_eff - slack)
-        self.actuated_upper_eff = torch.maximum(self.actuated_upper_eff, self.actuated_lower_eff + slack)
-        # per-joint distances from default pose to effective limits
-        self._d_neg = (self.default_actuated_pos - self.actuated_lower_eff).clamp(min=1e-6)
-        self._d_pos = (self.actuated_upper_eff - self.default_actuated_pos).clamp(min=1e-6)
+        # per-joint distances from default pose to soft limits
+        self._d_neg = (self.default_actuated_pos - self.actuated_lower).clamp(min=1e-6)
+        self._d_pos = (self.actuated_upper - self.default_actuated_pos).clamp(min=1e-6)
 
         # buffers
         self.actions = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
@@ -522,6 +528,7 @@ class LocomotionEnv(DirectRLEnv):
         self._resample_episode_lengths(self.robot._ALL_INDICES)
 
     def _setup_scene(self):
+        # https://isaac-sim.github.io/IsaacLab/main/source/api/lab/isaaclab.assets.html#articulation
         self.robot = Articulation(self.cfg.robot)
 
         # add contact sensors
@@ -540,6 +547,9 @@ class LocomotionEnv(DirectRLEnv):
             self.scene.filter_collisions(global_prim_paths=[self.cfg.terrain.prim_path])
         # add articulation to scene
         self.scene.articulations["robot"] = self.robot
+
+
+        ##### TO DO: guard with if statement when running headless
         # add lights
         light_cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
         light_cfg.func("/World/Light", light_cfg)
@@ -893,7 +903,7 @@ class LocomotionEnv(DirectRLEnv):
         )
 
         q_des = self.default_actuated_pos.unsqueeze(0) + offsets
-        q_des = torch.clamp(q_des, self.actuated_lower_eff.unsqueeze(0), self.actuated_upper_eff.unsqueeze(0))
+        q_des = torch.clamp(q_des, self.actuated_lower.unsqueeze(0), self.actuated_upper.unsqueeze(0))
         self.q_des = q_des
         self.robot.set_joint_position_target(q_des, joint_ids=self._joint_dof_idx)
 

@@ -143,18 +143,14 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
         "left_thigh_joint": 0.3,
         "right_thigh_joint": 0.3,
     }
-    # Joint-limit-aware action bounds margin (to avoid hard stops)
-    action_limit_margin: float = 0.02          # radians, added each side
-    action_limit_margin_frac: float = 0.05     # fraction of joint range, added each side
 
     # 10 actuated leg joints
     action_space = 10
 
-    # obs_dim = 3 (lin_vel) + 3 (ang_vel) + 3 (up_b) + 3 (commands) + 10 (pos) + 10 (vel) + 10 (prev_actions) = 42
-    # + 2 (phase clock if use_phase_obs=True) = 44
-    observation_space_single = 42
+    # Observation dimensions are computed from config (see compute_observation_space()).
+    observation_space_single: int = 0
     obs_stack_frames: int = 3
-    observation_space = observation_space_single * obs_stack_frames
+    observation_space: int = 0
 
     state_space = 0
 
@@ -314,6 +310,21 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     stand_phase_value: float = math.pi
     stand_phase_lin_threshold: float = 0.01
     stand_phase_yaw_threshold: float = 0.01
+
+    def compute_observation_space(self) -> None:
+        """Compute observation dimensions from the current config."""
+        obs_single_dim = 3 + 3 + 3 + 3 + self.action_space * 3
+        if bool(self.use_phase_obs):
+            obs_single_dim += 4
+        self.observation_space_single = int(obs_single_dim)
+        self.obs_stack_frames = max(1, int(self.obs_stack_frames))
+        self.observation_space = self.observation_space_single * self.obs_stack_frames
+
+    def __post_init__(self) -> None:
+        super_post_init = getattr(super(), "__post_init__", None)
+        if callable(super_post_init):
+            super_post_init()
+        self.compute_observation_space()
 
     # Command curriculum (progressive difficulty) - based on per-env steps
     use_curriculum: bool = False
