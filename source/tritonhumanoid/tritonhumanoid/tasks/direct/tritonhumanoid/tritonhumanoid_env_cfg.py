@@ -277,8 +277,13 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Contact-based rewards
     foot_body_regex: str = "left_foot|right_foot"
     foot_contact_force_thresh: float = 30.0  # N (20-80N typical for humanoid ground contact)
+<<<<<<< HEAD
     min_air_time: float = 0.3  # seconds
     feet_air_time_reward_scale: float = 0.4
+=======
+    min_air_time: float = 0.08  # seconds
+    feet_air_time_reward_scale: float = 1.0
+>>>>>>> 9f878fc3101037c8cfd83f7bef763af9488b3e60
     air_time_symmetry_cost_scale: float = 0.05
     foot_slip_cost_scale: float = 0.02
     undesired_contact_force_thresh: float = 80.0  # N (50-200N typical)
