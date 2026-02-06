@@ -143,14 +143,18 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
         "left_thigh_joint": 0.3,
         "right_thigh_joint": 0.3,
     }
+    # Joint-limit-aware action bounds margin (to avoid hard stops)
+    action_limit_margin: float = 0.02          # radians, added each side
+    action_limit_margin_frac: float = 0.05     # fraction of joint range, added each side
 
     # 10 actuated leg joints
     action_space = 10
 
-    # Observation dimensions are computed from config (see compute_observation_space()).
-    observation_space_single: int = 0
+    # obs_dim = 3 (lin_vel) + 3 (ang_vel) + 3 (up_b) + 3 (commands) + 10 (pos) + 10 (vel) + 10 (prev_actions) = 42
+    # + 2 (phase clock if use_phase_obs=True) = 44
+    observation_space_single = 42
     obs_stack_frames: int = 3
-    observation_space: int = 0
+    observation_space = observation_space_single * obs_stack_frames
 
     state_space = 0
 
@@ -174,7 +178,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
             size=(4.0, 4.0),        # REQUIRED: (x_width, y_length) per tile :contentReference[oaicite:1]{index=1}
             num_rows=_grid,         # 64
             num_cols=_grid,         # 64
-            horizontal_scale=0.1,   # optional (defaults exist)
+            horizontal_scale=0.2,   # optional (defaults exist)
             vertical_scale=0.005,
             sub_terrains={
                 "flat": HfRandomUniformTerrainCfg(
@@ -277,13 +281,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Contact-based rewards
     foot_body_regex: str = "left_foot|right_foot"
     foot_contact_force_thresh: float = 30.0  # N (20-80N typical for humanoid ground contact)
-<<<<<<< HEAD
     min_air_time: float = 0.3  # seconds
     feet_air_time_reward_scale: float = 0.4
-=======
-    min_air_time: float = 0.08  # seconds
-    feet_air_time_reward_scale: float = 1.0
->>>>>>> 9f878fc3101037c8cfd83f7bef763af9488b3e60
     air_time_symmetry_cost_scale: float = 0.05
     foot_slip_cost_scale: float = 0.02
     undesired_contact_force_thresh: float = 80.0  # N (50-200N typical)
@@ -315,21 +314,6 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     stand_phase_value: float = math.pi
     stand_phase_lin_threshold: float = 0.01
     stand_phase_yaw_threshold: float = 0.01
-
-    def compute_observation_space(self) -> None:
-        """Compute observation dimensions from the current config."""
-        obs_single_dim = 3 + 3 + 3 + 3 + self.action_space * 3
-        if bool(self.use_phase_obs):
-            obs_single_dim += 4
-        self.observation_space_single = int(obs_single_dim)
-        self.obs_stack_frames = max(1, int(self.obs_stack_frames))
-        self.observation_space = self.observation_space_single * self.obs_stack_frames
-
-    def __post_init__(self) -> None:
-        super_post_init = getattr(super(), "__post_init__", None)
-        if callable(super_post_init):
-            super_post_init()
-        self.compute_observation_space()
 
     # Command curriculum (progressive difficulty) - based on per-env steps
     use_curriculum: bool = False
