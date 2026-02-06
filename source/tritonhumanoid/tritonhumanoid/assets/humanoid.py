@@ -86,14 +86,15 @@ HUMANOID_CFG = ArticulationCfg(
             stiffness={
                 ".*hip.*":   300.0,
                 ".*thigh.*": 300.0,
-                ".*knee.*":  350.0,
-                ".*ankle.*": 150.0,
+                ".*knee.*":  340.0,
+                ".*ankle.*": 160.0,
             },
+            # divide all kp by 20 for kd
             damping={
-                ".*hip.*": 30.0,              # hip joints slightly stronger
-                ".*thigh.*": 28.0,
-                ".*knee.*": 22.0,
-                ".*ankle.*": 16.0,
+                ".*hip.*": 15.0,
+                ".*thigh.*": 15.0,
+                ".*knee.*": 17.0,
+                ".*ankle.*": 8.0,
             },
 
             # Optional: very small joint friction/armature so it’s not totally ideal
