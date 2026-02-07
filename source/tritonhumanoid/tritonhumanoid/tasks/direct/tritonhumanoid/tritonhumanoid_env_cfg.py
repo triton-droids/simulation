@@ -171,24 +171,38 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # 4096 envs -> 64
     _grid = int(math.sqrt(4096))
 
+    # terrain = TerrainImporterCfg(
+    #     prim_path="/World/ground",
+    #     terrain_type="generator",
+    #     terrain_generator=TerrainGeneratorCfg(
+    #         size=(4.0, 4.0),        # REQUIRED: (x_width, y_length) per tile :contentReference[oaicite:1]{index=1}
+    #         num_rows=_grid,         # 64
+    #         num_cols=_grid,         # 64
+    #         horizontal_scale=0.2,   # optional (defaults exist)
+    #         vertical_scale=0.005,
+    #         sub_terrains={
+    #             "flat": HfRandomUniformTerrainCfg(
+    #                 proportion=0.3, noise_range=(0.0, 0.0), noise_step=0.005
+    #             ),
+    #             "rough": HfRandomUniformTerrainCfg(
+    #                 proportion=0.7, noise_range=(0.0, 0.04), noise_step=0.005
+    #             ),
+    #         },
+    #     ),
+    #     collision_group=-1,
+    #     physics_material=sim_utils.RigidBodyMaterialCfg(
+    #         friction_combine_mode="average",
+    #         restitution_combine_mode="average",
+    #         static_friction=1.0,
+    #         dynamic_friction=1.0,
+    #         restitution=0.0,
+    #     ),
+    #     debug_vis=False,
+    # )
+
     terrain = TerrainImporterCfg(
         prim_path="/World/ground",
-        terrain_type="generator",
-        terrain_generator=TerrainGeneratorCfg(
-            size=(4.0, 4.0),        # REQUIRED: (x_width, y_length) per tile :contentReference[oaicite:1]{index=1}
-            num_rows=_grid,         # 64
-            num_cols=_grid,         # 64
-            horizontal_scale=0.2,   # optional (defaults exist)
-            vertical_scale=0.005,
-            sub_terrains={
-                "flat": HfRandomUniformTerrainCfg(
-                    proportion=0.3, noise_range=(0.0, 0.0), noise_step=0.005
-                ),
-                "rough": HfRandomUniformTerrainCfg(
-                    proportion=0.7, noise_range=(0.0, 0.04), noise_step=0.005
-                ),
-            },
-        ),
+        terrain_type="plane",
         collision_group=-1,
         physics_material=sim_utils.RigidBodyMaterialCfg(
             friction_combine_mode="average",
@@ -281,7 +295,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Contact-based rewards
     foot_body_regex: str = "left_foot|right_foot"
     foot_contact_force_thresh: float = 30.0  # N (20-80N typical for humanoid ground contact)
-    min_air_time: float = 0.3  # seconds
+    min_air_time: float = 0.4  # seconds
     feet_air_time_reward_scale: float = 0.4
     air_time_symmetry_cost_scale: float = 0.05
     foot_slip_cost_scale: float = 0.02

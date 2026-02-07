@@ -186,6 +186,12 @@ class LocomotionEnv(DirectRLEnv):
             "right_hip1_joint|right_hip2_joint|right_thigh_joint|right_knee_joint|right_ankle_joint"
         )
         self._joint_dof_idx, _ = self.robot.find_joints(actuated_joint_regex)
+
+        print("\n")
+        print(self._joint_dof_idx)
+        print(_)
+        print("\n")
+
         self.num_actions = len(self._joint_dof_idx)
 
         # Left/right joint pairs for symmetry penalty (action indices)
@@ -250,20 +256,9 @@ class LocomotionEnv(DirectRLEnv):
 
         self.actuated_lower = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 0].clone()
         self.actuated_upper = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 1].clone()
-        # effective limits with margin
-        margin_abs = float(getattr(self.cfg, "action_limit_margin", 0.0))
-        margin_frac = float(getattr(self.cfg, "action_limit_margin_frac", 0.0))
-        joint_range = self.actuated_upper - self.actuated_lower
-        margin = torch.clamp(joint_range * margin_frac, min=0.0) + margin_abs
-        self.actuated_lower_eff = self.actuated_lower + margin
-        self.actuated_upper_eff = self.actuated_upper - margin
-        # ensure lower < upper
-        slack = torch.full_like(self.actuated_lower_eff, 1e-4)
-        self.actuated_lower_eff = torch.minimum(self.actuated_lower_eff, self.actuated_upper_eff - slack)
-        self.actuated_upper_eff = torch.maximum(self.actuated_upper_eff, self.actuated_lower_eff + slack)
-        # per-joint distances from default pose to effective limits
-        self._d_neg = (self.default_actuated_pos - self.actuated_lower_eff).clamp(min=1e-6)
-        self._d_pos = (self.actuated_upper_eff - self.default_actuated_pos).clamp(min=1e-6)
+        # per-joint distances from default pose to soft limits
+        self._d_neg = (self.default_actuated_pos - self.actuated_lower).clamp(min=1e-6)
+        self._d_pos = (self.actuated_upper - self.default_actuated_pos).clamp(min=1e-6)
 
         # buffers
         self.actions = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
@@ -290,6 +285,7 @@ class LocomotionEnv(DirectRLEnv):
         self._was_standing = torch.zeros(self.num_envs, dtype=torch.bool, device=self.sim.device)
 
         # rotate body-frame vectors to align forward axis with command frame
+        # this was done because the original URDF had the humanoid facing along +Y, but we want +X to be forward 
         self._command_yaw_offset = float(getattr(self.cfg, "command_yaw_offset", 0.0))
         self._cmd_yaw_cos = math.cos(self._command_yaw_offset)
         self._cmd_yaw_sin = math.sin(self._command_yaw_offset)
@@ -297,7 +293,6 @@ class LocomotionEnv(DirectRLEnv):
         self._cmd_yaw_inv_sin = -self._cmd_yaw_sin
         self._use_cmd_yaw_offset = abs(self._command_yaw_offset) > 1e-6
 
-        # feet tracking flag
         self._feet_inited = False
 
         # --- Visualization markers setup ---
@@ -378,7 +373,7 @@ class LocomotionEnv(DirectRLEnv):
         else:
             resample_s = float(getattr(self.cfg, "command_resample_interval_s", 0.0))
             if resample_s > 0.0:
-                self._command_resample_interval_steps = max(1, int(resample_s / self._control_dt))
+                self._command_resample_interval_steps = max(1, int(resample_s / self._control_dt)) # how many control steps for resample_s
             else:
                 self._command_resample_interval_steps = 0
         self._last_command_resample_step = torch.full(
@@ -893,7 +888,7 @@ class LocomotionEnv(DirectRLEnv):
         )
 
         q_des = self.default_actuated_pos.unsqueeze(0) + offsets
-        q_des = torch.clamp(q_des, self.actuated_lower_eff.unsqueeze(0), self.actuated_upper_eff.unsqueeze(0))
+        q_des = torch.clamp(q_des, self.actuated_lower.unsqueeze(0), self.actuated_upper.unsqueeze(0))
         self.q_des = q_des
         self.robot.set_joint_position_target(q_des, joint_ids=self._joint_dof_idx)
 
@@ -1507,11 +1502,13 @@ class LocomotionEnv(DirectRLEnv):
             self.commands[env_ids[stand_mask], :3] = 0.0
 
     def _reset_gait_state(self, env_ids: torch.Tensor) -> None:
+        # .numel() gives number of elements in the tensor
         if env_ids.numel() == 0:
             return
 
         n = env_ids.numel()
         if bool(getattr(self.cfg, "randomize_phase", False)):
+            # if we randomize phase, we want to randomize the offset between the two legs to encourage more diverse gaits
             self.phase_offset[env_ids] = torch.empty((n, 2), device=self.sim.device).uniform_(0.0, self._two_pi)
         else:
             default_offset = getattr(self.cfg, "phase_offset_default", (0.0, math.pi))
