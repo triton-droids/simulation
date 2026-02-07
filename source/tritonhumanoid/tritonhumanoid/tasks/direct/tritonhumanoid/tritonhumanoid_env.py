@@ -184,6 +184,11 @@ class LocomotionEnv(DirectRLEnv):
             "right_hip1_joint|right_hip2_joint|right_thigh_joint|right_knee_joint|right_ankle_joint"
         )
         self._joint_dof_idx, _ = self.robot.find_joints(actuated_joint_regex)
+
+        print("\n")
+        print(self._joint_dof_idx)
+        print(_)
+        print("\n")
         self.num_actions = len(self._joint_dof_idx)
 
         # Left/right joint pairs for symmetry penalty (action indices)
@@ -245,6 +250,10 @@ class LocomotionEnv(DirectRLEnv):
         # default pose + joint limits (actuated only)
         default_joint_pos = self.robot.data.default_joint_pos[0]
         self.default_actuated_pos = default_joint_pos[self._joint_dof_idx].clone()
+        
+        print("\n")
+        print(self.default_actuated_pos)
+        print("\n")
 
         self.actuated_lower = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 0].clone()
         self.actuated_upper = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 1].clone()
@@ -388,9 +397,9 @@ class LocomotionEnv(DirectRLEnv):
 
         # IMU bias (gravity direction + gyro) and mount misalignment
         self.imu_bias_gravity = torch.zeros(self.num_envs, 3, device=self.sim.device)
-        self.imu_bias_gyro = torch.zeros(self.num_envs, 3, device=self.sim.device)
-        self.imu_mount_axis = torch.tensor([1.0, 0.0, 0.0], device=self.sim.device).repeat(self.num_envs, 1)
-        self.imu_mount_ang = torch.zeros(self.num_envs, device=self.sim.device)
+        self.imu_bias_gyro = torch.zeros(self.num_envs, 3, device=self.sim.device) # rad/s
+        self.imu_mount_axis = torch.tensor([1.0, 0.0, 0.0], device=self.sim.device).repeat(self.num_envs, 1) # unit axis vector
+        self.imu_mount_ang = torch.zeros(self.num_envs, device=self.sim.device) # radians
 
         # continuous micro disturbances (OU process)
         self.micro_lin_acc = torch.zeros(self.num_envs, 3, device=self.sim.device)
@@ -573,7 +582,7 @@ class LocomotionEnv(DirectRLEnv):
             self.imu_mount_ang[env_ids] = 0.0
 
     def _maybe_apply_pushes(self):
-        """Apply random horizontal velocity kicks to the base at random intervals."""
+        """Apply random directed velocity kicks to the base at random intervals."""
         if self._push_dv_max <= 0.0:
             return
 
@@ -803,98 +812,6 @@ class LocomotionEnv(DirectRLEnv):
         lo = self.actuated_lower.unsqueeze(0)
         hi = self.actuated_upper.unsqueeze(0)
         self.act_pos_scaled = 2.0 * (self.act_pos - lo) / (hi - lo + 1e-6) - 1.0
-
-    @staticmethod
-    def define_markers() -> VisualizationMarkers:
-        """Define arrow markers for command vs actual velocity."""
-        marker_cfg = VisualizationMarkersCfg(
-            prim_path="/Visuals/humanoidMarkers",
-            markers={
-                # 0: command (red)
-                "command": sim_utils.UsdFileCfg(
-                    usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/UIElements/arrow_x.usd",
-                    scale=(0.25, 0.25, 0.5),
-                    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
-                ),
-                # 1: actual velocity (green)
-                "velocity": sim_utils.UsdFileCfg(
-                    usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/UIElements/arrow_x.usd",
-                    scale=(0.25, 0.25, 0.5),
-                    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0)),
-                ),
-            },
-        )
-        return VisualizationMarkers(cfg=marker_cfg)
-
-    @staticmethod
-    def _rotate_xy(v: torch.Tensor, cos_yaw: float, sin_yaw: float) -> torch.Tensor:
-        x = v[..., 0] * cos_yaw - v[..., 1] * sin_yaw
-        y = v[..., 0] * sin_yaw + v[..., 1] * cos_yaw
-        return torch.stack((x, y, v[..., 2]), dim=-1)
-
-    def _visualize_markers(self):
-        """Draw arrows for commanded velocity (red) and actual velocity (green) in world frame for single env."""
-        if not self._visualization_enabled:
-            return
-
-        # Ensure state is updated before accessing torso_pos_w
-        if not hasattr(self, 'torso_pos_w'):
-            return
-
-        if self._visualize_all_envs:
-            env_ids = torch.arange(self.num_envs, device=self.sim.device)
-        else:
-            env_id = int(getattr(self.cfg, "debug_env_id", 0))
-            env_id = max(0, min(env_id, self.num_envs - 1))
-            env_ids = torch.tensor([env_id], device=self.sim.device)
-
-        # Get single env data
-        torso_pos = self.torso_pos_w[env_ids]  # [N,3]
-        torso_quat = self.torso_quat_w[env_ids]  # [N,4]
-        cmd = self.commands[env_ids]  # [N,3]
-        vel_w = self.torso_lin_vel_w[env_ids]  # [N,3]
-
-        # Marker location (lifted above robot)
-        marker_loc = torso_pos + self._marker_offset  # [N,3]
-
-        # --- 1. COMMAND VELOCITY DIRECTION IN WORLD FRAME ---
-        cmd_b = torch.cat([cmd[:, :2], torch.zeros((cmd.shape[0], 1), device=self.sim.device)], dim=1)  # [N,3]
-        if self._use_cmd_yaw_offset:
-            cmd_b = self._rotate_xy(cmd_b, self._cmd_yaw_inv_cos, self._cmd_yaw_inv_sin)
-
-        # Rotate into WORLD frame
-        cmd_w = math_utils.quat_apply(torso_quat, cmd_b)  # [N,3]
-
-        # Compute yaw for command
-        cmd_xy = cmd_w[:, :2]
-        cmd_norm = torch.norm(cmd_xy, dim=1).clamp(min=1e-6)
-        cmd_dir_xy = cmd_xy / cmd_norm.unsqueeze(1)
-        cmd_yaw = torch.atan2(cmd_dir_xy[:, 1], cmd_dir_xy[:, 0])
-
-        cmd_half = 0.5 * cmd_yaw
-        cmd_orient = torch.stack(
-            (torch.cos(cmd_half), torch.zeros_like(cmd_half), torch.zeros_like(cmd_half), torch.sin(cmd_half)),
-            dim=1,
-        )  # [N,4]
-
-        # --- 2. ACTUAL VELOCITY DIRECTION IN WORLD FRAME ---
-        vel_xy = vel_w[:, :2]
-        vel_norm = torch.norm(vel_xy, dim=1).clamp(min=1e-6)
-        vel_dir_xy = vel_xy / vel_norm.unsqueeze(1)
-        vel_yaw = torch.atan2(vel_dir_xy[:, 1], vel_dir_xy[:, 0])
-
-        vel_half = 0.5 * vel_yaw
-        vel_orient = torch.stack(
-            (torch.cos(vel_half), torch.zeros_like(vel_half), torch.zeros_like(vel_half), torch.sin(vel_half)),
-            dim=1,
-        )  # [N,4]
-
-        # --- 3. Visualize 2 markers: command (red) then velocity (green) ---
-        loc = torch.repeat_interleave(marker_loc, repeats=2, dim=0)  # [2N,3]
-        rots = torch.stack([cmd_orient, vel_orient], dim=1).reshape(-1, 4)  # [2N,4]
-        indices = torch.tensor([0, 1], device=self.sim.device).repeat(marker_loc.shape[0])  # [2N]
-
-        self.visualization_markers.visualize(loc, rots, marker_indices=indices)
 
     def _compute_single_observation(self) -> torch.Tensor:
         up_cmd = self.up_cmd
@@ -1397,3 +1314,95 @@ class LocomotionEnv(DirectRLEnv):
             dtype=torch.long,
             device=self.sim.device,
         )
+
+    @staticmethod
+    def define_markers() -> VisualizationMarkers:
+        """Define arrow markers for command vs actual velocity."""
+        marker_cfg = VisualizationMarkersCfg(
+            prim_path="/Visuals/humanoidMarkers",
+            markers={
+                # 0: command (red)
+                "command": sim_utils.UsdFileCfg(
+                    usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/UIElements/arrow_x.usd",
+                    scale=(0.25, 0.25, 0.5),
+                    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
+                ),
+                # 1: actual velocity (green)
+                "velocity": sim_utils.UsdFileCfg(
+                    usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/UIElements/arrow_x.usd",
+                    scale=(0.25, 0.25, 0.5),
+                    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0)),
+                ),
+            },
+        )
+        return VisualizationMarkers(cfg=marker_cfg)
+
+    @staticmethod
+    def _rotate_xy(v: torch.Tensor, cos_yaw: float, sin_yaw: float) -> torch.Tensor:
+        x = v[..., 0] * cos_yaw - v[..., 1] * sin_yaw
+        y = v[..., 0] * sin_yaw + v[..., 1] * cos_yaw
+        return torch.stack((x, y, v[..., 2]), dim=-1)
+
+    def _visualize_markers(self):
+        """Draw arrows for commanded velocity (red) and actual velocity (green) in world frame for single env."""
+        if not self._visualization_enabled:
+            return
+
+        # Ensure state is updated before accessing torso_pos_w
+        if not hasattr(self, 'torso_pos_w'):
+            return
+
+        if self._visualize_all_envs:
+            env_ids = torch.arange(self.num_envs, device=self.sim.device)
+        else:
+            env_id = int(getattr(self.cfg, "debug_env_id", 0))
+            env_id = max(0, min(env_id, self.num_envs - 1))
+            env_ids = torch.tensor([env_id], device=self.sim.device)
+
+        # Get single env data
+        torso_pos = self.torso_pos_w[env_ids]  # [N,3]
+        torso_quat = self.torso_quat_w[env_ids]  # [N,4]
+        cmd = self.commands[env_ids]  # [N,3]
+        vel_w = self.torso_lin_vel_w[env_ids]  # [N,3]
+
+        # Marker location (lifted above robot)
+        marker_loc = torso_pos + self._marker_offset  # [N,3]
+
+        # --- 1. COMMAND VELOCITY DIRECTION IN WORLD FRAME ---
+        cmd_b = torch.cat([cmd[:, :2], torch.zeros((cmd.shape[0], 1), device=self.sim.device)], dim=1)  # [N,3]
+        if self._use_cmd_yaw_offset:
+            cmd_b = self._rotate_xy(cmd_b, self._cmd_yaw_inv_cos, self._cmd_yaw_inv_sin)
+
+        # Rotate into WORLD frame
+        cmd_w = math_utils.quat_apply(torso_quat, cmd_b)  # [N,3]
+
+        # Compute yaw for command
+        cmd_xy = cmd_w[:, :2]
+        cmd_norm = torch.norm(cmd_xy, dim=1).clamp(min=1e-6)
+        cmd_dir_xy = cmd_xy / cmd_norm.unsqueeze(1)
+        cmd_yaw = torch.atan2(cmd_dir_xy[:, 1], cmd_dir_xy[:, 0])
+
+        cmd_half = 0.5 * cmd_yaw
+        cmd_orient = torch.stack(
+            (torch.cos(cmd_half), torch.zeros_like(cmd_half), torch.zeros_like(cmd_half), torch.sin(cmd_half)),
+            dim=1,
+        )  # [N,4]
+
+        # --- 2. ACTUAL VELOCITY DIRECTION IN WORLD FRAME ---
+        vel_xy = vel_w[:, :2]
+        vel_norm = torch.norm(vel_xy, dim=1).clamp(min=1e-6)
+        vel_dir_xy = vel_xy / vel_norm.unsqueeze(1)
+        vel_yaw = torch.atan2(vel_dir_xy[:, 1], vel_dir_xy[:, 0])
+
+        vel_half = 0.5 * vel_yaw
+        vel_orient = torch.stack(
+            (torch.cos(vel_half), torch.zeros_like(vel_half), torch.zeros_like(vel_half), torch.sin(vel_half)),
+            dim=1,
+        )  # [N,4]
+
+        # --- 3. Visualize 2 markers: command (red) then velocity (green) ---
+        loc = torch.repeat_interleave(marker_loc, repeats=2, dim=0)  # [2N,3]
+        rots = torch.stack([cmd_orient, vel_orient], dim=1).reshape(-1, 4)  # [2N,4]
+        indices = torch.tensor([0, 1], device=self.sim.device).repeat(marker_loc.shape[0])  # [2N]
+
+        self.visualization_markers.visualize(loc, rots, marker_indices=indices)

@@ -356,7 +356,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
             "joint_torque_std": (0.0, 0.5),
         },
         "motor_strength": {
-            "per_joint_mult_range": (0.0, 0.3),
+            # "per_joint_mult_range": (0.0, 0.3),
+            "per_joint_mult_range": (0.0, 0.0), # trying (0, 0) for better sim2real
         },
         "latency": {
             "act_steps": (0, 5),
