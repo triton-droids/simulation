@@ -1096,7 +1096,7 @@ class LocomotionEnv(DirectRLEnv):
         fell = self.torso_pos_w[:, 2] < self.cfg.termination_height
         too_tilted = self.up_b[:, 2] < self.cfg.upright_threshold
 
-        died = fell | too_tilted
+        died = torch.zeros(self.num_envs, dtype=torch.bool, device=self.sim.device)
         return died, time_out
 
     def _reset_idx(self, env_ids: torch.Tensor | None):
