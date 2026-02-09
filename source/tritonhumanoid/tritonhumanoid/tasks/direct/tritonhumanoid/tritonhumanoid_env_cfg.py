@@ -230,19 +230,34 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
         prim_path="/World/envs/env_.*/Robot/.*", history_length=3, update_period=0.005, track_air_time=True
     )
 
-    scene.ee_site = FrameTransformerCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/world",   # source frame
+    # scene.ee_site = FrameTransformerCfg(
+    #     prim_path="{ENV_REGEX_NS}/Robot/world",   # source frame
+    #     target_frames=[
+    #         FrameTransformerCfg.FrameCfg(
+    #             prim_path="{ENV_REGEX_NS}/Robot/torso",  # parent body of your site
+    #             name="top",
+    #             offset=OffsetCfg(
+    #                 pos=(-0.155, -0.016, 0.765),            # your trial site position (m)
+    #                 rot=(1.0, 0.0, 0.0, 0.0),        # quaternion (w,x,y,z)
+    #             ),
+    #         ),
+    #     ],
+    #     debug_vis=True,   # show frame markers
+    # )
+
+    ee_site: FrameTransformerCfg = FrameTransformerCfg(
+        prim_path="/World/envs/env_.*/Robot/world",
         target_frames=[
             FrameTransformerCfg.FrameCfg(
-                prim_path="{ENV_REGEX_NS}/Robot/torso",  # parent body of your site
+                prim_path="/World/envs/env_.*/Robot/torso",
                 name="top",
                 offset=OffsetCfg(
-                    pos=(-0.155, -0.016, 0.765),            # your trial site position (m)
-                    rot=(1.0, 0.0, 0.0, 0.0),        # quaternion (w,x,y,z)
+                    pos=(-0.155, -0.016, 0.765),
+                    rot=(1.0, 0.0, 0.0, 0.0),
                 ),
             ),
         ],
-        debug_vis=True,   # show frame markers
+        debug_vis=False,  # keep off during training/headless
     )
 
     # Observation scales
