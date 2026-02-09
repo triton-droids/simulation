@@ -12,7 +12,7 @@ import torch
 import isaaclab.sim as sim_utils
 from isaaclab.assets import Articulation
 from isaaclab.envs import DirectRLEnv, DirectRLEnvCfg
-from isaaclab.sensors import ContactSensor
+from isaaclab.sensors import ContactSensor, FrameTransformer
 from isaaclab.markers import VisualizationMarkers, VisualizationMarkersCfg
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 import isaaclab.utils.math as math_utils
@@ -240,9 +240,15 @@ class LocomotionEnv(DirectRLEnv):
                 thigh_action_ids.append(joint_id_to_action[right_thigh_id])
         self._thigh_action_ids = torch.tensor(thigh_action_ids, device=self.sim.device, dtype=torch.long)
 
-        # torso link is named "world" in your URDF
-        torso_ids, _ = self.robot.find_bodies("world")
-        self._torso_body_idx = int(torso_ids[0])
+        # IMU body is named "world" in your URDF
+        imu_ids, _ = self.robot.find_bodies("world")
+        self._imu_body_idx = int(imu_ids[0])
+
+        # tracking site index (for velocity/height tracking)
+        site_names = self.scene["ee_site"].data.target_frame_names
+        if "top" not in site_names:
+            raise RuntimeError(f"'top' not found in ee_site target_frame_names: {site_names}")
+        self._top_frame_idx = site_names.index("top")
 
         # pre-create world up for speed (avoid allocating every step)
         self._world_up = torch.tensor([0.0, 0.0, 1.0], device=self.sim.device).unsqueeze(0).repeat(self.num_envs, 1)
@@ -472,8 +478,10 @@ class LocomotionEnv(DirectRLEnv):
 
         # add contact sensors
         self._contact_sensor = ContactSensor(self.cfg.contact_sensor)
+        self._ee_site_sensor = FrameTransformer(self.cfg.ee_site)
         self.scene.articulations["robot"] = self.robot
         self.scene.sensors["contact_sensor"] = self._contact_sensor
+        self.scene.sensors["ee_site"] = self._ee_site_sensor
 
         # add ground plane
         self.cfg.terrain.num_envs = self.scene.cfg.num_envs
@@ -785,33 +793,54 @@ class LocomotionEnv(DirectRLEnv):
         self.robot.set_joint_position_target(q_des, joint_ids=self._joint_dof_idx)
 
     def _update_state(self):
-        i = self._torso_body_idx
+        # -------------------------------
+        # A) IMU state from body "world"
+        # -------------------------------
+        i = self._imu_body_idx
 
-        # torso (world-frame)
-        self.torso_pos_w  = self.robot.data.body_pos_w[:, i]     # [N,3]
-        self.torso_quat_w = self.robot.data.body_quat_w[:, i]    # [N,4] (w,x,y,z)
-        torso_lin_vel_w   = self.robot.data.body_lin_vel_w[:, i] # [N,3]
-        torso_ang_vel_w   = self.robot.data.body_ang_vel_w[:, i] # [N,3]
+        self.imu_pos_w = self.robot.data.body_pos_w[:, i]     # [N,3]
+        self.imu_quat_w = self.robot.data.body_quat_w[:, i]   # [N,4] (w,x,y,z)
+        imu_lin_vel_w = self.robot.data.body_lin_vel_w[:, i]  # [N,3]
+        imu_ang_vel_w = self.robot.data.body_ang_vel_w[:, i]  # [N,3]
 
-        self.torso_lin_vel_w = torso_lin_vel_w
-        self.torso_ang_vel_w = torso_ang_vel_w
+        self.imu_lin_vel_w = imu_lin_vel_w
+        self.imu_ang_vel_w = imu_ang_vel_w
 
-        # convert velocities to torso/body frame
-        self.torso_lin_vel_b = quat_rotate_inverse(self.torso_quat_w, torso_lin_vel_w)  # [N,3]
-        self.torso_ang_vel_b = quat_rotate_inverse(self.torso_quat_w, torso_ang_vel_w)  # [N,3]
+        self.imu_lin_vel_b = quat_rotate_inverse(self.imu_quat_w, imu_lin_vel_w)  # [N,3]
+        self.imu_ang_vel_b = quat_rotate_inverse(self.imu_quat_w, imu_ang_vel_w)  # [N,3]
         if self._use_cmd_yaw_offset:
-            self.torso_lin_vel_cmd = self._rotate_xy(self.torso_lin_vel_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
-            self.torso_ang_vel_cmd = self._rotate_xy(self.torso_ang_vel_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
+            self.imu_lin_vel_cmd = self._rotate_xy(self.imu_lin_vel_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
+            self.imu_ang_vel_cmd = self._rotate_xy(self.imu_ang_vel_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
         else:
-            self.torso_lin_vel_cmd = self.torso_lin_vel_b
-            self.torso_ang_vel_cmd = self.torso_ang_vel_b
+            self.imu_lin_vel_cmd = self.imu_lin_vel_b
+            self.imu_ang_vel_cmd = self.imu_ang_vel_b
 
-        # IMU-ish "up" expressed in body frame (up_b.z ~ 1 when upright)
-        self.up_b = quat_rotate_inverse(self.torso_quat_w, self._world_up)  # [N,3]
+        # IMU "up" expressed in body frame (up_b.z ~ 1 when upright)
+        self.up_b = quat_rotate_inverse(self.imu_quat_w, self._world_up)  # [N,3]
         if self._use_cmd_yaw_offset:
             self.up_cmd = self._rotate_xy(self.up_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
         else:
             self.up_cmd = self.up_b
+
+        # ------------------------------------------
+        # B) Tracking state from site frame "top"
+        # ------------------------------------------
+        ft = self.scene["ee_site"].data
+        self.track_pos_w = ft.target_pos_w[:, self._top_frame_idx]
+        self.track_quat_w = ft.target_quat_w[:, self._top_frame_idx]
+
+        r_w = self.track_pos_w - self.imu_pos_w
+        self.track_lin_vel_w = imu_lin_vel_w + torch.cross(imu_ang_vel_w, r_w, dim=-1)
+        self.track_ang_vel_w = imu_ang_vel_w
+
+        self.track_lin_vel_b = quat_rotate_inverse(self.imu_quat_w, self.track_lin_vel_w)
+        self.track_ang_vel_b = quat_rotate_inverse(self.imu_quat_w, self.track_ang_vel_w)
+        if self._use_cmd_yaw_offset:
+            self.track_lin_vel_cmd = self._rotate_xy(self.track_lin_vel_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
+            self.track_ang_vel_cmd = self._rotate_xy(self.track_ang_vel_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
+        else:
+            self.track_lin_vel_cmd = self.track_lin_vel_b
+            self.track_ang_vel_cmd = self.track_ang_vel_b
 
         # joints
         self.dof_pos = self.robot.data.joint_pos
@@ -826,7 +855,7 @@ class LocomotionEnv(DirectRLEnv):
 
     def _compute_single_observation(self) -> torch.Tensor:
         up_cmd = self.up_cmd
-        ang_vel_cmd = self.torso_ang_vel_cmd
+        ang_vel_cmd = self.imu_ang_vel_cmd
         act_pos_scaled = self.act_pos_scaled
         act_vel = self.act_vel
 
@@ -851,7 +880,7 @@ class LocomotionEnv(DirectRLEnv):
 
         obs = torch.cat(
             (
-                self.torso_lin_vel_cmd,                          # command-frame lin vel
+                self.imu_lin_vel_cmd,                            # command-frame lin vel
                 ang_vel_cmd * self.cfg.ang_vel_scale,            # command-frame ang vel
                 up_cmd,                                          # IMU-ish orientation feature
                 self.commands,                                   # commanded [vx, vy, yaw_rate] in BODY frame
@@ -912,8 +941,8 @@ class LocomotionEnv(DirectRLEnv):
         self._update_state()
 
         # --- Base velocity tracking ---
-        vel_err = self.torso_lin_vel_cmd[:, :2] - self.commands[:, :2]
-        yaw_err = self.torso_ang_vel_cmd[:, 2]  - self.commands[:, 2]
+        vel_err = self.track_lin_vel_cmd[:, :2] - self.commands[:, :2]
+        yaw_err = self.track_ang_vel_cmd[:, 2]  - self.commands[:, 2]
 
         r_lin = torch.exp(-torch.sum(vel_err * vel_err, dim=1) / self.cfg.lin_vel_sigma)
         r_yaw = torch.exp(-(yaw_err * yaw_err) / self.cfg.yaw_rate_sigma)
@@ -927,7 +956,7 @@ class LocomotionEnv(DirectRLEnv):
         upright = torch.clamp(self.up_b[:, 2], 0.0, 1.0)
 
         cmd_speed = torch.norm(self.commands[:, :2], dim=1)
-        act_speed = torch.norm(self.torso_lin_vel_b[:, :2], dim=1)
+        act_speed = torch.norm(self.track_lin_vel_b[:, :2], dim=1)
         standstill = torch.clamp(self.cfg.standstill_speed_threshold - act_speed, min=0.0)
         standstill = standstill * (cmd_speed > self.cfg.command_speed_threshold).float()
 
@@ -959,8 +988,8 @@ class LocomotionEnv(DirectRLEnv):
             )
 
         # --- Stability costs (prevent hopping/rolling) ---
-        lin_vel_z_cost = self.torso_lin_vel_b[:, 2] ** 2
-        ang_vel_xy_cost = torch.sum(self.torso_ang_vel_b[:, :2] ** 2, dim=1)
+        lin_vel_z_cost = self.imu_lin_vel_b[:, 2] ** 2
+        ang_vel_xy_cost = torch.sum(self.imu_ang_vel_b[:, :2] ** 2, dim=1)
         flat_ori_cost = torch.sum(self.up_b[:, :2] ** 2, dim=1)  # up_b ~= [0,0,1] when upright
 
         # --- Smoothness costs ---
@@ -1104,7 +1133,7 @@ class LocomotionEnv(DirectRLEnv):
         self._update_state()
         time_out = self.episode_length_buf >= self.randomized_episode_lengths - 1
 
-        fell = self.torso_pos_w[:, 2] < self.cfg.termination_height
+        fell = self.imu_pos_w[:, 2] < self.cfg.termination_height
         too_tilted = self.up_b[:, 2] < self.cfg.upright_threshold
 
         died = torch.zeros(self.num_envs, dtype=torch.bool, device=self.sim.device)
@@ -1182,7 +1211,7 @@ class LocomotionEnv(DirectRLEnv):
         if self._visualization_enabled or self.obs_stack_buf is not None or self.obs_hist_buf is not None:
             self._update_state()
 
-        # Update state before visualization so torso_pos_w exists
+        # Update state before visualization so tracking/IMU state exists
         if self._visualization_enabled:
             self._visualize_markers()
 
@@ -1359,8 +1388,8 @@ class LocomotionEnv(DirectRLEnv):
         if not self._visualization_enabled:
             return
 
-        # Ensure state is updated before accessing torso_pos_w
-        if not hasattr(self, 'torso_pos_w'):
+        # Ensure state is updated before accessing tracking/IMU state
+        if not hasattr(self, "track_pos_w") or not hasattr(self, "imu_quat_w"):
             return
 
         if self._visualize_all_envs:
@@ -1371,10 +1400,10 @@ class LocomotionEnv(DirectRLEnv):
             env_ids = torch.tensor([env_id], device=self.sim.device)
 
         # Get single env data
-        torso_pos = self.torso_pos_w[env_ids]  # [N,3]
-        torso_quat = self.torso_quat_w[env_ids]  # [N,4]
+        torso_pos = self.track_pos_w[env_ids]  # [N,3]
+        torso_quat = self.imu_quat_w[env_ids]  # [N,4]
         cmd = self.commands[env_ids]  # [N,3]
-        vel_w = self.torso_lin_vel_w[env_ids]  # [N,3]
+        vel_w = self.track_lin_vel_w[env_ids]  # [N,3]
 
         # Marker location (lifted above robot)
         marker_loc = torso_pos + self._marker_offset  # [N,3]
