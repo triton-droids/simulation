@@ -351,7 +351,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     penalty_curriculum_power: float = 2.0
 
     # Optional: gait phase for timing
-    use_phase_obs: bool = False
+    use_phase_obs: bool = True
     gait_period_s: float = 1.0
     gait_period_randomization_width: float = 0.0
     randomize_phase: bool = False
