@@ -237,7 +237,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
                 prim_path="{ENV_REGEX_NS}/Robot/torso",  # parent body of your site
                 name="top",
                 offset=OffsetCfg(
-                    pos=(0.0, 0.0, 0.08),            # your trial site position (m)
+                    pos=(-0.155, -0.016, 0.765),            # your trial site position (m)
                     rot=(1.0, 0.0, 0.0, 0.0),        # quaternion (w,x,y,z)
                 ),
             ),
