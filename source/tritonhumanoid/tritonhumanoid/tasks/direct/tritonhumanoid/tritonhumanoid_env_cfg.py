@@ -23,6 +23,7 @@ import isaaclab.envs.mdp as mdp
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
+from isaaclab.sensors import FrameTransformerCfg, OffsetCfg
 
 from isaaclab_tasks.direct.locomotion.locomotion_env import LocomotionEnv
 
@@ -229,6 +230,21 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
         prim_path="/World/envs/env_.*/Robot/.*", history_length=3, update_period=0.005, track_air_time=True
     )
 
+    scene.ee_site = FrameTransformerCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/world",   # source frame
+        target_frames=[
+            FrameTransformerCfg.FrameCfg(
+                prim_path="{ENV_REGEX_NS}/Robot/torso",  # parent body of your site
+                name="top",
+                offset=OffsetCfg(
+                    pos=(0.0, 0.0, 0.08),            # your trial site position (m)
+                    rot=(1.0, 0.0, 0.0, 0.0),        # quaternion (w,x,y,z)
+                ),
+            ),
+        ],
+        debug_vis=True,   # show frame markers
+    )
+
     # Observation scales
     ang_vel_scale: float = 0.25
     dof_vel_scale: float = 0.1
@@ -295,7 +311,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Contact-based rewards
     foot_body_regex: str = "left_foot|right_foot"
     foot_contact_force_thresh: float = 30.0  # N (20-80N typical for humanoid ground contact)
-    min_air_time: float = 0.4  # seconds
+    min_air_time: float = 0.2  # seconds
     feet_air_time_reward_scale: float = 0.4
     air_time_symmetry_cost_scale: float = 0.05
     foot_slip_cost_scale: float = 0.02

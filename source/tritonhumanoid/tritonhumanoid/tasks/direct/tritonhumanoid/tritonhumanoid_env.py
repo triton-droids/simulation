@@ -456,6 +456,17 @@ class LocomotionEnv(DirectRLEnv):
 
         self._resample_episode_lengths(self.robot._ALL_INDICES)
 
+
+
+        data = self.scene["ee_site"].data
+        # list names to get correct index:
+        print(data.target_frame_names)  # order may differ if regex is used
+        idx = data.target_frame_names.index("top")
+
+        pos_w  = data.target_pos_w[:, idx]      # world position of your site
+        quat_w = data.target_quat_w[:, idx]     # world orientation of your site
+
+
     def _setup_scene(self):
         self.robot = Articulation(self.cfg.robot)
 
