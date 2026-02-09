@@ -27,7 +27,7 @@ params:
 
     # humanoid locomotion MLP – similar to rsl_rl configs
     mlp:
-      units: [256, 128, 128]   # [128,128,128] is also fine; this is a mild bump
+      units: [512, 256, 128]   # [128,128,128] is also fine; this is a mild bump
       activation: elu
       d2rl: False
 
