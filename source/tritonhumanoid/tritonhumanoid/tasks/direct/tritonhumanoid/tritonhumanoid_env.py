@@ -827,20 +827,35 @@ class LocomotionEnv(DirectRLEnv):
         # ------------------------------------------
         ft = self.scene["ee_site"].data
         self.track_pos_w = ft.target_pos_w[:, self._top_frame_idx]
-        self.track_quat_w = ft.target_quat_w[:, self._top_frame_idx]
 
-        r_w = self.track_pos_w - self.imu_pos_w
-        self.track_lin_vel_w = imu_lin_vel_w + torch.cross(imu_ang_vel_w, r_w, dim=-1)
-        self.track_ang_vel_w = imu_ang_vel_w
+        # ------------------------------------------
+        # C) Center of mass (COM) state for tracking
+        # ------------------------------------------
+        body_mass = self.robot.data.body_mass
+        body_pos_w = getattr(self.robot.data, "body_com_pos_w", None)
+        if body_pos_w is None:
+            body_pos_w = self.robot.data.body_pos_w
+        body_lin_vel_w = getattr(self.robot.data, "body_com_vel_w", None)
+        if body_lin_vel_w is None:
+            body_lin_vel_w = self.robot.data.body_lin_vel_w
+        body_ang_vel_w = self.robot.data.body_ang_vel_w
 
-        self.track_lin_vel_b = quat_rotate_inverse(self.imu_quat_w, self.track_lin_vel_w)
-        self.track_ang_vel_b = quat_rotate_inverse(self.imu_quat_w, self.track_ang_vel_w)
+        if body_mass.dim() == 1:
+            body_mass = body_mass.unsqueeze(0).expand(body_pos_w.shape[0], -1)
+        mass_sum = body_mass.sum(dim=1, keepdim=True).clamp(min=1e-6)
+
+        self.com_pos_w = (body_pos_w * body_mass.unsqueeze(-1)).sum(dim=1) / mass_sum
+        self.com_lin_vel_w = (body_lin_vel_w * body_mass.unsqueeze(-1)).sum(dim=1) / mass_sum
+        self.com_ang_vel_w = (body_ang_vel_w * body_mass.unsqueeze(-1)).sum(dim=1) / mass_sum
+
+        self.com_lin_vel_b = quat_rotate_inverse(self.imu_quat_w, self.com_lin_vel_w)
+        self.com_ang_vel_b = quat_rotate_inverse(self.imu_quat_w, self.com_ang_vel_w)
         if self._use_cmd_yaw_offset:
-            self.track_lin_vel_cmd = self._rotate_xy(self.track_lin_vel_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
-            self.track_ang_vel_cmd = self._rotate_xy(self.track_ang_vel_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
+            self.com_lin_vel_cmd = self._rotate_xy(self.com_lin_vel_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
+            self.com_ang_vel_cmd = self._rotate_xy(self.com_ang_vel_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
         else:
-            self.track_lin_vel_cmd = self.track_lin_vel_b
-            self.track_ang_vel_cmd = self.track_ang_vel_b
+            self.com_lin_vel_cmd = self.com_lin_vel_b
+            self.com_ang_vel_cmd = self.com_ang_vel_b
 
         # joints
         self.dof_pos = self.robot.data.joint_pos
@@ -941,8 +956,8 @@ class LocomotionEnv(DirectRLEnv):
         self._update_state()
 
         # --- Base velocity tracking ---
-        vel_err = self.track_lin_vel_cmd[:, :2] - self.commands[:, :2]
-        yaw_err = self.track_ang_vel_cmd[:, 2]  - self.commands[:, 2]
+        vel_err = self.com_lin_vel_cmd[:, :2] - self.commands[:, :2]
+        yaw_err = self.com_ang_vel_cmd[:, 2]  - self.commands[:, 2]
 
         r_lin = torch.exp(-torch.sum(vel_err * vel_err, dim=1) / self.cfg.lin_vel_sigma)
         r_yaw = torch.exp(-(yaw_err * yaw_err) / self.cfg.yaw_rate_sigma)
@@ -956,7 +971,7 @@ class LocomotionEnv(DirectRLEnv):
         upright = torch.clamp(self.up_b[:, 2], 0.0, 1.0)
 
         cmd_speed = torch.norm(self.commands[:, :2], dim=1)
-        act_speed = torch.norm(self.track_lin_vel_b[:, :2], dim=1)
+        act_speed = torch.norm(self.com_lin_vel_b[:, :2], dim=1)
         standstill = torch.clamp(self.cfg.standstill_speed_threshold - act_speed, min=0.0)
         standstill = standstill * (cmd_speed > self.cfg.command_speed_threshold).float()
 
@@ -1390,7 +1405,7 @@ class LocomotionEnv(DirectRLEnv):
             return
 
         # Ensure state is updated before accessing tracking/IMU state
-        if not hasattr(self, "track_pos_w") or not hasattr(self, "imu_quat_w"):
+        if not hasattr(self, "track_pos_w") or not hasattr(self, "imu_quat_w") or not hasattr(self, "com_lin_vel_w"):
             return
 
         if self._visualize_all_envs:
@@ -1404,7 +1419,7 @@ class LocomotionEnv(DirectRLEnv):
         torso_pos = self.track_pos_w[env_ids]  # [N,3]
         torso_quat = self.imu_quat_w[env_ids]  # [N,4]
         cmd = self.commands[env_ids]  # [N,3]
-        vel_w = self.track_lin_vel_w[env_ids]  # [N,3]
+        vel_w = self.com_lin_vel_w[env_ids]  # [N,3]
 
         # Marker location (lifted above robot)
         marker_loc = torso_pos + self._marker_offset  # [N,3]
