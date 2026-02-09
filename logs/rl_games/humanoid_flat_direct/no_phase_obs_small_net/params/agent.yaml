@@ -74,4 +74,4 @@ params:
       games_num: 100000
       print_stats: true
     train_dir: /workspace/simulation/logs/rl_games/humanoid_flat_direct
-    full_experiment_name: 2026-02-09_08-41-33
+    full_experiment_name: 2026-02-09_08-40-57
