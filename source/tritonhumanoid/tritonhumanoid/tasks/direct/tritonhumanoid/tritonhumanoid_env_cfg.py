@@ -333,6 +333,13 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     undesired_contact_force_thresh: float = 80.0  # N (50-200N typical)
     undesired_contact_cost_scale: float = 0.1
 
+    # Anti-stomp touchdown penalty
+    touchdown_cost_scale: float = 0.08
+    touchdown_vel_ref: float = 0.6
+    touchdown_min_cmd_speed: float = 0.15
+    touchdown_force_cost_scale: float = 0.0
+    touchdown_force_thresh: float = 120.0
+
     # Penalty curriculum (episode-length driven)
     penalty_curriculum_enabled: bool = False
     penalty_curriculum_mode: str = "smooth"  # "smooth" or "threshold"

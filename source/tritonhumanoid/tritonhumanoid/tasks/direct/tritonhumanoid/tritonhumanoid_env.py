@@ -1047,8 +1047,8 @@ class LocomotionEnv(DirectRLEnv):
         forces_hist = self._contact_sensor.data.net_forces_w_history  # (N,T,B,3)
         foot_forces = forces_hist[:, 0, self._feet_sensor_ids, :]     # (N,2,3)
         
-        # Use vertical force component for contact detection (more robust than magnitude)
-        foot_force_z = torch.abs(foot_forces[:, :, 2])  # (N,2)
+        # Use positive vertical force component for contact detection
+        foot_force_z = torch.clamp(foot_forces[:, :, 2], min=0.0)  # (N,2)
         foot_contact = foot_force_z > self.cfg.foot_contact_force_thresh  # (N,2)
 
         # (1) air-time reward at touchdown
@@ -1061,6 +1061,27 @@ class LocomotionEnv(DirectRLEnv):
         feet_vel_w = self.robot.data.body_lin_vel_w[:, self._feet_body_ids, :]  # (N,2,3)
         slip_speed_sq = torch.sum(feet_vel_w[..., :2] ** 2, dim=-1)            # (N,2)
         slip_cost = torch.sum(slip_speed_sq * foot_contact.float(), dim=1)     # (N,)
+
+        # --- Anti-stomp: penalize hard touchdowns ---
+        downward_speed = torch.clamp(-feet_vel_w[..., 2], min=0.0)  # (N,2)
+        v_ref = float(getattr(self.cfg, "touchdown_vel_ref", 0.6))
+        touchdown_vel_cost = torch.sum(
+            ((downward_speed / (v_ref + 1e-6)) ** 2) * touchdown.float(),
+            dim=1,
+        )
+
+        speed_gate = (cmd_speed > float(getattr(self.cfg, "touchdown_min_cmd_speed", 0.15))).float()
+        touchdown_vel_cost = touchdown_vel_cost * speed_gate
+
+        touchdown_force_scale = float(getattr(self.cfg, "touchdown_force_cost_scale", 0.0))
+        touchdown_force_cost = torch.zeros_like(touchdown_vel_cost)
+        if touchdown_force_scale > 0.0:
+            f_thresh = float(getattr(self.cfg, "touchdown_force_thresh", 120.0))
+            excess_fz = torch.clamp(foot_force_z - f_thresh, min=0.0)
+            touchdown_force_cost = torch.sum(
+                ((excess_fz / (f_thresh + 1e-6)) ** 2) * touchdown.float(),
+                dim=1,
+            ) * speed_gate
 
         # (3) penalize "non-foot contacts" (knees/shins/torso scraping)
         all_forces = forces_hist[:, 0, :, :]                 # (N,B,3)
@@ -1102,6 +1123,8 @@ class LocomotionEnv(DirectRLEnv):
             - self.cfg.air_time_symmetry_cost_scale * air_time_sym_pen
             - self.cfg.foot_slip_cost_scale * slip_cost
             - self.cfg.undesired_contact_cost_scale * undesired
+            - self.cfg.touchdown_cost_scale * touchdown_vel_cost
+            - touchdown_force_scale * touchdown_force_cost
         )
 
         reward = torch.where(self.reset_terminated, torch.ones_like(reward) * self.cfg.death_cost, reward)
@@ -1132,6 +1155,8 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["reward_penalties/air_time_symmetry"] = float(air_time_sym_pen.mean().item())
             self.extras["reward_penalties/slip"] = float(slip_cost.mean().item())
             self.extras["reward_penalties/undesired_contact"] = float(undesired.mean().item())
+            self.extras["reward_penalties/touchdown_vel"] = float(touchdown_vel_cost.mean().item())
+            self.extras["reward_penalties/touchdown_force"] = float(touchdown_force_cost.mean().item())
 
             # Scaled contributions (actual impact on total reward)
             self.extras["reward_scaled/lin_tracking"] = float((self.cfg.lin_vel_reward_scale * r_lin).mean().item())
@@ -1147,6 +1172,8 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["reward_scaled/symmetry_cost"] = float((self.cfg.symmetry_cost_scale * sym_pen).mean().item())
             self.extras["reward_scaled/thigh_pose_cost"] = float((self.cfg.thigh_pose_cost_scale * thigh_pose_pen).mean().item())
             self.extras["reward_scaled/air_time_symmetry_cost"] = float((self.cfg.air_time_symmetry_cost_scale * air_time_sym_pen).mean().item())
+            self.extras["reward_scaled/touchdown_vel_cost"] = float((self.cfg.touchdown_cost_scale * touchdown_vel_cost).mean().item())
+            self.extras["reward_scaled/touchdown_force_cost"] = float((touchdown_force_scale * touchdown_force_cost).mean().item())
 
             # Total reward stats
             self.extras["reward_total/mean"] = float(reward.mean().item())
@@ -1160,6 +1187,10 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["diagnostics/yaw_err"] = float(yaw_err.abs().mean().item())
             self.extras["diagnostics/contact_rate"] = float(foot_contact.float().mean().item())
             self.extras["diagnostics/avg_air_time"] = float(air_time.mean().item())
+            self.extras["diagnostics/touchdown_rate"] = float(touchdown.float().mean().item())
+            self.extras["diagnostics/downward_speed_at_touchdown"] = float(
+                (downward_speed * touchdown.float()).sum(dim=1).mean().item()
+            )
             self.extras["diagnostics/curriculum_stage"] = float(self._current_curriculum_stage)
 
         return reward
