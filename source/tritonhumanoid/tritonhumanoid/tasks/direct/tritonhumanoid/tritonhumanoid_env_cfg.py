@@ -278,7 +278,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     }
 
     # Termination
-    termination_height: float = 0.265
+    termination_height: float = 0.4
     upright_threshold: float = 0.5  # up_b.z
 
     # Reward shaping (minimal)
