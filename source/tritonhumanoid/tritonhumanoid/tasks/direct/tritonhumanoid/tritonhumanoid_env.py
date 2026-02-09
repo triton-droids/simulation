@@ -286,6 +286,13 @@ class LocomotionEnv(DirectRLEnv):
         self._cmd_yaw_inv_sin = -self._cmd_yaw_sin
         self._use_cmd_yaw_offset = abs(self._command_yaw_offset) > 1e-6
 
+        # COM tracking config + cached masses
+        self._track_com_linear = bool(getattr(self.cfg, "track_com_linear_velocity", True))
+        self._refresh_runtime_masses_on_reset = bool(getattr(self.cfg, "refresh_runtime_masses_on_reset", False))
+        self._body_mass = None
+        self._body_mass_sum = None
+        self._cache_body_masses()
+
         # feet tracking flag
         self._feet_inited = False
 
@@ -497,6 +504,23 @@ class LocomotionEnv(DirectRLEnv):
         # add lights
         light_cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
         light_cfg.func("/World/Light", light_cfg)
+
+    def _cache_body_masses(self) -> None:
+        """Cache link masses on sim device. Prefer default_mass (fast, GPU)."""
+        if hasattr(self.robot.data, "default_mass") and self.robot.data.default_mass is not None:
+            m = self.robot.data.default_mass
+            if m.dim() == 1:
+                m = m.unsqueeze(0).expand(self.num_envs, -1)
+            self._body_mass = m.to(self.sim.device)
+        else:
+            m = self.robot.root_physx_view.get_masses()
+            if not torch.is_tensor(m):
+                m = torch.as_tensor(m)
+            if m.dim() == 1:
+                m = m.unsqueeze(0).expand(self.num_envs, -1)
+            self._body_mass = m.to(self.sim.device)
+
+        self._body_mass_sum = self._body_mass.sum(dim=1, keepdim=True).clamp_min(1e-6)
 
     # ----------------------------------------------------------------------
     # ADR helpers (custom params)
@@ -831,31 +855,27 @@ class LocomotionEnv(DirectRLEnv):
         # ------------------------------------------
         # C) Center of mass (COM) state for tracking
         # ------------------------------------------
-        body_mass = self.robot.data.body_mass
         body_pos_w = getattr(self.robot.data, "body_com_pos_w", None)
         if body_pos_w is None:
             body_pos_w = self.robot.data.body_pos_w
-        body_lin_vel_w = getattr(self.robot.data, "body_com_vel_w", None)
+        body_lin_vel_w = getattr(self.robot.data, "body_com_lin_vel_w", None)
         if body_lin_vel_w is None:
             body_lin_vel_w = self.robot.data.body_lin_vel_w
-        body_ang_vel_w = self.robot.data.body_ang_vel_w
 
-        if body_mass.dim() == 1:
-            body_mass = body_mass.unsqueeze(0).expand(body_pos_w.shape[0], -1)
-        mass_sum = body_mass.sum(dim=1, keepdim=True).clamp(min=1e-6)
-
-        self.com_pos_w = (body_pos_w * body_mass.unsqueeze(-1)).sum(dim=1) / mass_sum
-        self.com_lin_vel_w = (body_lin_vel_w * body_mass.unsqueeze(-1)).sum(dim=1) / mass_sum
-        self.com_ang_vel_w = (body_ang_vel_w * body_mass.unsqueeze(-1)).sum(dim=1) / mass_sum
-
-        self.com_lin_vel_b = quat_rotate_inverse(self.imu_quat_w, self.com_lin_vel_w)
-        self.com_ang_vel_b = quat_rotate_inverse(self.imu_quat_w, self.com_ang_vel_w)
-        if self._use_cmd_yaw_offset:
-            self.com_lin_vel_cmd = self._rotate_xy(self.com_lin_vel_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
-            self.com_ang_vel_cmd = self._rotate_xy(self.com_ang_vel_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
+        if self._track_com_linear:
+            m = self._body_mass
+            msum = self._body_mass_sum
+            self.com_pos_w = (body_pos_w * m.unsqueeze(-1)).sum(dim=1) / msum
+            self.com_lin_vel_w = (body_lin_vel_w * m.unsqueeze(-1)).sum(dim=1) / msum
+            self.com_lin_vel_b = quat_rotate_inverse(self.imu_quat_w, self.com_lin_vel_w)
+            if self._use_cmd_yaw_offset:
+                self.com_lin_vel_cmd = self._rotate_xy(self.com_lin_vel_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
+            else:
+                self.com_lin_vel_cmd = self.com_lin_vel_b
         else:
-            self.com_lin_vel_cmd = self.com_lin_vel_b
-            self.com_ang_vel_cmd = self.com_ang_vel_b
+            self.com_lin_vel_cmd = self.imu_lin_vel_cmd
+
+        self.com_ang_vel_cmd = self.imu_ang_vel_cmd
 
         # joints
         self.dof_pos = self.robot.data.joint_pos
@@ -1199,6 +1219,9 @@ class LocomotionEnv(DirectRLEnv):
         self.robot.write_root_velocity_to_sim(root[:, 7:], env_ids)
         self.robot.write_joint_state_to_sim(joint_pos, joint_vel, None, env_ids)
 
+        if self._refresh_runtime_masses_on_reset:
+            self._cache_body_masses()
+
         self.actions[env_ids] = 0.0
         self.prev_actions[env_ids] = 0.0
         self.prev_act_vel[env_ids] = 0.0
@@ -1405,7 +1428,7 @@ class LocomotionEnv(DirectRLEnv):
             return
 
         # Ensure state is updated before accessing tracking/IMU state
-        if not hasattr(self, "track_pos_w") or not hasattr(self, "imu_quat_w") or not hasattr(self, "com_lin_vel_w"):
+        if not hasattr(self, "track_pos_w") or not hasattr(self, "imu_quat_w"):
             return
 
         if self._visualize_all_envs:
@@ -1419,7 +1442,10 @@ class LocomotionEnv(DirectRLEnv):
         torso_pos = self.track_pos_w[env_ids]  # [N,3]
         torso_quat = self.imu_quat_w[env_ids]  # [N,4]
         cmd = self.commands[env_ids]  # [N,3]
-        vel_w = self.com_lin_vel_w[env_ids]  # [N,3]
+        if self._track_com_linear and hasattr(self, "com_lin_vel_w"):
+            vel_w = self.com_lin_vel_w[env_ids]  # [N,3]
+        else:
+            vel_w = self.imu_lin_vel_w[env_ids]  # [N,3]
 
         # Marker location (lifted above robot)
         marker_loc = torso_pos + self._marker_offset  # [N,3]
