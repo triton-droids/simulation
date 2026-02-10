@@ -304,6 +304,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     command_speed_threshold: float = 0.2  # m/s, only apply penalty above this command
     standstill_speed_threshold: float = 0.15  # m/s, penalize if actual speed below this
     standstill_penalty_scale: float = 0.2
+    # Air-time reward gate: only reward stepping when command asks for motion
+    air_time_command_speed_threshold: float = 0.1
 
     # Smoothness costs (reduce jitter)
     action_rate_cost_scale: float = 0.01
@@ -320,7 +322,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     thigh_pose_cost_scale: float = 0.1  # keep thigh joints near neutral to avoid inward twisting
 
     # Gate smoothness/energy penalties to swing phase (set swing_gate_alpha=0.0 to disable gating)
-    gate_smoothness_to_swing: bool = True
+    gate_smoothness_to_swing: bool = False
     swing_gate_alpha: float = 1.0
 
     # Contact-based rewards

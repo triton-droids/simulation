@@ -991,6 +991,7 @@ class LocomotionEnv(DirectRLEnv):
         upright = torch.clamp(self.up_b[:, 2], 0.0, 1.0)
 
         cmd_speed = torch.norm(self.commands[:, :2], dim=1)
+        air_time_gate = (cmd_speed > self.cfg.air_time_command_speed_threshold).float()
         act_speed = torch.norm(self.com_lin_vel_b[:, :2], dim=1)
         standstill = torch.clamp(self.cfg.standstill_speed_threshold - act_speed, min=0.0)
         standstill = standstill * (cmd_speed > self.cfg.command_speed_threshold).float()
@@ -1056,6 +1057,8 @@ class LocomotionEnv(DirectRLEnv):
         touchdown = foot_contact & (~self.prev_foot_contact)
         air_rew = torch.sum(torch.clamp(air_time - self.cfg.min_air_time, min=0.0) * touchdown.float(), dim=1)
         air_time_sym_pen = (air_time[:, 0] - air_time[:, 1]) ** 2
+        air_rew = air_rew * air_time_gate
+        air_time_sym_pen = air_time_sym_pen * air_time_gate
 
         # (2) slip penalty when in contact (horizontal foot speed)
         feet_vel_w = self.robot.data.body_lin_vel_w[:, self._feet_body_ids, :]  # (N,2,3)
