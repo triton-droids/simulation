@@ -36,7 +36,7 @@ class HumanoidLocomotionEnv:
             "right_thigh_joint": 0.3,
         },
         action_noise_std: float = 0.0,
-        action_smoothing_alpha: float = 1.0,      # 1.0 = no EMA smoothing
+        action_smoothing_alpha: float = 0.4,      # 1.0 = no EMA smoothing
         action_delta_max: float | None = None,    # max change per control step in normalized action units
         act_max_latency: int = 5,
         act_latency_steps: int = 0,

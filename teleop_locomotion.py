@@ -11,6 +11,10 @@ Controls:
 
 Command limits match isaaclab_env.py:
   vx in [-1.0, 1.0], vy in [-0.5, 0.5], yaw_rate in [-1.0, 1.0]
+
+
+Run this like this:
+mjpython teleop_locomotion.py --policy policies/phase_obs_contact_pen2.pt --key-value 0.5
 """
 
 import argparse
