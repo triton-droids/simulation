@@ -23,8 +23,7 @@ class HumanoidLocomotionEnv:
         self,
         xml_path: str,
         frame_stack: int = 3,
-        stack_frame_major: bool = False,
-        use_phase_obs: bool = True,
+        use_phase_obs: bool = False,
         gait_period_s: float = 1.0,
         include_height: bool = False,
         disturbance_force_max: float = 5.0,
@@ -36,8 +35,6 @@ class HumanoidLocomotionEnv:
             "right_thigh_joint": 0.3,
         },
         action_noise_std: float = 0.0,
-        action_smoothing_alpha: float = 1.0,      # 1.0 = no EMA smoothing
-        action_delta_max: float | None = None,    # max change per control step in normalized action units
         act_max_latency: int = 5,
         act_latency_steps: int = 0,
         obs_max_latency: int = 3,
@@ -66,7 +63,6 @@ class HumanoidLocomotionEnv:
             )
 
         self._frame_stack = max(1, int(frame_stack))
-        self._stack_frame_major = bool(stack_frame_major)
         self._use_phase_obs = bool(use_phase_obs)
         self._gait_period_s = float(gait_period_s)
         self._include_height = bool(include_height)
@@ -77,8 +73,6 @@ class HumanoidLocomotionEnv:
         self._disturbance_prob = float(disturbance_prob)
 
         self._action_noise_std = float(action_noise_std)
-        self._action_smoothing_alpha = float(np.clip(action_smoothing_alpha, 0.0, 1.0))
-        self._action_delta_max = None if action_delta_max is None else float(max(0.0, action_delta_max))
         self._act_max_latency = max(0, int(act_max_latency))
         self._act_latency_steps = int(np.clip(act_latency_steps, 0, self._act_max_latency))
 
@@ -140,29 +134,6 @@ class HumanoidLocomotionEnv:
         )
         self._mj_to_policy = np.argsort(self._policy_to_mj)
 
-        # Mapping sanity checks.
-        x = np.arange(self._nu)
-        if not np.all(x == x[self._mj_to_policy][self._policy_to_mj]):
-            raise ValueError("invalid reorder mapping: policy -> mj -> policy mismatch")
-        if not np.all(x == x[self._policy_to_mj][self._mj_to_policy]):
-            raise ValueError("invalid reorder mapping: mj -> policy -> mj mismatch")
-
-        # Actuator-order joint ids/addresses (MuJoCo ctrl order).
-        self._act_joint_ids = np.array(
-            [int(self.model.actuator_trnid[i, 0]) for i in range(self._nu)],
-            dtype=int,
-        )
-        self._act_qpos_adr = np.array([self.model.jnt_qposadr[j] for j in self._act_joint_ids], dtype=int)
-        self._act_qvel_adr = np.array([self.model.jnt_dofadr[j] for j in self._act_joint_ids], dtype=int)
-
-        # Policy-order joint ids/addresses (interleaved policy order).
-        self._policy_joint_ids = np.array(
-            [mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, jn) for jn in self._policy_joint_order],
-            dtype=int,
-        )
-        self._policy_qpos_adr = np.array([self.model.jnt_qposadr[j] for j in self._policy_joint_ids], dtype=int)
-        self._policy_qvel_adr = np.array([self.model.jnt_dofadr[j] for j in self._policy_joint_ids], dtype=int)
-
         self._joint_action_scales = np.ones(self._nu, dtype=float)
         if action_scale_by_joint:
             for actuator_id in range(self._nu):
@@ -176,8 +147,6 @@ class HumanoidLocomotionEnv:
 
         standing_key_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_KEY, "locomotion_standing_pose")
         self._standing_qpos = self.model.key_qpos[standing_key_id].copy()
-        # Standing joint baseline in actuator order.
-        self._standing_joint_pos_mj = self._standing_qpos[self._act_qpos_adr].copy()
 
         # Hard limits in *policy (interleaved)* order, read from model by joint name.
         # This keeps obs scaling and action clipping aligned with the policy indexing.
@@ -205,23 +174,19 @@ class HumanoidLocomotionEnv:
         )
 
         self._soft_joint_limit_factor = 0.95
-        # Shrink each joint range around its center (not around zero).
-        range_center_policy = 0.5 * (self._joint_range_lower_policy + self._joint_range_upper_policy)
-        range_halfspan_policy = 0.5 * (self._joint_range_upper_policy - self._joint_range_lower_policy)
-        soft_halfspan_policy = self._soft_joint_limit_factor * range_halfspan_policy
-        self._joint_soft_lower_policy = range_center_policy - soft_halfspan_policy
-        self._joint_soft_upper_policy = range_center_policy + soft_halfspan_policy
-
         self._joint_range_lower_mj = self._joint_range_lower_policy[self._mj_to_policy]
         self._joint_range_upper_mj = self._joint_range_upper_policy[self._mj_to_policy]
-        self._joint_soft_lower_mj = self._joint_soft_lower_policy[self._mj_to_policy]
-        self._joint_soft_upper_mj = self._joint_soft_upper_policy[self._mj_to_policy]
 
         self._ang_vel_scale = 0.25
         self._dof_vel_scale = 0.1
 
-        # Commands are in body frame [vx, vy, yaw_rate].
-        self._commands = np.array([0.0, 0.0, 0.0], dtype=float)
+        # Commands are expected in body/command convention [vx, vy, yaw_rate].
+        self._commands = np.array([1.0, 0.0, 0.0], dtype=float)
+
+        self._command_yaw_offset = -math.pi / 2.0
+        self._cmd_yaw_cos = math.cos(self._command_yaw_offset)
+        self._cmd_yaw_sin = math.sin(self._command_yaw_offset)
+        self._use_cmd_yaw_offset = abs(self._command_yaw_offset) > 1e-6
 
         self._single_frame_size = 3 + 3 + 3 + 3 + self._nu + self._nu + self._nu
         if self._use_phase_obs:
@@ -244,11 +209,7 @@ class HumanoidLocomotionEnv:
             else None
         )
         self._obs_stack_buf = (
-            (
-                np.zeros((self._frame_stack, self._single_frame_size), dtype=float)
-                if self._stack_frame_major
-                else np.zeros((self._single_frame_size, self._frame_stack), dtype=float)
-            )
+            np.zeros((self._single_frame_size, self._frame_stack), dtype=float)
             if self._frame_stack > 1
             else None
         )
@@ -257,10 +218,6 @@ class HumanoidLocomotionEnv:
 
         self._torso_mass = 3.175
         self._approx_inertia = 0.02
-        self._command_yaw_offset = -math.pi / 2.0  # -90 deg: align body frame with command frame
-        self._cmd_yaw_cos = math.cos(self._command_yaw_offset)
-        self._cmd_yaw_sin = math.sin(self._command_yaw_offset)
-        self._use_cmd_yaw_offset = True
 
         # Cached state tensors used for observation construction.
         self.torso_quat_w = np.array([1.0, 0.0, 0.0, 0.0], dtype=float)
@@ -274,7 +231,6 @@ class HumanoidLocomotionEnv:
         self.up_cmd = np.array([0.0, 0.0, 1.0], dtype=float)
         self.act_pos = np.zeros(self._nu, dtype=float)
         self.act_vel = np.zeros(self._nu, dtype=float)
-        self.act_vel_scaled = np.zeros(self._nu, dtype=float)
         self.act_pos_scaled = np.zeros(self._nu, dtype=float)
 
         print("=" * 60)
@@ -291,7 +247,6 @@ class HumanoidLocomotionEnv:
         print(f"Physics timestep: {self.model.opt.timestep}s")
         print(f"Substeps per control: {self.n_substeps}")
         print(f"Frame stack: {self._frame_stack} frames")
-        print(f"Stack frame-major flatten: {self._stack_frame_major}")
         print(f"Use phase obs: {self._use_phase_obs}")
         print(f"Single frame obs size: {self._single_frame_size}")
         print(f"Total obs size: {self._obs_size}")
@@ -310,15 +265,11 @@ class HumanoidLocomotionEnv:
                     print(f"  {joint_name}: {self._joint_action_scales[actuator_id]:.2f}")
         print("=" * 60)
 
-        self._step_count = 0
-
-        self._raw_actions = np.zeros(self._nu, dtype=float)
-
     def reset(self) -> np.ndarray:
         """Reset environment to standing pose and prefill observation histories."""
         self.data.qpos[:] = self._standing_qpos
         self.data.qvel[:] = 0.0
-        self.data.ctrl[:] = self._standing_joint_pos_mj
+        self.data.ctrl[:] = self._standing_qpos[self._q_joint_start:self._q_joint_start + self._nu]
 
         mujoco.mj_forward(self.model, self.data)
 
@@ -326,8 +277,6 @@ class HumanoidLocomotionEnv:
         self._last_act[:] = 0.0
         if self._act_hist_buf is not None:
             self._act_hist_buf[:, :] = 0.0
-
-        self._raw_actions[:] = 0.0
 
         self._step_count = 0
 
@@ -339,10 +288,7 @@ class HumanoidLocomotionEnv:
         delayed_obs = obs0
 
         if self._obs_stack_buf is not None:
-            if self._stack_frame_major:
-                self._obs_stack_buf[:, :] = delayed_obs[None, :]
-            else:
-                self._obs_stack_buf[:, :] = delayed_obs[:, None]
+            self._obs_stack_buf[:, :] = delayed_obs[:, None]
             obs = self._obs_stack_buf.reshape(-1)
         else:
             obs = delayed_obs
@@ -367,62 +313,36 @@ class HumanoidLocomotionEnv:
         return self._get_obs()
 
     def _pre_physics_step(self, action: np.ndarray):
-        """Isaac-style action preprocessing + optional smoothing:
-        clip -> noise -> latency -> rate-limit -> EMA -> prev/current update.
-        """
+        """Isaac-style action preprocessing: clip -> noise -> latency -> prev/current update."""
         action_policy = np.asarray(action, dtype=float).reshape(-1)
         if action_policy.shape != (self._nu,):
             raise ValueError(f"expected action shape {(self._nu,)}, got {action_policy.shape}")
 
-        # 1) clip
         a = np.clip(action_policy, -1.0, 1.0)
 
-        # 2) noise
         if self._action_noise_std > 0.0:
             a = np.clip(a + np.random.randn(*a.shape) * self._action_noise_std, -1.0, 1.0)
 
-        # 3) latency (same as before)
         if self._act_hist_buf is not None:
             self._act_hist_buf = np.roll(self._act_hist_buf, shift=-1, axis=1)
             self._act_hist_buf[:, -1] = a
             idx = int(np.clip(self._act_max_latency - self._act_latency_steps, 0, self._act_max_latency))
             a = self._act_hist_buf[:, idx].copy()
 
-        self._raw_actions = a.copy()  # optional debug
-
-        # Previous applied action (for smoothing and for obs feature)
-        prev_applied = self._actions.copy()
-        a_cmd = a
-
-        # 4) slew-rate limit (optional)
-        # action_delta_max is in normalized action units per control step.
-        if self._action_delta_max is not None:
-            delta = np.clip(a_cmd - prev_applied, -self._action_delta_max, self._action_delta_max)
-            a_cmd = prev_applied + delta
-
-        # 5) EMA low-pass (optional)
-        # alpha=1.0 => no filtering, alpha->0 => heavier filtering
-        alpha = self._action_smoothing_alpha
-        if alpha < 1.0:
-            a_cmd = (1.0 - alpha) * prev_applied + alpha * a_cmd
-
-        a_cmd = np.clip(a_cmd, -1.0, 1.0)
-
-        # 6) update previous/current applied actions
-        self._last_act = prev_applied
-        self._actions = a_cmd
-
-
+        self._last_act = self._actions.copy()
+        self._actions = a
 
     def _apply_action(self):
         """Apply position-offset actions around the standing keyframe with soft-limit clipping."""
         action_mj = self._actions[self._mj_to_policy]
-        standing_joint_pos = self._standing_joint_pos_mj
+        standing_joint_pos = self._standing_qpos[self._q_joint_start:self._q_joint_start + self._nu]
 
         pos_offsets = action_mj * self._action_scale * self._joint_action_scales
         target_positions = standing_joint_pos + pos_offsets
 
-        self.data.ctrl[:] = np.clip(target_positions, self._joint_soft_lower_mj, self._joint_soft_upper_mj)
+        soft_lo = self._joint_range_lower_mj * self._soft_joint_limit_factor
+        soft_hi = self._joint_range_upper_mj * self._soft_joint_limit_factor
+        self.data.ctrl[:] = np.clip(target_positions, soft_lo, soft_hi)
 
     def _apply_disturbance(self):
         """Apply random disturbance forces and torques."""
@@ -449,28 +369,11 @@ class HumanoidLocomotionEnv:
         """Compute state terms used by the IsaacLab observation function."""
         self.torso_quat_w = self.data.xquat[self._torso_body_id].copy()  # (w, x, y, z)
 
-        if self._torso_top_site_id >= 0:
-            vel6_w = np.zeros(6, dtype=float)  # [ang, lin] in world orientation
-            vel6_l = np.zeros(6, dtype=float)  # [ang, lin] in local orientation
+        self.torso_lin_vel_w = self.data.qvel[:3].copy()
+        self.torso_ang_vel_w = self.data.qvel[3:6].copy()
 
-            mujoco.mj_objectVelocity(
-                self.model, self.data, mujoco.mjtObj.mjOBJ_SITE, self._torso_top_site_id, vel6_w, 0
-            )
-            mujoco.mj_objectVelocity(
-                self.model, self.data, mujoco.mjtObj.mjOBJ_SITE, self._torso_top_site_id, vel6_l, 1
-            )
-
-            # Spatial vector ordering is [angular, linear].
-            self.torso_ang_vel_w = vel6_w[:3].copy()
-            self.torso_lin_vel_w = vel6_w[3:].copy()
-            self.torso_ang_vel_b = vel6_l[:3].copy()
-            self.torso_lin_vel_b = vel6_l[3:].copy()
-        else:
-            # Fallback when no IMU site exists in the model.
-            self.torso_lin_vel_w = self.data.qvel[:3].copy()
-            self.torso_ang_vel_w = self.data.qvel[3:6].copy()
-            self.torso_lin_vel_b = self._rotate_vector(self.torso_lin_vel_w, self.torso_quat_w, inverse=True)
-            self.torso_ang_vel_b = self._rotate_vector(self.torso_ang_vel_w, self.torso_quat_w, inverse=True)
+        self.torso_lin_vel_b = self._rotate_vector(self.torso_lin_vel_w, self.torso_quat_w, inverse=True)
+        self.torso_ang_vel_b = self._rotate_vector(self.torso_ang_vel_w, self.torso_quat_w, inverse=True)
 
         if self._use_cmd_yaw_offset:
             self.torso_lin_vel_cmd = self._rotate_xy(self.torso_lin_vel_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
@@ -481,32 +384,25 @@ class HumanoidLocomotionEnv:
 
         up_world = np.array([0.0, 0.0, 1.0], dtype=float)
         self.up_b = self._rotate_vector(up_world, self.torso_quat_w, inverse=True)
-        if self._use_cmd_yaw_offset:
-            self.up_cmd = self._rotate_xy(self.up_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
-        else:
-            self.up_cmd = self.up_b.copy()
+        self.up_cmd = self.up_b.copy()
 
-        # Convert MuJoCo actuator order -> interleaved policy order.
-        joint_pos_mj = self.data.qpos[self._act_qpos_adr].copy()
-        joint_vel_mj = self.data.qvel[self._act_qvel_adr].copy()
+        joint_pos_mj = self.data.qpos[self._q_joint_start:self._q_joint_start + self._nu]
+        joint_vel_mj = self.data.qvel[self._qd_joint_start:self._qd_joint_start + self._nu]
+
+        # Convert model actuator order -> policy order.
         self.act_pos = joint_pos_mj[self._policy_to_mj]
         self.act_vel = joint_vel_mj[self._policy_to_mj]
 
-        lo = self._joint_soft_lower_policy
-        hi = self._joint_soft_upper_policy
+        lo = self._joint_range_lower_policy * self._soft_joint_limit_factor
+        hi = self._joint_range_upper_policy * self._soft_joint_limit_factor
         self.act_pos_scaled = 2.0 * (self.act_pos - lo) / (hi - lo + 1e-6) - 1.0
-        self.act_vel_scaled = self.act_vel * self._dof_vel_scale
 
     def _compute_single_observation(self) -> np.ndarray:
         """Build one observation frame using IsaacLab ordering and transforms."""
         up_cmd = self.up_cmd.copy()
         ang_vel_cmd = self.torso_ang_vel_cmd.copy()
-        commands = self._commands.copy()
         act_pos_scaled = self.act_pos_scaled.copy()
-        act_vel_scaled = self.act_vel_scaled.copy()
-
-        # if self._use_cmd_yaw_offset:
-            # commands = self._rotate_xy(commands, self._cmd_yaw_cos, self._cmd_yaw_sin)
+        act_vel = self.act_vel.copy()
 
         # IMU biases.
         up_cmd = up_cmd + self._imu_bias_gravity
@@ -525,18 +421,16 @@ class HumanoidLocomotionEnv:
         if self._obs_noise_joint_pos_std > 0.0:
             act_pos_scaled = act_pos_scaled + np.random.randn(*act_pos_scaled.shape) * self._obs_noise_joint_pos_std
         if self._obs_noise_joint_vel_std > 0.0:
-            act_vel_scaled = act_vel_scaled + np.random.randn(*act_vel_scaled.shape) * (
-                self._obs_noise_joint_vel_std * self._dof_vel_scale
-            )
+            act_vel = act_vel + np.random.randn(*act_vel.shape) * self._obs_noise_joint_vel_std
 
         obs = np.concatenate(
             [
                 self.torso_lin_vel_cmd,
                 ang_vel_cmd * self._ang_vel_scale,
                 up_cmd,
-                commands,
+                self._commands,
                 act_pos_scaled,
-                act_vel_scaled,
+                act_vel * self._dof_vel_scale,
                 self._last_act,
             ]
         )
@@ -564,12 +458,9 @@ class HumanoidLocomotionEnv:
             obs = self._obs_hist_buf[:, idx].copy()
 
         if self._obs_stack_buf is not None:
-            if self._stack_frame_major:
-                self._obs_stack_buf = np.roll(self._obs_stack_buf, shift=-1, axis=0)
-                self._obs_stack_buf[-1, :] = obs
-            else:
-                self._obs_stack_buf = np.roll(self._obs_stack_buf, shift=-1, axis=1)
-                self._obs_stack_buf[:, -1] = obs
+            self._obs_stack_buf = np.roll(self._obs_stack_buf, shift=-1, axis=1)
+            self._obs_stack_buf[:, -1] = obs
+            # Feature-major flatten from [D, F] -> [D*F].
             obs = self._obs_stack_buf.reshape(-1)
 
         return obs.copy()

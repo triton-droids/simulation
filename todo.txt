@@ -1,0 +1,362 @@
+The task at hand is to modify the mujoco environment to mimic the following:
+
+Perfect use case for a simulator port. Below is a direct implementation map of **actions, observations, and resets** from your Isaac Lab env into a simulator-agnostic spec.
+
+---
+
+## 1) Step order you should replicate
+
+At every **policy step** (50 Hz here), the env effectively does:
+
+1. `pre_physics_step(actions)`
+
+   * clip actions
+   * apply action noise
+   * apply action latency
+   * store `prev_actions`
+   * update curriculum counters
+   * apply push/micro disturbances
+2. `apply_action()`
+
+   * convert normalized actions to joint position targets
+   * clamp to joint limits
+   * send position targets
+3. simulate physics for `decimation` substeps at `sim.dt`
+4. read observations
+5. compute reward
+6. compute done flags
+7. reset done envs
+
+For your config:
+
+* `sim.dt = 1/250 s`
+* `decimation = 5`
+* **control_dt = 0.02 s** (50 Hz)
+
+---
+
+## 2) Actions implementation details
+
+## Action semantics
+
+Policy outputs `a_raw ∈ R^10`, expected in `[-1, 1]` per joint.
+
+Actuated order:
+
+1. left_hip1
+2. right_hip1
+3. left_hip2
+4. right_hip2
+5. left_thigh
+6. right_thigh
+7. left_knee
+8. right_knee
+9. left_ankle
+10. right_ankle
+
+## Action preprocessing in pre-step
+
+Given `a_in`:
+
+1. **Clamp**
+   [
+   a = \text{clip}(a_{in}, -1, 1)
+   ]
+
+2. **Add action noise** (if enabled)
+   [
+   a \leftarrow \text{clip}(a + \epsilon, -1, 1), \quad \epsilon \sim \mathcal{N}(0, \sigma_{act}^2)
+   ]
+
+3. **Apply action latency** (per-env integer delay)
+
+* Keep ring/history buffer of shape `[N_env, N_act, L+1]` where `L = act_max_latency`.
+* Roll left, write newest at last index.
+* Choose delayed sample with index:
+  [
+  idx = L - \text{act_latency_steps}[env]
+  ]
+  So:
+* delay 0 → newest sample
+* delay L → oldest sample in buffer
+
+4. Save:
+
+* `prev_actions = actions`
+* `actions = a_delayed`
+
+## Convert action to position target
+
+In `_apply_action`:
+
+[
+\Delta q_{e,j} = action_scale \cdot action_scale_per_joint[j] \cdot motor_strength_mult[e,j] \cdot actions[e,j]
+]
+
+[
+q^{des}_{e,j} = \text{clip}\left(q^{default}*j + \Delta q*{e,j},\ q^{low}_j,\ q^{high}_j\right)
+]
+
+Then send to low-level controller as **joint position targets**.
+
+Important details:
+
+* `action_scale = 1.0`
+* per-joint extra scaling used for thighs (`0.3` each by default)
+* `motor_strength_mult` is per-episode randomized multiplicative gain (ADR path)
+
+## Units
+
+* action is unitless
+* `q_des` is radians
+* this is **position-offset control around default pose**, not torque policy output
+
+---
+
+## 3) Observations implementation details
+
+Observation is built from current sim state, then optional latency and stack.
+
+## State extraction
+
+From torso body (named `"world"` in your URDF):
+
+* `torso_pos_w` [m]
+* `torso_quat_w` quaternion `(w,x,y,z)`
+* `torso_lin_vel_w` [m/s]
+* `torso_ang_vel_w` [rad/s]
+
+Convert world velocities to torso/body frame:
+[
+v_b = R(q)^\top v_w,\quad \omega_b = R(q)^\top \omega_w
+]
+
+with `quat_rotate_inverse`.
+
+## Command frame alignment
+
+You rotate body-frame XY by `command_yaw_offset` (default `-π/2`) so command-forward is +X.
+
+[
+\begin{bmatrix}x'\y'\end{bmatrix}
+=================================
+
+\begin{bmatrix}\cos\psi & -\sin\psi\ \sin\psi & \cos\psi\end{bmatrix}
+\begin{bmatrix}x\y\end{bmatrix}
+]
+where (\psi = command_yaw_offset).
+
+Applied to:
+
+* body linear velocity → `torso_lin_vel_cmd`
+* body angular velocity → `torso_ang_vel_cmd`
+* gravity-up vector in body frame → `up_cmd`
+
+With `-π/2`, robot +Y forward maps to +X command-forward.
+
+## Up vector feature
+
+[
+up_b = R(q)^\top [0,0,1]
+]
+Then optionally XY-rotated to `up_cmd`.
+
+## Joint features
+
+* `act_pos` and `act_vel` on 10 actuated joints.
+* Position normalization to `[-1,1]`:
+  [
+  act_pos_scaled = 2\frac{act_pos - low}{high-low+1e{-6}} - 1
+  ]
+
+## IMU bias and mount misalignment model
+
+Before concatenation:
+
+* Add biases:
+
+  * `up_cmd += imu_bias_gravity`
+  * `ang_vel_cmd += imu_bias_gyro`
+* Apply small-angle mounting error:
+
+  * (\theta = axis \cdot angle)
+  * (v' \approx v + \theta \times v)
+
+## Observation noise
+
+If ADR active, additive Gaussian noise per term:
+
+* gravity vector
+* gyro
+* joint pos scaled
+* joint vel
+
+## Final single-frame observation
+
+Order is exactly:
+
+1. `torso_lin_vel_cmd` (3)
+2. `ang_vel_cmd * ang_vel_scale` (3)  with `ang_vel_scale = 0.25`
+3. `up_cmd` (3)
+4. `commands` = `[vx, vy, yaw_rate]` (3)
+5. `act_pos_scaled` (10)
+6. `act_vel * dof_vel_scale` (10) with `dof_vel_scale = 0.1`
+7. `prev_actions` (10)
+8. optional phase clock `[sin(phase), cos(phase)]` (2)
+
+So dimension:
+
+* 42 without phase
+* 44 with phase
+
+## Observation latency
+
+Same pattern as action latency with `obs_hist_buf`:
+
+* store newest
+* per-env delayed read using `obs_latency_steps`
+
+## Observation stacking
+
+If `obs_stack_frames > 1`:
+
+* buffer shape `[N, D, F]`
+* roll, write newest at last frame
+* flatten with `reshape(N, D*F)`
+
+Important: flatten is **feature-major across frames** because shape is `[D, F]` before reshape.
+That means order is:
+[
+[f_0(t-F+1), f_0(...), ..., f_1(t-F+1), ...]
+]
+not frame-major. Keep this if you want policy compatibility.
+
+---
+
+## 4) Reset behavior you should port
+
+## Done behavior
+
+Current `_get_dones` effectively returns:
+
+* `time_out` based on randomized episode length
+* `died = all false`
+
+`fell` and `too_tilted` are computed but not used.
+So resets happen only by timeout in current code.
+
+## Episode length randomization
+
+If enabled:
+
+* sample per-env episode steps uniformly from:
+
+  * `min_episode_length_s/control_dt` to `max_episode_length`
+* with your config: min 5 s, max 20 s.
+
+## Reset sequence
+
+For env IDs to reset:
+
+1. Optionally update ADR difficulty metrics from finished episodes.
+2. Reset robot and base env internals.
+3. Resample episode lengths.
+4. Start from default joint pos/vel.
+5. Apply reset noise (ADR path):
+
+   * joint position noise, clamp to soft limits
+   * joint velocity noise
+6. Set root pose/velocity to default + env origin.
+7. Write joint state.
+8. Zero buffers:
+
+   * `actions`, `prev_actions`, `prev_act_vel`
+   * episodic error accumulators
+   * action history buffer
+9. Reset push timers.
+10. Sample per-episode DR variables:
+
+    * motor strength multipliers
+    * action and observation latency steps
+    * IMU biases
+    * IMU mount axis/angle
+11. Sample new command `[vx, vy, yaw_rate]`.
+12. Recompute state and **prefill history buffers**:
+
+    * obs latency history filled with current obs
+    * obs stack filled with current obs
+
+That last prefill is important to avoid garbage delayed/stacked observations on first step after reset.
+
+---
+
+## 5) Command sampling that impacts observations
+
+Since `commands` is part of obs, this matters.
+
+If curriculum is off (your default):
+
+* (vx \sim U[-1,1]) m/s
+* (vy \sim U[-0.5,0.5]) m/s
+* (yaw \sim U[-1,1]) rad/s
+* with `zero_command_probability`, set all to zero for some episodes.
+
+Commands are sampled in reset only in this file.
+`command_resample_interval_*` config exists but is not used in this code path.
+
+---
+
+## 6) Minimal simulator agnostic template
+
+```python
+def env_step(policy_action):
+    # ---------- pre ----------
+    a = clip(policy_action, -1, 1)
+    a = add_action_noise(a, std=action_noise_std)
+    a = apply_action_latency(a, act_hist, act_latency_steps)
+    prev_actions[:] = actions
+    actions[:] = a
+
+    maybe_update_curriculum()
+    maybe_apply_pushes_to_root_velocity()
+    apply_micro_disturbance_to_root_velocity()
+
+    # ---------- control ----------
+    q_des = q_default + action_scale * per_joint_scale * motor_strength * actions
+    q_des = clip(q_des, q_low, q_high)
+    set_joint_position_target(q_des)
+
+    # ---------- physics ----------
+    for _ in range(decimation):
+        sim.step()
+
+    # ---------- observation ----------
+    state = read_state()
+    obs_single = build_obs_single(state, commands, prev_actions, scales, imu_bias, imu_mount, noise)
+    obs = apply_obs_latency(obs_single, obs_hist, obs_latency_steps)
+    obs = apply_obs_stack(obs, obs_stack)
+
+    # ---------- reward/done ----------
+    rew = compute_reward(...)
+    done, timeout = compute_dones(...)
+    reset(done | timeout)
+
+    return obs, rew, done, info
+```
+
+---
+
+## 7) Porting checklist of critical gotchas
+
+1. **Quaternion convention must be `(w,x,y,z)`** to match these helper functions.
+2. Preserve **command frame yaw offset** handling exactly (`-π/2` default).
+3. Preserve exact **observation order** and scaling.
+4. Preserve **stack flatten layout** (`[D,F] -> D*F`), or retrain policy if you change it.
+5. Use **same control period** (50 Hz effective) and hold targets across substeps.
+6. Keep reset prefill of history buffers.
+7. If reproducing training behavior, keep done logic timeout-only as in current code.
+8. Several cfg fields are present but not used in this file (`action_limit_margin`, `obs_term_cfg`, command resample interval logic) — don’t assume they are active unless you wire them in.
+
+---
+
+If you want, I can give you a **drop-in reference implementation** of just these three parts in pure PyTorch/NumPy style with an abstract simulator interface (`get_body_state`, `set_q_target`, `set_root_vel`, `get_joint_state`) so you can plug it into MuJoCo, Genesis, or RaiSim with minimal edits.

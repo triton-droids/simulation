@@ -2,9 +2,10 @@
   <!-- Meshes in the URDF live in ./robot_meshes (relative to this MJCF). -->
   <compiler angle="radian" coordinate="local" meshdir="robot_meshes"/>
 
-  <option timestep="0.002" gravity="0 0 -9.81"/>
+  <option timestep="0.004" gravity="0 0 -9.81" integrator="implicitfast" cone="elliptic"/>
 
   <default>
+    <!-- <joint limited="true" damping="1.0" frictionloss="0.15" armature="0.01"/> -->
     <joint limited="true" damping="1.0" frictionloss="0.15" armature="0.01"/>
     <default class="servo">
       <position kp="1" kv="0"/>
@@ -60,18 +61,18 @@
               reflectance="0.5"/>
   </asset>
 
-  <keyframe>
+  <!-- <keyframe>
     <key name="standing_pose" time="0"
         qpos="0 0 0.017 1 0 0 0 0.3611 0 0 -0.60080008 0.2512 0.3611 0 0 -0.60080008 0.2512"
         qvel="0 0 0  0 0 0   0 0 0 0 0 0 0 0 0 0"
         ctrl="0.3611 0 0 -0.60080008 0.2512 0.3611 0 0 -0.60080008 0.2512"/>
-  </keyframe>
+  </keyframe> -->
 
   <keyframe>
     <key name="locomotion_standing_pose" time="0"
-        qpos="0 0 0.005  1 0 0 0 0.3 0 0 -0.8 0.4 0.3 0 0 -0.8 0.4"
+        qpos="0 0 -0.03  0.70710678 0 0 -0.70710678 0.3 0 0 -0.8 0.5 0.3 0 0 -0.8 0.5"
         qvel="0 0 0  0 0 0   0 0 0 0 0 0 0 0 0 0"
-        ctrl="0.3 0 0 -0.8 0.4 0.3 0 0 -0.8 0.4"/>
+        ctrl="0.3 0 0 -0.8 0.5 0.3 0 0 -0.8 0.5"/>
   </keyframe>
 
 
@@ -89,7 +90,7 @@
 
     <!-- TORSO (URDF: link "torso") -->
     <body name="torso" pos="0 0 0.03">
-      <site name="torso_top" pos="-0.155 -0.03 0.745" size="0.01" rgba="1 0 0 1"/>
+      <site name="imu" pos="-0.155 -0.016 0.63" size="0.01" rgba="1 0 0 1"/>
       <freejoint name="root"/>
 
       <geom mesh="torso_visual" material="metal_silver"/>
@@ -233,30 +234,49 @@
   <!--        ACTUATORS       -->
   <!-- ===================== -->
   <actuator>
-    <!-- hips -->
-    <position name="left_hip1_act"  class="servo" joint="left_hip1_joint"  kp="100" kv="1"  forcerange="-120 120"/>
-    <position name="left_hip2_act"  class="servo" joint="left_hip2_joint"  kp="100" kv="1"  forcerange="-120 120"/>
+    <position name="left_hip1_act"  joint="left_hip1_joint"  kp="300" kv="15" forcelimited="true" forcerange="-120 120" gear="1"/>
+    <position name="left_hip2_act"  joint="left_hip2_joint"  kp="300" kv="15" forcelimited="true" forcerange="-120 120" gear="1"/>
+    <position name="left_thigh_act" joint="left_thigh_joint" kp="300" kv="15" forcelimited="true" forcerange="-120 120" gear="1"/>
+    <position name="left_knee_act"  joint="left_knee_joint"  kp="340" kv="17" forcelimited="true" forcerange="-120 120" gear="1"/>
+    <!-- <position name="left_ankle_act" joint="left_ankle_joint" kp="160" kv="8"  forcelimited="true" forcerange="-120 120" gear="1"/> -->
+     <position name="left_ankle_act"  joint="left_ankle_joint"
+              kp="100" kv="8"
+              forcelimited="true" forcerange="-60 60"
+              ctrllimited="true" ctrlrange="-0.45 0.45"/>
 
-    <!-- thighs -->
-    <position name="left_thigh_act" class="servo" joint="left_thigh_joint" kp="100" kv="1"  forcerange="-120 120"/>
+    <!-- Right -->
+    <position name="right_hip1_act"  joint="right_hip1_joint"  kp="300" kv="15" forcelimited="true" forcerange="-120 120" gear="1"/>
+    <position name="right_hip2_act"  joint="right_hip2_joint"  kp="300" kv="15" forcelimited="true" forcerange="-120 120" gear="1"/>
+    <position name="right_thigh_act" joint="right_thigh_joint" kp="300" kv="15" forcelimited="true" forcerange="-120 120" gear="1"/>
+    <position name="right_knee_act"  joint="right_knee_joint"  kp="340" kv="17" forcelimited="true" forcerange="-120 120" gear="1"/>
+    <!-- <position name="right_ankle_act" joint="right_ankle_joint" kp="160" kv="8"  forcelimited="true" forcerange="-120 120" gear="1"/> -->
 
-    <!-- knees -->
-    <position name="left_knee_act"  class="servo" joint="left_knee_joint"  kp="80" kv="1"  forcerange="-120 120"/>
+    <!-- Ankles: softer + lower torque cap -->
+    <position name="right_ankle_act" joint="right_ankle_joint"
+              kp="100" kv="8"
+              forcelimited="true" forcerange="-60 60"
+              ctrllimited="true" ctrlrange="-0.45 0.45"/>
 
-    <!-- ankles (softer) -->
-    <position name="left_ankle_act" class="servo" joint="left_ankle_joint" kp="20"  kv="1"  forcerange="-120 120"/>
 
-    <!-- hips -->
-    <position name="right_hip1_act"  class="servo" joint="right_hip1_joint"  kp="100" kv="1" forcerange="-120 120"/>
-    <position name="right_hip2_act"  class="servo" joint="right_hip2_joint"  kp="100" kv="1" forcerange="-120 120"/>
-    <!-- thighs -->
-    <position name="right_thigh_act" class="servo" joint="right_thigh_joint" kp="100" kv="1" forcerange="-120 120"/>
 
-    <!-- knees -->
-    <position name="right_knee_act"  class="servo" joint="right_knee_joint"  kp="80" kv="1" forcerange="-120 120"/>
+    <!-- <position name="left_hip1_act"  joint="left_hip1_joint"  kp="200" kv="15" forcelimited="true" forcerange="-120 120" gear="1"/>
+    <position name="left_hip2_act"  joint="left_hip2_joint"  kp="200" kv="15" forcelimited="true" forcerange="-120 120" gear="1"/>
+    <position name="left_thigh_act" joint="left_thigh_joint" kp="200" kv="15" forcelimited="true" forcerange="-120 120" gear="1"/>
+    <position name="left_knee_act"  joint="left_knee_joint"  kp="240" kv="17" forcelimited="true" forcerange="-120 120" gear="1"/>
+     <position name="left_ankle_act"  joint="left_ankle_joint"
+              kp="100" kv="8"
+              forcelimited="true" forcerange="-60 60"
+              ctrllimited="true" ctrlrange="-0.45 0.45"/>
 
-    <!-- ankles (softer) -->
-    <position name="right_ankle_act" class="servo" joint="right_ankle_joint" kp="20"  kv="1" forcerange="-120 120"/>
+    <position name="right_hip1_act"  joint="right_hip1_joint"  kp="200" kv="15" forcelimited="true" forcerange="-120 120" gear="1"/>
+    <position name="right_hip2_act"  joint="right_hip2_joint"  kp="200" kv="15" forcelimited="true" forcerange="-120 120" gear="1"/>
+    <position name="right_thigh_act" joint="right_thigh_joint" kp="200" kv="15" forcelimited="true" forcerange="-120 120" gear="1"/>
+    <position name="right_knee_act"  joint="right_knee_joint"  kp="240" kv="17" forcelimited="true" forcerange="-120 120" gear="1"/>
+
+    <position name="right_ankle_act" joint="right_ankle_joint"
+              kp="100" kv="8"
+              forcelimited="true" forcerange="-60 60"
+              ctrllimited="true" ctrlrange="-0.45 0.45"/> -->
   </actuator>
 
 

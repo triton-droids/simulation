@@ -50,14 +50,34 @@ else:
 env = Env(xml_path="robot_description/scene.xml", include_height=include_height)
 obs = env.reset()
 
+print("=== RESET OBS ===")
+print(format_obs_detailed(obs, env, include_height))
+
+qpos_policy = env.data.qpos[env._policy_qpos_adr].copy()
+qpos_standing = env._standing_qpos[env._policy_qpos_adr].copy()
+print("qpos_policy:", qpos_policy.tolist())
+print("qpos_standing:", qpos_standing.tolist())
+print("max |qpos-policy - standing|:", float(np.max(np.abs(qpos_policy - qpos_standing))))
+
+lo = env._joint_soft_lower_policy
+hi = env._joint_soft_upper_policy
+expected_scaled = 2.0 * (qpos_standing - lo) / (hi - lo + 1e-6) - 1.0
+print("expected act_pos_scaled at reset:", expected_scaled.tolist())
+print("actual   act_pos_scaled at reset:", env.act_pos_scaled.tolist())
+
+print("reset lin_vel_cmd:", env.torso_lin_vel_cmd.tolist())
+print("reset ang_vel_cmd:", env.torso_ang_vel_cmd.tolist())
+print("reset up_cmd:", env.up_cmd.tolist())
+
+
 #Debugging
 torso_quat = env.data.xquat[env._torso_body_id]
 up_world = np.array([0, 0, 1.0])
 up_b = env._rotate_vector(up_world, torso_quat, inverse=True)
-up_cmd = env._rotate_xy(up_b, env._cmd_yaw_cos, env._cmd_yaw_sin)
+up_cmd = up_b.copy()
 
 print(f"Up in body frame: {up_b}")
-print(f"Up in command frame: {up_cmd}")
+print(f"Up feature frame: {up_cmd}")
 
 obs_dim = obs.shape[0]
 action_dim = env._nu
