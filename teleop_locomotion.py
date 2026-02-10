@@ -122,7 +122,9 @@ class _TerminalInput:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Interactive keyboard teleop for locomotion_env.py")
+    parser = argparse.ArgumentParser(
+        description="Interactive keyboard teleop for locomotion_env.py"
+    )
     parser.add_argument(
         "--policy",
         type=str,
@@ -135,6 +137,14 @@ def main():
         default="robot_description/scene.xml",
         help="Path to MuJoCo XML scene.",
     )
+
+    parser.add_argument(
+        "--system-config-path",
+        type=str,
+        default="robot_description/system_configs/default_config.json",
+        help="Path to custom system config JSON file (optional).",
+    )
+
     parser.add_argument(
         "--fps",
         type=float,
@@ -160,7 +170,9 @@ def main():
     )
     args = parser.parse_args()
 
-    env = HumanoidLocomotionEnv(xml_path=args.xml_path)
+    env = HumanoidLocomotionEnv(
+        xml_path=args.xml_path, system_config_path=args.system_config_path
+    )
     obs = env.reset()
 
     cmd = np.zeros(3, dtype=float)
@@ -171,9 +183,13 @@ def main():
         policy = torch.jit.load(args.policy, map_location="cpu")
         policy.eval()
         with torch.no_grad():
-            test_action = policy(torch.from_numpy(obs).float().unsqueeze(0)).squeeze(0).numpy()
+            test_action = (
+                policy(torch.from_numpy(obs).float().unsqueeze(0)).squeeze(0).numpy()
+            )
         if test_action.shape != (env._nu,):
-            raise ValueError(f"policy action shape {test_action.shape} does not match env action dim {(env._nu,)}")
+            raise ValueError(
+                f"policy action shape {test_action.shape} does not match env action dim {(env._nu,)}"
+            )
         print(f"Loaded policy: {args.policy}")
     else:
         print("Running without policy (zero actions).")
@@ -184,7 +200,14 @@ def main():
         "cmd": cmd,
         "reset_requested": False,
         "quit_requested": False,
-        "active_until": {"w": 0.0, "s": 0.0, "a": 0.0, "d": 0.0, "LEFT": 0.0, "RIGHT": 0.0},
+        "active_until": {
+            "w": 0.0,
+            "s": 0.0,
+            "a": 0.0,
+            "d": 0.0,
+            "LEFT": 0.0,
+            "RIGHT": 0.0,
+        },
     }
 
     def _zero_commands():

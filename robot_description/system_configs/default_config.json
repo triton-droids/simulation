@@ -1,0 +1,69 @@
+{
+  "config_name": "default_config",
+  "description": "Default system parameters for scene.xml - humanoid robot",
+
+  "contact_surface": {
+    "friction": [1.5, 0.005, 0.0001],
+    "solref": [0.01, 2],
+    "solimp": [0.9, 0.95, 0.001]
+  },
+
+  "default_joint": {
+    "damping": 1.0,
+    "frictionloss": 0.15,
+    "armature": 0.01
+  },
+
+  "actuators": {
+    "left_hip1_act": {
+      "kp": 300,
+      "kv": 15,
+      "forcerange": [-120, 120]
+    },
+    "left_hip2_act": {
+      "kp": 300,
+      "kv": 15,
+      "forcerange": [-120, 120]
+    },
+    "left_thigh_act": {
+      "kp": 300,
+      "kv": 15,
+      "forcerange": [-120, 120]
+    },
+    "left_knee_act": {
+      "kp": 340,
+      "kv": 17,
+      "forcerange": [-120, 120]
+    },
+    "left_ankle_act": {
+      "kp": 100,
+      "kv": 8,
+      "forcerange": [-60, 60]
+    },
+    "right_hip1_act": {
+      "kp": 300,
+      "kv": 15,
+      "forcerange": [-120, 120]
+    },
+    "right_hip2_act": {
+      "kp": 300,
+      "kv": 15,
+      "forcerange": [-120, 120]
+    },
+    "right_thigh_act": {
+      "kp": 300,
+      "kv": 15,
+      "forcerange": [-120, 120]
+    },
+    "right_knee_act": {
+      "kp": 340,
+      "kv": 17,
+      "forcerange": [-120, 120]
+    },
+    "right_ankle_act": {
+      "kp": 100,
+      "kv": 8,
+      "forcerange": [-60, 60]
+    }
+  }
+}
