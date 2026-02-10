@@ -1133,7 +1133,11 @@ class LocomotionEnv(DirectRLEnv):
         reward = torch.where(self.reset_terminated, torch.ones_like(reward) * self.cfg.death_cost, reward)
 
         # --- Logging (every N steps) ---
-        if hasattr(self, 'common_step_counter') and (self.common_step_counter % 200) == 0:
+        if (
+            bool(getattr(self.cfg, "enable_reward_logging", False))
+            and hasattr(self, "common_step_counter")
+            and (self.common_step_counter % 200) == 0
+        ):
             # Tracking rewards (what we want to maximize)
             self.extras["reward_tracking/r_lin"] = float(r_lin.mean().item())
             self.extras["reward_tracking/r_yaw"] = float(r_yaw.mean().item())

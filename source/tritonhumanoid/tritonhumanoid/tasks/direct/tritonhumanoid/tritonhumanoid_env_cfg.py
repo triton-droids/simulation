@@ -529,6 +529,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     debug_obs_print_every: int = 1
     debug_obs_print_env: int = 0
     debug_print_orderings: bool = False
+    enable_reward_logging: bool = False
 
 
 """ ORDERINGS OF STUFF:
