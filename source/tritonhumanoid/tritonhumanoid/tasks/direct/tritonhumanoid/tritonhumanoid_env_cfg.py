@@ -424,7 +424,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     turn_in_place_min_stage: int = 1  # only allow in-place turns once yaw commands are introduced
     
     # Command resampling (per-episode step count)
-    command_resample_interval_s: float = 3.0
+    command_resample_interval_s: float = 10.0
     command_resample_interval_steps: int = 0  # if >0, overrides seconds-based interval
     lin_vel_x_range: tuple[float, float] = (-1.0, 1.0)
     lin_vel_y_range: tuple[float, float] = (-0.5, 0.5)
