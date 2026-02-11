@@ -138,7 +138,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Position control: actions map to POSITION OFFSETS (radians) around default pose
     # action_scale determines the maximum offset: actions in [-1, 1] → [-action_scale, +action_scale] radians
     # The actual position command is: q_target = default_pose + action_scale * action
-    action_scale: float = 0.55  # Lower for early training stability; increase to 0.5 after initial learning
+    action_scale: float = 0.65  # Lower for early training stability; increase to 0.5 after initial learning
     # Per-joint multipliers applied on top of action_scale
     action_scale_by_joint: dict[str, float] = {
         "left_hip1_joint": 0.50,
@@ -291,8 +291,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
 
     # Reward shaping (minimal)
     lin_vel_reward_scale: float = 3.0
-    yaw_rate_reward_scale: float = 2.0
-    upright_reward_scale: float = 1.0
+    yaw_rate_reward_scale: float = 0.6
+    upright_reward_scale: float = 0.6
     alive_reward: float = 0.05
 
     action_cost_scale: float = 0.005
@@ -300,7 +300,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     death_cost: float = -1.0
 
     # Tracking sharpness (bigger = easier / smoother)
-    lin_vel_sigma: float = 0.25  # in (m/s)^2 units inside exp; sharper tracking
+    lin_vel_sigma: float = 0.10  # in (m/s)^2 units inside exp; sharper tracking
     yaw_rate_sigma: float = 0.5  # in (rad/s)^2 units inside exp
 
     # Stability costs (prevent hopping/rolling)
@@ -311,7 +311,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Penalize standing still when a command asks for motion
     command_speed_threshold: float = 0.2  # m/s, only apply penalty above this command
     standstill_speed_threshold: float = 0.15  # m/s, penalize if actual speed below this
-    standstill_penalty_scale: float = 0.2
+    standstill_penalty_scale: float = 0.8
+    speed_shortfall_cost_scale: float = 1.0
     # Air-time reward gate: only reward stepping when command asks for motion
     air_time_command_speed_threshold: float = 0.1
 
@@ -347,13 +348,16 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     symmetry_cost_scale: float = 0.1
     thigh_pose_cost_scale: float = 0.1  # keep thigh joints near neutral to avoid inward twisting
     # Anti-phase gait reward (hip1-based, forward-only)
-    anti_phase_reward_scale: float = 0.45
+    anti_phase_reward_scale: float = 0.15
     anti_phase_sigma: float = 0.25
     anti_phase_pos_gain: float = 2.5
     anti_phase_min_speed: float = 0.15
+    gait_actual_speed_thresh: float = 0.08
+    gait_upright_thresh: float = 0.70
+    yaw_cmd_reward_thresh: float = 0.15
     walk_cmd_speed_thresh: float = 0.15
-    walk_hip2_cost_scale: float = 0.35
-    contact_phase_reward_scale: float = 0.25
+    walk_hip2_cost_scale: float = 0.12
+    contact_phase_reward_scale: float = 0.08
     contact_phase_sigma: float = 0.35
     contact_phase_min_speed: float = 0.15
 
@@ -413,7 +417,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Stage 0: encourage forward motion (not standing still)
     curriculum_stage0_vx_min: float = 0.3  # minimum forward velocity command in stage 0
     curriculum_stage0_vx_max: float = 1.0  # maximum forward velocity command in stage 0
-    zero_command_probability: float = 0.02  # chance to sample a standstill command (vx=vy=yaw=0)
+    zero_command_probability: float = 0.0  # chance to sample a standstill command (vx=vy=yaw=0)
     turn_in_place_probability: float = 0.02  # chance to sample vx=vy=0, yaw!=0
     turn_in_place_yaw_min: float = 0.3
     turn_in_place_yaw_max: float = 1.0

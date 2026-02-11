@@ -297,6 +297,12 @@ class LocomotionEnv(DirectRLEnv):
 
         # control timestep for smoothness costs
         self._control_dt = float(self.cfg.sim.dt * self.cfg.decimation)
+        if int(getattr(self.cfg, "command_resample_interval_steps", 0)) > 0:
+            self._cmd_resample_interval_steps = int(self.cfg.command_resample_interval_steps)
+        else:
+            self._cmd_resample_interval_steps = max(
+                1, int(float(self.cfg.command_resample_interval_s) / self._control_dt)
+            )
 
         # previous joint velocities for acceleration cost
         self.prev_act_vel = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
@@ -824,6 +830,12 @@ class LocomotionEnv(DirectRLEnv):
         self._global_env_steps += self.num_envs
         self._update_curriculum()
 
+        if self._cmd_resample_interval_steps > 0:
+            resample_mask = (self.episode_length_buf % self._cmd_resample_interval_steps) == 0
+            resample_ids = torch.nonzero(resample_mask, as_tuple=False).squeeze(-1)
+            if resample_ids.numel() > 0:
+                self._sample_commands(resample_ids)
+
         # scheduled pushes + micro disturbances (ADR)
         self._maybe_apply_pushes()
         self._apply_micro_disturbance()
@@ -1034,8 +1046,17 @@ class LocomotionEnv(DirectRLEnv):
         phase = 2.0 * torch.pi * (t / self.cfg.gait_period_s) + self.phase_offset
         air_time_gate = (cmd_speed > self.cfg.air_time_command_speed_threshold).float()
         act_speed = torch.norm(self.com_lin_vel_b[:, :2], dim=1)
+        gait_gate = (
+            (cmd_speed > self.cfg.anti_phase_min_speed)
+            & (act_speed > self.cfg.gait_actual_speed_thresh)
+            & (self.up_b[:, 2] > self.cfg.gait_upright_thresh)
+        ).float()
+        yaw_cmd_mag = torch.abs(self.commands[:, 2])
+        yaw_gate = (yaw_cmd_mag > self.cfg.yaw_cmd_reward_thresh).float()
+        r_yaw = r_yaw * yaw_gate
         standstill = torch.clamp(self.cfg.standstill_speed_threshold - act_speed, min=0.0)
         standstill = standstill * (cmd_speed > self.cfg.command_speed_threshold).float()
+        speed_shortfall = torch.clamp(cmd_speed - act_speed, min=0.0)
 
         # Stand command mask (explicit "should be standing")
         stand_cmd = (
@@ -1092,8 +1113,7 @@ class LocomotionEnv(DirectRLEnv):
             right_match = torch.exp(-((right_norm + target) ** 2) / (sig + 1e-6))
             anti_phase_rew = 0.5 * (left_match + right_match)
 
-            phase_gate = (cmd_speed > self.cfg.anti_phase_min_speed).float()
-            anti_phase_rew = anti_phase_rew * phase_gate
+            anti_phase_rew = anti_phase_rew * gait_gate
 
         act_cost = torch.sum(self.actions * self.actions, dim=1)
         at_limit = torch.sum(torch.abs(self.act_pos_scaled) > 0.98, dim=1).float()
@@ -1209,7 +1229,7 @@ class LocomotionEnv(DirectRLEnv):
         contact_signal = foot_contact[:, 0].float() - foot_contact[:, 1].float()
         contact_target = torch.sin(phase)
         contact_phase_rew = torch.exp(-((contact_signal - contact_target) ** 2) / (self.cfg.contact_phase_sigma + 1e-6))
-        contact_phase_rew = contact_phase_rew * (cmd_speed > self.cfg.contact_phase_min_speed).float()
+        contact_phase_rew = contact_phase_rew * gait_gate
 
         # (0) explicit no-fly penalty: both feet off ground
         no_fly = (foot_contact.sum(dim=1) == 0).float()  # (N,)
@@ -1231,6 +1251,7 @@ class LocomotionEnv(DirectRLEnv):
             - self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost
             - self.cfg.energy_cost_scale * energy_cost
             - self.cfg.standstill_penalty_scale * standstill
+            - self.cfg.speed_shortfall_cost_scale * speed_shortfall
             - self.cfg.symmetry_cost_scale * sym_pen
             - self.cfg.thigh_pose_cost_scale * thigh_pose_pen
             + self.cfg.feet_air_time_reward_scale * air_rew
