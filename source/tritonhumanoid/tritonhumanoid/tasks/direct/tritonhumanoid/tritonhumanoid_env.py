@@ -303,6 +303,7 @@ class LocomotionEnv(DirectRLEnv):
 
         # commanded base velocity in BODY frame: [vx, vy, yaw_rate]
         self.commands = torch.zeros(self.num_envs, 3, device=self.sim.device)
+        self.phase_offset = torch.zeros(self.num_envs, device=self.sim.device)
 
         # rotate body-frame vectors to align forward axis with command frame
         self._command_yaw_offset = float(getattr(self.cfg, "command_yaw_offset", 0.0))
@@ -954,7 +955,7 @@ class LocomotionEnv(DirectRLEnv):
 
         if self.cfg.use_phase_obs:
             t = self.episode_length_buf.float() * self._control_dt
-            phase = 2.0 * torch.pi * (t / self.cfg.gait_period_s)
+            phase = 2.0 * torch.pi * (t / self.cfg.gait_period_s) + self.phase_offset
 
             if self.cfg.freeze_phase_when_standing:
                 stand_mask = (
@@ -1029,6 +1030,8 @@ class LocomotionEnv(DirectRLEnv):
         upright = torch.clamp(self.up_b[:, 2], 0.0, 1.0)
 
         cmd_speed = torch.norm(self.commands[:, :2], dim=1)
+        t = self.episode_length_buf.float() * self._control_dt
+        phase = 2.0 * torch.pi * (t / self.cfg.gait_period_s) + self.phase_offset
         air_time_gate = (cmd_speed > self.cfg.air_time_command_speed_threshold).float()
         act_speed = torch.norm(self.com_lin_vel_b[:, :2], dim=1)
         standstill = torch.clamp(self.cfg.standstill_speed_threshold - act_speed, min=0.0)
@@ -1063,12 +1066,15 @@ class LocomotionEnv(DirectRLEnv):
             hip2_off = self.act_pos[:, self._hip2_action_ids] - self.default_actuated_pos[self._hip2_action_ids].unsqueeze(0)
             stand_hip2_pen = torch.mean(hip2_off * hip2_off, dim=1)
 
+        walk_hip2_pen = torch.zeros_like(r_lin)
+        if self._hip2_action_ids.numel() > 0:
+            hip2_off_walk = self.act_pos[:, self._hip2_action_ids] - self.default_actuated_pos[self._hip2_action_ids].unsqueeze(0)
+            walk_mask = (cmd_speed > self.cfg.walk_cmd_speed_thresh).float()
+            walk_hip2_pen = torch.mean(hip2_off_walk * hip2_off_walk, dim=1) * walk_mask
+
         # --- Anti-phase gait reward (HIP1 joints, forward-walk gated) ---
         anti_phase_rew = torch.zeros_like(r_lin)
         if (self._hip1_left_action_id is not None) and (self._hip1_right_action_id is not None):
-            # phase clock
-            t = self.episode_length_buf.float() * self._control_dt
-            phase = 2.0 * torch.pi * (t / self.cfg.gait_period_s)
             target = torch.sin(phase)  # desired left hip1 profile
 
             # hip1 offsets around default pose
@@ -1086,9 +1092,8 @@ class LocomotionEnv(DirectRLEnv):
             right_match = torch.exp(-((right_norm + target) ** 2) / (sig + 1e-6))
             anti_phase_rew = 0.5 * (left_match + right_match)
 
-            # gate to forward walking only
-            fwd_gate = (self.commands[:, 0] > self.cfg.anti_phase_forward_vx_threshold).float()
-            anti_phase_rew = anti_phase_rew * fwd_gate
+            phase_gate = (cmd_speed > self.cfg.anti_phase_min_speed).float()
+            anti_phase_rew = anti_phase_rew * phase_gate
 
         act_cost = torch.sum(self.actions * self.actions, dim=1)
         at_limit = torch.sum(torch.abs(self.act_pos_scaled) > 0.98, dim=1).float()
@@ -1200,6 +1205,12 @@ class LocomotionEnv(DirectRLEnv):
         foot_force_z = torch.clamp(foot_forces[:, :, 2], min=0.0)  # (N,2)
         foot_contact = foot_force_z > self.cfg.foot_contact_force_thresh  # (N,2)
 
+        # left-right contact signal in {-1, 0, +1}
+        contact_signal = foot_contact[:, 0].float() - foot_contact[:, 1].float()
+        contact_target = torch.sin(phase)
+        contact_phase_rew = torch.exp(-((contact_signal - contact_target) ** 2) / (self.cfg.contact_phase_sigma + 1e-6))
+        contact_phase_rew = contact_phase_rew * (cmd_speed > self.cfg.contact_phase_min_speed).float()
+
         # (0) explicit no-fly penalty: both feet off ground
         no_fly = (foot_contact.sum(dim=1) == 0).float()  # (N,)
 
@@ -1224,7 +1235,9 @@ class LocomotionEnv(DirectRLEnv):
             - self.cfg.thigh_pose_cost_scale * thigh_pose_pen
             + self.cfg.feet_air_time_reward_scale * air_rew
             + self.cfg.anti_phase_reward_scale * anti_phase_rew
+            + self.cfg.contact_phase_reward_scale * contact_phase_rew
             - self.cfg.air_time_symmetry_cost_scale * air_time_sym_pen
+            - self.cfg.walk_hip2_cost_scale * walk_hip2_pen
             - self.cfg.foot_slip_cost_scale * slip_cost
             - self.cfg.undesired_contact_cost_scale * undesired
             - self.cfg.touchdown_cost_scale * touchdown_vel_cost
@@ -1394,6 +1407,11 @@ class LocomotionEnv(DirectRLEnv):
 
         # Sample commands based on current curriculum stage
         self._sample_commands(env_ids)
+
+        if bool(getattr(self.cfg, "randomize_phase", False)):
+            self.phase_offset[env_ids] = torch.rand(env_ids.numel(), device=self.sim.device) * (2.0 * torch.pi)
+        else:
+            self.phase_offset[env_ids] = 0.0
 
         if self._visualization_enabled or self.obs_stack_buf is not None or self.obs_hist_buf is not None:
             self._update_state()

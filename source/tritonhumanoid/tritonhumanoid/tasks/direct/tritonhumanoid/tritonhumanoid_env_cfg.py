@@ -138,13 +138,19 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Position control: actions map to POSITION OFFSETS (radians) around default pose
     # action_scale determines the maximum offset: actions in [-1, 1] → [-action_scale, +action_scale] radians
     # The actual position command is: q_target = default_pose + action_scale * action
-    action_scale = 1.0  # Lower for early training stability; increase to 0.5 after initial learning
+    action_scale: float = 0.55  # Lower for early training stability; increase to 0.5 after initial learning
     # Per-joint multipliers applied on top of action_scale
     action_scale_by_joint: dict[str, float] = {
-        "left_hip2_joint": 0.35,
-        "right_hip2_joint": 0.35,
+        "left_hip1_joint": 0.50,
+        "right_hip1_joint": 0.50,
+        "left_hip2_joint": 0.30,
+        "right_hip2_joint": 0.30,
         "left_thigh_joint": 0.3,
         "right_thigh_joint": 0.3,
+        "left_knee_joint": 0.45,
+        "right_knee_joint": 0.45,
+        "left_ankle_joint": 0.35,
+        "right_ankle_joint": 0.35,
     }
     # Joint-limit-aware action bounds margin (to avoid hard stops)
     action_limit_margin: float = 0.02          # radians, added each side
@@ -298,9 +304,9 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     yaw_rate_sigma: float = 0.5  # in (rad/s)^2 units inside exp
 
     # Stability costs (prevent hopping/rolling)
-    lin_vel_z_cost_scale: float = 0.02
-    ang_vel_xy_cost_scale: float = 0.01
-    flat_ori_cost_scale: float = 0.1
+    lin_vel_z_cost_scale: float = 0.08
+    ang_vel_xy_cost_scale: float = 0.03
+    flat_ori_cost_scale: float = 0.25
 
     # Penalize standing still when a command asks for motion
     command_speed_threshold: float = 0.2  # m/s, only apply penalty above this command
@@ -341,10 +347,15 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     symmetry_cost_scale: float = 0.1
     thigh_pose_cost_scale: float = 0.1  # keep thigh joints near neutral to avoid inward twisting
     # Anti-phase gait reward (hip1-based, forward-only)
-    anti_phase_reward_scale: float = 0.15
-    anti_phase_sigma: float = 0.5
-    anti_phase_pos_gain: float = 2.0
-    anti_phase_forward_vx_threshold: float = 0.2
+    anti_phase_reward_scale: float = 0.45
+    anti_phase_sigma: float = 0.25
+    anti_phase_pos_gain: float = 2.5
+    anti_phase_min_speed: float = 0.15
+    walk_cmd_speed_thresh: float = 0.15
+    walk_hip2_cost_scale: float = 0.35
+    contact_phase_reward_scale: float = 0.25
+    contact_phase_sigma: float = 0.35
+    contact_phase_min_speed: float = 0.15
 
     # Gate smoothness/energy penalties to swing phase (set swing_gate_alpha=0.0 to disable gating)
     gate_smoothness_to_swing: bool = False
@@ -354,14 +365,14 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     foot_body_regex: str = "left_foot|right_foot"
     foot_contact_force_thresh: float = 30.0  # N (20-80N typical for humanoid ground contact)
     min_air_time: float = 0.2  # seconds
-    feet_air_time_reward_scale: float = 0.1
-    air_time_symmetry_cost_scale: float = 0.25
+    feet_air_time_reward_scale: float = 0.06
+    air_time_symmetry_cost_scale: float = 0.35
     foot_slip_cost_scale: float = 0.02
     undesired_contact_force_thresh: float = 80.0  # N (50-200N typical)
     undesired_contact_cost_scale: float = 0.1
 
     # No-fly penalty: both feet off ground
-    no_fly_cost_scale: float = 0.05
+    no_fly_cost_scale: float = 0.20
 
     # Anti-stomp touchdown penalty
     touchdown_cost_scale: float = 0.08
@@ -391,25 +402,25 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     use_phase_obs: bool = True
     gait_period_s: float = 1.0
     gait_period_randomization_width: float = 0.0
-    randomize_phase: bool = False
+    randomize_phase: bool = True
     phase_offset_default: tuple[float, float] = (0.0, math.pi)
 
     # Command curriculum (progressive difficulty) - based on per-env steps
     use_curriculum: bool = True
-    curriculum_stage1_steps_per_env: int = 30000   # per-env steps before adding yaw (stage 0 -> 1)
-    curriculum_stage2_steps_per_env: int = 60000  # per-env steps before adding lateral (stage 1 -> 2)
+    curriculum_stage1_steps_per_env: int = 60000   # per-env steps before adding yaw (stage 0 -> 1)
+    curriculum_stage2_steps_per_env: int = 140000  # per-env steps before adding lateral (stage 1 -> 2)
     
     # Stage 0: encourage forward motion (not standing still)
     curriculum_stage0_vx_min: float = 0.3  # minimum forward velocity command in stage 0
     curriculum_stage0_vx_max: float = 1.0  # maximum forward velocity command in stage 0
-    zero_command_probability: float = 0.1  # chance to sample a standstill command (vx=vy=yaw=0)
-    turn_in_place_probability: float = 0.05  # chance to sample vx=vy=0, yaw!=0
+    zero_command_probability: float = 0.02  # chance to sample a standstill command (vx=vy=yaw=0)
+    turn_in_place_probability: float = 0.02  # chance to sample vx=vy=0, yaw!=0
     turn_in_place_yaw_min: float = 0.3
     turn_in_place_yaw_max: float = 1.0
     turn_in_place_min_stage: int = 1  # only allow in-place turns once yaw commands are introduced
     
     # Command resampling (per-episode step count)
-    command_resample_interval_s: float = 10.0
+    command_resample_interval_s: float = 3.0
     command_resample_interval_steps: int = 0  # if >0, overrides seconds-based interval
     lin_vel_x_range: tuple[float, float] = (-1.0, 1.0)
     lin_vel_y_range: tuple[float, float] = (-0.5, 0.5)
@@ -444,8 +455,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     adr_success_rate_to_decrease: float = 0.2
     adr_min_steps_before_decrease: int = 10000
     adr_ema_factor: float = 0.05
-    adr_warmup_steps: int = 2000
-    adr_min_stage: int = 1
+    adr_warmup_steps: int = 20000
+    adr_min_stage: int = 2
     adr_track_err_lin_increase_threshold: float = 0.25
     adr_track_err_lin_decrease_threshold: float = 0.45
     adr_track_err_yaw_increase_threshold: float = 0.25
@@ -502,21 +513,21 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
             "imu_mount_deg": (0.0, 5.0),
         },
         "action_noise": {
-            "std": (0.0, 0.1),
+            "std": (0.0, 0.03),
         },
         "obs_noise": {
-            "gravity_std": (0.0, 0.05),
-            "gyro_std": (0.0, 0.1),
-            "joint_pos_std": (0.0, 0.02),
-            "joint_vel_std": (0.0, 0.5),
-            "joint_torque_std": (0.0, 0.5),
+            "gravity_std": (0.0, 0.03),
+            "gyro_std": (0.0, 0.05),
+            "joint_pos_std": (0.0, 0.01),
+            "joint_vel_std": (0.0, 0.20),
+            "joint_torque_std": (0.0, 0.20),
         },
         "motor_strength": {
             "per_joint_mult_range": (0.0, 0.3),
         },
         "latency": {
-            "act_steps": (0, 5),
-            "obs_steps": (0, 3),
+            "act_steps": (0, 2),
+            "obs_steps": (0, 1),
         },
         "imu_bias": {
             "gravity_bias_range": (0.0, 0.1),
@@ -536,8 +547,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     }
 
     # Latency buffer sizes (must be >= max ADR latency)
-    act_max_latency: int = 5
-    obs_max_latency: int = 3
+    act_max_latency: int = 2
+    obs_max_latency: int = 1
 
     # Debug visualization (draw velocity arrows for a single env)
     debug_vel_vis: bool = False  # disable during training for performance
