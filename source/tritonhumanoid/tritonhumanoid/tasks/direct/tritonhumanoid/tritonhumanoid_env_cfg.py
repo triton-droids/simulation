@@ -313,6 +313,23 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     dof_vel_delta_cost_scale: float = 0.01  # penalize velocity changes (instead of acceleration)
     energy_cost_scale: float = 0.0005  # penalize mechanical power |tau * qdot|
 
+    # standing command detect
+    stand_cmd_lin_thresh: float = 0.08
+    stand_cmd_yaw_thresh: float = 0.10
+
+    # stand-specific shaping
+    stand_pose_reward_scale: float = 0.6
+    stand_upright_reward_scale: float = 0.4
+    stand_pose_sigma: float = 0.03
+    stand_vel_cost_scale: float = 0.6
+    stand_action_cost_scale: float = 0.01
+
+    # phase behavior at stand
+    freeze_phase_when_standing: bool = True
+    stand_phase_lin_threshold: float = 0.08
+    stand_phase_yaw_threshold: float = 0.10
+    stand_phase_value: float = math.pi
+
     # Return-to-default pose penalty (actuated joints)
     pose_return_scale: float = 0.3
     pose_return_upright_threshold: float = 0.7
@@ -329,11 +346,14 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     foot_body_regex: str = "left_foot|right_foot"
     foot_contact_force_thresh: float = 30.0  # N (20-80N typical for humanoid ground contact)
     min_air_time: float = 0.2  # seconds
-    feet_air_time_reward_scale: float = 0.4
-    air_time_symmetry_cost_scale: float = 0.05
+    feet_air_time_reward_scale: float = 0.1
+    air_time_symmetry_cost_scale: float = 0.25
     foot_slip_cost_scale: float = 0.02
     undesired_contact_force_thresh: float = 80.0  # N (50-200N typical)
     undesired_contact_cost_scale: float = 0.1
+
+    # No-fly penalty: both feet off ground
+    no_fly_cost_scale: float = 0.05
 
     # Anti-stomp touchdown penalty
     touchdown_cost_scale: float = 0.08

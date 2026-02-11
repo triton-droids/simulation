@@ -929,8 +929,20 @@ class LocomotionEnv(DirectRLEnv):
         if self.cfg.use_phase_obs:
             t = self.episode_length_buf.float() * self._control_dt
             phase = 2.0 * torch.pi * (t / self.cfg.gait_period_s)
+
+            if self.cfg.freeze_phase_when_standing:
+                stand_mask = (
+                    torch.norm(self.commands[:, :2], dim=1) < self.cfg.stand_phase_lin_threshold
+                ) & (torch.abs(self.commands[:, 2]) < self.cfg.stand_phase_yaw_threshold)
+                phase = torch.where(
+                    stand_mask,
+                    torch.full_like(phase, self.cfg.stand_phase_value),
+                    phase,
+                )
+
             clock = torch.stack([torch.sin(phase), torch.cos(phase)], dim=1)
             obs = torch.cat([obs, clock], dim=-1)
+
 
         return obs
 
