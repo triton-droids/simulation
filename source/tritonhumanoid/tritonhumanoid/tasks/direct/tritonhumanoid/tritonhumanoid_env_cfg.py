@@ -337,6 +337,11 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Left/right symmetry penalty (actuated joints)
     symmetry_cost_scale: float = 0.1
     thigh_pose_cost_scale: float = 0.1  # keep thigh joints near neutral to avoid inward twisting
+    # Anti-phase gait reward (hip1-based, forward-only)
+    anti_phase_reward_scale: float = 0.15
+    anti_phase_sigma: float = 0.5
+    anti_phase_pos_gain: float = 2.0
+    anti_phase_forward_vx_threshold: float = 0.2
 
     # Gate smoothness/energy penalties to swing phase (set swing_gate_alpha=0.0 to disable gating)
     gate_smoothness_to_swing: bool = False

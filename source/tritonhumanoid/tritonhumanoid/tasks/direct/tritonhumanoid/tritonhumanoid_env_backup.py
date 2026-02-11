@@ -240,18 +240,6 @@ class LocomotionEnv(DirectRLEnv):
                 thigh_action_ids.append(joint_id_to_action[right_thigh_id])
         self._thigh_action_ids = torch.tensor(thigh_action_ids, device=self.sim.device, dtype=torch.long)
 
-        # Hip1 pair for anti-phase gait reward (forward walking)
-        hip1_left_ids, _ = self.robot.find_joints("left_hip1_joint")
-        hip1_right_ids, _ = self.robot.find_joints("right_hip1_joint")
-        self._hip1_left_action_id = None
-        self._hip1_right_action_id = None
-        if len(hip1_left_ids) > 0 and len(hip1_right_ids) > 0:
-            left_hip1_id = int(hip1_left_ids[0])
-            right_hip1_id = int(hip1_right_ids[0])
-            if left_hip1_id in joint_id_to_action and right_hip1_id in joint_id_to_action:
-                self._hip1_left_action_id = int(joint_id_to_action[left_hip1_id])
-                self._hip1_right_action_id = int(joint_id_to_action[right_hip1_id])
-
         # IMU body is named "world" in your URDF
         imu_ids, _ = self.robot.find_bodies("world")
         self._imu_body_idx = int(imu_ids[0])
@@ -941,20 +929,8 @@ class LocomotionEnv(DirectRLEnv):
         if self.cfg.use_phase_obs:
             t = self.episode_length_buf.float() * self._control_dt
             phase = 2.0 * torch.pi * (t / self.cfg.gait_period_s)
-
-            if self.cfg.freeze_phase_when_standing:
-                stand_mask = (
-                    torch.norm(self.commands[:, :2], dim=1) < self.cfg.stand_phase_lin_threshold
-                ) & (torch.abs(self.commands[:, 2]) < self.cfg.stand_phase_yaw_threshold)
-                phase = torch.where(
-                    stand_mask,
-                    torch.full_like(phase, self.cfg.stand_phase_value),
-                    phase,
-                )
-
             clock = torch.stack([torch.sin(phase), torch.cos(phase)], dim=1)
             obs = torch.cat([obs, clock], dim=-1)
-
 
         return obs
 
@@ -1019,33 +995,6 @@ class LocomotionEnv(DirectRLEnv):
         act_speed = torch.norm(self.com_lin_vel_b[:, :2], dim=1)
         standstill = torch.clamp(self.cfg.standstill_speed_threshold - act_speed, min=0.0)
         standstill = standstill * (cmd_speed > self.cfg.command_speed_threshold).float()
-
-        # --- Anti-phase gait reward (HIP1 joints, forward-walk gated) ---
-        anti_phase_rew = torch.zeros_like(r_lin)
-        if (self._hip1_left_action_id is not None) and (self._hip1_right_action_id is not None):
-            # phase clock
-            t = self.episode_length_buf.float() * self._control_dt
-            phase = 2.0 * torch.pi * (t / self.cfg.gait_period_s)
-            target = torch.sin(phase)  # desired left hip1 profile
-
-            # hip1 offsets around default pose
-            left_off = self.act_pos[:, self._hip1_left_action_id] - self.default_actuated_pos[self._hip1_left_action_id]
-            right_off = self.act_pos[:, self._hip1_right_action_id] - self.default_actuated_pos[self._hip1_right_action_id]
-
-            # normalize offsets to bounded range for stable matching
-            k = float(self.cfg.anti_phase_pos_gain)
-            left_norm = torch.tanh(k * left_off)
-            right_norm = torch.tanh(k * right_off)
-
-            # anti-phase match: left follows +target, right follows -target
-            sig = float(self.cfg.anti_phase_sigma)
-            left_match = torch.exp(-((left_norm - target) ** 2) / (sig + 1e-6))
-            right_match = torch.exp(-((right_norm + target) ** 2) / (sig + 1e-6))
-            anti_phase_rew = 0.5 * (left_match + right_match)
-
-            # gate to forward walking only
-            fwd_gate = (self.commands[:, 0] > self.cfg.anti_phase_forward_vx_threshold).float()
-            anti_phase_rew = anti_phase_rew * fwd_gate
 
         act_cost = torch.sum(self.actions * self.actions, dim=1)
         at_limit = torch.sum(torch.abs(self.act_pos_scaled) > 0.98, dim=1).float()
@@ -1154,12 +1103,6 @@ class LocomotionEnv(DirectRLEnv):
             dof_vel_cost = dof_vel_cost * swing_gate
             dof_vel_delta_cost = dof_vel_delta_cost * swing_gate
 
-        foot_force_z = torch.clamp(foot_forces[:, :, 2], min=0.0)  # (N,2)
-        foot_contact = foot_force_z > self.cfg.foot_contact_force_thresh  # (N,2)
-
-        # (0) explicit no-fly penalty: both feet off ground
-        no_fly = (foot_contact.sum(dim=1) == 0).float()  # (N,)
-
         # --- Combine all rewards ---
         reward = (
             self.cfg.lin_vel_reward_scale * r_lin
@@ -1180,13 +1123,11 @@ class LocomotionEnv(DirectRLEnv):
             - self.cfg.symmetry_cost_scale * sym_pen
             - self.cfg.thigh_pose_cost_scale * thigh_pose_pen
             + self.cfg.feet_air_time_reward_scale * air_rew
-            + self.cfg.anti_phase_reward_scale * anti_phase_rew
             - self.cfg.air_time_symmetry_cost_scale * air_time_sym_pen
             - self.cfg.foot_slip_cost_scale * slip_cost
             - self.cfg.undesired_contact_cost_scale * undesired
             - self.cfg.touchdown_cost_scale * touchdown_vel_cost
             - touchdown_force_scale * touchdown_force_cost
-            - self.cfg.no_fly_cost_scale * no_fly
         )
 
         reward = torch.where(self.reset_terminated, torch.ones_like(reward) * self.cfg.death_cost, reward)
