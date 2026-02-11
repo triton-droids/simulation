@@ -252,6 +252,20 @@ class LocomotionEnv(DirectRLEnv):
                 self._hip1_left_action_id = int(joint_id_to_action[left_hip1_id])
                 self._hip1_right_action_id = int(joint_id_to_action[right_hip1_id])
 
+        # Hip2 pair for stand posture control (avoid inward collapse at stand)
+        hip2_left_ids, _ = self.robot.find_joints("left_hip2_joint")
+        hip2_right_ids, _ = self.robot.find_joints("right_hip2_joint")
+        hip2_action_ids = []
+        if len(hip2_left_ids) > 0:
+            j = int(hip2_left_ids[0])
+            if j in joint_id_to_action:
+                hip2_action_ids.append(joint_id_to_action[j])
+        if len(hip2_right_ids) > 0:
+            j = int(hip2_right_ids[0])
+            if j in joint_id_to_action:
+                hip2_action_ids.append(joint_id_to_action[j])
+        self._hip2_action_ids = torch.tensor(hip2_action_ids, device=self.sim.device, dtype=torch.long)
+
         # IMU body is named "world" in your URDF
         imu_ids, _ = self.robot.find_bodies("world")
         self._imu_body_idx = int(imu_ids[0])
@@ -1020,6 +1034,35 @@ class LocomotionEnv(DirectRLEnv):
         standstill = torch.clamp(self.cfg.standstill_speed_threshold - act_speed, min=0.0)
         standstill = standstill * (cmd_speed > self.cfg.command_speed_threshold).float()
 
+        # Stand command mask (explicit "should be standing")
+        stand_cmd = (
+            torch.norm(self.commands[:, :2], dim=1) < self.cfg.stand_cmd_lin_thresh
+        ) & (
+            torch.abs(self.commands[:, 2]) < self.cfg.stand_cmd_yaw_thresh
+        )
+        stand_cmd_f = stand_cmd.float()
+
+        # Stand posture reward/cost terms
+        pose_err_all = self.act_pos - self.default_actuated_pos.unsqueeze(0)
+        stand_pose_err = torch.mean(pose_err_all * pose_err_all, dim=1)
+        stand_pose_rew = torch.exp(-stand_pose_err / (self.cfg.stand_pose_sigma + 1e-6))
+
+        stand_upright_rew = torch.clamp(self.up_b[:, 2], 0.0, 1.0)
+
+        # Penalize motion while standing
+        stand_vel_cost = (
+            torch.sum(self.com_lin_vel_cmd[:, :2] ** 2, dim=1)
+            + 0.5 * (self.com_ang_vel_cmd[:, 2] ** 2)
+        )
+
+        stand_action_cost = torch.sum(self.actions * self.actions, dim=1)
+
+        # Stronger anti-inward penalty on hip2 during stand
+        stand_hip2_pen = torch.zeros_like(stand_pose_err)
+        if self._hip2_action_ids.numel() > 0:
+            hip2_off = self.act_pos[:, self._hip2_action_ids] - self.default_actuated_pos[self._hip2_action_ids].unsqueeze(0)
+            stand_hip2_pen = torch.mean(hip2_off * hip2_off, dim=1)
+
         # --- Anti-phase gait reward (HIP1 joints, forward-walk gated) ---
         anti_phase_rew = torch.zeros_like(r_lin)
         if (self._hip1_left_action_id is not None) and (self._hip1_right_action_id is not None):
@@ -1187,6 +1230,14 @@ class LocomotionEnv(DirectRLEnv):
             - self.cfg.touchdown_cost_scale * touchdown_vel_cost
             - touchdown_force_scale * touchdown_force_cost
             - self.cfg.no_fly_cost_scale * no_fly
+            + stand_cmd_f
+            * (
+                self.cfg.stand_pose_reward_scale * stand_pose_rew
+                + self.cfg.stand_upright_reward_scale * stand_upright_rew
+                - self.cfg.stand_vel_cost_scale * stand_vel_cost
+                - self.cfg.stand_action_cost_scale * stand_action_cost
+                - self.cfg.stand_hip2_cost_scale * stand_hip2_pen
+            )
         )
 
         reward = torch.where(self.reset_terminated, torch.ones_like(reward) * self.cfg.death_cost, reward)

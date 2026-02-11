@@ -141,6 +141,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     action_scale = 1.0  # Lower for early training stability; increase to 0.5 after initial learning
     # Per-joint multipliers applied on top of action_scale
     action_scale_by_joint: dict[str, float] = {
+        "left_hip2_joint": 0.35,
+        "right_hip2_joint": 0.35,
         "left_thigh_joint": 0.3,
         "right_thigh_joint": 0.3,
     }
@@ -318,11 +320,12 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     stand_cmd_yaw_thresh: float = 0.10
 
     # stand-specific shaping
-    stand_pose_reward_scale: float = 0.6
+    stand_pose_reward_scale: float = 0.8
     stand_upright_reward_scale: float = 0.4
-    stand_pose_sigma: float = 0.03
-    stand_vel_cost_scale: float = 0.6
-    stand_action_cost_scale: float = 0.01
+    stand_pose_sigma: float = 0.02
+    stand_vel_cost_scale: float = 0.8
+    stand_action_cost_scale: float = 0.02
+    stand_hip2_cost_scale: float = 1.0
 
     # phase behavior at stand
     freeze_phase_when_standing: bool = True
@@ -390,9 +393,6 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     gait_period_randomization_width: float = 0.0
     randomize_phase: bool = False
     phase_offset_default: tuple[float, float] = (0.0, math.pi)
-    stand_phase_value: float = math.pi
-    stand_phase_lin_threshold: float = 0.01
-    stand_phase_yaw_threshold: float = 0.01
 
     # Command curriculum (progressive difficulty) - based on per-env steps
     use_curriculum: bool = True
