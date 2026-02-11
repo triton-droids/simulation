@@ -82,9 +82,12 @@ import gymnasium as gym
 import numpy as np
 import torch
 
+from rl_games.common import env_configurations, vecenv
+
 import isaaclab_tasks  # noqa: F401
 from isaaclab.envs import DirectMARLEnv, multi_agent_to_single_agent
 from isaaclab.utils.assets import retrieve_file_path
+from isaaclab_rl.rl_games import RlGamesGpuEnv, RlGamesVecEnvWrapper
 from isaaclab_tasks.utils import load_cfg_from_registry, parse_env_cfg
 
 import tritonhumanoid.tasks  # noqa: F401
@@ -204,12 +207,30 @@ def _replay_actions_at(
     return torch.from_numpy(out).to(device=device, dtype=torch.float32).clamp_(-1.0, 1.0)
 
 
-def _make_agent(task_name: str, checkpoint: str, num_actors: int):
+def _make_agent(task_name: str, checkpoint: str, env, num_actors: int):
     from rl_games.common.player import BasePlayer
     from rl_games.torch_runner import Runner
 
     agent_cfg = load_cfg_from_registry(task_name, "rl_games_cfg_entry_point")
     resume_path = retrieve_file_path(checkpoint)
+
+    rl_device = agent_cfg["params"]["config"]["device"]
+    clip_obs = agent_cfg["params"]["env"].get("clip_observations", math.inf)
+    clip_actions = agent_cfg["params"]["env"].get("clip_actions", math.inf)
+    rl_env = RlGamesVecEnvWrapper(env, rl_device, clip_obs, clip_actions)
+
+    try:
+        vecenv.register(
+            "IsaacRlgWrapper", lambda config_name, num_actors, **kwargs: RlGamesGpuEnv(config_name, num_actors, **kwargs)
+        )
+    except Exception:
+        pass
+    env_entry = {"vecenv_type": "IsaacRlgWrapper", "env_creator": lambda **kwargs: rl_env}
+    if "rlgpu" in env_configurations.configurations:
+        env_configurations.configurations["rlgpu"] = env_entry
+    else:
+        env_configurations.register("rlgpu", env_entry)
+
     agent_cfg["params"]["load_checkpoint"] = True
     agent_cfg["params"]["load_path"] = resume_path
     agent_cfg["params"]["config"]["num_actors"] = int(num_actors)
@@ -218,7 +239,7 @@ def _make_agent(task_name: str, checkpoint: str, num_actors: int):
     agent: BasePlayer = runner.create_player()
     agent.restore(resume_path)
     agent.reset()
-    return agent
+    return agent, rl_env
 
 
 def _safe_corr(x: np.ndarray, y: np.ndarray) -> float:
@@ -347,12 +368,13 @@ def main():
         env = multi_agent_to_single_agent(env)
 
     env_obj = env.unwrapped
+    step_env = env
     dt = float(env_obj.step_dt)
     num_envs = int(env_obj.num_envs)
     num_actions = int(env_obj.num_actions)
     device = env_obj.device
 
-    reset_out = env.reset()
+    reset_out = step_env.reset()
     obs = reset_out[0] if isinstance(reset_out, tuple) else reset_out
 
     # Disable internal command resampling if we are manually applying a command profile each step.
@@ -369,7 +391,9 @@ def main():
     if args_cli.action_source == "policy":
         if not args_cli.checkpoint:
             raise ValueError("--checkpoint is required when --action_source policy")
-        agent = _make_agent(args_cli.task, args_cli.checkpoint, num_envs)
+        agent, step_env = _make_agent(args_cli.task, args_cli.checkpoint, env, num_envs)
+        reset_out = step_env.reset()
+        obs = reset_out[0] if isinstance(reset_out, tuple) else reset_out
         agent_obs = _extract_obs_for_agent(obs)
         _ = agent.get_batch_size(agent_obs, 1)
         if agent.is_rnn:
@@ -407,7 +431,7 @@ def main():
                 if actions.ndim == 1:
                     actions = actions.unsqueeze(0).expand(num_envs, -1).contiguous()
 
-            step_out = env.step(actions)
+            step_out = step_env.step(actions)
             obs, _, dones, truncated, _ = _parse_step_out(step_out)
 
             if agent is not None and agent.is_rnn and agent.states is not None:
@@ -468,7 +492,7 @@ def main():
             json.dump(metrics, f, indent=2)
         print(f"[INFO] Saved comparison metrics: {cmp_path}")
 
-    env.close()
+    step_env.close()
 
 
 if __name__ == "__main__":
