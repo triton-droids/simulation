@@ -1115,6 +1115,12 @@ class LocomotionEnv(DirectRLEnv):
             dof_vel_cost = dof_vel_cost * swing_gate
             dof_vel_delta_cost = dof_vel_delta_cost * swing_gate
 
+        foot_force_z = torch.clamp(foot_forces[:, :, 2], min=0.0)  # (N,2)
+        foot_contact = foot_force_z > self.cfg.foot_contact_force_thresh  # (N,2)
+
+        # (0) explicit no-fly penalty: both feet off ground
+        no_fly = (foot_contact.sum(dim=1) == 0).float()  # (N,)
+
         # --- Combine all rewards ---
         reward = (
             self.cfg.lin_vel_reward_scale * r_lin
@@ -1140,6 +1146,7 @@ class LocomotionEnv(DirectRLEnv):
             - self.cfg.undesired_contact_cost_scale * undesired
             - self.cfg.touchdown_cost_scale * touchdown_vel_cost
             - touchdown_force_scale * touchdown_force_cost
+            - self.cfg.no_fly_cost_scale * no_fly
         )
 
         reward = torch.where(self.reset_terminated, torch.ones_like(reward) * self.cfg.death_cost, reward)

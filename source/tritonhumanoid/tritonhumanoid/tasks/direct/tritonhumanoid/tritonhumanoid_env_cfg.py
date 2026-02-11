@@ -390,9 +390,9 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     stand_phase_yaw_threshold: float = 0.01
 
     # Command curriculum (progressive difficulty) - based on per-env steps
-    use_curriculum: bool = False
-    curriculum_stage1_steps_per_env: int = 5000   # per-env steps before adding yaw (stage 0 -> 1)
-    curriculum_stage2_steps_per_env: int = 10000  # per-env steps before adding lateral (stage 1 -> 2)
+    use_curriculum: bool = True
+    curriculum_stage1_steps_per_env: int = 30000   # per-env steps before adding yaw (stage 0 -> 1)
+    curriculum_stage2_steps_per_env: int = 60000  # per-env steps before adding lateral (stage 1 -> 2)
     
     # Stage 0: encourage forward motion (not standing still)
     curriculum_stage0_vx_min: float = 0.3  # minimum forward velocity command in stage 0
