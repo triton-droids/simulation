@@ -160,12 +160,12 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     state_space = 0
 
     # simulation
-    sim_cfg = SimulationCfg(
+    sim = SimulationCfg(
         dt=1/250,
         render_interval=decimation,
         physics_material=RigidBodyMaterialCfg(
-            static_friction=0.2,
-            dynamic_friction=0.4,
+            static_friction=1.0,
+            dynamic_friction=1.0,
         ),
     )
 
