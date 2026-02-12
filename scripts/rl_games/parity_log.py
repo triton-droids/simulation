@@ -123,6 +123,18 @@ def _parse_step_out(step_out: Any) -> tuple[Any, Any, Any, Any, Any]:
     raise RuntimeError(f"Unexpected env.step output length: {len(step_out)}")
 
 
+def _obs_row_for_env(obs_any: Any, env_index: int) -> np.ndarray:
+    obs_any = _extract_obs_for_agent(obs_any)
+    if torch.is_tensor(obs_any):
+        if obs_any.ndim == 1:
+            return obs_any.detach().cpu().numpy().astype(np.float32)
+        return obs_any[env_index].detach().cpu().numpy().astype(np.float32)
+    arr = np.asarray(obs_any, dtype=np.float32)
+    if arr.ndim == 1:
+        return arr.copy()
+    return arr[env_index].copy()
+
+
 def _compute_clock(env_obj) -> torch.Tensor | None:
     if not bool(getattr(env_obj.cfg, "use_phase_obs", False)):
         return None
@@ -272,16 +284,20 @@ def compare_logs(path_a: str, path_b: str, max_lag: int = 10) -> dict[str, Any]:
     a = np.load(path_a)
     b = np.load(path_b)
     channels = [
-        "lin_vel_cmd",
-        "ang_vel_cmd",
-        "ang_vel_cmd_scaled",
-        "up_cmd",
         "commands",
+        "actions_input",
         "act_pos_scaled",
         "act_vel_scaled",
-        "prev_actions",
-        "clock",
         "actions_applied",
+        "prev_actions",
+        "q_des",
+        "act_pos",
+        "act_vel",
+        "clock",
+        "up_b",
+        "base_lin_vel",
+        "base_ang_vel",
+        "obs_latest",
     ]
     metrics: dict[str, Any] = {}
     for ch in channels:
@@ -314,6 +330,9 @@ def compare_logs(path_a: str, path_b: str, max_lag: int = 10) -> dict[str, Any]:
             xl, yl = _align_by_lag(x, y, best_lag)
             corr_signed = _safe_corr(xl, yl)
             gain, offset = _fit_gain_offset(xl, yl)
+            rmse_raw = float(np.sqrt(np.mean((xl - yl) ** 2)))
+            y_hat = gain * xl + offset
+            rmse_affine = float(np.sqrt(np.mean((y_hat - yl) ** 2)))
             dim_metrics.append(
                 {
                     "dim": d,
@@ -321,13 +340,15 @@ def compare_logs(path_a: str, path_b: str, max_lag: int = 10) -> dict[str, Any]:
                     "gain": gain,
                     "offset": offset,
                     "best_lag_steps": int(best_lag),
+                    "rmse_raw": rmse_raw,
+                    "rmse_affine": rmse_affine,
                 }
             )
         metrics[ch] = dim_metrics
     return metrics
 
 
-def _log_state(env_obj, env_index: int, action_input_row: torch.Tensor) -> dict[str, np.ndarray]:
+def _log_state(env_obj, env_index: int, action_input_row: torch.Tensor, obs_out: Any) -> dict[str, np.ndarray]:
     if hasattr(env_obj, "_update_state"):
         env_obj._update_state()
     idx = int(np.clip(env_index, 0, int(env_obj.num_envs) - 1))
@@ -356,6 +377,7 @@ def _log_state(env_obj, env_index: int, action_input_row: torch.Tensor) -> dict[
     out["base_lin_vel"] = env_obj.com_lin_vel_cmd[idx].detach().cpu().numpy().astype(np.float32)
     out["base_ang_vel"] = env_obj.com_ang_vel_cmd[idx].detach().cpu().numpy().astype(np.float32)
     out["up_b"] = env_obj.up_b[idx].detach().cpu().numpy().astype(np.float32)
+    out["obs_latest"] = _obs_row_for_env(obs_out, idx)
     return out
 
 
@@ -444,7 +466,12 @@ def main():
                         for s in agent.states:
                             s[:, done_ids, :] = 0.0
 
-        logged = _log_state(env_obj, args_cli.env_index, actions[int(np.clip(args_cli.env_index, 0, num_envs - 1))])
+        logged = _log_state(
+            env_obj,
+            args_cli.env_index,
+            actions[int(np.clip(args_cli.env_index, 0, num_envs - 1))],
+            obs,
+        )
         for k, v in logged.items():
             logs.setdefault(k, []).append(v)
         step_times.append(np.array([step * dt], dtype=np.float32))
