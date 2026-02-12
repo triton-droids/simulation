@@ -143,18 +143,15 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     action_scale_by_joint: dict[str, float] = {
         "left_hip1_joint": 0.50,
         "right_hip1_joint": 0.50,
-        "left_hip2_joint": 0.30,
-        "right_hip2_joint": 0.30,
+        "left_hip2_joint": 0.50,
+        "right_hip2_joint": 0.50,
         "left_thigh_joint": 0.3,
         "right_thigh_joint": 0.3,
-        "left_knee_joint": 0.45,
-        "right_knee_joint": 0.45,
-        "left_ankle_joint": 0.35,
-        "right_ankle_joint": 0.35,
+        "left_knee_joint": 0.5,
+        "right_knee_joint": 0.5,
+        "left_ankle_joint": 1.0,
+        "right_ankle_joint": 1.0,
     }
-    # Joint-limit-aware action bounds margin (to avoid hard stops)
-    action_limit_margin: float = 0.02          # radians, added each side
-    action_limit_margin_frac: float = 0.05     # fraction of joint range, added each side
 
     # 10 actuated leg joints
     action_space = 10

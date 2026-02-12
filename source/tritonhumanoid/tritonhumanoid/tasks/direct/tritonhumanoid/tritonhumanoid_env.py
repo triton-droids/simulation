@@ -1269,14 +1269,14 @@ class LocomotionEnv(DirectRLEnv):
             - self.cfg.touchdown_cost_scale * touchdown_vel_cost
             - touchdown_force_scale * touchdown_force_cost
             - self.cfg.no_fly_cost_scale * no_fly
-            + stand_cmd_f
-            * (
-                self.cfg.stand_pose_reward_scale * stand_pose_rew
-                + self.cfg.stand_upright_reward_scale * stand_upright_rew
-                - self.cfg.stand_vel_cost_scale * stand_vel_cost
-                - self.cfg.stand_action_cost_scale * stand_action_cost
-                - self.cfg.stand_hip2_cost_scale * stand_hip2_pen
-            )
+            # + stand_cmd_f
+            # * (
+                # self.cfg.stand_pose_reward_scale * stand_pose_rew
+                # + self.cfg.stand_upright_reward_scale * stand_upright_rew
+                # - self.cfg.stand_vel_cost_scale * stand_vel_cost
+                # - self.cfg.stand_action_cost_scale * stand_action_cost
+                # - self.cfg.stand_hip2_cost_scale * stand_hip2_pen
+            # )
         )
 
         reward = torch.where(self.reset_terminated, torch.ones_like(reward) * self.cfg.death_cost, reward)
