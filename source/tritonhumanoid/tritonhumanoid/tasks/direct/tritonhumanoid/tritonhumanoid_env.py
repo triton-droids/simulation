@@ -290,6 +290,11 @@ class LocomotionEnv(DirectRLEnv):
         self.actuated_lower = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 0].clone()
         self.actuated_upper = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 1].clone()
 
+        print("\n\n")
+        print(self.actuated_lower)
+        print(self.actuated_upper)
+        print("\n\n")
+
         # buffers
         self.actions = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
         self.prev_actions = torch.zeros_like(self.actions)
