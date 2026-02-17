@@ -1,19 +1,43 @@
 # Task 3: Reinforcement Learning
-In this task, you’ll use reinforcement learning (RL) to teach a Panda robot arm to pick up a cube and place it into a bin. Unlike imitation learning, RL learns from interaction and reward signals, no expert demos required.
+This task moves from imitation to reinforcement learning. You will implement an MJX environment and train a PPO policy to pick and place a cube using reward feedback only.
 
-You will implement the environment class using MJX, similar to Task 2. For some information on MJX, see the official [MJX documentation](https://mujoco.readthedocs.io/en/stable/mjx.html).
+## Outcome
+By the end, you should be able to:
+- Build a Brax `PipelineEnv` around a MuJoCo MJCF model.
+- Define observations, success conditions, and reward shaping terms.
+- Train PPO and evaluate rollouts.
+- Diagnose RL-specific instability or reward design issues.
 
-Your environment should:
-- Initialize the scene (robot, cube, bin) and any randomization ranges.
-- Define success/failure conditions using the state at each step.
-- Provide a dense reward that encourages (i) reaching, (ii) grasping/lifting, and (iii) transporting/placing.
->Keep it simple first. You can expand later.
+## Prerequisite
+- Complete Task 1 first and ensure body names used in your XML match the environment code (`panda_hand`, `cube`, `bin` by default).
 
+## Suggested Milestones
+1. `PickAndPlace.reset` and `PickAndPlace.step` run without runtime errors.
+2. Observation dictionary contains stable `state` and `privileged_state`.
+3. Success and grasp checks are implemented and unit-tested with prints/visual checks.
+4. Reward function returns meaningful dense signal before sparse success reward.
+5. PPO runs on a short smoke test config.
+6. Full training runs and saves checkpoints.
 
+## Definition Of Done
+- Environment compiles and trains with PPO end-to-end.
+- Rollout video runs with the trained policy.
+- Success metric increases relative to random initialization.
+- You can explain how each reward term affects behavior.
 
+## Practical Advice
+- Keep the first reward simple and monotonic.
+- Add one reward term at a time and observe behavior changes.
+- Start with a short smoke-test run before long training.
+- Log success rate and reward components separately when debugging.
 
-By the end of this task, you should feel confident in designing and implementing reinforcement learning environments, reasoning about reward shaping, and training policies to control a robot in simulation.
+See `tips.md` for implementation-level guidance.
 
->💡 Feel free to experiment with different reward designs, object randomization strategies, and RL algorithms to improve learning efficiency and policy performance
+## Recommended Resources
+- MJX docs: https://mujoco.readthedocs.io/en/stable/mjx.html
+- MuJoCo Python API: https://mujoco.readthedocs.io/en/stable/python.html
+- Brax repository and examples: https://github.com/google/brax
+- JAX docs: https://jax.readthedocs.io/en/latest/
+- PPO background (Spinning Up): https://spinningup.openai.com/en/latest/algorithms/ppo.html
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/triton-droids/simulation/blob/onboarding/task3/reinforcement_learning.ipynb?copy=true)

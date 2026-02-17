@@ -1,19 +1,51 @@
 # Task 2: Imitation Learning
-In this task, you will build on the simulation scene you created in Task 1 by exploring how imitation learning can be applied to robotic control. You will use a motion planner to collect a dataset of expert demonstrations to train a model. The model will learn to map states to actions. 
+This task introduces behavior cloning (BC) for a MuJoCo pick-and-place setup. You will use a motion planner as the expert, collect trajectories, train a policy, and evaluate it in simulation.
 
-The primary goal is to become familiar with MuJoCo’s API for accessing robot and environment state information and also begin to see how machine learning integrates with robotics control. 
+## Outcome
+By the end, you should be able to:
+- Build a Gymnasium-compatible MuJoCo environment wrapper.
+- Collect expert demonstrations from planner rollouts.
+- Train a stochastic policy that predicts a Gaussian action distribution.
+- Evaluate policy success and diagnose BC failure modes.
 
-We have provided the basic imitation learning pipeline (data collection → training → evaluation). You will fill in key pieces of the code to:
-- Access and interpret MuJoCo state information (positions, quaternions, velocities, etc.)
-- Collect demonstrations using the Gymnasium interface
-- Train a neural network policy to imitate expert behavior
-- Evaluate the trained policy in simulation
+## Prerequisite
+- Complete Task 1 first so `assets/descriptions/DropCubeInBinEnv.xml` includes the Panda arm, cube, bin, and a `"home"` keyframe.
 
-Along the way, you will gain experience with machine learning workflow for robotics, and start thinking about the challenges that come with it. 
+## Why learners get stuck
+Most difficulty comes from three places:
+- Observation/action shape mismatches.
+- Planner target poses in the wrong frame or orientation.
+- Training loops that run but never improve due to data quality issues.
 
-By the end of this task, you should feel comfortable accessing and using simulation state information, navigating the Gymnasium interface, and reasoning about the role of machine learning in robotics control. These skills form the foundation for more advanced work in embodied AI.   
+Use `tips.md` as your implementation checklist, not just theory notes.
 
->*💡 Feel free to explore different approaches to data collection, neural network architectures, and more advanced algorithms and techniques for imitation learning.*
+## Suggested Milestones
+1. Environment scaffold works.
+2. Planner solves at least one episode reliably.
+3. Dataset collection works on a small run (`20-50` successful episodes).
+4. `TrajectoryDataset` returns valid `(obs, action)` tensors.
+5. Actor forward pass returns `(mean, log_std)` with correct shapes.
+6. Training loop runs and saves a best checkpoint.
+7. Evaluation runs end-to-end in simulator.
 
+## Definition Of Done
+- Notebook executes without syntax errors.
+- You can collect a non-empty dataset file.
+- The trained policy loads and runs in the environment.
+- You can explain one BC limitation observed during rollout.
+
+## Practical Advice
+- Start with small experiments first.
+- Validate dimensions early with print/assert checks.
+- Save intermediate outputs often (planner success rate, dataset size, eval success rate).
+- Use deterministic policy mean for evaluation before trying stochastic sampling.
+
+## Recommended Resources
+- MuJoCo Python tutorial: https://mujoco.readthedocs.io/en/stable/python.html
+- MuJoCo XML reference: https://mujoco.readthedocs.io/en/stable/XMLreference.html
+- Gymnasium custom env guide: https://gymnasium.farama.org/main/introduction/create_custom_env/
+- Gymnasium wrappers (`TimeLimit`, `RecordVideo`): https://gymnasium.farama.org/api/wrappers/misc_wrappers/
+- PyTorch datasets/dataloaders: https://docs.pytorch.org/docs/stable/data.html
+- PyTorch Normal distribution: https://docs.pytorch.org/docs/stable/distributions.html#normal
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/triton-droids/simulation/blob/onboarding/task2/imitation_learning.ipynb?copy=true)

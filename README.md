@@ -26,6 +26,7 @@ Let's build the foundation to create a humanoid robot!
   1. [`task1`](task1/) → Scene Construction
   2. [`task2`](task2/) → Imitation Learning   
   3. [`task3`](task3/) → Reinforcement Learning   
+- Each task folder includes extra implementation guidance in `tips.md`.
   
 
   >NOTE: task 0 is there to help you gain a better understanding of xml structure and kinematic tree, but is not necessary to complete the other tasks. 
@@ -37,6 +38,5 @@ Let's build the foundation to create a humanoid robot!
 
 
 - [MuJoCo Playground](https://playground.mujoco.org/) - Examples of successfully trained policies using reinforcement learning for locomotion and manipulation with MJX 
-
 
 
