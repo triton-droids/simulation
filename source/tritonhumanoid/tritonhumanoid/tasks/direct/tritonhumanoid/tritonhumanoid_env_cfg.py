@@ -138,19 +138,13 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Position control: actions map to POSITION OFFSETS (radians) around default pose
     # action_scale determines the maximum offset: actions in [-1, 1] → [-action_scale, +action_scale] radians
     # The actual position command is: q_target = default_pose + action_scale * action
-    action_scale: float = 0.65  # Lower for early training stability; increase to 0.5 after initial learning
+    action_scale: float = 0.8  # Lower for early training stability; increase to 0.5 after initial learning
     # Per-joint multipliers applied on top of action_scale
     action_scale_by_joint: dict[str, float] = {
-        "left_hip1_joint": 0.50,
-        "right_hip1_joint": 0.50,
         "left_hip2_joint": 0.50,
         "right_hip2_joint": 0.50,
         "left_thigh_joint": 0.3,
         "right_thigh_joint": 0.3,
-        "left_knee_joint": 0.5,
-        "right_knee_joint": 0.5,
-        "left_ankle_joint": 1.0,
-        "right_ankle_joint": 1.0,
     }
 
     # 10 actuated leg joints
@@ -317,7 +311,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     action_rate_cost_scale: float = 0.01
     dof_vel_cost_scale: float = 0.0001
     dof_vel_delta_cost_scale: float = 0.01  # penalize velocity changes (instead of acceleration)
-    energy_cost_scale: float = 0.0005  # penalize mechanical power |tau * qdot|
+    energy_cost_scale: float = 0.002  # penalize mechanical power |tau * qdot|
 
     # standing command detect
     stand_cmd_lin_thresh: float = 0.08
@@ -366,7 +360,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     foot_body_regex: str = "left_foot|right_foot"
     foot_contact_force_thresh: float = 30.0  # N (20-80N typical for humanoid ground contact)
     min_air_time: float = 0.2  # seconds
-    feet_air_time_reward_scale: float = 0.06
+    feet_air_time_reward_scale: float = 0.2
     air_time_symmetry_cost_scale: float = 0.35
     foot_slip_cost_scale: float = 0.02
     undesired_contact_force_thresh: float = 80.0  # N (50-200N typical)
@@ -376,7 +370,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     no_fly_cost_scale: float = 0.20
 
     # Anti-stomp touchdown penalty
-    touchdown_cost_scale: float = 0.08
+    touchdown_cost_scale: float = 0.16
     touchdown_vel_ref: float = 0.6
     touchdown_min_cmd_speed: float = 0.15
     touchdown_force_cost_scale: float = 0.0
@@ -400,7 +394,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     penalty_curriculum_power: float = 2.0
 
     # Optional: gait phase for timing
-    use_phase_obs: bool = True
+    use_phase_obs: bool = False
     gait_period_s: float = 1.0
     gait_period_randomization_width: float = 0.0
     randomize_phase: bool = True
@@ -408,8 +402,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
 
     # Command curriculum (progressive difficulty) - based on per-env steps
     use_curriculum: bool = True
-    curriculum_stage1_steps_per_env: int = 60000   # per-env steps before adding yaw (stage 0 -> 1)
-    curriculum_stage2_steps_per_env: int = 140000  # per-env steps before adding lateral (stage 1 -> 2)
+    curriculum_stage1_steps_per_env: int = 2500   # per-env steps before adding yaw (stage 0 -> 1)
+    curriculum_stage2_steps_per_env: int = 5000  # per-env steps before adding lateral (stage 1 -> 2)
     
     # Stage 0: encourage forward motion (not standing still)
     curriculum_stage0_vx_min: float = 0.3  # minimum forward velocity command in stage 0
@@ -553,7 +547,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
 
     # Debug visualization (draw velocity arrows for a single env)
     debug_vel_vis: bool = False  # disable during training for performance
-    debug_vel_vis_all_envs: bool = False  # override to visualize all envs
+    debug_vel_vis_all_envs: bool = True  # override to visualize all envs
     debug_vel_vis_all_envs_max_envs: int = 64  # auto-enable all-envs when num_envs is small
     debug_env_id: int = 0            # which env to draw (0..num_envs-1)
     vel_vis_scale: float = 0.5       # meters of arrow per 1 m/s
