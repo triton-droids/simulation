@@ -2,7 +2,7 @@
 
 ## 1. Clone reponsitory branch
    ````bash
-   git clone -b onboarding git@github.com:triton-droids/simulation.git
+   git clone -b ml_onboarding --depth 1 git@github.com:triton-droids/simulation.git
 
    cd simulation
    ````
