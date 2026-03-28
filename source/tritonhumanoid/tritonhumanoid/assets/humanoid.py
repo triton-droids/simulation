@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import isaaclab.sim as sim_utils
-from isaaclab.actuators import ImplicitActuatorCfg
+from isaaclab.actuators import DelayedPDActuatorCfg, ImplicitActuatorCfg
 from isaaclab.assets import ArticulationCfg
 
 import math
@@ -99,6 +99,127 @@ HUMANOID_CFG = ArticulationCfg(
 
             # Optional: very small joint friction/armature so it’s not totally ideal
             friction=0.05,
+            armature=0.0,
+        ),
+    },
+)
+
+
+HUMANOID_LOCOMOTION_DELAYED_PD_CFG = HUMANOID_CFG.replace(
+    actuators={
+        # Dataset findings:
+        # - direct feedback-minus-command timestamp latency is ~1 ms overall
+        # - effective cmd-to-position response lag is reliably larger only for pairs 1/6 and 4/9
+        # Use small pair-specific delayed-PD buffering as a sim2real hedge without treating the
+        # full closed-loop response lag as pure transport delay.
+        "hip1_pair_1_6": DelayedPDActuatorCfg(
+            joint_names_expr=[
+                "left_hip1_joint",
+                "right_hip1_joint",
+            ],
+            effort_limit=120.0,
+            velocity_limit=20.0,
+            effort_limit_sim=120.0,
+            velocity_limit_sim=20.0,
+            stiffness={
+                "left_hip1_joint": 250.0,
+                "right_hip1_joint": 250.0,
+            },
+            damping={
+                "left_hip1_joint": 5.0,
+                "right_hip1_joint": 5.0,
+            },
+            min_delay=1,
+            max_delay=1,
+            friction=0.0,
+            armature=0.0,
+        ),
+        "hip2_pair_2_7": DelayedPDActuatorCfg(
+            joint_names_expr=[
+                "left_hip2_joint",
+                "right_hip2_joint",
+            ],
+            effort_limit=120.0,
+            velocity_limit=20.0,
+            effort_limit_sim=120.0,
+            velocity_limit_sim=20.0,
+            stiffness={
+                "left_hip2_joint": 250.0,
+                "right_hip2_joint": 250.0,
+            },
+            damping={
+                "left_hip2_joint": 5.0,
+                "right_hip2_joint": 5.0,
+            },
+            min_delay=0,
+            max_delay=1,
+            friction=0.0,
+            armature=0.0,
+        ),
+        "thigh_pair_3_8": DelayedPDActuatorCfg(
+            joint_names_expr=[
+                "left_thigh_joint",
+                "right_thigh_joint",
+            ],
+            effort_limit=120.0,
+            velocity_limit=20.0,
+            effort_limit_sim=120.0,
+            velocity_limit_sim=20.0,
+            stiffness={
+                "left_thigh_joint": 100.0,
+                "right_thigh_joint": 100.0,
+            },
+            damping={
+                "left_thigh_joint": 2.0,
+                "right_thigh_joint": 2.0,
+            },
+            min_delay=0,
+            max_delay=1,
+            friction=0.0,
+            armature=0.0,
+        ),
+        "knee_pair_4_9": DelayedPDActuatorCfg(
+            joint_names_expr=[
+                "left_knee_joint",
+                "right_knee_joint",
+            ],
+            effort_limit=120.0,
+            velocity_limit=20.0,
+            effort_limit_sim=120.0,
+            velocity_limit_sim=20.0,
+            stiffness={
+                "left_knee_joint": 150.0,
+                "right_knee_joint": 150.0,
+            },
+            damping={
+                "left_knee_joint": 5.0,
+                "right_knee_joint": 5.0,
+            },
+            min_delay=1,
+            max_delay=2,
+            friction=0.0,
+            armature=0.0,
+        ),
+        "ankle_pair_5_10": DelayedPDActuatorCfg(
+            joint_names_expr=[
+                "left_ankle_joint",
+                "right_ankle_joint",
+            ],
+            effort_limit=120.0,
+            velocity_limit=20.0,
+            effort_limit_sim=120.0,
+            velocity_limit_sim=20.0,
+            stiffness={
+                "left_ankle_joint": 120.0,
+                "right_ankle_joint": 120.0,
+            },
+            damping={
+                "left_ankle_joint": 0.8,
+                "right_ankle_joint": 1.0,
+            },
+            min_delay=0,
+            max_delay=1,
+            friction=0.0,
             armature=0.0,
         ),
     },

@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from ....assets.humanoid import HUMANOID_CFG
+from ....assets.humanoid import HUMANOID_LOCOMOTION_DELAYED_PD_CFG
 
 import math
 
@@ -53,8 +53,8 @@ class EventCfg:
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
             "operation": "scale",
-            "stiffness_distribution_params": (0.7, 1.3),
-            "damping_distribution_params": (0.7, 1.3),
+            "stiffness_distribution_params": (1.0, 1.0),
+            "damping_distribution_params": (1.0, 1.0),
             "distribution": "uniform",
         },
     )
@@ -78,7 +78,7 @@ class EventCfg:
         min_step_count_between_reset=0,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "mass_distribution_params": (0.8, 1.2),
+            "mass_distribution_params": (1.0, 1.2),
             "operation": "scale",
             "distribution": "uniform",
         },
@@ -133,7 +133,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     episode_length_s = 20.0
     min_episode_length_s: float = 5.0
     randomize_episode_length: bool = True
-    decimation = 5
+    decimation = 4
 
     # Position control: actions map to POSITION OFFSETS (radians) around default pose
     # action_scale determines the maximum offset: actions in [-1, 1] → [-action_scale, +action_scale] radians
@@ -160,7 +160,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
 
     # simulation
     sim = SimulationCfg(
-        dt=1/250,
+        dt=1/200,
         render_interval=decimation,
         physics_material=RigidBodyMaterialCfg(
             static_friction=1.0,
@@ -224,7 +224,9 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     events: EventCfg = EventCfg()
 
     # robot
-    robot: ArticulationCfg = HUMANOID_CFG.replace(prim_path="/World/envs/env_.*/Robot")
+    # Locomotion uses a dedicated delayed-PD asset with motor-pair-specific latency groups
+    # derived from the embedded motor dataset analysis.
+    robot: ArticulationCfg = HUMANOID_LOCOMOTION_DELAYED_PD_CFG.replace(prim_path="/World/envs/env_.*/Robot")
     contact_sensor: ContactSensorCfg = ContactSensorCfg(
         prim_path="/World/envs/env_.*/Robot/.*", history_length=3, update_period=0.005, track_air_time=True
     )
@@ -262,6 +264,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Observation scales
     ang_vel_scale: float = 0.25
     dof_vel_scale: float = 0.1
+    joint_pos_obs_noise_std_rad: float = 0.005716356937792565
+    joint_vel_obs_noise_std_rad_s: float = 0.13718300792805946
     command_yaw_offset: float = -math.pi / 2.0  # rotate body-frame vectors to align +Y forward with +X commands
 
     # Observation term config (uniform noise, scale, clip)
@@ -423,8 +427,6 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     stand_prob: float = 0.2  # chance to force standstill (vx=vy=yaw=0)
 
     # --- Per-episode reset randomization (always-on, ADR or not) ---
-    # Action latency sampling (reuses act_hist_buf path)
-    act_latency_reset_range: tuple[int, int] = (0, 3)
     # Joint state noise at reset (actuated joints only)
     reset_joint_pos_noise: float = 0.05
     reset_joint_vel_noise: float = 0.2
@@ -473,8 +475,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
             "restitution_range": (0.0, 0.4),
         },
         "robot_joint_stiffness_and_damping": {
-            "stiffness_distribution_params": (0.5, 1.5),
-            "damping_distribution_params": (0.5, 1.5),
+            "stiffness_distribution_params": (1.0, 1.0),
+            "damping_distribution_params": (1.0, 1.0),
         },
         "gravity": {
             "gravity_distribution_params": (0.8, 1.2),
@@ -513,16 +515,12 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
         "obs_noise": {
             "gravity_std": (0.0, 0.03),
             "gyro_std": (0.0, 0.05),
-            "joint_pos_std": (0.0, 0.01),
-            "joint_vel_std": (0.0, 0.20),
+            "joint_pos_std": (0.0, 0.0),
+            "joint_vel_std": (0.0, 0.0),
             "joint_torque_std": (0.0, 0.20),
         },
         "motor_strength": {
             "per_joint_mult_range": (0.0, 0.3),
-        },
-        "latency": {
-            "act_steps": (0, 2),
-            "obs_steps": (0, 1),
         },
         "imu_bias": {
             "gravity_bias_range": (0.0, 0.1),
@@ -541,9 +539,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
         },
     }
 
-    # Latency buffer sizes (must be >= max ADR latency)
-    act_max_latency: int = 2
-    obs_max_latency: int = 1
+    # Observation latency buffer size. Keep disabled at 50 Hz control.
+    obs_max_latency: int = 0
 
     # Debug visualization (draw velocity arrows for a single env)
     debug_vel_vis: bool = False  # disable during training for performance

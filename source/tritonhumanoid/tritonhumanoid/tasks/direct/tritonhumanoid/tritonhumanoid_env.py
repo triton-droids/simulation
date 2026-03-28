@@ -70,7 +70,7 @@ class LocomotionADR:
     """
     Minimal ADR controller:
       - EventManager-backed: widens term cfg ranges via event_manager.get_term_cfg/set_term_cfg
-      - Custom params: provides “current” values (push range, noise, latency, etc.)
+      - Custom params: provides “current” values (push range, noise, etc.)
     """
 
     def __init__(self, event_manager, adr_event_cfg_dict: dict, adr_custom_cfg_dict: dict, num_increments: int):
@@ -422,14 +422,6 @@ class LocomotionEnv(DirectRLEnv):
         self._ep_yaw_err_sum = torch.zeros(self.num_envs, device=self.sim.device)
         self._ep_len = torch.zeros(self.num_envs, device=self.sim.device)
 
-        # action latency buffers
-        self.act_max_latency = int(getattr(self.cfg, "act_max_latency", 0))
-        self.act_latency_steps = torch.zeros(self.num_envs, dtype=torch.long, device=self.sim.device)
-        if self.act_max_latency > 0:
-            self.act_hist_buf = torch.zeros(self.num_envs, self.num_actions, self.act_max_latency + 1, device=self.sim.device)
-        else:
-            self.act_hist_buf = None
-
         # observation latency buffers
         self.obs_max_latency = int(getattr(self.cfg, "obs_max_latency", 0))
         self.obs_latency_steps = torch.zeros(self.num_envs, dtype=torch.long, device=self.sim.device)
@@ -462,6 +454,8 @@ class LocomotionEnv(DirectRLEnv):
             "joint_vel_std": 0.0,
             "joint_torque_std": 0.0,
         }
+        self._joint_pos_obs_noise_std_rad = float(getattr(self.cfg, "joint_pos_obs_noise_std_rad", 0.0))
+        self._joint_vel_obs_noise_std_rad_s = float(getattr(self.cfg, "joint_vel_obs_noise_std_rad_s", 0.0))
         self._command_scale = 1.0
         self._push_scale = 1.0
         self._micro_wrench_scale = 1.0
@@ -599,10 +593,9 @@ class LocomotionEnv(DirectRLEnv):
         self._micro_wrench_scale = _ramp_scale(difficulty, micro_start, micro_ramp)
 
     def _sample_custom_dr_for_resets(self, env_ids: torch.Tensor) -> None:
-        """Sample per-episode random variables: latency, motor strength, IMU bias."""
+        """Sample per-episode random variables: motor strength and IMU calibration."""
         if self.adr is None or env_ids.numel() == 0:
             self.motor_strength_mult[env_ids] = 1.0
-            self.act_latency_steps[env_ids] = 0
             self.obs_latency_steps[env_ids] = 0
             self.imu_bias_gravity[env_ids] = 0.0
             self.imu_bias_gyro[env_ids] = 0.0
@@ -619,19 +612,7 @@ class LocomotionEnv(DirectRLEnv):
         else:
             self.motor_strength_mult[env_ids] = 1.0
 
-        act_max = int(round(float(self.adr.get_custom("latency", "act_steps"))))
-        act_max = int(max(0, min(self.act_max_latency, act_max)))
-        if act_max > 0:
-            self.act_latency_steps[env_ids] = torch.randint(0, act_max + 1, (env_ids.numel(),), device=device)
-        else:
-            self.act_latency_steps[env_ids] = 0
-
-        obs_max = int(round(float(self.adr.get_custom("latency", "obs_steps"))))
-        obs_max = int(max(0, min(self.obs_max_latency, obs_max)))
-        if obs_max > 0:
-            self.obs_latency_steps[env_ids] = torch.randint(0, obs_max + 1, (env_ids.numel(),), device=device)
-        else:
-            self.obs_latency_steps[env_ids] = 0
+        self.obs_latency_steps[env_ids] = 0
 
         b_grav = float(self.adr.get_custom("imu_bias", "gravity_bias_range"))
         if b_grav > 0.0:
@@ -814,15 +795,6 @@ class LocomotionEnv(DirectRLEnv):
             a = a + torch.randn_like(a) * self._action_noise_std
             a = a.clamp(-1.0, 1.0)
 
-        # action latency (ADR)
-        if self.act_hist_buf is not None:
-            self.act_hist_buf = torch.roll(self.act_hist_buf, shifts=-1, dims=2)
-            self.act_hist_buf[:, :, -1] = a
-
-            idx = (self.act_max_latency - self.act_latency_steps).clamp(0, self.act_max_latency)
-            gather_idx = idx.view(-1, 1, 1).expand(-1, self.num_actions, 1)
-            a = torch.gather(self.act_hist_buf, dim=2, index=gather_idx).squeeze(-1)
-
         self.prev_actions[:] = self.actions
         self.actions = a
 
@@ -854,6 +826,8 @@ class LocomotionEnv(DirectRLEnv):
         q_des = torch.clamp(q_des, self.actuated_lower.unsqueeze(0), self.actuated_upper.unsqueeze(0))
         self.q_des = q_des
         self.robot.set_joint_position_target(q_des, joint_ids=self._joint_dof_idx)
+        self.robot.set_joint_velocity_target(torch.zeros_like(q_des), joint_ids=self._joint_dof_idx)
+        self.robot.set_joint_effort_target(torch.zeros_like(q_des), joint_ids=self._joint_dof_idx)
 
     def _update_state(self):
         # -------------------------------
@@ -930,7 +904,7 @@ class LocomotionEnv(DirectRLEnv):
     def _compute_single_observation(self) -> torch.Tensor:
         up_cmd = self.up_cmd
         ang_vel_cmd = self.imu_ang_vel_cmd
-        act_pos_scaled = self.act_pos_scaled
+        act_pos = self.act_pos
         act_vel = self.act_vel
 
         # IMU biases + mount misalignment (ADR)
@@ -948,9 +922,18 @@ class LocomotionEnv(DirectRLEnv):
             if self._obs_noise["gyro_std"] > 0.0:
                 ang_vel_cmd = ang_vel_cmd + torch.randn_like(ang_vel_cmd) * self._obs_noise["gyro_std"]
             if self._obs_noise["joint_pos_std"] > 0.0:
-                act_pos_scaled = act_pos_scaled + torch.randn_like(act_pos_scaled) * self._obs_noise["joint_pos_std"]
+                act_pos = act_pos + torch.randn_like(act_pos) * self._obs_noise["joint_pos_std"]
             if self._obs_noise["joint_vel_std"] > 0.0:
                 act_vel = act_vel + torch.randn_like(act_vel) * self._obs_noise["joint_vel_std"]
+
+        if self._joint_pos_obs_noise_std_rad > 0.0:
+            act_pos = act_pos + torch.randn_like(act_pos) * self._joint_pos_obs_noise_std_rad
+        if self._joint_vel_obs_noise_std_rad_s > 0.0:
+            act_vel = act_vel + torch.randn_like(act_vel) * self._joint_vel_obs_noise_std_rad_s
+
+        lo = self.actuated_lower.unsqueeze(0)
+        hi = self.actuated_upper.unsqueeze(0)
+        act_pos_scaled = 2.0 * (act_pos - lo) / (hi - lo + 1e-6) - 1.0
 
         obs = torch.cat(
             (
@@ -1411,9 +1394,6 @@ class LocomotionEnv(DirectRLEnv):
         self._ep_yaw_err_sum[env_ids] = 0.0
         self._ep_len[env_ids] = 0.0
 
-        if self.act_hist_buf is not None:
-            self.act_hist_buf[env_ids, :, :] = 0.0
-
         # reset push timers
         self.push_counters[env_ids] = 0
         self.next_push_steps[env_ids] = torch.randint(
@@ -1423,7 +1403,7 @@ class LocomotionEnv(DirectRLEnv):
             device=self.sim.device,
         )
 
-        # sample per-episode DR variables (latency, strength, imu bias)
+        # sample per-episode DR variables (strength, imu bias)
         self._sample_custom_dr_for_resets(env_ids)
 
         # Sample commands based on current curriculum stage
