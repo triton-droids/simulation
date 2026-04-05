@@ -174,6 +174,9 @@ class LocomotionEnv(DirectRLEnv):
         cfg.obs_stack_frames = obs_stack_frames
         cfg.observation_space = obs_single_dim * obs_stack_frames
 
+        # Robot/sensor state is reused across observations, rewards, and dones within one control step.
+        self._state_valid = False
+
         super().__init__(cfg, render_mode, **kwargs)
 
         # actions are POSITION OFFSETS for actuated joints
@@ -787,6 +790,7 @@ class LocomotionEnv(DirectRLEnv):
 
     def _pre_physics_step(self, actions: torch.Tensor):
         self._global_policy_step += 1
+        self._invalidate_state_cache()
 
         a = actions.clone().clamp(-1.0, 1.0)
 
@@ -815,6 +819,9 @@ class LocomotionEnv(DirectRLEnv):
         if self._visualization_enabled:
             self._visualize_markers()
 
+    def _invalidate_state_cache(self) -> None:
+        self._state_valid = False
+
     def _apply_action(self):
         pos_offsets = (
             self.action_scale
@@ -830,6 +837,9 @@ class LocomotionEnv(DirectRLEnv):
         self.robot.set_joint_effort_target(torch.zeros_like(q_des), joint_ids=self._joint_dof_idx)
 
     def _update_state(self):
+        if self._state_valid:
+            return
+
         # -------------------------------
         # A) IMU state from body "world"
         # -------------------------------
@@ -900,6 +910,7 @@ class LocomotionEnv(DirectRLEnv):
         lo = self.actuated_lower.unsqueeze(0)
         hi = self.actuated_upper.unsqueeze(0)
         self.act_pos_scaled = 2.0 * (self.act_pos - lo) / (hi - lo + 1e-6) - 1.0
+        self._state_valid = True
 
     def _compute_single_observation(self) -> torch.Tensor:
         up_cmd = self.up_cmd
@@ -1383,6 +1394,7 @@ class LocomotionEnv(DirectRLEnv):
         self.robot.write_root_pose_to_sim(root[:, :7], env_ids)
         self.robot.write_root_velocity_to_sim(root[:, 7:], env_ids)
         self.robot.write_joint_state_to_sim(joint_pos, joint_vel, None, env_ids)
+        self._invalidate_state_cache()
 
         if self._refresh_runtime_masses_on_reset:
             self._cache_body_masses()
@@ -1421,12 +1433,14 @@ class LocomotionEnv(DirectRLEnv):
         if self._visualization_enabled:
             self._visualize_markers()
 
-        if self.obs_hist_buf is not None:
+        obs0 = None
+        if self.obs_hist_buf is not None or self.obs_stack_buf is not None:
             obs0 = self._compute_single_observation()
+
+        if self.obs_hist_buf is not None:
             self.obs_hist_buf[env_ids] = obs0[env_ids].unsqueeze(-1).expand(-1, -1, self.obs_max_latency + 1)
 
         if self.obs_stack_buf is not None:
-            obs0 = self._compute_single_observation()
             self.obs_stack_buf[env_ids] = obs0[env_ids].unsqueeze(-1).expand(-1, -1, self.obs_stack_frames)
 
     def _update_curriculum(self):
