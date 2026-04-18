@@ -18,7 +18,11 @@ policies = {
     "policies/new_locomotion.pt": envs[1],
     "policies/phase_obs_kinda_jumpy.pt": envs[1],
     "policies/phase_obs_contact_pen.pt": envs[1],
-    "policies/phase_obs_contact_pen2.pt": envs[1]
+    "policies/phase_obs_contact_pen2.pt": envs[1],
+    "policies/first_new_dt.pt": envs[1],
+    "policies/test2.pt": envs[1],
+    "policies/test4.pt": envs[1],
+    "policies/no_movement.pt": envs[1]
 }
 
 def _extract_frame_obs(obs: np.ndarray, env, frame_idx: int) -> np.ndarray:

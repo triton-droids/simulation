@@ -12,8 +12,27 @@ MuJoCo actuator order (left block then right block):
 """
 
 import math
+from typing import Any
+
 import numpy as np
 import mujoco
+
+
+DEFAULT_ACT_DELAY_GROUP_TO_JOINT_NAMES: dict[str, tuple[str, ...]] = {
+    "hip1_pair": ("left_hip1_joint", "right_hip1_joint"),
+    "hip2_pair": ("left_hip2_joint", "right_hip2_joint"),
+    "thigh_pair": ("left_thigh_joint", "right_thigh_joint"),
+    "knee_pair": ("left_knee_joint", "right_knee_joint"),
+    "ankle_pair": ("left_ankle_joint", "right_ankle_joint"),
+}
+
+DEFAULT_ACT_DELAY_RANGE_BY_NAME: dict[str, tuple[int, int]] = {
+    "hip1_pair": (1, 1),
+    "hip2_pair": (0, 1),
+    "thigh_pair": (0, 1),
+    "knee_pair": (1, 2),
+    "ankle_pair": (0, 1),
+}
 
 
 class HumanoidLocomotionEnv:
@@ -24,34 +43,51 @@ class HumanoidLocomotionEnv:
         xml_path: str,
         frame_stack: int = 3,
         stack_frame_major: bool = False,
-        use_phase_obs: bool = True,
+        use_phase_obs: bool = False,
         gait_period_s: float = 1.0,
+        # IsaacLab-aligned phase behavior.
+        freeze_phase_when_standing: bool = True,
+        stand_phase_lin_threshold: float = 0.08,
+        stand_phase_yaw_threshold: float = 0.10,
+        stand_phase_value: float = math.pi,  # radians
+        # Legacy aliases (optional for backward compatibility).
+        phase_gate_when_standing: bool | None = None,
+        phase_freeze_when_standing: bool | None = None,
+        phase_cmd_lin_eps: float | None = None,
+        phase_cmd_yaw_eps: float | None = None,
+        phase_standing_clock: tuple[float, float] | None = None,
         include_height: bool = False,
         disturbance_force_max: float = 5.0,
         disturbance_torque_max: float = 2.0,
         disturbance_prob: float = 0.00,
-        action_scale: float = 1.0,
-        action_scale_by_joint: dict[str, float] = {
-            "left_thigh_joint": 0.3,
-            "right_thigh_joint": 0.3,
+        action_scale: float = 0.8,
+        action_scale_by_joint={
+            # "left_hip1_joint": 0.50,  "right_hip1_joint": 0.50,
+            "left_hip2_joint": 0.50,  "right_hip2_joint": 0.50,
+            "left_thigh_joint": 0.30, "right_thigh_joint": 0.30,
+            # "left_knee_joint": 0.45,  "right_knee_joint": 0.45,
+            # "left_ankle_joint": 0.35, "right_ankle_joint": 0.35,
         },
         action_noise_std: float = 0.0,
-        action_smoothing_alpha: float = 0.4,      # 1.0 = no EMA smoothing
+        action_smoothing_alpha: float = 1.0,      # 1.0 = no EMA smoothing
         action_delta_max: float | None = None,    # max change per control step in normalized action units
         act_max_latency: int = 5,
         act_latency_steps: int = 0,
-        obs_max_latency: int = 3,
-        obs_latency_steps: int = 0,
+        act_delay_range_by_name: dict[str, tuple[int, int]] | None = None,
+        obs_max_latency: int = 0,
+        obs_latency_steps: int = 3,
         imu_bias_gravity: tuple[float, float, float] = (0.0, 0.0, 0.0),
         imu_bias_gyro: tuple[float, float, float] = (0.0, 0.0, 0.0),
         imu_mount_axis: tuple[float, float, float] = (1.0, 0.0, 0.0),
         imu_mount_ang: float = 0.0,
         obs_noise_gravity_std: float = 0.0,
         obs_noise_gyro_std: float = 0.0,
-        obs_noise_joint_pos_std: float = 0.0,
-        obs_noise_joint_vel_std: float = 0.0,
+        obs_noise_joint_pos_std: float = 0.005716356937792565,
+        obs_noise_joint_vel_std: float = 0.13718300792805946,
+        policy_obs_clip: float | None = 5.0,
+        actuator_velocity_limit: float | None = 20.0,
         dt: float = 1 / 50,
-        sim_dt: float = 1 / 250,
+        sim_dt: float = 1 / 2000,
     ):
         self.model = mujoco.MjModel.from_xml_path(xml_path)
         self.data = mujoco.MjData(self.model)
@@ -69,6 +105,28 @@ class HumanoidLocomotionEnv:
         self._stack_frame_major = bool(stack_frame_major)
         self._use_phase_obs = bool(use_phase_obs)
         self._gait_period_s = float(gait_period_s)
+
+        # Backward-compat mapping from old args -> new behavior.
+        if phase_freeze_when_standing is not None:
+            freeze_phase_when_standing = phase_freeze_when_standing
+        if phase_cmd_lin_eps is not None:
+            stand_phase_lin_threshold = phase_cmd_lin_eps
+        if phase_cmd_yaw_eps is not None:
+            stand_phase_yaw_threshold = phase_cmd_yaw_eps
+        if phase_standing_clock is not None:
+            psc = np.asarray(phase_standing_clock, dtype=float).reshape(-1)
+            if psc.shape != (2,):
+                raise ValueError("phase_standing_clock must be length-2, e.g. (0.0, 1.0)")
+            # old clock=(sin, cos) -> phase angle
+            stand_phase_value = math.atan2(float(psc[0]), float(psc[1]))
+        if (phase_gate_when_standing is not None) and phase_gate_when_standing:
+            # closest equivalent under new semantics
+            freeze_phase_when_standing = True
+
+        self._freeze_phase_when_standing = bool(freeze_phase_when_standing)
+        self._stand_phase_lin_threshold = float(max(0.0, stand_phase_lin_threshold))
+        self._stand_phase_yaw_threshold = float(max(0.0, stand_phase_yaw_threshold))
+        self._stand_phase_value = float(stand_phase_value)
         self._include_height = bool(include_height)
 
         self._action_scale = float(action_scale)
@@ -99,9 +157,18 @@ class HumanoidLocomotionEnv:
         self._obs_noise_gyro_std = float(obs_noise_gyro_std)
         self._obs_noise_joint_pos_std = float(obs_noise_joint_pos_std)
         self._obs_noise_joint_vel_std = float(obs_noise_joint_vel_std)
+        self._policy_obs_clip = None if policy_obs_clip is None else float(abs(policy_obs_clip))
+        self._actuator_velocity_limit = (
+            None if actuator_velocity_limit is None else float(max(0.0, actuator_velocity_limit))
+        )
 
         self._torso_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "torso")
-        self._torso_top_site_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, "imu")
+        self._imu_site_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, "imu")
+        if self._imu_site_id < 0:
+            raise ValueError("IMU site 'imu' not found in MJCF.")
+        self._track_site_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, "top")
+        if self._track_site_id < 0:
+            self._track_site_id = self._imu_site_id
 
         self._nu = self.model.nu
         self._nq = self.model.nq
@@ -174,6 +241,24 @@ class HumanoidLocomotionEnv:
                 elif actuator_name in action_scale_by_joint:
                     self._joint_action_scales[actuator_id] = float(action_scale_by_joint[actuator_name])
 
+        self._act_delay_group_to_joint_names = DEFAULT_ACT_DELAY_GROUP_TO_JOINT_NAMES.copy()
+        self._act_delay_key_to_policy_indices = {
+            group_name: np.array([self._policy_joint_order.index(jn) for jn in joint_names], dtype=int)
+            for group_name, joint_names in self._act_delay_group_to_joint_names.items()
+        }
+        for idx, joint_name in enumerate(self._policy_joint_order):
+            self._act_delay_key_to_policy_indices[joint_name] = np.array([idx], dtype=int)
+        named_delay_cfg = DEFAULT_ACT_DELAY_RANGE_BY_NAME if act_delay_range_by_name is None else act_delay_range_by_name
+        self._act_delay_range_by_name, self._act_delay_range_policy = self._normalize_act_delay_ranges(named_delay_cfg)
+        self._use_named_act_delay = len(self._act_delay_range_by_name) > 0
+        self._named_act_max_latency = (
+            int(np.max(self._act_delay_range_policy[:, 1])) if self._use_named_act_delay else 0
+        )
+        self._act_hist_max_latency = max(self._act_max_latency, self._named_act_max_latency)
+        self._act_delay_steps_policy = np.zeros(self._nu, dtype=int)
+        self._act_delay_steps_by_name: dict[str, int] = {}
+        self._act_delay_mode = "named" if self._use_named_act_delay else "global"
+
         standing_key_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_KEY, "locomotion_standing_pose")
         self._standing_qpos = self.model.key_qpos[standing_key_id].copy()
         # Standing joint baseline in actuator order.
@@ -231,9 +316,11 @@ class HumanoidLocomotionEnv:
         # Action buffers.
         self._actions = np.zeros(self._nu, dtype=float)
         self._last_act = np.zeros(self._nu, dtype=float)
+        self._policy_actions = np.zeros(self._nu, dtype=float)
+        self._prev_applied_actions = np.zeros(self._nu, dtype=float)
         self._act_hist_buf = (
-            np.zeros((self._nu, self._act_max_latency + 1), dtype=float)
-            if self._act_max_latency > 0
+            np.zeros((self._nu, self._act_hist_max_latency + 1), dtype=float)
+            if self._act_hist_max_latency > 0
             else None
         )
 
@@ -272,6 +359,7 @@ class HumanoidLocomotionEnv:
         self.torso_ang_vel_cmd = np.zeros(3, dtype=float)
         self.up_b = np.array([0.0, 0.0, 1.0], dtype=float)
         self.up_cmd = np.array([0.0, 0.0, 1.0], dtype=float)
+        self.track_pos_w = np.zeros(3, dtype=float)
         self.act_pos = np.zeros(self._nu, dtype=float)
         self.act_vel = np.zeros(self._nu, dtype=float)
         self.act_vel_scaled = np.zeros(self._nu, dtype=float)
@@ -284,19 +372,30 @@ class HumanoidLocomotionEnv:
         print(f"Number of position DOFs: {self._nq}")
         print(f"Number of velocity DOFs: {self._nv}")
         print(f"Torso body ID: {self._torso_body_id}")
-        print(f"Torso_top site ID: {self._torso_top_site_id}")
+        print(f"IMU site ID: {self._imu_site_id}")
+        print(f"Track site ID: {self._track_site_id}")
         print(f"Action order: {self._policy_joint_order}")
         print(f"Action scale: +/-{self._action_scale} rad")
         print(f"Control frequency: {1 / self.dt:.1f} Hz")
         print(f"Physics timestep: {self.model.opt.timestep}s")
         print(f"Substeps per control: {self.n_substeps}")
+        print(f"Policy observation clip: {self._policy_obs_clip}")
+        print(f"Actuator velocity limit approximation: {self._actuator_velocity_limit}")
         print(f"Frame stack: {self._frame_stack} frames")
         print(f"Stack frame-major flatten: {self._stack_frame_major}")
         print(f"Use phase obs: {self._use_phase_obs}")
+        print(f"Freeze phase when standing: {self._freeze_phase_when_standing}")
+        print(f"Stand phase lin threshold: {self._stand_phase_lin_threshold}")
+        print(f"Stand phase yaw threshold: {self._stand_phase_yaw_threshold}")
+        print(f"Stand phase value (rad): {self._stand_phase_value:.4f}")
         print(f"Single frame obs size: {self._single_frame_size}")
         print(f"Total obs size: {self._obs_size}")
         print(f"Action noise std: {self._action_noise_std}")
-        print(f"Action latency steps: {self._act_latency_steps} (max {self._act_max_latency})")
+        print(f"Legacy action latency fallback: {self._act_latency_steps} (max {self._act_max_latency})")
+        if self._use_named_act_delay:
+            print("Per-name action delay ranges:")
+            for delay_name, delay_range in self._act_delay_range_by_name.items():
+                print(f"  {delay_name}: {delay_range[0]}..{delay_range[1]} steps")
         print(f"Obs latency steps: {self._obs_latency_steps} (max {self._obs_max_latency})")
         print(f"Disturbance probability: {self._disturbance_prob:.1%}")
         if self._include_height:
@@ -314,6 +413,10 @@ class HumanoidLocomotionEnv:
 
         self._raw_actions = np.zeros(self._nu, dtype=float)
 
+        self._Jp_imu = np.zeros((3, self.model.nv), dtype=np.float64)
+        self._Jr_imu = np.zeros((3, self.model.nv), dtype=np.float64)
+
+
     def reset(self) -> np.ndarray:
         """Reset environment to standing pose and prefill observation histories."""
         self.data.qpos[:] = self._standing_qpos
@@ -322,8 +425,11 @@ class HumanoidLocomotionEnv:
 
         mujoco.mj_forward(self.model, self.data)
 
+        self._sample_action_delay_steps()
         self._actions[:] = 0.0
         self._last_act[:] = 0.0
+        self._policy_actions[:] = 0.0
+        self._prev_applied_actions[:] = 0.0
         if self._act_hist_buf is not None:
             self._act_hist_buf[:, :] = 0.0
 
@@ -346,12 +452,13 @@ class HumanoidLocomotionEnv:
             obs = self._obs_stack_buf.reshape(-1)
         else:
             obs = delayed_obs
+        obs = self._clip_policy_observation(obs)
 
-        if self._torso_top_site_id >= 0:
-            init_height = float(self.data.site_xpos[self._torso_top_site_id, 2])
-        else:
-            init_height = float(self.data.xpos[self._torso_body_id, 2])
+        init_height = float(self.data.site_xpos[self._track_site_id, 2])
         print(f"\nReset complete. Initial torso height: {init_height:.3f}m")
+        if self._act_delay_steps_by_name:
+            delay_summary = ", ".join(f"{name}={steps}" for name, steps in self._act_delay_steps_by_name.items())
+            print(f"Sampled actuator delays: {delay_summary}")
         return obs.copy()
 
     def step(self, action: np.ndarray) -> np.ndarray:
@@ -366,9 +473,75 @@ class HumanoidLocomotionEnv:
         self._step_count += 1
         return self._get_obs()
 
+    def set_command(self, vx: float, vy: float, yaw_rate: float):
+        self._commands[:] = np.array([vx, vy, yaw_rate], dtype=float)
+
+    def _is_standing_command(self) -> bool:
+        lin_norm = float(np.linalg.norm(self._commands[:2]))
+        yaw_abs = float(abs(self._commands[2]))
+        return (lin_norm < self._stand_phase_lin_threshold) and (yaw_abs < self._stand_phase_yaw_threshold)
+
+    def _phase_for_observation(self) -> float:
+        if self._gait_period_s <= 0.0:
+            raise ValueError("gait_period_s must be > 0 when use_phase_obs is enabled")
+
+        # IsaacLab-aligned: phase from episode time, not a separately advanced local clock.
+        t = float(self._step_count) * self.dt
+        phase = 2.0 * math.pi * (t / self._gait_period_s)
+
+        if self._freeze_phase_when_standing and self._is_standing_command():
+            phase = self._stand_phase_value
+
+        return phase
+
+    def _normalize_delay_range(self, value: Any, delay_name: str) -> tuple[int, int]:
+        arr = np.asarray(value, dtype=int).reshape(-1)
+        if arr.shape != (2,):
+            raise ValueError(f"delay range for {delay_name!r} must be a length-2 tuple/list")
+        lo = int(max(0, arr[0]))
+        hi = int(max(lo, arr[1]))
+        return (lo, hi)
+
+    def _normalize_act_delay_ranges(
+        self, act_delay_range_by_name: dict[str, tuple[int, int]] | None
+    ) -> tuple[dict[str, tuple[int, int]], np.ndarray]:
+        normalized: dict[str, tuple[int, int]] = {}
+        policy_ranges = np.zeros((self._nu, 2), dtype=int)
+        if not act_delay_range_by_name:
+            return normalized, policy_ranges
+
+        for delay_name, delay_range in act_delay_range_by_name.items():
+            if delay_name not in self._act_delay_key_to_policy_indices:
+                valid_keys = sorted(self._act_delay_key_to_policy_indices.keys())
+                raise ValueError(f"unknown actuator delay key {delay_name!r}; valid keys: {valid_keys}")
+            rng = self._normalize_delay_range(delay_range, delay_name)
+            normalized[delay_name] = rng
+            policy_indices = self._act_delay_key_to_policy_indices[delay_name]
+            policy_ranges[policy_indices, 0] = rng[0]
+            policy_ranges[policy_indices, 1] = rng[1]
+
+        return normalized, policy_ranges
+
+    def _sample_action_delay_steps(self):
+        if self._use_named_act_delay:
+            self._act_delay_steps_policy[:] = 0
+            self._act_delay_steps_by_name = {}
+            for delay_name, delay_range in self._act_delay_range_by_name.items():
+                lo, hi = delay_range
+                sampled_steps = lo if lo == hi else int(np.random.randint(lo, hi + 1))
+                policy_indices = self._act_delay_key_to_policy_indices[delay_name]
+                self._act_delay_steps_policy[policy_indices] = sampled_steps
+                self._act_delay_steps_by_name[delay_name] = sampled_steps
+            self._act_delay_mode = "named"
+            return
+
+        self._act_delay_steps_policy[:] = self._act_latency_steps
+        self._act_delay_steps_by_name = {"global": self._act_latency_steps} if self._act_hist_max_latency > 0 else {}
+        self._act_delay_mode = "global"
+
     def _pre_physics_step(self, action: np.ndarray):
         """Isaac-style action preprocessing + optional smoothing:
-        clip -> noise -> latency -> rate-limit -> EMA -> prev/current update.
+        clip -> noise -> prev/current raw update -> latency -> rate-limit -> EMA -> applied-action update.
         """
         action_policy = np.asarray(action, dtype=float).reshape(-1)
         if action_policy.shape != (self._nu,):
@@ -381,14 +554,21 @@ class HumanoidLocomotionEnv:
         if self._action_noise_std > 0.0:
             a = np.clip(a + np.random.randn(*a.shape) * self._action_noise_std, -1.0, 1.0)
 
-        # 3) latency (same as before)
+        # IsaacLab prev_actions stores the previous clipped/noisy policy action before latency.
+        self._last_act = self._policy_actions.copy()
+        self._policy_actions = a.copy()
+        self._raw_actions = self._policy_actions.copy()
+
+        # 3) latency
         if self._act_hist_buf is not None:
             self._act_hist_buf = np.roll(self._act_hist_buf, shift=-1, axis=1)
             self._act_hist_buf[:, -1] = a
-            idx = int(np.clip(self._act_max_latency - self._act_latency_steps, 0, self._act_max_latency))
-            a = self._act_hist_buf[:, idx].copy()
-
-        self._raw_actions = a.copy()  # optional debug
+            if self._use_named_act_delay:
+                idx = self._act_hist_max_latency - self._act_delay_steps_policy
+                a = self._act_hist_buf[np.arange(self._nu), idx].copy()
+            else:
+                idx = int(np.clip(self._act_hist_max_latency - self._act_latency_steps, 0, self._act_hist_max_latency))
+                a = self._act_hist_buf[:, idx].copy()
 
         # Previous applied action (for smoothing and for obs feature)
         prev_applied = self._actions.copy()
@@ -409,7 +589,7 @@ class HumanoidLocomotionEnv:
         a_cmd = np.clip(a_cmd, -1.0, 1.0)
 
         # 6) update previous/current applied actions
-        self._last_act = prev_applied
+        self._prev_applied_actions = prev_applied
         self._actions = a_cmd
 
 
@@ -421,6 +601,14 @@ class HumanoidLocomotionEnv:
 
         pos_offsets = action_mj * self._action_scale * self._joint_action_scales
         target_positions = standing_joint_pos + pos_offsets
+        if self._actuator_velocity_limit is not None and self._actuator_velocity_limit > 0.0:
+            max_step = self._actuator_velocity_limit * self.dt
+            current_joint_pos = self.data.qpos[self._act_qpos_adr].copy()
+            target_positions = current_joint_pos + np.clip(
+                target_positions - current_joint_pos,
+                -max_step,
+                max_step,
+            )
 
         self.data.ctrl[:] = np.clip(target_positions, self._joint_soft_lower_mj, self._joint_soft_upper_mj)
 
@@ -446,47 +634,28 @@ class HumanoidLocomotionEnv:
         self.data.qvel[3:6] += disturbance_ang_velocity
 
     def _update_state(self):
-        """Compute state terms used by the IsaacLab observation function."""
-        self.torso_quat_w = self.data.xquat[self._torso_body_id].copy()  # (w, x, y, z)
+        self.torso_quat_w = self.data.xquat[self._torso_body_id].copy()  # (w,x,y,z)
 
-        if self._torso_top_site_id >= 0:
-            vel6_w = np.zeros(6, dtype=float)  # [ang, lin] in world orientation
-            vel6_l = np.zeros(6, dtype=float)  # [ang, lin] in local orientation
+        imu = self._get_imu_state()
+        self.torso_lin_vel_w = imu["v_wi"].copy()
+        self.torso_ang_vel_w = imu["w_w"].copy()
+        self.torso_lin_vel_b = imu["v_i"].copy()
+        self.torso_ang_vel_b = imu["w_i"].copy()
+        self.up_b = imu["up_i"].copy()  # "up" in local frame
 
-            mujoco.mj_objectVelocity(
-                self.model, self.data, mujoco.mjtObj.mjOBJ_SITE, self._torso_top_site_id, vel6_w, 0
-            )
-            mujoco.mj_objectVelocity(
-                self.model, self.data, mujoco.mjtObj.mjOBJ_SITE, self._torso_top_site_id, vel6_l, 1
-            )
+        # >>> THIS WAS MISSING <<<
+        self.torso_lin_vel_cmd = self.torso_lin_vel_b.copy()
+        self.torso_ang_vel_cmd = self.torso_ang_vel_b.copy()
+        self.up_cmd = self.up_b.copy()
 
-            # Spatial vector ordering is [angular, linear].
-            self.torso_ang_vel_w = vel6_w[:3].copy()
-            self.torso_lin_vel_w = vel6_w[3:].copy()
-            self.torso_ang_vel_b = vel6_l[:3].copy()
-            self.torso_lin_vel_b = vel6_l[3:].copy()
-        else:
-            # Fallback when no IMU site exists in the model.
-            self.torso_lin_vel_w = self.data.qvel[:3].copy()
-            self.torso_ang_vel_w = self.data.qvel[3:6].copy()
-            self.torso_lin_vel_b = self._rotate_vector(self.torso_lin_vel_w, self.torso_quat_w, inverse=True)
-            self.torso_ang_vel_b = self._rotate_vector(self.torso_ang_vel_w, self.torso_quat_w, inverse=True)
-
+        # Optional: align sensor frame with command frame (if needed)
         if self._use_cmd_yaw_offset:
-            self.torso_lin_vel_cmd = self._rotate_xy(self.torso_lin_vel_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
-            self.torso_ang_vel_cmd = self._rotate_xy(self.torso_ang_vel_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
-        else:
-            self.torso_lin_vel_cmd = self.torso_lin_vel_b.copy()
-            self.torso_ang_vel_cmd = self.torso_ang_vel_b.copy()
+            self.torso_lin_vel_cmd = self._rotate_xy(self.torso_lin_vel_cmd, self._cmd_yaw_cos, self._cmd_yaw_sin)
+            self.torso_ang_vel_cmd = self._rotate_xy(self.torso_ang_vel_cmd, self._cmd_yaw_cos, self._cmd_yaw_sin)
+            self.up_cmd = self._rotate_xy(self.up_cmd, self._cmd_yaw_cos, self._cmd_yaw_sin)
+        self.track_pos_w = self.data.site_xpos[self._track_site_id].copy()
 
-        up_world = np.array([0.0, 0.0, 1.0], dtype=float)
-        self.up_b = self._rotate_vector(up_world, self.torso_quat_w, inverse=True)
-        if self._use_cmd_yaw_offset:
-            self.up_cmd = self._rotate_xy(self.up_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
-        else:
-            self.up_cmd = self.up_b.copy()
-
-        # Convert MuJoCo actuator order -> interleaved policy order.
+        # Joint states (existing code)
         joint_pos_mj = self.data.qpos[self._act_qpos_adr].copy()
         joint_vel_mj = self.data.qvel[self._act_qvel_adr].copy()
         self.act_pos = joint_pos_mj[self._policy_to_mj]
@@ -497,13 +666,55 @@ class HumanoidLocomotionEnv:
         self.act_pos_scaled = 2.0 * (self.act_pos - lo) / (hi - lo + 1e-6) - 1.0
         self.act_vel_scaled = self.act_vel * self._dof_vel_scale
 
+
+    def _get_imu_state(self) -> dict[str, np.ndarray]:
+        """IMU state at site 'imu', independent of model/root origin choice."""
+        sid = self._imu_site_id
+
+        # World pose of IMU site
+        p_wi = self.data.site_xpos[sid].copy()
+        R_wi = self.data.site_xmat[sid].reshape(3, 3).copy()
+
+        # Site Jacobians: map qvel -> site linear/angular velocity (world frame)
+        mujoco.mj_jacSite(self.model, self.data, self._Jp_imu, self._Jr_imu, sid)
+        qvel = self.data.qvel
+        v_wi = self._Jp_imu @ qvel   # linear vel at IMU point (world)
+        w_w  = self._Jr_imu @ qvel   # angular vel of IMU frame (world)
+
+        # Convert to IMU local frame
+        v_i = R_wi.T @ v_wi
+        w_i = R_wi.T @ w_w
+
+        # Project gravity into IMU frame
+        g_w = np.array([0.0, 0.0, 1.0], dtype=np.float64)
+        g_i = R_wi.T @ g_w
+
+        # Site quaternion (wxyz)
+        q_wi = np.empty(4, dtype=np.float64)
+        mujoco.mju_mat2Quat(q_wi, self.data.site_xmat[sid])
+
+        up_w = np.array([0.0, 0.0, 1.0], dtype=np.float64)
+        up_i = R_wi.T @ up_w
+
+        return {
+            "p_wi": p_wi,
+            "q_wi": q_wi,
+            "v_i": v_i,
+            "w_i": w_i,
+            "g_i": g_i,
+            "v_wi": v_wi,
+            "w_w": w_w,
+            "up_i": up_i,
+        }
+
+
     def _compute_single_observation(self) -> np.ndarray:
         """Build one observation frame using IsaacLab ordering and transforms."""
         up_cmd = self.up_cmd.copy()
         ang_vel_cmd = self.torso_ang_vel_cmd.copy()
         commands = self._commands.copy()
-        act_pos_scaled = self.act_pos_scaled.copy()
-        act_vel_scaled = self.act_vel_scaled.copy()
+        act_pos = self.act_pos.copy()
+        act_vel = self.act_vel.copy()
 
         # if self._use_cmd_yaw_offset:
             # commands = self._rotate_xy(commands, self._cmd_yaw_cos, self._cmd_yaw_sin)
@@ -523,11 +734,14 @@ class HumanoidLocomotionEnv:
         if self._obs_noise_gyro_std > 0.0:
             ang_vel_cmd = ang_vel_cmd + np.random.randn(*ang_vel_cmd.shape) * self._obs_noise_gyro_std
         if self._obs_noise_joint_pos_std > 0.0:
-            act_pos_scaled = act_pos_scaled + np.random.randn(*act_pos_scaled.shape) * self._obs_noise_joint_pos_std
+            act_pos = act_pos + np.random.randn(*act_pos.shape) * self._obs_noise_joint_pos_std
         if self._obs_noise_joint_vel_std > 0.0:
-            act_vel_scaled = act_vel_scaled + np.random.randn(*act_vel_scaled.shape) * (
-                self._obs_noise_joint_vel_std * self._dof_vel_scale
-            )
+            act_vel = act_vel + np.random.randn(*act_vel.shape) * self._obs_noise_joint_vel_std
+
+        lo = self._joint_soft_lower_policy
+        hi = self._joint_soft_upper_policy
+        act_pos_scaled = 2.0 * (act_pos - lo) / (hi - lo + 1e-6) - 1.0
+        act_vel_scaled = act_vel * self._dof_vel_scale
 
         obs = np.concatenate(
             [
@@ -542,14 +756,16 @@ class HumanoidLocomotionEnv:
         )
 
         if self._use_phase_obs:
-            if self._gait_period_s <= 0.0:
-                raise ValueError("gait_period_s must be > 0 when use_phase_obs is enabled")
-            t = float(self._step_count) * self.dt
-            phase = 2.0 * math.pi * (t / self._gait_period_s)
+            phase = self._phase_for_observation()
             clock = np.array([math.sin(phase), math.cos(phase)], dtype=float)
             obs = np.concatenate([obs, clock])
 
         return obs
+
+    def _clip_policy_observation(self, obs: np.ndarray) -> np.ndarray:
+        if self._policy_obs_clip is None or not np.isfinite(self._policy_obs_clip):
+            return obs
+        return np.clip(obs, -self._policy_obs_clip, self._policy_obs_clip)
 
     def _get_obs(self) -> np.ndarray:
         """Isaac-style observation path: state -> single obs -> latency -> stack."""
@@ -572,6 +788,7 @@ class HumanoidLocomotionEnv:
                 self._obs_stack_buf[:, -1] = obs
             obs = self._obs_stack_buf.reshape(-1)
 
+        obs = self._clip_policy_observation(obs)
         return obs.copy()
 
     def _rotate_vector(self, vec: np.ndarray, quat: np.ndarray, inverse: bool = False) -> np.ndarray:
