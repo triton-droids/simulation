@@ -11,6 +11,7 @@ MuJoCo actuator order (left block then right block):
    right_hip1, right_hip2, right_thigh, right_knee, right_ankle]
 """
 
+import json
 import math
 from typing import Any
 
@@ -87,7 +88,8 @@ class HumanoidLocomotionEnv:
         policy_obs_clip: float | None = 5.0,
         actuator_velocity_limit: float | None = 20.0,
         dt: float = 1 / 50,
-        sim_dt: float = 1 / 2000,
+        sim_dt: float = 1 / 250,
+        system_config_path: str | None = None,
     ):
         self.model = mujoco.MjModel.from_xml_path(xml_path)
         self.data = mujoco.MjData(self.model)
@@ -413,9 +415,78 @@ class HumanoidLocomotionEnv:
 
         self._raw_actions = np.zeros(self._nu, dtype=float)
 
-        self._Jp_imu = np.zeros((3, self.model.nv), dtype=np.float64)
-        self._Jr_imu = np.zeros((3, self.model.nv), dtype=np.float64)
+        # Load system config if provided
+        if system_config_path is not None:
+            self.load_system_config(system_config_path)
 
+    def load_system_config(self, config_path: str) -> None:
+        """Load and apply system parameters from JSON config file.
+
+        Args:
+            config_path: Path to JSON configuration file containing:
+                - contact_surface: friction, solref, solimp arrays
+                - default_joint: damping, frictionloss, armature values
+                - actuators: dict mapping actuator names to {kp, kv, forcerange}
+
+        Raises:
+            ValueError: If actuator name in config doesn't exist in model
+        """
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+
+        print(f"\nLoading system config from: {config_path}")
+        print(f"Config name: {config.get('config_name', 'unnamed')}")
+
+        # Apply contact_surface parameters to all contact surface geoms
+        if "contact_surface" in config:
+            cs = config["contact_surface"]
+            contact_geom_names = ["floor", "left_foot_collision_box", "right_foot_collision_box"]
+            applied_count = 0
+
+            for geom_name in contact_geom_names:
+                geom_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, geom_name)
+                if geom_id >= 0:
+                    self.model.geom_friction[geom_id] = [cs["friction"][0], cs["friction"][1], cs["friction"][2]]
+                    self.model.geom_solref[geom_id] = [cs["solref"][0], cs["solref"][1]]
+                    self.model.geom_solimp[geom_id] = [cs["solimp"][0], cs["solimp"][1], cs["solimp"][2], 0, 0]
+                    applied_count += 1
+
+            if applied_count > 0:
+                print(f"  Applied contact_surface params to {applied_count} geoms:")
+                print(f"    friction: {cs['friction']}")
+                print(f"    solref: {cs['solref']}")
+                print(f"    solimp: {cs['solimp']}")
+
+        # Apply default_joint parameters to all actuated joints
+        if "default_joint" in config:
+            dj = config["default_joint"]
+            for joint_id in self._act_joint_ids:
+                dof_adr = self.model.jnt_dofadr[joint_id]
+                self.model.dof_damping[dof_adr] = dj["damping"]
+                self.model.dof_frictionloss[dof_adr] = dj["frictionloss"]
+                self.model.dof_armature[dof_adr] = dj["armature"]
+            print(f"  Applied default_joint params to {len(self._act_joint_ids)} actuated joints:")
+            print(f"    damping: {dj['damping']}")
+            print(f"    frictionloss: {dj['frictionloss']}")
+            print(f"    armature: {dj['armature']}")
+
+        # Apply actuator parameters individually
+        if "actuators" in config:
+            print(f"  Applying individual actuator params:")
+            for actuator_name, params in config["actuators"].items():
+                actuator_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_ACTUATOR, actuator_name)
+                if actuator_id == -1:
+                    raise ValueError(f"Actuator '{actuator_name}' not found in model")
+
+                self.model.actuator_gainprm[actuator_id, 0] = params["kp"]
+                self.model.actuator_biasprm[actuator_id, 2] = -params["kv"]  # negative for velocity damping
+                self.model.actuator_forcerange[actuator_id] = [params["forcerange"][0], params["forcerange"][1]]
+
+                print(f"    {actuator_name}: kp={params['kp']}, kv={params['kv']}, forcerange={params['forcerange']}")
+
+        # Recompute derived quantities after parameter changes
+        mujoco.mj_forward(self.model, self.data)
+        print("System config loaded successfully!\n")
 
     def reset(self) -> np.ndarray:
         """Reset environment to standing pose and prefill observation histories."""

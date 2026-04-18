@@ -1,0 +1,10 @@
+{
+  "config_name": "bouncy_low",
+  "description": "Slightly bouncy surface - reduced contact damping (low)",
+
+  "contact_surface": {
+    "friction": [1.5, 0.005, 0.0001],
+    "solref": [0.01, 1.2],
+    "solimp": [0.93, 0.97, 0.001]
+  }
+}
