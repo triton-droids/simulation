@@ -8,31 +8,41 @@
       <!-- Center of mass (meters) relative to the link frame -->
       <origin xyz="-0.15417 -0.030012 0.697219" rpy="0 0 0"/>
       <!-- Mass in kilograms -->
-      <mass value="3.175"/>
+      <mass value="4.646"/>
       <!-- Inertia about the COM, expressed in the inertial frame axes (kg*m^2) -->
       <inertia
-        ixx="5.173e-3"
-        ixy="3.126e-17"
-        ixz="1.463904e-6"
-        iyy="1.947e-2"
-        iyz="-1.478e-16"
-        izz="2.099e-2"/>
+        ixx="0.01579"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="0.01581"
+        iyz="0.0"
+        izz="0.03104"/>
     </inertial>
 
+    
+
     <collision>
-      <!-- box centered at torso frame -->
-      <origin xyz="-0.154672 -0.03 0.6962" rpy="0 0 0" />
+      <origin xyz="-0.157672 -0.03 0.6659" rpy="0 0 0"/>
       <geometry>
-        <box size="0.28 0.12 0.096" />
-         <!-- <mesh filename="robot_meshes/visual/battery_box.stl" scale="0.001 0.001 0.001" /> -->
+        <cylinder radius="0.105" length="0.011395"/>
       </geometry>
     </collision>
 
     <visual>
       <!-- <origin xyz="0.281672 0.07751 -0.661236" rpy="0 0 0" /> -->
-       <origin xyz="0 0 0" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="robot_meshes/visual/battery_box.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="robot_meshes/visual/torso_weight.stl" scale="0.001 0.001 0.001" />
+        <!-- <mesh filename="robot_meshes/visual/imu_mount.stl" scale="0.001 0.001 0.001" /> -->
+      </geometry>
+    </visual>
+
+    <visual>
+      <!-- <origin xyz="0.281672 0.07751 -0.661236" rpy="0 0 0" /> -->
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <!-- <mesh filename="robot_meshes/visual/torso_weight.stl" scale="0.001 0.001 0.001" /> -->
+        <mesh filename="robot_meshes/visual/imu_mount.stl" scale="0.001 0.001 0.001" />
       </geometry>
     </visual>
   </link>
