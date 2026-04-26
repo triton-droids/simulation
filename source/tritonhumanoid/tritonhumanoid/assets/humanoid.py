@@ -45,7 +45,7 @@ HUMANOID_CFG = ArticulationCfg(
     ),
 
     init_state=ArticulationCfg.InitialStateCfg(
-        pos=(0.0, 0.0, 0.615),          # tweak height so feet just touch the ground
+        pos=(0.0, 0.0, 0.6846),          # tweak height so feet just touch the ground
         rot=qz_minus_90,
         joint_pos={
             "left_hip1_joint": 0.3,
