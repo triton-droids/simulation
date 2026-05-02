@@ -253,7 +253,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
                 prim_path="/World/envs/env_.*/Robot/torso",
                 name="top",
                 offset=OffsetCfg(
-                    pos=(-0.155, -0.016, 0.765),
+                    pos=(-0.155, -0.016, 0.6996),
                     rot=(1.0, 0.0, 0.0, 0.0),
                 ),
             ),
