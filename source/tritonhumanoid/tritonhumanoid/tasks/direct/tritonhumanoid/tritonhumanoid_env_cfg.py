@@ -264,8 +264,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Observation scales
     ang_vel_scale: float = 0.25
     dof_vel_scale: float = 0.1
-    joint_pos_obs_noise_std_rad: float = 0.005716356937792565
-    joint_vel_obs_noise_std_rad_s: float = 0.13718300792805946
+    joint_pos_obs_noise_std_rad: float = 0.0
+    joint_vel_obs_noise_std_rad_s: float = 0.0
     command_yaw_offset: float = -math.pi / 2.0  # rotate body-frame vectors to align +Y forward with +X commands
 
     # Observation term config (uniform noise, scale, clip)
@@ -506,18 +506,19 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
             "joint_pos_noise": (0.0, 0.06),
             "joint_vel_noise": (0.0, 0.20),
         },
-        "sensor_extrinsics": {
-            "imu_mount_deg": (0.0, 5.0),
-        },
         "action_noise": {
             "std": (0.0, 0.03),
         },
         "obs_noise": {
             "gravity_std": (0.0, 0.03),
-            "gyro_std": (0.0, 0.05),
-            "joint_pos_std": (0.0, 0.0),
-            "joint_vel_std": (0.0, 0.0),
+            "gyro_std": (0.0, 0.85),
+            "joint_pos_std": (0.0, 0.01),
+            "joint_vel_std": (0.0, 0.20),
             "joint_torque_std": (0.0, 0.20),
+        },
+        "latency": {
+            "act_steps": (0, 2),
+            "obs_steps": (0, 1),
         },
         "motor_strength": {
             "per_joint_mult_range": (0.0, 0.3),
@@ -539,8 +540,9 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
         },
     }
 
-    # Observation latency buffer size. Keep disabled at 50 Hz control.
-    obs_max_latency: int = 0
+    # Action/observation latency buffer sizes in policy steps.
+    action_max_latency: int = 2
+    obs_max_latency: int = 1
 
     # Debug visualization (draw velocity arrows for a single env)
     debug_vel_vis: bool = False  # disable during training for performance

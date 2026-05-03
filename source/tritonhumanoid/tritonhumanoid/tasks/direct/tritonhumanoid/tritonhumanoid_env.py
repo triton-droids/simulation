@@ -297,6 +297,17 @@ class LocomotionEnv(DirectRLEnv):
         self.actions = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
         self.prev_actions = torch.zeros_like(self.actions)
         self.q_des = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
+        self.action_max_latency = int(getattr(self.cfg, "action_max_latency", 0))
+        self.action_latency_steps = torch.zeros(self.num_envs, dtype=torch.long, device=self.sim.device)
+        if self.action_max_latency > 0:
+            self.action_hist_buf = torch.zeros(
+                self.num_envs,
+                self.num_actions,
+                self.action_max_latency + 1,
+                device=self.sim.device,
+            )
+        else:
+            self.action_hist_buf = None
 
         # control timestep for smoothness costs
         self._control_dt = float(self.cfg.sim.dt * self.cfg.decimation)
@@ -596,9 +607,10 @@ class LocomotionEnv(DirectRLEnv):
         self._micro_wrench_scale = _ramp_scale(difficulty, micro_start, micro_ramp)
 
     def _sample_custom_dr_for_resets(self, env_ids: torch.Tensor) -> None:
-        """Sample per-episode random variables: motor strength and IMU calibration."""
+        """Sample per-episode random variables: motor strength, latency, and IMU calibration."""
         if self.adr is None or env_ids.numel() == 0:
             self.motor_strength_mult[env_ids] = 1.0
+            self.action_latency_steps[env_ids] = 0
             self.obs_latency_steps[env_ids] = 0
             self.imu_bias_gravity[env_ids] = 0.0
             self.imu_bias_gyro[env_ids] = 0.0
@@ -615,7 +627,21 @@ class LocomotionEnv(DirectRLEnv):
         else:
             self.motor_strength_mult[env_ids] = 1.0
 
-        self.obs_latency_steps[env_ids] = 0
+        act_max = 0
+        obs_max = 0
+        if "latency" in self.adr.adr_custom_cfg_dict:
+            act_max = int(round(float(self.adr.get_custom("latency", "act_steps"))))
+            obs_max = int(round(float(self.adr.get_custom("latency", "obs_steps"))))
+        act_max = int(max(0, min(self.action_max_latency, act_max)))
+        obs_max = int(max(0, min(self.obs_max_latency, obs_max)))
+        if act_max > 0:
+            self.action_latency_steps[env_ids] = torch.randint(0, act_max + 1, (env_ids.numel(),), device=device)
+        else:
+            self.action_latency_steps[env_ids] = 0
+        if obs_max > 0:
+            self.obs_latency_steps[env_ids] = torch.randint(0, obs_max + 1, (env_ids.numel(),), device=device)
+        else:
+            self.obs_latency_steps[env_ids] = 0
 
         b_grav = float(self.adr.get_custom("imu_bias", "gravity_bias_range"))
         if b_grav > 0.0:
@@ -629,7 +655,10 @@ class LocomotionEnv(DirectRLEnv):
         else:
             self.imu_bias_gyro[env_ids] = 0.0
 
-        deg = float(self.adr.get_custom("sensor_extrinsics", "imu_mount_deg"))
+        if "sensor_extrinsics" in self.adr.adr_custom_cfg_dict:
+            deg = float(self.adr.get_custom("sensor_extrinsics", "imu_mount_deg"))
+        else:
+            deg = 0.0
         if deg > 0.0:
             max_rad = deg * math.pi / 180.0
             axis = torch.randn((env_ids.numel(), 3), device=device)
@@ -798,6 +827,13 @@ class LocomotionEnv(DirectRLEnv):
         if self._action_noise_std > 0.0:
             a = a + torch.randn_like(a) * self._action_noise_std
             a = a.clamp(-1.0, 1.0)
+
+        if self.action_hist_buf is not None:
+            self.action_hist_buf = torch.roll(self.action_hist_buf, shifts=-1, dims=2)
+            self.action_hist_buf[:, :, -1] = a
+            idx = (self.action_max_latency - self.action_latency_steps).clamp(0, self.action_max_latency)
+            gather_idx = idx.view(-1, 1, 1).expand(-1, a.shape[1], 1)
+            a = torch.gather(self.action_hist_buf, dim=2, index=gather_idx).squeeze(-1)
 
         self.prev_actions[:] = self.actions
         self.actions = a
@@ -1401,6 +1437,9 @@ class LocomotionEnv(DirectRLEnv):
 
         self.actions[env_ids] = 0.0
         self.prev_actions[env_ids] = 0.0
+        self.action_latency_steps[env_ids] = 0
+        if self.action_hist_buf is not None:
+            self.action_hist_buf[env_ids] = 0.0
         self.prev_act_vel[env_ids] = 0.0
         self._ep_lin_err_sum[env_ids] = 0.0
         self._ep_yaw_err_sum[env_ids] = 0.0
