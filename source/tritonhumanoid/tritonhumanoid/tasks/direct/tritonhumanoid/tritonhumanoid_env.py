@@ -1284,7 +1284,7 @@ class LocomotionEnv(DirectRLEnv):
             # # - self.cfg.speed_shortfall_cost_scale * speed_shortfall # penalty for not matching cmd speed
             # - self.cfg.symmetry_cost_scale * sym_pen
             # # - self.cfg.thigh_pose_cost_scale * thigh_pose_pen
-            # + self.cfg.feet_air_time_reward_scale * air_rew
+            + self.cfg.feet_air_time_reward_scale * air_rew
             # + self.cfg.anti_phase_reward_scale * anti_phase_rew
             # + self.cfg.contact_phase_reward_scale * contact_phase_rew
             # - self.cfg.air_time_symmetry_cost_scale * air_time_sym_pen
