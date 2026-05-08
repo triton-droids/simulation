@@ -1272,27 +1272,27 @@ class LocomotionEnv(DirectRLEnv):
             + self.cfg.alive_reward # reward for liveness
             # - self.cfg.action_cost_scale * act_cost # penalty for large actions
             - self.cfg.joint_limit_cost_scale * at_limit # penalty for being at joint limits
-            - pose_return_penalty # penalty for deviating from default pose (encourages natural stance and self-righting)
-            - self.cfg.lin_vel_z_cost_scale * lin_vel_z_cost # no jumping/hopping: penalize vertical velocity
-            # - self.cfg.ang_vel_xy_cost_scale * ang_vel_xy_cost 
-            # - self.cfg.flat_ori_cost_scale * flat_ori_cost
-            - self.cfg.action_rate_cost_scale * action_rate_cost
-            # - self.cfg.dof_vel_cost_scale * dof_vel_cost
-            # - self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost
-            - self.cfg.energy_cost_scale * energy_cost
-            # - self.cfg.standstill_penalty_scale * standstill # helps exploration early on by rewarding any movement, but eventually encourages matching the command speed
-            # - self.cfg.speed_shortfall_cost_scale * speed_shortfall # penalty for not matching cmd speed
-            - self.cfg.symmetry_cost_scale * sym_pen
-            # - self.cfg.thigh_pose_cost_scale * thigh_pose_pen
-            + self.cfg.feet_air_time_reward_scale * air_rew
-            + self.cfg.anti_phase_reward_scale * anti_phase_rew
-            + self.cfg.contact_phase_reward_scale * contact_phase_rew
-            - self.cfg.air_time_symmetry_cost_scale * air_time_sym_pen
-            # - self.cfg.walk_hip2_cost_scale * walk_hip2_pen
-            - self.cfg.foot_slip_cost_scale * slip_cost
-            - self.cfg.undesired_contact_cost_scale * undesired
-            - self.cfg.touchdown_cost_scale * touchdown_vel_cost
-            - touchdown_force_scale * touchdown_force_cost
+            # - pose_return_penalty # penalty for deviating from default pose (encourages natural stance and self-righting)
+            # - self.cfg.lin_vel_z_cost_scale * lin_vel_z_cost # no jumping/hopping: penalize vertical velocity
+            # # - self.cfg.ang_vel_xy_cost_scale * ang_vel_xy_cost 
+            # # - self.cfg.flat_ori_cost_scale * flat_ori_cost
+            # - self.cfg.action_rate_cost_scale * action_rate_cost
+            # # - self.cfg.dof_vel_cost_scale * dof_vel_cost
+            # # - self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost
+            # - self.cfg.energy_cost_scale * energy_cost
+            # # - self.cfg.standstill_penalty_scale * standstill # helps exploration early on by rewarding any movement, but eventually encourages matching the command speed
+            # # - self.cfg.speed_shortfall_cost_scale * speed_shortfall # penalty for not matching cmd speed
+            # - self.cfg.symmetry_cost_scale * sym_pen
+            # # - self.cfg.thigh_pose_cost_scale * thigh_pose_pen
+            # + self.cfg.feet_air_time_reward_scale * air_rew
+            # + self.cfg.anti_phase_reward_scale * anti_phase_rew
+            # + self.cfg.contact_phase_reward_scale * contact_phase_rew
+            # - self.cfg.air_time_symmetry_cost_scale * air_time_sym_pen
+            # # - self.cfg.walk_hip2_cost_scale * walk_hip2_pen
+            # - self.cfg.foot_slip_cost_scale * slip_cost
+            # - self.cfg.undesired_contact_cost_scale * undesired
+            # - self.cfg.touchdown_cost_scale * touchdown_vel_cost
+            # - touchdown_force_scale * touchdown_force_cost
             # - self.cfg.no_fly_cost_scale * no_fly
             # + stand_cmd_f
             # * (
