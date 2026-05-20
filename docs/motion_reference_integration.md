@@ -177,18 +177,3 @@ exp(-mean((current_action_order_joint_pos - target_action_order_joint_pos)^2) / 
 ```
 
 Start with joint tracking only. Add body/keypoint tracking later using `body_pos_w` and `body_names`.
-
-## Files To Push
-
-Stage only these files:
-
-```bash
-git add \
-  docs/motion_reference_integration.md \
-  source/tritonhumanoid/tritonhumanoid/tasks/direct/tritonhumanoid/tritonhumanoid_env.py \
-  source/tritonhumanoid/tritonhumanoid/tasks/direct/tritonhumanoid/tritonhumanoid_env_cfg.py \
-  source/tritonhumanoid/tritonhumanoid/data/motions/sub10_largebox_049_clip120_mj_fps50.npz
-```
-
-Do not stage unrelated local files such as `.DS_Store`, `.firecrawl/`, or the current `human_base.usd` Git LFS change unless the team explicitly wants those included.
-
