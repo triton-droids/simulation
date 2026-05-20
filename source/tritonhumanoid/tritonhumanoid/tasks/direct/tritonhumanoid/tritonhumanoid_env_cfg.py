@@ -150,9 +150,9 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # 10 actuated leg joints
     action_space = 10
 
-    # obs_dim = 3 (lin_vel) + 3 (ang_vel) + 3 (up_b) + 3 (commands) + 10 (pos) + 10 (vel) + 10 (prev_actions) = 42
-    # + 2 (phase clock if use_phase_obs=True) = 44
-    observation_space_single = 42
+    # obs_dim base = 42, plus 20 for motion reference targets when enabled.
+    # The env recomputes the final dimension at runtime based on enabled optional observations.
+    observation_space_single = 62
     obs_stack_frames: int = 3
     observation_space = observation_space_single * obs_stack_frames
 
@@ -267,6 +267,17 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     joint_pos_obs_noise_std_rad: float = 0.0
     joint_vel_obs_noise_std_rad_s: float = 0.0
     command_yaw_offset: float = -math.pi / 2.0  # rotate body-frame vectors to align +Y forward with +X commands
+
+    # Optional reference motion from Holosoma retargeting conversion.
+    # The policy observation receives target joint position error and target joint velocity,
+    # both remapped by joint_names into the IsaacLab action order.
+    use_motion_reference: bool = True
+    motion_reference_file: str = "data/motions/sub10_largebox_049_clip120_mj_fps50.npz"
+    motion_reference_observation: bool = True
+    motion_reference_random_start: bool = True
+    motion_reference_pos_error_scale: float = 1.0
+    motion_reference_vel_scale: float = 0.1
+    motion_reference_debug_print: bool = False
 
     # Observation term config (uniform noise, scale, clip)
     obs_term_cfg: dict = {

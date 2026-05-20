@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import math
 from copy import deepcopy
+from pathlib import Path
+
+import numpy as np
 import torch
 
 import isaaclab.sim as sim_utils
@@ -170,6 +173,10 @@ class LocomotionEnv(DirectRLEnv):
         obs_single_dim = 3 + 3 + 3 + 3 + cfg.action_space * 3
         if cfg.use_phase_obs:
             obs_single_dim += 2
+        if bool(getattr(cfg, "use_motion_reference", False)) and bool(
+            getattr(cfg, "motion_reference_observation", True)
+        ):
+            obs_single_dim += cfg.action_space * 2
         cfg.observation_space_single = obs_single_dim
         cfg.obs_stack_frames = obs_stack_frames
         cfg.observation_space = obs_single_dim * obs_stack_frames
@@ -293,6 +300,22 @@ class LocomotionEnv(DirectRLEnv):
         self.actuated_lower = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 0].clone()
         self.actuated_upper = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 1].clone()
 
+        # Optional reference motion produced by the Holosoma retargeting converter.
+        self._motion_reference_enabled = bool(getattr(self.cfg, "use_motion_reference", False))
+        self._motion_reference_observation = bool(getattr(self.cfg, "motion_reference_observation", True))
+        self.motion_target_joint_pos = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
+        self.motion_target_joint_vel = torch.zeros_like(self.motion_target_joint_pos)
+        self.motion_target_joint_pos_error = torch.zeros_like(self.motion_target_joint_pos)
+        self.motion_start_frame = torch.zeros(self.num_envs, dtype=torch.long, device=self.sim.device)
+        self.motion_frame = torch.zeros(self.num_envs, dtype=torch.long, device=self.sim.device)
+        self._motion_num_frames = 0
+        self._motion_fps = 0.0
+        self._motion_joint_pos = None
+        self._motion_joint_vel = None
+        self._motion_debug_printed = False
+        if self._motion_reference_enabled:
+            self._load_motion_reference()
+
         # buffers
         self.actions = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
         self.prev_actions = torch.zeros_like(self.actions)
@@ -394,6 +417,9 @@ class LocomotionEnv(DirectRLEnv):
         _add_obs_slice("prev_actions", self.num_actions)
         if bool(getattr(self.cfg, "use_phase_obs", False)):
             _add_obs_slice("phase_clock", 2)
+        if self._motion_reference_enabled and self._motion_reference_observation:
+            _add_obs_slice("motion_target_pos_error", self.num_actions)
+            _add_obs_slice("motion_target_vel", self.num_actions)
         self._obs_debug_dim = offset
 
         if bool(getattr(self.cfg, "debug_print_orderings", False)):
@@ -858,6 +884,133 @@ class LocomotionEnv(DirectRLEnv):
     def _invalidate_state_cache(self) -> None:
         self._state_valid = False
 
+    def _resolve_motion_reference_path(self, motion_file: str) -> Path:
+        path = Path(motion_file).expanduser()
+        if path.is_absolute():
+            return path
+
+        cwd_path = Path.cwd() / path
+        if cwd_path.exists():
+            return cwd_path
+
+        package_root = Path(__file__).resolve().parents[3]
+        package_path = package_root / path
+        if package_path.exists():
+            return package_path
+
+        return package_path
+
+    def _action_joint_names(self) -> list[str]:
+        try:
+            joint_names = self.robot.data.joint_names
+        except Exception as exc:
+            raise RuntimeError("Cannot read IsaacLab robot joint_names for motion reference remap.") from exc
+
+        names = []
+        for jid in self._joint_dof_idx:
+            idx = int(jid)
+            if idx < 0 or idx >= len(joint_names):
+                raise RuntimeError(f"Action joint index {idx} is outside robot joint_names length {len(joint_names)}.")
+            names.append(str(joint_names[idx]))
+        return names
+
+    def _load_motion_reference(self) -> None:
+        motion_file = str(getattr(self.cfg, "motion_reference_file", ""))
+        if not motion_file:
+            raise RuntimeError("use_motion_reference=True but motion_reference_file is empty.")
+
+        motion_path = self._resolve_motion_reference_path(motion_file)
+        if not motion_path.exists():
+            raise FileNotFoundError(f"Motion reference file not found: {motion_path}")
+
+        data = np.load(str(motion_path), allow_pickle=True)
+        required_keys = {
+            "fps",
+            "joint_pos",
+            "joint_vel",
+            "joint_names",
+            "body_pos_w",
+            "body_quat_w",
+            "body_lin_vel_w",
+            "body_ang_vel_w",
+            "body_names",
+        }
+        missing = sorted(required_keys.difference(data.files))
+        if missing:
+            raise RuntimeError(f"Motion reference file is missing keys: {missing}")
+
+        reference_joint_names = [str(name) for name in data["joint_names"].tolist()]
+        action_joint_names = self._action_joint_names()
+        missing_action_names = [name for name in action_joint_names if name not in reference_joint_names]
+        if missing_action_names:
+            raise RuntimeError(
+                "Motion reference joint_names do not cover IsaacLab action joints: "
+                f"{missing_action_names}. Reference names: {reference_joint_names}"
+            )
+
+        remap = [reference_joint_names.index(name) for name in action_joint_names]
+        joint_pos = np.asarray(data["joint_pos"], dtype=np.float32)
+        joint_vel = np.asarray(data["joint_vel"], dtype=np.float32)
+
+        expected_qpos_dim = 7 + len(reference_joint_names)
+        expected_qvel_dim = 6 + len(reference_joint_names)
+        if joint_pos.ndim != 2 or joint_pos.shape[1] != expected_qpos_dim:
+            raise RuntimeError(
+                f"Expected joint_pos shape (T, {expected_qpos_dim}) for root qpos + joints, got {joint_pos.shape}."
+            )
+        if joint_vel.ndim != 2 or joint_vel.shape[1] != expected_qvel_dim:
+            raise RuntimeError(
+                f"Expected joint_vel shape (T, {expected_qvel_dim}) for root qvel + joints, got {joint_vel.shape}."
+            )
+
+        self._motion_joint_pos = torch.as_tensor(joint_pos[:, 7:][:, remap], device=self.sim.device)
+        self._motion_joint_vel = torch.as_tensor(joint_vel[:, 6:][:, remap], device=self.sim.device)
+        self._motion_num_frames = int(self._motion_joint_pos.shape[0])
+        self._motion_fps = float(np.asarray(data["fps"]).reshape(-1)[0])
+        self._motion_reference_path = motion_path
+        self._motion_reference_joint_names = reference_joint_names
+        self._motion_action_joint_names = action_joint_names
+        self._motion_reference_remap = remap
+
+        if self._motion_num_frames < 2:
+            raise RuntimeError(f"Motion reference must contain at least 2 frames, got {self._motion_num_frames}.")
+
+        if bool(getattr(self.cfg, "motion_reference_debug_print", False)):
+            duration = (self._motion_num_frames - 1) / max(self._motion_fps, 1e-6)
+            print(
+                "[MotionReference] loaded "
+                f"path={motion_path} frames={self._motion_num_frames} fps={self._motion_fps:g} "
+                f"duration={duration:.3f}s",
+                flush=True,
+            )
+            print(f"[MotionReference] reference joint_names={reference_joint_names}", flush=True)
+            print(f"[MotionReference] action joint_names={action_joint_names}", flush=True)
+            print(f"[MotionReference] remap reference->action={remap}", flush=True)
+
+    def _update_motion_targets(self) -> None:
+        if not self._motion_reference_enabled:
+            return
+        if self._motion_joint_pos is None or self._motion_joint_vel is None:
+            return
+
+        frame_stride = self._control_dt * self._motion_fps
+        frame_offsets = torch.floor(self.episode_length_buf.float() * frame_stride).long()
+        self.motion_frame = (self.motion_start_frame + frame_offsets) % self._motion_num_frames
+        self.motion_target_joint_pos = self._motion_joint_pos[self.motion_frame]
+        self.motion_target_joint_vel = self._motion_joint_vel[self.motion_frame]
+        self.motion_target_joint_pos_error = self.motion_target_joint_pos - self.act_pos
+
+        if bool(getattr(self.cfg, "motion_reference_debug_print", False)) and not self._motion_debug_printed:
+            env_id = max(0, min(int(getattr(self.cfg, "debug_obs_print_env", 0)), self.num_envs - 1))
+            print(
+                "[MotionReference] first target "
+                f"env={env_id} frame={int(self.motion_frame[env_id].item())} "
+                f"target_joint_pos={self.motion_target_joint_pos[env_id].detach().cpu().tolist()} "
+                f"target_joint_vel={self.motion_target_joint_vel[env_id].detach().cpu().tolist()}",
+                flush=True,
+            )
+            self._motion_debug_printed = True
+
     def _apply_action(self):
         pos_offsets = (
             self.action_scale
@@ -942,6 +1095,7 @@ class LocomotionEnv(DirectRLEnv):
 
         self.act_pos = self.dof_pos[:, self._joint_dof_idx]
         self.act_vel = self.dof_vel[:, self._joint_dof_idx]
+        self._update_motion_targets()
 
         lo = self.actuated_lower.unsqueeze(0)
         hi = self.actuated_upper.unsqueeze(0)
@@ -1011,6 +1165,18 @@ class LocomotionEnv(DirectRLEnv):
 
             clock = torch.stack([torch.sin(phase), torch.cos(phase)], dim=1)
             obs = torch.cat([obs, clock], dim=-1)
+
+        if self._motion_reference_enabled and self._motion_reference_observation:
+            obs = torch.cat(
+                [
+                    obs,
+                    self.motion_target_joint_pos_error
+                    * float(getattr(self.cfg, "motion_reference_pos_error_scale", 1.0)),
+                    self.motion_target_joint_vel
+                    * float(getattr(self.cfg, "motion_reference_vel_scale", self.cfg.dof_vel_scale)),
+                ],
+                dim=-1,
+            )
 
 
         return obs
@@ -1444,6 +1610,18 @@ class LocomotionEnv(DirectRLEnv):
         self._ep_lin_err_sum[env_ids] = 0.0
         self._ep_yaw_err_sum[env_ids] = 0.0
         self._ep_len[env_ids] = 0.0
+
+        if self._motion_reference_enabled:
+            if bool(getattr(self.cfg, "motion_reference_random_start", True)):
+                self.motion_start_frame[env_ids] = torch.randint(
+                    0,
+                    self._motion_num_frames,
+                    (env_ids.numel(),),
+                    device=self.sim.device,
+                )
+            else:
+                self.motion_start_frame[env_ids] = 0
+            self.motion_frame[env_ids] = self.motion_start_frame[env_ids]
 
         # reset push timers
         self.push_counters[env_ids] = 0

@@ -1,3 +1,16 @@
 __pycache__/
 *.py[cod]
 *$py.class
+
+# macOS local metadata
+.DS_Store
+**/.DS_Store
+
+# Local web-scrape/cache output
+.firecrawl/
+
+# Local planning/report drafts
+/PROJECT_OVERVIEW.md
+/milestone_report.md
+/reward-policy-research.md
+/teleop_overall.md
