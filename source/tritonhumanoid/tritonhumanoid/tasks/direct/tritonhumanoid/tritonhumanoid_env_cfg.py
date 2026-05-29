@@ -284,101 +284,65 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     termination_height: float = 0.4
     upright_threshold: float = 0.5  # up_b.z
 
-    # Reward shaping (minimal)
-    lin_vel_reward_scale: float = 3.0
-    yaw_rate_reward_scale: float = 0.6
-    upright_reward_scale: float = 0.6
-    alive_reward: float = 0.05
+    # -------------------------
+    # HOMIE-inspired locomotion reward
+    # -------------------------
 
-    action_cost_scale: float = 0.005
-    joint_limit_cost_scale: float = 0.2
-    death_cost: float = -1.0
+    # Tracking sharpness
+    tracking_sigma: float = 0.25
+    # height_tracking_sigma: float = 0.01
 
-    # Tracking sharpness (bigger = easier / smoother)
-    lin_vel_sigma: float = 0.10  # in (m/s)^2 units inside exp; sharper tracking
-    yaw_rate_sigma: float = 0.5  # in (rad/s)^2 units inside exp
+    # Command tracking
+    tracking_x_vel_scale: float = 1.5
+    tracking_y_vel_scale: float = 1.0
+    tracking_ang_vel_scale: float = 2.0
 
-    # Stability costs (prevent hopping/rolling)
-    lin_vel_z_cost_scale: float = 0.08
-    ang_vel_xy_cost_scale: float = 0.03
-    flat_ori_cost_scale: float = 0.25
+    # Fixed walking height, not a command. Disabled for now; the observation does not include height.
+    # base_height_target: float = 0.70
+    # tracking_base_height_scale: float = 2.0
 
-    # Penalize standing still when a command asks for motion
-    command_speed_threshold: float = 0.2  # m/s, only apply penalty above this command
-    standstill_speed_threshold: float = 0.15  # m/s, penalize if actual speed below this
-    standstill_penalty_scale: float = 0.8
-    speed_shortfall_cost_scale: float = 1.0
-    # Air-time reward gate: only reward stepping when command asks for motion
-    air_time_command_speed_threshold: float = 0.1
+    # Base stability
+    lin_vel_z_scale: float = -0.5
+    ang_vel_xy_scale: float = -0.025
+    orientation_scale: float = -1.5
 
-    # Smoothness costs (reduce jitter)
-    action_rate_cost_scale: float = 0.01
-    dof_vel_cost_scale: float = 0.0001
-    dof_vel_delta_cost_scale: float = 0.01  # penalize velocity changes (instead of acceleration)
-    energy_cost_scale: float = 0.002  # penalize mechanical power |tau * qdot|
+    # Joint posture regularization
+    deviation_hip_joint_scale: float = -0.10
+    deviation_knee_joint_scale: float = -0.15
+    deviation_ankle_joint_scale: float = -0.20
 
-    # standing command detect
+    # Smoothness / effort
+    action_rate_scale: float = -0.01
+    dof_vel_reward_scale: float = -1.0e-4
+    dof_acc_scale: float = -2.5e-7
+    torques_scale: float = -2.5e-6
+    joint_power_scale: float = -2.0e-5
+
+    # Limits
+    dof_pos_limits_scale: float = -2.0
+    soft_dof_pos_limit: float = 0.975
+
+    # Contacts
+    foot_body_regex: str = "left_foot|right_foot"
+    foot_contact_force_thresh: float = 30.0
+    min_air_time: float = 0.2
+
+    feet_air_time_scale: float = 0.05
+    feet_slip_scale: float = -0.25
+    undesired_contact_scale: float = -0.10
+    undesired_contact_force_thresh: float = 80.0
+
+    no_fly_scale: float = 0.75
+    feet_contact_force_scale: float = -2.5e-4
+    max_contact_force: float = 400.0
+
+    # Stand behavior
+    stand_still_scale: float = -0.15
     stand_cmd_lin_thresh: float = 0.08
     stand_cmd_yaw_thresh: float = 0.10
 
-    # stand-specific shaping
-    stand_pose_reward_scale: float = 0.8
-    stand_upright_reward_scale: float = 0.4
-    stand_pose_sigma: float = 0.02
-    stand_vel_cost_scale: float = 0.8
-    stand_action_cost_scale: float = 0.02
-    stand_hip2_cost_scale: float = 1.0
-
-    # phase behavior at stand
-    freeze_phase_when_standing: bool = True
-    stand_phase_lin_threshold: float = 0.08
-    stand_phase_yaw_threshold: float = 0.10
-    stand_phase_value: float = math.pi
-
-    # Return-to-default pose penalty (actuated joints)
-    pose_return_scale: float = 0.3
-    pose_return_upright_threshold: float = 0.7
-
-    # Left/right symmetry penalty (actuated joints)
-    symmetry_cost_scale: float = 0.1
-    thigh_pose_cost_scale: float = 0.1  # keep thigh joints near neutral to avoid inward twisting
-    # Anti-phase gait reward (hip1-based, forward-only)
-    anti_phase_reward_scale: float = 0.15
-    anti_phase_sigma: float = 0.25
-    anti_phase_pos_gain: float = 2.5
-    anti_phase_min_speed: float = 0.15
-    gait_actual_speed_thresh: float = 0.08
-    gait_upright_thresh: float = 0.70
-    yaw_cmd_reward_thresh: float = 0.15
-    walk_cmd_speed_thresh: float = 0.15
-    walk_hip2_cost_scale: float = 0.12
-    contact_phase_reward_scale: float = 0.08
-    contact_phase_sigma: float = 0.35
-    contact_phase_min_speed: float = 0.15
-
-    # Gate smoothness/energy penalties to swing phase (set swing_gate_alpha=0.0 to disable gating)
-    gate_smoothness_to_swing: bool = False
-    swing_gate_alpha: float = 1.0
-
-    # Contact-based rewards
-    foot_body_regex: str = "left_foot|right_foot"
-    foot_contact_force_thresh: float = 30.0  # N (20-80N typical for humanoid ground contact)
-    min_air_time: float = 0.2  # seconds
-    feet_air_time_reward_scale: float = 0.2
-    air_time_symmetry_cost_scale: float = 0.35
-    foot_slip_cost_scale: float = 0.02
-    undesired_contact_force_thresh: float = 80.0  # N (50-200N typical)
-    undesired_contact_cost_scale: float = 0.1
-
-    # No-fly penalty: both feet off ground
-    no_fly_cost_scale: float = 0.20
-
-    # Anti-stomp touchdown penalty
-    touchdown_cost_scale: float = 0.16
-    touchdown_vel_ref: float = 0.6
-    touchdown_min_cmd_speed: float = 0.15
-    touchdown_force_cost_scale: float = 0.0
-    touchdown_force_thresh: float = 120.0
+    # Death
+    death_cost: float = -1.0
 
     # Penalty curriculum (episode-length driven)
     penalty_curriculum_enabled: bool = False
@@ -397,34 +361,37 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     penalty_curriculum_target_len_frac: float = 0.8
     penalty_curriculum_power: float = 2.0
 
-    # Optional: gait phase for timing
+    # Optional: gait phase for observation/debug timing only.
     use_phase_obs: bool = False
     gait_period_s: float = 1.0
     gait_period_randomization_width: float = 0.0
     randomize_phase: bool = True
     phase_offset_default: tuple[float, float] = (0.0, math.pi)
+    freeze_phase_when_standing: bool = True
+    stand_phase_lin_threshold: float = 0.08
+    stand_phase_yaw_threshold: float = 0.10
+    stand_phase_value: float = math.pi
 
     # Command curriculum (progressive difficulty) - based on per-env steps
     use_curriculum: bool = True
-    curriculum_stage1_steps_per_env: int = 2500   # per-env steps before adding yaw (stage 0 -> 1)
-    curriculum_stage2_steps_per_env: int = 5000  # per-env steps before adding lateral (stage 1 -> 2)
+    curriculum_stage1_steps_per_env: int = 10000   # per-env steps before adding yaw (stage 0 -> 1)
+    curriculum_stage2_steps_per_env: int = 30000  # per-env steps before adding lateral (stage 1 -> 2)
     
     # Stage 0: encourage forward motion (not standing still)
-    curriculum_stage0_vx_min: float = 0.3  # minimum forward velocity command in stage 0
-    curriculum_stage0_vx_max: float = 1.0  # maximum forward velocity command in stage 0
-    zero_command_probability: float = 0.0  # chance to sample a standstill command (vx=vy=yaw=0)
+    curriculum_stage0_vx_min: float = 0.2  # minimum forward velocity command in stage 0
+    curriculum_stage0_vx_max: float = 0.6  # maximum forward velocity command in stage 0
+    zero_command_probability: float = 0.10  # chance to sample a standstill command (vx=vy=yaw=0)
     turn_in_place_probability: float = 0.02  # chance to sample vx=vy=0, yaw!=0
     turn_in_place_yaw_min: float = 0.3
     turn_in_place_yaw_max: float = 1.0
     turn_in_place_min_stage: int = 1  # only allow in-place turns once yaw commands are introduced
     
     # Command resampling (per-episode step count)
-    command_resample_interval_s: float = 10.0
+    command_resample_interval_s: float = 4.0
     command_resample_interval_steps: int = 0  # if >0, overrides seconds-based interval
     lin_vel_x_range: tuple[float, float] = (-1.0, 1.0)
     lin_vel_y_range: tuple[float, float] = (-0.5, 0.5)
     ang_vel_yaw_range: tuple[float, float] = (-1.0, 1.0)
-    stand_prob: float = 0.2  # chance to force standstill (vx=vy=yaw=0)
 
     # --- Per-episode reset randomization (always-on, ADR or not) ---
     # Joint state noise at reset (actuated joints only)
