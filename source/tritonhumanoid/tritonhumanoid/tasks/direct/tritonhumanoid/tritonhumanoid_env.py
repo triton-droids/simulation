@@ -54,8 +54,14 @@ def _lerp(a: float, b: float, t: float) -> float:
     return a + (b - a) * t
 
 
-def _lerp_tuple(a: tuple[float, float], b: tuple[float, float], t: float) -> tuple[float, float]:
-    return (_lerp(a[0], b[0], t), _lerp(a[1], b[1], t))
+def _lerp_range(a, b, t: float):
+    if isinstance(a, dict) and isinstance(b, dict):
+        return {key: _lerp_range(a[key], b[key], t) for key in a.keys()}
+    if isinstance(a, tuple) and isinstance(b, tuple):
+        return tuple(_lerp_range(x, y, t) for x, y in zip(a, b))
+    if isinstance(a, list) and isinstance(b, list):
+        return [_lerp_range(x, y, t) for x, y in zip(a, b)]
+    return _lerp(float(a), float(b), t)
 
 
 def _ramp_scale(difficulty: float, start: float, ramp: float) -> float:
@@ -114,7 +120,7 @@ class LocomotionADR:
             term_cfg = self.event_manager.get_term_cfg(term_name)
             for param_name, max_range in max_updates.items():
                 base_range = self._base_event_params[term_name][param_name]
-                term_cfg.params[param_name] = _lerp_tuple(base_range, max_range, t)
+                term_cfg.params[param_name] = _lerp_range(base_range, max_range, t)
             self.event_manager.set_term_cfg(term_name, term_cfg)
 
     def get_custom(self, group: str, key: str):

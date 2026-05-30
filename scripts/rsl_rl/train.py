@@ -71,6 +71,7 @@ if args_cli.distributed and version.parse(installed_version) < version.parse(RSL
 
 import gymnasium as gym
 import os
+import pickle
 import torch
 from datetime import datetime
 
@@ -84,7 +85,7 @@ from isaaclab.envs import (
     multi_agent_to_single_agent,
 )
 from isaaclab.utils.dict import print_dict
-from isaaclab.utils.io import dump_pickle, dump_yaml
+from isaaclab.utils.io import dump_yaml
 
 from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 
@@ -98,6 +99,12 @@ torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
+
+
+def dump_pickle(filename: str, data):
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(filename, "wb") as f:
+        pickle.dump(data, f)
 
 
 @hydra_task_config(args_cli.task, "rsl_rl_cfg_entry_point")

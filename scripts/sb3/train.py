@@ -46,6 +46,7 @@ simulation_app = app_launcher.app
 import gymnasium as gym
 import numpy as np
 import os
+import pickle
 import random
 from datetime import datetime
 
@@ -62,7 +63,7 @@ from isaaclab.envs import (
     multi_agent_to_single_agent,
 )
 from isaaclab.utils.dict import print_dict
-from isaaclab.utils.io import dump_pickle, dump_yaml
+from isaaclab.utils.io import dump_yaml
 
 from isaaclab_rl.sb3 import Sb3VecEnvWrapper, process_sb3_cfg
 
@@ -70,6 +71,12 @@ import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils.hydra import hydra_task_config
 
 import tritonhumanoid.tasks  # noqa: F401
+
+
+def dump_pickle(filename: str, data):
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(filename, "wb") as f:
+        pickle.dump(data, f)
 
 
 @hydra_task_config(args_cli.task, "sb3_cfg_entry_point")
