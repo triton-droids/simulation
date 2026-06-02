@@ -31,8 +31,8 @@ params:
         name: default
       regularizer:
         name: None
-  load_checkpoint: false
-  load_path: ''
+  load_checkpoint: true
+  load_path: /workspace/simulation/logs/rl_games/humanoid_flat_direct/lafan_walk_16k_fast/nn/last_humanoid_flat_direct_ep_2100_rew_2160.0183.pth
   config:
     name: humanoid_flat_direct
     env_name: rlgpu
