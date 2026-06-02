@@ -64,6 +64,7 @@ simulation_app = app_launcher.app
 
 import gymnasium as gym
 import os
+import pickle
 import random
 from datetime import datetime
 
@@ -93,7 +94,7 @@ from isaaclab.envs import (
 )
 from isaaclab.utils.assets import retrieve_file_path
 from isaaclab.utils.dict import print_dict
-from isaaclab.utils.io import dump_pickle, dump_yaml
+from isaaclab.utils.io import dump_yaml
 
 from isaaclab_rl.skrl import SkrlVecEnvWrapper
 
@@ -105,6 +106,15 @@ import tritonhumanoid.tasks  # noqa: F401
 # config shortcuts
 algorithm = args_cli.algorithm.lower()
 agent_cfg_entry_point = "skrl_cfg_entry_point" if algorithm in ["ppo"] else f"skrl_{algorithm}_cfg_entry_point"
+
+
+def dump_pickle(filename: str, data: object):
+    """Save data into a pickle file, matching the older Isaac Lab helper."""
+    if not filename.endswith("pkl"):
+        filename += ".pkl"
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(filename, "wb") as f:
+        pickle.dump(data, f)
 
 
 @hydra_task_config(args_cli.task, agent_cfg_entry_point)

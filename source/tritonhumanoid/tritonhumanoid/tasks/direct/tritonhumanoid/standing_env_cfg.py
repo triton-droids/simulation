@@ -104,9 +104,7 @@ class EventCfg:
             min_step_count_between_reset=0,
             params={
                 "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-                "com_distribution_params": (0.0, 0.005),
-                "operation": "add",
-                "distribution": "uniform",
+                "com_range": {"x": (0.0, 0.005), "y": (0.0, 0.005), "z": (0.0, 0.005)},
             },
         )
 
@@ -313,7 +311,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     }
     if hasattr(mdp, "randomize_rigid_body_com"):
         adr_event_cfg_dict["robot_com_offset"] = {
-            "com_distribution_params": (0.0, 0.005),
+            "com_range": {"x": (0.0, 0.005), "y": (0.0, 0.005), "z": (0.0, 0.005)},
         }
     if hasattr(mdp, "randomize_rigid_body_inertia"):
         adr_event_cfg_dict["robot_inertia_scale"] = {

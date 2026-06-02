@@ -9,7 +9,18 @@ NUM_GPUS="${NUM_GPUS:-1}"
 LOG_ROOT="${LOG_ROOT:-logs/rl_games/humanoid_flat_direct/${EXPERIMENT_NAME}}"
 CHECKPOINT="${CHECKPOINT:-}"
 RESUME_LAST="${RESUME_LAST:-0}"
-PYTHON="${PYTHON:-python}"
+PYTHON_CMD=()
+if [[ -n "${ISAAC_PYTHON:-}" ]]; then
+  PYTHON_CMD=("${ISAAC_PYTHON}")
+elif [[ -n "${ISAACSIM_ROOT_PATH:-}" && -x "${ISAACSIM_ROOT_PATH}/python.sh" ]]; then
+  PYTHON_CMD=(env -u CONDA_PREFIX -u CONDA_DEFAULT_ENV -u CONDA_PROMPT_MODIFIER -u CONDA_SHLVL "${ISAACSIM_ROOT_PATH}/python.sh")
+elif [[ -x "/isaac-sim/python.sh" ]]; then
+  PYTHON_CMD=(env -u CONDA_PREFIX -u CONDA_DEFAULT_ENV -u CONDA_PROMPT_MODIFIER -u CONDA_SHLVL "/isaac-sim/python.sh")
+elif [[ -n "${ISAACLAB_PATH:-}" && -x "${ISAACLAB_PATH}/isaaclab.sh" && -z "${CONDA_PREFIX:-}" && -z "${VIRTUAL_ENV:-}" ]]; then
+  PYTHON_CMD=("${ISAACLAB_PATH}/isaaclab.sh" "-p")
+else
+  PYTHON_CMD=("${PYTHON:-python}")
+fi
 
 WALK_CLIPS=(
   walk1_subject1_original_floor_norm_with_vel.npz
@@ -61,6 +72,7 @@ echo "[INFO] Experiment: ${EXPERIMENT_NAME}"
 echo "[INFO] Motion dir: ${MOTION_DIR}"
 echo "[INFO] Manifest: ${MOTION_MANIFEST}"
 echo "[INFO] Num envs per process: ${NUM_ENVS}"
+echo "[INFO] Python: ${PYTHON_CMD[*]}"
 if (( NUM_GPUS > 1 )); then
   echo "[INFO] Distributed GPUs: ${NUM_GPUS} (total envs ~= $((NUM_ENVS * NUM_GPUS)))"
 fi
@@ -125,12 +137,12 @@ COMMON_OVERRIDES=(
   env.motion_random_start=true
   env.motion_min_length_s=1.0
   env.motion_cache_on_gpu=true
-  agent.params.config.full_experiment_name="${EXPERIMENT_NAME}"
+  +agent.params.config.full_experiment_name="${EXPERIMENT_NAME}"
 )
 
 if (( NUM_GPUS > 1 )); then
   CMD=(
-    "${PYTHON}" -m torch.distributed.run
+    "${PYTHON_CMD[@]}" -m torch.distributed.run
     --standalone
     --nnodes=1
     --nproc_per_node="${NUM_GPUS}"
@@ -141,7 +153,7 @@ if (( NUM_GPUS > 1 )); then
   )
 else
   CMD=(
-    "${PYTHON}" scripts/rl_games/train.py
+    "${PYTHON_CMD[@]}" scripts/rl_games/train.py
     "${TRAIN_ARGS[@]}"
     "${COMMON_OVERRIDES[@]}"
     "$@"

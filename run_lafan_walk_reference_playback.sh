@@ -7,6 +7,19 @@ MOTION_MANIFEST="${MOTION_MANIFEST:-manifests/${EXPERIMENT_NAME}_manifest.txt}"
 NUM_ENVS="${NUM_ENVS:-16}"
 NUM_STEPS="${NUM_STEPS:-600}"
 
+PYTHON_CMD=()
+if [[ -n "${ISAAC_PYTHON:-}" ]]; then
+  PYTHON_CMD=("${ISAAC_PYTHON}")
+elif [[ -n "${ISAACSIM_ROOT_PATH:-}" && -x "${ISAACSIM_ROOT_PATH}/python.sh" ]]; then
+  PYTHON_CMD=(env -u CONDA_PREFIX -u CONDA_DEFAULT_ENV -u CONDA_PROMPT_MODIFIER -u CONDA_SHLVL "${ISAACSIM_ROOT_PATH}/python.sh")
+elif [[ -x "/isaac-sim/python.sh" ]]; then
+  PYTHON_CMD=(env -u CONDA_PREFIX -u CONDA_DEFAULT_ENV -u CONDA_PROMPT_MODIFIER -u CONDA_SHLVL "/isaac-sim/python.sh")
+elif [[ -n "${ISAACLAB_PATH:-}" && -x "${ISAACLAB_PATH}/isaaclab.sh" && -z "${CONDA_PREFIX:-}" && -z "${VIRTUAL_ENV:-}" ]]; then
+  PYTHON_CMD=("${ISAACLAB_PATH}/isaaclab.sh" "-p")
+else
+  PYTHON_CMD=("${PYTHON:-python}")
+fi
+
 WALK_CLIPS=(
   walk1_subject1_original_floor_norm_with_vel.npz
   walk1_subject2_original_floor_norm_with_vel.npz
@@ -52,7 +65,7 @@ if [[ "${HEADLESS:-1}" != "0" ]]; then
   LAUNCH_ARGS+=(--headless)
 fi
 
-python scripts/lafan_reference_playback.py \
+"${PYTHON_CMD[@]}" scripts/lafan_reference_playback.py \
   --task=Isaac-Humanoid-Locomotion-Flat-Direct-v0 \
   --num_envs="${NUM_ENVS}" \
   --num_steps="${NUM_STEPS}" \
