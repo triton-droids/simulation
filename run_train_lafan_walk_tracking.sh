@@ -9,6 +9,7 @@ NUM_GPUS="${NUM_GPUS:-1}"
 LOG_ROOT="${LOG_ROOT:-logs/rl_games/humanoid_flat_direct/${EXPERIMENT_NAME}}"
 CHECKPOINT="${CHECKPOINT:-}"
 RESUME_LAST="${RESUME_LAST:-0}"
+FAST_TRAIN="${FAST_TRAIN:-1}"
 PYTHON_CMD=()
 if [[ -n "${ISAAC_PYTHON:-}" ]]; then
   PYTHON_CMD=("${ISAAC_PYTHON}")
@@ -139,6 +140,23 @@ COMMON_OVERRIDES=(
   env.motion_cache_on_gpu=true
   +agent.params.config.full_experiment_name="${EXPERIMENT_NAME}"
 )
+
+if [[ "${FAST_TRAIN}" != "0" ]]; then
+  COMMON_OVERRIDES+=(
+    env.events=null
+    env.enable_adr=false
+    env.enable_contact_rewards=false
+    env.enable_contact_sensors=false
+    env.enable_reward_logging=false
+    env.push_force_range=[0.0,0.0]
+    env.reset_joint_pos_noise=0.0
+    env.reset_joint_vel_noise=0.0
+    env.robot.spawn.activate_contact_sensors=false
+    env.robot.spawn.articulation_props.enabled_self_collisions=false
+    env.robot.spawn.articulation_props.solver_position_iteration_count=4
+    env.robot.spawn.articulation_props.solver_velocity_iteration_count=0
+  )
+fi
 
 if (( NUM_GPUS > 1 )); then
   CMD=(

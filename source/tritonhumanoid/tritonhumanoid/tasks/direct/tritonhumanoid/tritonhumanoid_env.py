@@ -183,6 +183,12 @@ class LocomotionEnv(DirectRLEnv):
     cfg: DirectRLEnvCfg
 
     def __init__(self, cfg: DirectRLEnvCfg, render_mode: str | None = None, **kwargs):
+        use_contact_sensors = bool(getattr(cfg, "enable_contact_sensors", False)) or bool(
+            getattr(cfg, "enable_contact_rewards", False)
+        )
+        if hasattr(cfg.robot, "spawn") and hasattr(cfg.robot.spawn, "activate_contact_sensors"):
+            cfg.robot.spawn.activate_contact_sensors = use_contact_sensors
+
         obs_stack_frames = max(1, int(getattr(cfg, "obs_stack_frames", 1)))
         obs_single_dim = 3 + 3 + 3 + cfg.action_space * 3
         if bool(getattr(cfg, "use_motion_reference", False)) and bool(
@@ -216,10 +222,11 @@ class LocomotionEnv(DirectRLEnv):
         )
         self._joint_dof_idx, _ = self.robot.find_joints(actuated_joint_regex)
 
-        print("\n")
-        print(self._joint_dof_idx)
-        print(_)
-        print("\n")
+        if bool(getattr(self.cfg, "debug_print_orderings", False)):
+            print("\n")
+            print(self._joint_dof_idx)
+            print(_)
+            print("\n")
         self.num_actions = len(self._joint_dof_idx)
 
         # Left/right joint pairs for symmetry penalty (action indices)
@@ -318,9 +325,10 @@ class LocomotionEnv(DirectRLEnv):
         default_joint_pos = self.robot.data.default_joint_pos[0]
         self.default_actuated_pos = default_joint_pos[self._joint_dof_idx].clone()
         
-        print("\n")
-        print(self.default_actuated_pos)
-        print("\n")
+        if bool(getattr(self.cfg, "debug_print_orderings", False)):
+            print("\n")
+            print(self.default_actuated_pos)
+            print("\n")
 
         self.actuated_lower = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 0].clone()
         self.actuated_upper = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 1].clone()
@@ -418,6 +426,7 @@ class LocomotionEnv(DirectRLEnv):
 
         # feet tracking flag
         self._feet_inited = False
+        self._contact_rewards_enabled = bool(getattr(self.cfg, "enable_contact_rewards", False))
 
         # --- Command curriculum tracking (global env-steps) ---
         self._global_env_steps = 0
@@ -561,13 +570,22 @@ class LocomotionEnv(DirectRLEnv):
         max_steps = max(min_steps, int(self.cfg.max_push_interval_s / self.dt))
         self._push_interval_steps_min = min_steps
         self._push_interval_steps_max = max_steps
+        self._pushes_enabled = self._push_dv_max > 0.0
         self.push_counters = torch.zeros(self.num_envs, dtype=torch.int32, device=self.sim.device)
-        self.next_push_steps = torch.randint(
-            self._push_interval_steps_min,
-            self._push_interval_steps_max + 1,
-            (self.num_envs,),
-            device=self.sim.device,
-        )
+        if self._pushes_enabled:
+            self.next_push_steps = torch.randint(
+                self._push_interval_steps_min,
+                self._push_interval_steps_max + 1,
+                (self.num_envs,),
+                device=self.sim.device,
+            )
+        else:
+            self.next_push_steps = torch.full(
+                (self.num_envs,),
+                self._push_interval_steps_max,
+                dtype=torch.int32,
+                device=self.sim.device,
+            )
 
         # init ADR controller after event_manager exists
         self.adr = None
@@ -605,11 +623,15 @@ class LocomotionEnv(DirectRLEnv):
     def _setup_scene(self):
         self.robot = Articulation(self.cfg.robot)
 
-        # add contact sensors
-        self._contact_sensor = ContactSensor(self.cfg.contact_sensor)
+        # add sensors
+        self._contact_sensor = None
+        if bool(getattr(self.cfg, "enable_contact_sensors", False)) or bool(
+            getattr(self.cfg, "enable_contact_rewards", False)
+        ):
+            self._contact_sensor = ContactSensor(self.cfg.contact_sensor)
+            self.scene.sensors["contact_sensor"] = self._contact_sensor
         self._ee_site_sensor = FrameTransformer(self.cfg.ee_site)
         self.scene.articulations["robot"] = self.robot
-        self.scene.sensors["contact_sensor"] = self._contact_sensor
         self.scene.sensors["ee_site"] = self._ee_site_sensor
 
         # add ground plane
@@ -753,7 +775,7 @@ class LocomotionEnv(DirectRLEnv):
 
     def _maybe_apply_pushes(self):
         """Apply random directed velocity kicks to the base at random intervals."""
-        if self._push_dv_max <= 0.0:
+        if not self._pushes_enabled or self._push_dv_max <= 0.0:
             return
 
         self.push_counters += 1
@@ -1282,18 +1304,21 @@ class LocomotionEnv(DirectRLEnv):
         energy_cost = torch.sum(torch.abs(joint_torques * self.act_vel), dim=1)
         self.prev_act_vel[:] = self.act_vel
 
-        # --- Contact-based penalties: slip and undesired contacts only for v1 tracking. ---
-        self._init_feet()
-        forces_hist = self._contact_sensor.data.net_forces_w_history  # (N,T,B,3)
-        foot_forces = forces_hist[:, 0, self._feet_sensor_ids, :]     # (N,2,3)
-        foot_contact = torch.clamp(foot_forces[:, :, 2], min=0.0) > self.cfg.foot_contact_force_thresh
-        feet_vel_w = self.robot.data.body_lin_vel_w[:, self._feet_body_ids, :]  # (N,2,3)
-        slip_cost = torch.sum(torch.sum(feet_vel_w[..., :2] ** 2, dim=-1) * foot_contact.float(), dim=1)
-        all_forces = forces_hist[:, 0, :, :]
-        all_mag = torch.linalg.norm(all_forces, dim=-1)
-        all_mag[:, self._feet_sensor_ids] = 0.0
-        undesired = (all_mag > self.cfg.undesired_contact_force_thresh).any(dim=1).float()
-        self.prev_foot_contact[:] = foot_contact
+        if self._contact_rewards_enabled:
+            self._init_feet()
+            forces_hist = self._contact_sensor.data.net_forces_w_history  # (N,T,B,3)
+            foot_forces = forces_hist[:, 0, self._feet_sensor_ids, :]     # (N,2,3)
+            foot_contact = torch.clamp(foot_forces[:, :, 2], min=0.0) > self.cfg.foot_contact_force_thresh
+            feet_vel_w = self.robot.data.body_lin_vel_w[:, self._feet_body_ids, :]  # (N,2,3)
+            slip_cost = torch.sum(torch.sum(feet_vel_w[..., :2] ** 2, dim=-1) * foot_contact.float(), dim=1)
+            all_forces = forces_hist[:, 0, :, :]
+            all_mag = torch.linalg.norm(all_forces, dim=-1)
+            all_mag[:, self._feet_sensor_ids] = 0.0
+            undesired = (all_mag > self.cfg.undesired_contact_force_thresh).any(dim=1).float()
+            self.prev_foot_contact[:] = foot_contact
+        else:
+            slip_cost = torch.zeros_like(joint_pos_err)
+            undesired = torch.zeros_like(joint_pos_err)
 
         reward = (
             self.cfg.joint_pos_tracking_reward_scale * r_q
@@ -1346,9 +1371,10 @@ class LocomotionEnv(DirectRLEnv):
 
         died = fell | too_tilted
 
-        log = self.extras.setdefault("log", {})
-        log["tracking/fall_rate"] = float(died.float().mean().item())
-        log["tracking/clip_completion_rate"] = float(self.motion_done.float().mean().item())
+        if bool(getattr(self.cfg, "enable_reward_logging", False)):
+            log = self.extras.setdefault("log", {})
+            log["tracking/fall_rate"] = float(died.float().mean().item())
+            log["tracking/clip_completion_rate"] = float(self.motion_done.float().mean().item())
 
         return died, time_out
 
@@ -1433,13 +1459,14 @@ class LocomotionEnv(DirectRLEnv):
             self.prev_foot_contact[env_ids] = False
 
         # reset push timers
-        self.push_counters[env_ids] = 0
-        self.next_push_steps[env_ids] = torch.randint(
-            self._push_interval_steps_min,
-            self._push_interval_steps_max + 1,
-            (env_ids.numel(),),
-            device=self.sim.device,
-        )
+        if self._pushes_enabled:
+            self.push_counters[env_ids] = 0
+            self.next_push_steps[env_ids] = torch.randint(
+                self._push_interval_steps_min,
+                self._push_interval_steps_max + 1,
+                (env_ids.numel(),),
+                device=self.sim.device,
+            )
 
         # sample per-episode DR variables (strength, imu bias)
         self._sample_custom_dr_for_resets(env_ids)
@@ -1561,6 +1588,8 @@ class LocomotionEnv(DirectRLEnv):
         """Initialize foot body and contact sensor indices (call once before using contact rewards)."""
         if self._feet_inited:
             return
+        if self._contact_sensor is None:
+            raise RuntimeError("Contact rewards require enable_contact_sensors=True or enable_contact_rewards=True.")
 
         # 1) feet kinematics indices (for slip / clearance)
         foot_body_ids, foot_body_names = self.robot.find_bodies(self.cfg.foot_body_regex)

@@ -394,6 +394,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     swing_gate_alpha: float = 1.0
 
     # Contact-based rewards
+    enable_contact_rewards: bool = False
+    enable_contact_sensors: bool = False
     foot_body_regex: str = "left_foot|right_foot"
     foot_contact_force_thresh: float = 30.0  # N (20-80N typical for humanoid ground contact)
     min_air_time: float = 0.2  # seconds
