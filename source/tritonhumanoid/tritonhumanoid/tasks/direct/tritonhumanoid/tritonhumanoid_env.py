@@ -312,11 +312,33 @@ class LocomotionEnv(DirectRLEnv):
         imu_ids, _ = self.robot.find_bodies("world")
         self._imu_body_idx = int(imu_ids[0])
 
-        # tracking site index (for velocity/height tracking)
-        site_names = self.scene["ee_site"].data.target_frame_names
-        if "top" not in site_names:
-            raise RuntimeError(f"'top' not found in ee_site target_frame_names: {site_names}")
-        self._top_frame_idx = site_names.index("top")
+        # Optional tracking-site sensor. Fast training computes the same top point
+        # analytically from the configured body pose and offset.
+        self._frame_transformer_enabled = bool(getattr(self.cfg, "enable_frame_transformer", False))
+        self._top_frame_idx = None
+        top_frame_cfg = None
+        for frame_cfg in getattr(self.cfg.ee_site, "target_frames", []):
+            if getattr(frame_cfg, "name", None) == "top":
+                top_frame_cfg = frame_cfg
+                break
+        if top_frame_cfg is None:
+            raise RuntimeError("'top' not found in ee_site target_frames")
+
+        top_body_name = str(top_frame_cfg.prim_path).rstrip("/").split("/")[-1]
+        top_body_ids, _ = self.robot.find_bodies(top_body_name)
+        if len(top_body_ids) == 0:
+            raise RuntimeError(f"Top frame body '{top_body_name}' not found in robot bodies")
+        self._top_body_idx = int(top_body_ids[0])
+        self._top_frame_offset_b = torch.tensor(
+            top_frame_cfg.offset.pos,
+            device=self.sim.device,
+            dtype=torch.float32,
+        ).unsqueeze(0).repeat(self.num_envs, 1)
+        if self._frame_transformer_enabled:
+            site_names = self.scene["ee_site"].data.target_frame_names
+            if "top" not in site_names:
+                raise RuntimeError(f"'top' not found in ee_site target_frame_names: {site_names}")
+            self._top_frame_idx = site_names.index("top")
 
         # pre-create world up for speed (avoid allocating every step)
         self._world_up = torch.tensor([0.0, 0.0, 1.0], device=self.sim.device).unsqueeze(0).repeat(self.num_envs, 1)
@@ -630,9 +652,11 @@ class LocomotionEnv(DirectRLEnv):
         ):
             self._contact_sensor = ContactSensor(self.cfg.contact_sensor)
             self.scene.sensors["contact_sensor"] = self._contact_sensor
-        self._ee_site_sensor = FrameTransformer(self.cfg.ee_site)
         self.scene.articulations["robot"] = self.robot
-        self.scene.sensors["ee_site"] = self._ee_site_sensor
+        self._ee_site_sensor = None
+        if bool(getattr(self.cfg, "enable_frame_transformer", False)):
+            self._ee_site_sensor = FrameTransformer(self.cfg.ee_site)
+            self.scene.sensors["ee_site"] = self._ee_site_sensor
 
         # add ground plane
         self.cfg.terrain.num_envs = self.scene.cfg.num_envs
@@ -1020,7 +1044,7 @@ class LocomotionEnv(DirectRLEnv):
             print(f"[MotionReference] action joint_names={action_joint_names}", flush=True)
             print(f"[MotionReference] remap mujoco->action={self.motion_lib.mujoco_to_isaac}", flush=True)
 
-    def _update_motion_targets(self) -> None:
+    def _update_motion_targets(self, update_errors: bool = True, include_future: bool = True) -> None:
         if not self._motion_reference_enabled:
             return
         if self.motion_lib is None:
@@ -1039,22 +1063,24 @@ class LocomotionEnv(DirectRLEnv):
         self.motion_target_root_ang_vel_b = ref["root_ang_vel_b"]
         self.motion_target_root_yaw = ref["root_yaw"]
         self.motion_target_yaw_rate = ref["yaw_rate_ref"]
-        self.motion_target_future_joint_pos = self.motion_lib.get_future_joint_pos(
-            self.motion_ids,
-            self.motion_frame,
-            self._future_ref_offsets,
-        )
-
-        if hasattr(self, "act_pos"):
-            self.motion_target_joint_pos_error = self.motion_target_joint_pos - self.act_pos
-            self.motion_target_future_joint_pos_error = (
-                self.motion_target_future_joint_pos - self.act_pos.unsqueeze(1)
+        if include_future:
+            self.motion_target_future_joint_pos = self.motion_lib.get_future_joint_pos(
+                self.motion_ids,
+                self.motion_frame,
+                self._future_ref_offsets,
             )
-        if hasattr(self, "root_pos_local"):
+
+        if update_errors and hasattr(self, "act_pos"):
+            self.motion_target_joint_pos_error = self.motion_target_joint_pos - self.act_pos
+            if include_future:
+                self.motion_target_future_joint_pos_error = (
+                    self.motion_target_future_joint_pos - self.act_pos.unsqueeze(1)
+                )
+        if update_errors and hasattr(self, "root_pos_local"):
             self.motion_target_root_height_error = self.motion_target_root_pos[:, 2] - self.root_pos_local[:, 2]
-        if hasattr(self, "root_yaw"):
+        if update_errors and hasattr(self, "root_yaw"):
             self.motion_target_root_yaw_error = wrap_angle(self.motion_target_root_yaw - self.root_yaw)
-        if hasattr(self, "root_ang_vel_b"):
+        if update_errors and hasattr(self, "root_ang_vel_b"):
             self.motion_target_yaw_rate_error = self.root_ang_vel_b[:, 2] - self.motion_target_yaw_rate
 
         if bool(getattr(self.cfg, "motion_reference_debug_print", False)) and not self._motion_debug_printed:
@@ -1071,7 +1097,7 @@ class LocomotionEnv(DirectRLEnv):
             self._motion_debug_printed = True
 
     def _apply_action(self):
-        self._update_motion_targets()
+        self._update_motion_targets(update_errors=False, include_future=False)
         actions = torch.zeros_like(self.actions) if self._motion_reference_playback else self.actions
         pos_offsets = (
             self.action_scale
@@ -1130,10 +1156,15 @@ class LocomotionEnv(DirectRLEnv):
         self.root_yaw = yaw_from_quat(self.root_quat_w)
 
         # ------------------------------------------
-        # B) Tracking state from site frame "top"
+        # B) Tracking height for termination/visualization
         # ------------------------------------------
-        ft = self.scene["ee_site"].data
-        self.track_pos_w = ft.target_pos_w[:, self._top_frame_idx]
+        if self._frame_transformer_enabled:
+            ft = self.scene["ee_site"].data
+            self.track_pos_w = ft.target_pos_w[:, self._top_frame_idx]
+        else:
+            top_body_pos_w = self.robot.data.body_pos_w[:, self._top_body_idx]
+            top_body_quat_w = self.robot.data.body_quat_w[:, self._top_body_idx]
+            self.track_pos_w = top_body_pos_w + quat_rotate(top_body_quat_w, self._top_frame_offset_b)
 
         # ------------------------------------------
         # C) Center of mass (COM) state for tracking

@@ -233,6 +233,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     contact_sensor: ContactSensorCfg = ContactSensorCfg(
         prim_path="/World/envs/env_.*/Robot/.*", history_length=3, update_period=0.005, track_air_time=True
     )
+    enable_frame_transformer: bool = False
 
     # scene.ee_site = FrameTransformerCfg(
     #     prim_path="{ENV_REGEX_NS}/Robot/world",   # source frame
