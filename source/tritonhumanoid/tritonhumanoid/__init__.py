@@ -7,8 +7,16 @@
 Python module serving as a project/extension template.
 """
 
-# Register Gym environments.
-from .tasks import *
+# Register Gym environments when Isaac Lab is available.
+try:
+    from .tasks import *
+except ModuleNotFoundError as exc:
+    if exc.name != "isaaclab_tasks":
+        raise
 
-# Register UI extensions.
-from .ui_extension_example import *
+# Register UI extensions when Omniverse is available.
+try:
+    from .ui_extension_example import *
+except ModuleNotFoundError as exc:
+    if exc.name != "omni":
+        raise

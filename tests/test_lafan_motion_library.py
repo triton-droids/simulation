@@ -2,12 +2,17 @@ from __future__ import annotations
 
 import importlib.util
 
-import numpy as np
 import pytest
 
-pytestmark = pytest.mark.skipif(importlib.util.find_spec("torch") is None, reason="torch is not installed")
+pytestmark = pytest.mark.skipif(
+    importlib.util.find_spec("torch") is None or importlib.util.find_spec("numpy") is None,
+    reason="torch or numpy is not installed",
+)
 
-if importlib.util.find_spec("torch") is not None:
+if importlib.util.find_spec("numpy") is not None:
+    import numpy as np
+
+if importlib.util.find_spec("torch") is not None and importlib.util.find_spec("numpy") is not None:
     import torch
 
     from tritonhumanoid.tasks.direct.tritonhumanoid.lafan_motion_library import LafanMotionLibrary

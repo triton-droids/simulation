@@ -3,4 +3,8 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-import gymnasium as gym  # noqa: F401
+try:
+    import gymnasium as gym  # noqa: F401
+except ModuleNotFoundError as exc:
+    if exc.name != "gymnasium":
+        raise
