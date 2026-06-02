@@ -35,6 +35,7 @@ parser.add_argument("--real-time", action="store_true", default=False, help="Run
 parser.add_argument("--export-policy", action="store_true", default=True, help="Export the policy to TorchScript format.")
 parser.add_argument("--motion_dir", type=str, default=None, help="Override LAFAN motion reference directory.")
 parser.add_argument("--motion_manifest", type=str, default=None, help="Override LAFAN motion manifest file.")
+parser.add_argument("--experiment_name", type=str, default=None, help="Override rl-games run directory to load from.")
 parser.add_argument("--motion_random_start", action="store_true", default=None, help="Use random reference start frames.")
 parser.add_argument(
     "--motion_reference_playback",
@@ -560,6 +561,8 @@ def main():
     if hasattr(env_cfg, "motion_reference_playback"):
         env_cfg.motion_reference_playback = bool(args_cli.motion_reference_playback)
     agent_cfg = load_cfg_from_registry(args_cli.task, "rl_games_cfg_entry_point")
+    if args_cli.experiment_name is not None:
+        agent_cfg["params"]["config"]["full_experiment_name"] = args_cli.experiment_name
 
     # specify directory for logging experiments
     log_root_path = os.path.join("logs", "rl_games", agent_cfg["params"]["config"]["name"])
