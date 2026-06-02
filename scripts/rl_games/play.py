@@ -33,6 +33,15 @@ parser.add_argument(
 )
 parser.add_argument("--real-time", action="store_true", default=False, help="Run in real-time, if possible.")
 parser.add_argument("--export-policy", action="store_true", default=True, help="Export the policy to TorchScript format.")
+parser.add_argument("--motion_dir", type=str, default=None, help="Override LAFAN motion reference directory.")
+parser.add_argument("--motion_manifest", type=str, default=None, help="Override LAFAN motion manifest file.")
+parser.add_argument("--motion_random_start", action="store_true", default=None, help="Use random reference start frames.")
+parser.add_argument(
+    "--motion_reference_playback",
+    action="store_true",
+    default=False,
+    help="Play q_ref directly with zero residual policy actions.",
+)
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
@@ -542,6 +551,14 @@ def main():
     # Enable velocity visualization during play by default.
     if hasattr(env_cfg, "debug_vel_vis"):
         env_cfg.debug_vel_vis = True
+    if args_cli.motion_dir is not None and hasattr(env_cfg, "motion_reference_dir"):
+        env_cfg.motion_reference_dir = args_cli.motion_dir
+    if args_cli.motion_manifest is not None and hasattr(env_cfg, "motion_manifest_file"):
+        env_cfg.motion_manifest_file = args_cli.motion_manifest
+    if args_cli.motion_random_start is not None and hasattr(env_cfg, "motion_random_start"):
+        env_cfg.motion_random_start = bool(args_cli.motion_random_start)
+    if hasattr(env_cfg, "motion_reference_playback"):
+        env_cfg.motion_reference_playback = bool(args_cli.motion_reference_playback)
     agent_cfg = load_cfg_from_registry(args_cli.task, "rl_games_cfg_entry_point")
 
     # specify directory for logging experiments

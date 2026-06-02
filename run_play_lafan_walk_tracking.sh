@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MOTION_DIR="${MOTION_DIR:-/cephfs/holosoma/data/lafan/retargeted/ch_robot_stance_flatfoot_locomotion_full_floor_norm_with_vel}"
+NUM_ENVS="${NUM_ENVS:-16}"
+
+WALK_CLIPS=(
+  walk1_subject1_original_floor_norm_with_vel.npz
+  walk1_subject2_original_floor_norm_with_vel.npz
+  walk1_subject5_original_floor_norm_with_vel.npz
+  walk2_subject1_original_floor_norm_with_vel.npz
+  walk2_subject3_original_floor_norm_with_vel.npz
+  walk2_subject4_original_floor_norm_with_vel.npz
+  walk3_subject1_original_floor_norm_with_vel.npz
+  walk3_subject2_original_floor_norm_with_vel.npz
+  walk3_subject3_original_floor_norm_with_vel.npz
+  walk3_subject4_original_floor_norm_with_vel.npz
+  walk3_subject5_original_floor_norm_with_vel.npz
+  walk4_subject1_original_floor_norm_with_vel.npz
+)
+
+if [[ ! -d "${MOTION_DIR}" ]]; then
+  echo "[ERROR] Motion directory does not exist: ${MOTION_DIR}" >&2
+  exit 1
+fi
+
+MOTION_MANIFEST="$(mktemp "${TMPDIR:-/tmp}/lafan_walk_manifest.XXXXXX")"
+trap 'rm -f "${MOTION_MANIFEST}"' EXIT
+
+missing=0
+for clip in "${WALK_CLIPS[@]}"; do
+  path="${MOTION_DIR}/${clip}"
+  if [[ ! -f "${path}" ]]; then
+    echo "[ERROR] Missing walk clip: ${path}" >&2
+    missing=1
+  else
+    printf '%s\n' "${path}" >> "${MOTION_MANIFEST}"
+  fi
+done
+
+if [[ "${missing}" != "0" ]]; then
+  exit 1
+fi
+
+LAUNCH_ARGS=()
+if [[ "${HEADLESS:-0}" != "0" ]]; then
+  LAUNCH_ARGS+=(--headless)
+fi
+
+python scripts/rl_games/play.py \
+  --task=Isaac-Humanoid-Locomotion-Flat-Direct-v0 \
+  --num_envs="${NUM_ENVS}" \
+  --use_last_checkpoint \
+  --motion_dir="${MOTION_DIR}" \
+  --motion_manifest="${MOTION_MANIFEST}" \
+  "${LAUNCH_ARGS[@]}" \
+  "$@"

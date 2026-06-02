@@ -132,27 +132,32 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # env
     episode_length_s = 20.0
     min_episode_length_s: float = 5.0
-    randomize_episode_length: bool = True
-    decimation = 4
+    randomize_episode_length: bool = False
+    decimation = 8
 
-    # Position control: actions map to POSITION OFFSETS (radians) around default pose
-    # action_scale determines the maximum offset: actions in [-1, 1] → [-action_scale, +action_scale] radians
-    # The actual position command is: q_target = default_pose + action_scale * action
-    action_scale: float = 0.8  # Lower for early training stability; increase to 0.5 after initial learning
-    # Per-joint multipliers applied on top of action_scale
-    action_scale_by_joint: dict[str, float] = {
-        "left_hip2_joint": 0.50,
-        "right_hip2_joint": 0.50,
-        "left_thigh_joint": 0.3,
-        "right_thigh_joint": 0.3,
+    # Residual reference tracking control:
+    # q_des = q_ref + residual_action_scale * residual_action_scale_by_joint * action
+    action_scale: float = 1.0
+    residual_action_scale: float = 0.15
+    residual_action_scale_by_joint: dict[str, float] = {
+        "left_hip1_joint": 1.0,
+        "right_hip1_joint": 1.0,
+        "left_hip2_joint": 0.8,
+        "right_hip2_joint": 0.8,
+        "left_thigh_joint": 1.0,
+        "right_thigh_joint": 1.0,
+        "left_knee_joint": 1.0,
+        "right_knee_joint": 1.0,
+        "left_ankle_joint": 0.7,
+        "right_ankle_joint": 0.7,
     }
 
     # 10 actuated leg joints
     action_space = 10
 
-    # obs_dim base = 42, plus 20 for motion reference targets when enabled.
+    # obs_dim base = 39, plus 67 for current/future motion reference targets.
     # The env recomputes the final dimension at runtime based on enabled optional observations.
-    observation_space_single = 62
+    observation_space_single = 106
     obs_stack_frames: int = 3
     observation_space = observation_space_single * obs_stack_frames
 
@@ -160,7 +165,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
 
     # simulation
     sim = SimulationCfg(
-        dt=1/200,
+        dt=1 / 240,
         render_interval=decimation,
         physics_material=RigidBodyMaterialCfg(
             static_friction=1.0,
@@ -268,24 +273,29 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     joint_vel_obs_noise_std_rad_s: float = 0.0
     command_yaw_offset: float = -math.pi / 2.0  # rotate body-frame vectors to align +Y forward with +X commands
 
-    # Optional reference motion from Holosoma retargeting conversion.
-    # The policy observation receives target joint position error and target joint velocity,
-    # both remapped by joint_names into the IsaacLab action order.
+    # Enriched 30 Hz LAFAN reference motions.
     use_motion_reference: bool = True
-    motion_reference_file: str = "data/motions/sub10_largebox_049_clip120_mj_fps50.npz"
+    motion_reference_dir: str = "data/motions/lafan_tracking"
+    motion_manifest_file: str = ""
+    motion_fps: int = 30
+    motion_random_start: bool = True
+    motion_min_length_s: float = 1.0
+    motion_max_cost: float | None = None
+    motion_cache_on_gpu: bool = True
+    future_ref_offsets: tuple[int, ...] = (1, 2, 4, 6)
     motion_reference_observation: bool = True
-    motion_reference_random_start: bool = True
     motion_reference_pos_error_scale: float = 1.0
     motion_reference_vel_scale: float = 0.1
     motion_reference_debug_print: bool = False
+    motion_reference_playback: bool = False
 
     # Observation term config (uniform noise, scale, clip)
     obs_term_cfg: dict = {
-        "projected_gravity": {"noise": 0.01, "scale": 1.0, "clip": 1.0},
-        "base_ang_vel": {"noise": 0.05, "scale": 0.25, "clip": 5.0},
-        "base_lin_vel": {"noise": 0.05, "scale": 1.0, "clip": 5.0},
-        "dof_pos_delta": {"noise": 0.01, "scale": 1.0, "clip": 2.0},
-        "dof_vel": {"noise": 0.1, "scale": 0.1, "clip": 5.0},
+        "projected_gravity": {"noise": 0.0, "scale": 1.0, "clip": 1.0},
+        "base_ang_vel": {"noise": 0.0, "scale": 0.25, "clip": 5.0},
+        "base_lin_vel": {"noise": 0.0, "scale": 1.0, "clip": 5.0},
+        "dof_pos_delta": {"noise": 0.0, "scale": 1.0, "clip": 2.0},
+        "dof_vel": {"noise": 0.0, "scale": 0.1, "clip": 5.0},
         "prev_actions": {"noise": 0.0, "scale": 1.0, "clip": 1.0},
         "commands": {"noise": 0.0, "scale": 1.0, "clip": 1.0},
         "phase": {"noise": 0.0, "scale": 1.0, "clip": 1.0},
@@ -295,10 +305,13 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     termination_height: float = 0.4
     upright_threshold: float = 0.5  # up_b.z
 
-    # Reward shaping (minimal)
-    lin_vel_reward_scale: float = 3.0
-    yaw_rate_reward_scale: float = 0.6
-    upright_reward_scale: float = 0.6
+    # Imitation reward shaping.
+    joint_pos_tracking_reward_scale: float = 4.0
+    joint_vel_tracking_reward_scale: float = 0.5
+    root_height_tracking_reward_scale: float = 1.0
+    root_yaw_tracking_reward_scale: float = 1.0
+    root_lin_vel_tracking_reward_scale: float = 0.5
+    yaw_rate_tracking_reward_scale: float = 0.3
     alive_reward: float = 0.05
 
     action_cost_scale: float = 0.005
@@ -306,8 +319,19 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     death_cost: float = -1.0
 
     # Tracking sharpness (bigger = easier / smoother)
-    lin_vel_sigma: float = 0.10  # in (m/s)^2 units inside exp; sharper tracking
-    yaw_rate_sigma: float = 0.5  # in (rad/s)^2 units inside exp
+    sigma_q: float = 0.25
+    sigma_joint_vel: float = 5.0
+    sigma_h: float = 0.04
+    sigma_yaw: float = 0.25
+    sigma_root_vel: float = 1.0
+    sigma_yaw_rate: float = 1.0
+
+    # Legacy command reward fields retained for config compatibility. They are not used by tracking rewards.
+    lin_vel_reward_scale: float = 0.0
+    yaw_rate_reward_scale: float = 0.0
+    upright_reward_scale: float = 0.0
+    lin_vel_sigma: float = 0.10
+    yaw_rate_sigma: float = 0.5
 
     # Stability costs (prevent hopping/rolling)
     lin_vel_z_cost_scale: float = 0.08
@@ -326,7 +350,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     action_rate_cost_scale: float = 0.01
     dof_vel_cost_scale: float = 0.0001
     dof_vel_delta_cost_scale: float = 0.01  # penalize velocity changes (instead of acceleration)
-    energy_cost_scale: float = 0.002  # penalize mechanical power |tau * qdot|
+    energy_cost_scale: float = 0.001  # penalize mechanical power |tau * qdot|
 
     # standing command detect
     stand_cmd_lin_thresh: float = 0.08
@@ -377,7 +401,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     min_air_time: float = 0.2  # seconds
     feet_air_time_reward_scale: float = 0.2
     air_time_symmetry_cost_scale: float = 0.35
-    foot_slip_cost_scale: float = 0.02
+    foot_slip_cost_scale: float = 0.05
     undesired_contact_force_thresh: float = 80.0  # N (50-200N typical)
     undesired_contact_cost_scale: float = 0.1
 
@@ -416,7 +440,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     phase_offset_default: tuple[float, float] = (0.0, math.pi)
 
     # Command curriculum (progressive difficulty) - based on per-env steps
-    use_curriculum: bool = True
+    use_curriculum: bool = False
     curriculum_stage1_steps_per_env: int = 2500   # per-env steps before adding yaw (stage 0 -> 1)
     curriculum_stage2_steps_per_env: int = 5000  # per-env steps before adding lateral (stage 1 -> 2)
     
@@ -439,12 +463,12 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
 
     # --- Per-episode reset randomization (always-on, ADR or not) ---
     # Joint state noise at reset (actuated joints only)
-    reset_joint_pos_noise: float = 0.05
-    reset_joint_vel_noise: float = 0.2
+    reset_joint_pos_noise: float = 0.0
+    reset_joint_vel_noise: float = 0.0
 
     # === Disturbance (push) parameters ===
     # treat as delta-velocity, not force
-    push_force_range = (0.2, 0.8)
+    push_force_range = (0.0, 0.0)
     # Push timing profiles (in seconds)
     push_strong: bool = False  # True -> 1–3s, False -> 5–10s
     strong_min_push_interval_s = 1.0
@@ -455,7 +479,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     push_angvel_scale: float = 0.8
 
     # === ADR configuration ===
-    enable_adr: bool = True
+    enable_adr: bool = False
     num_adr_increments: int = 100
     starting_adr_increments: int = 0
     adr_update_interval_steps: int = 500
@@ -552,8 +576,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     }
 
     # Action/observation latency buffer sizes in policy steps.
-    action_max_latency: int = 2
-    obs_max_latency: int = 1
+    action_max_latency: int = 0
+    obs_max_latency: int = 0
 
     # Debug visualization (draw velocity arrows for a single env)
     debug_vel_vis: bool = False  # disable during training for performance
@@ -586,15 +610,21 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
   7: right_knee_joint
   8: left_ankle_joint
   9: right_ankle_joint
-[DebugOrder] commands order: [vx, vy, yaw_rate]
 [DebugOrder] observation slices (single frame):
-    lin_vel_cmd: [0, 3)
-    ang_vel_cmd_scaled: [3, 6)
-    up_cmd: [6, 9)
-    commands: [9, 12)
-    act_pos_scaled: [12, 22)
-    act_vel_scaled: [22, 32)
-    prev_actions: [32, 42)
+    up_b: [0, 3)
+    root_lin_vel_b: [3, 6)
+    root_ang_vel_b_scaled: [6, 9)
+    act_pos_scaled: [9, 19)
+    act_vel_scaled: [19, 29)
+    prev_actions: [29, 39)
+    joint_pos_ref_error: [39, 49)
+    joint_vel_ref: [49, 59)
+    root_height_error: [59, 60)
+    root_yaw_error: [60, 61)
+    root_lin_vel_b_ref: [61, 64)
+    yaw_rate_ref: [64, 65)
+    yaw_rate_error: [65, 66)
+    future_joint_pos_ref_error: [66, 106)
 
 
 [JointLimits]

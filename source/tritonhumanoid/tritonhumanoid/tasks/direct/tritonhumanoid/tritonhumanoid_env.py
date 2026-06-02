@@ -9,7 +9,6 @@ import math
 from copy import deepcopy
 from pathlib import Path
 
-import numpy as np
 import torch
 
 import isaaclab.sim as sim_utils
@@ -19,6 +18,8 @@ from isaaclab.sensors import ContactSensor, FrameTransformer
 from isaaclab.markers import VisualizationMarkers, VisualizationMarkersCfg
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 import isaaclab.utils.math as math_utils
+
+from .lafan_motion_library import LafanMotionLibrary
 
 
 def quat_rotate_inverse(q: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
@@ -51,6 +52,19 @@ def quat_rotate(q: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
     q_xyz = q[:, 1:4]
     t = 2.0 * torch.cross(q_xyz, v, dim=-1)
     return v + w * t + torch.cross(q_xyz, t, dim=-1)
+
+
+def yaw_from_quat(q: torch.Tensor) -> torch.Tensor:
+    """Return yaw from wxyz quaternions."""
+    w = q[:, 0]
+    x = q[:, 1]
+    y = q[:, 2]
+    z = q[:, 3]
+    return torch.atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z))
+
+
+def wrap_angle(angle: torch.Tensor) -> torch.Tensor:
+    return torch.atan2(torch.sin(angle), torch.cos(angle))
 
 
 def _lerp(a: float, b: float, t: float) -> float:
@@ -170,13 +184,20 @@ class LocomotionEnv(DirectRLEnv):
 
     def __init__(self, cfg: DirectRLEnvCfg, render_mode: str | None = None, **kwargs):
         obs_stack_frames = max(1, int(getattr(cfg, "obs_stack_frames", 1)))
-        obs_single_dim = 3 + 3 + 3 + 3 + cfg.action_space * 3
-        if cfg.use_phase_obs:
-            obs_single_dim += 2
+        obs_single_dim = 3 + 3 + 3 + cfg.action_space * 3
         if bool(getattr(cfg, "use_motion_reference", False)) and bool(
             getattr(cfg, "motion_reference_observation", True)
         ):
-            obs_single_dim += cfg.action_space * 2
+            future_count = len(tuple(getattr(cfg, "future_ref_offsets", (1, 2, 4, 6))))
+            obs_single_dim += (
+                cfg.action_space * 2  # current q_ref error + joint_vel_ref
+                + 1  # root height error
+                + 1  # root yaw error
+                + 3  # root_lin_vel_b_ref
+                + 1  # yaw_rate_ref
+                + 1  # yaw_rate_error
+                + cfg.action_space * future_count
+            )
         cfg.observation_space_single = obs_single_dim
         cfg.obs_stack_frames = obs_stack_frames
         cfg.observation_space = obs_single_dim * obs_stack_frames
@@ -186,8 +207,8 @@ class LocomotionEnv(DirectRLEnv):
 
         super().__init__(cfg, render_mode, **kwargs)
 
-        # actions are POSITION OFFSETS for actuated joints
-        self.action_scale = self.cfg.action_scale
+        # actions are residual position offsets around the current reference joints
+        self.action_scale = float(getattr(self.cfg, "residual_action_scale", self.cfg.action_scale))
 
         actuated_joint_regex = (
             "left_hip1_joint|left_hip2_joint|left_thigh_joint|left_knee_joint|left_ankle_joint|"
@@ -204,7 +225,11 @@ class LocomotionEnv(DirectRLEnv):
         # Left/right joint pairs for symmetry penalty (action indices)
         joint_id_to_action = {int(jid): i for i, jid in enumerate(self._joint_dof_idx)}
 
-        action_scale_by_joint = getattr(self.cfg, "action_scale_by_joint", {})
+        action_scale_by_joint = getattr(
+            self.cfg,
+            "residual_action_scale_by_joint",
+            getattr(self.cfg, "action_scale_by_joint", {}),
+        )
         self._action_scale_per_joint = torch.ones(self.num_actions, device=self.sim.device)
         for joint_name, scale in action_scale_by_joint.items():
             joint_ids, _ = self.robot.find_joints(joint_name)
@@ -300,18 +325,48 @@ class LocomotionEnv(DirectRLEnv):
         self.actuated_lower = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 0].clone()
         self.actuated_upper = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 1].clone()
 
-        # Optional reference motion produced by the Holosoma retargeting converter.
+        # control timestep for reference indexing and smoothness costs
+        self._control_dt = float(self.cfg.sim.dt * self.cfg.decimation)
+        expected_control_dt = 1.0 / float(getattr(self.cfg, "motion_fps", 30))
+        if abs(self._control_dt - expected_control_dt) > 1e-6:
+            raise RuntimeError(
+                f"Motion tracking expects control dt {expected_control_dt:.9f}, got {self._control_dt:.9f}. "
+                f"Check sim.dt={self.cfg.sim.dt} and decimation={self.cfg.decimation}."
+            )
+
+        # Enriched LAFAN reference motion library.
         self._motion_reference_enabled = bool(getattr(self.cfg, "use_motion_reference", False))
         self._motion_reference_observation = bool(getattr(self.cfg, "motion_reference_observation", True))
+        self._motion_reference_playback = bool(getattr(self.cfg, "motion_reference_playback", False))
+        self._future_ref_offsets = tuple(int(x) for x in getattr(self.cfg, "future_ref_offsets", (1, 2, 4, 6)))
+        self.motion_ids = torch.zeros(self.num_envs, dtype=torch.long, device=self.sim.device)
         self.motion_target_joint_pos = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
         self.motion_target_joint_vel = torch.zeros_like(self.motion_target_joint_pos)
         self.motion_target_joint_pos_error = torch.zeros_like(self.motion_target_joint_pos)
+        self.motion_target_future_joint_pos = torch.zeros(
+            self.num_envs,
+            len(self._future_ref_offsets),
+            self.num_actions,
+            device=self.sim.device,
+        )
+        self.motion_target_future_joint_pos_error = torch.zeros_like(self.motion_target_future_joint_pos)
+        self.motion_target_root_pos = torch.zeros(self.num_envs, 3, device=self.sim.device)
+        self.motion_target_root_quat = torch.zeros(self.num_envs, 4, device=self.sim.device)
+        self.motion_target_root_quat[:, 0] = 1.0
+        self.motion_target_root_lin_vel_w = torch.zeros(self.num_envs, 3, device=self.sim.device)
+        self.motion_target_root_lin_vel_b = torch.zeros(self.num_envs, 3, device=self.sim.device)
+        self.motion_target_root_ang_vel_w = torch.zeros(self.num_envs, 3, device=self.sim.device)
+        self.motion_target_root_ang_vel_b = torch.zeros(self.num_envs, 3, device=self.sim.device)
+        self.motion_target_root_yaw = torch.zeros(self.num_envs, device=self.sim.device)
+        self.motion_target_yaw_rate = torch.zeros(self.num_envs, device=self.sim.device)
+        self.motion_target_root_height_error = torch.zeros(self.num_envs, device=self.sim.device)
+        self.motion_target_root_yaw_error = torch.zeros(self.num_envs, device=self.sim.device)
+        self.motion_target_yaw_rate_error = torch.zeros(self.num_envs, device=self.sim.device)
         self.motion_start_frame = torch.zeros(self.num_envs, dtype=torch.long, device=self.sim.device)
         self.motion_frame = torch.zeros(self.num_envs, dtype=torch.long, device=self.sim.device)
-        self._motion_num_frames = 0
-        self._motion_fps = 0.0
-        self._motion_joint_pos = None
-        self._motion_joint_vel = None
+        self.motion_end_frame = torch.zeros(self.num_envs, dtype=torch.long, device=self.sim.device)
+        self.motion_done = torch.zeros(self.num_envs, dtype=torch.bool, device=self.sim.device)
+        self.motion_lib = None
         self._motion_debug_printed = False
         if self._motion_reference_enabled:
             self._load_motion_reference()
@@ -332,8 +387,6 @@ class LocomotionEnv(DirectRLEnv):
         else:
             self.action_hist_buf = None
 
-        # control timestep for smoothness costs
-        self._control_dt = float(self.cfg.sim.dt * self.cfg.decimation)
         if int(getattr(self.cfg, "command_resample_interval_steps", 0)) > 0:
             self._cmd_resample_interval_steps = int(self.cfg.command_resample_interval_steps)
         else:
@@ -408,18 +461,21 @@ class LocomotionEnv(DirectRLEnv):
             nonlocal offset
             self._obs_debug_slices.append((name, offset, offset + size))
             offset += size
-        _add_obs_slice("lin_vel_cmd", 3)
-        _add_obs_slice("ang_vel_cmd_scaled", 3)
-        _add_obs_slice("up_cmd", 3)
-        _add_obs_slice("commands", 3)
+        _add_obs_slice("up_b", 3)
+        _add_obs_slice("root_lin_vel_b", 3)
+        _add_obs_slice("root_ang_vel_b_scaled", 3)
         _add_obs_slice("act_pos_scaled", self.num_actions)
         _add_obs_slice("act_vel_scaled", self.num_actions)
         _add_obs_slice("prev_actions", self.num_actions)
-        if bool(getattr(self.cfg, "use_phase_obs", False)):
-            _add_obs_slice("phase_clock", 2)
         if self._motion_reference_enabled and self._motion_reference_observation:
-            _add_obs_slice("motion_target_pos_error", self.num_actions)
-            _add_obs_slice("motion_target_vel", self.num_actions)
+            _add_obs_slice("joint_pos_ref_error", self.num_actions)
+            _add_obs_slice("joint_vel_ref", self.num_actions)
+            _add_obs_slice("root_height_error", 1)
+            _add_obs_slice("root_yaw_error", 1)
+            _add_obs_slice("root_lin_vel_b_ref", 3)
+            _add_obs_slice("yaw_rate_ref", 1)
+            _add_obs_slice("yaw_rate_error", 1)
+            _add_obs_slice("future_joint_pos_ref_error", self.num_actions * len(self._future_ref_offsets))
         self._obs_debug_dim = offset
 
         if bool(getattr(self.cfg, "debug_print_orderings", False)):
@@ -431,7 +487,6 @@ class LocomotionEnv(DirectRLEnv):
             for i, jid in enumerate(self._joint_dof_idx):
                 name = joint_names[jid] if joint_names is not None and jid < len(joint_names) else str(jid)
                 print(f"  {i}: {name}")
-            print("[DebugOrder] commands order: [vx, vy, yaw_rate]")
             print("[DebugOrder] observation slices (single frame):")
             for name, s, e in self._obs_debug_slices:
                 print(f"  {name}: [{s}, {e})")
@@ -861,18 +916,14 @@ class LocomotionEnv(DirectRLEnv):
             gather_idx = idx.view(-1, 1, 1).expand(-1, a.shape[1], 1)
             a = torch.gather(self.action_hist_buf, dim=2, index=gather_idx).squeeze(-1)
 
+        if self._motion_reference_playback:
+            a = torch.zeros_like(a)
+
         self.prev_actions[:] = self.actions
         self.actions = a
 
-        # Update curriculum based on global env-steps
+        # Keep legacy curriculum counters alive for diagnostics, but tracking does not use commands.
         self._global_env_steps += self.num_envs
-        self._update_curriculum()
-
-        if self._cmd_resample_interval_steps > 0:
-            resample_mask = (self.episode_length_buf % self._cmd_resample_interval_steps) == 0
-            resample_ids = torch.nonzero(resample_mask, as_tuple=False).squeeze(-1)
-            if resample_ids.numel() > 0:
-                self._sample_commands(resample_ids)
 
         # scheduled pushes + micro disturbances (ADR)
         self._maybe_apply_pushes()
@@ -884,8 +935,8 @@ class LocomotionEnv(DirectRLEnv):
     def _invalidate_state_cache(self) -> None:
         self._state_valid = False
 
-    def _resolve_motion_reference_path(self, motion_file: str) -> Path:
-        path = Path(motion_file).expanduser()
+    def _resolve_motion_reference_path(self, motion_path: str) -> Path:
+        path = Path(motion_path).expanduser()
         if path.is_absolute():
             return path
 
@@ -915,96 +966,82 @@ class LocomotionEnv(DirectRLEnv):
         return names
 
     def _load_motion_reference(self) -> None:
-        motion_file = str(getattr(self.cfg, "motion_reference_file", ""))
-        if not motion_file:
-            raise RuntimeError("use_motion_reference=True but motion_reference_file is empty.")
-
-        motion_path = self._resolve_motion_reference_path(motion_file)
-        if not motion_path.exists():
-            raise FileNotFoundError(f"Motion reference file not found: {motion_path}")
-
-        data = np.load(str(motion_path), allow_pickle=True)
-        required_keys = {
-            "fps",
-            "joint_pos",
-            "joint_vel",
-            "joint_names",
-            "body_pos_w",
-            "body_quat_w",
-            "body_lin_vel_w",
-            "body_ang_vel_w",
-            "body_names",
-        }
-        missing = sorted(required_keys.difference(data.files))
-        if missing:
-            raise RuntimeError(f"Motion reference file is missing keys: {missing}")
-
-        reference_joint_names = [str(name) for name in data["joint_names"].tolist()]
         action_joint_names = self._action_joint_names()
-        missing_action_names = [name for name in action_joint_names if name not in reference_joint_names]
-        if missing_action_names:
-            raise RuntimeError(
-                "Motion reference joint_names do not cover IsaacLab action joints: "
-                f"{missing_action_names}. Reference names: {reference_joint_names}"
-            )
+        motion_dir = str(getattr(self.cfg, "motion_reference_dir", ""))
+        if not motion_dir:
+            raise RuntimeError("use_motion_reference=True but motion_reference_dir is empty.")
+        motion_dir_path = self._resolve_motion_reference_path(motion_dir)
 
-        remap = [reference_joint_names.index(name) for name in action_joint_names]
-        joint_pos = np.asarray(data["joint_pos"], dtype=np.float32)
-        joint_vel = np.asarray(data["joint_vel"], dtype=np.float32)
+        manifest = str(getattr(self.cfg, "motion_manifest_file", ""))
+        manifest_path = ""
+        if manifest:
+            manifest_path = str(self._resolve_motion_reference_path(manifest))
 
-        expected_qpos_dim = 7 + len(reference_joint_names)
-        expected_qvel_dim = 6 + len(reference_joint_names)
-        if joint_pos.ndim != 2 or joint_pos.shape[1] != expected_qpos_dim:
-            raise RuntimeError(
-                f"Expected joint_pos shape (T, {expected_qpos_dim}) for root qpos + joints, got {joint_pos.shape}."
-            )
-        if joint_vel.ndim != 2 or joint_vel.shape[1] != expected_qvel_dim:
-            raise RuntimeError(
-                f"Expected joint_vel shape (T, {expected_qvel_dim}) for root qvel + joints, got {joint_vel.shape}."
-            )
-
-        self._motion_joint_pos = torch.as_tensor(joint_pos[:, 7:][:, remap], device=self.sim.device)
-        self._motion_joint_vel = torch.as_tensor(joint_vel[:, 6:][:, remap], device=self.sim.device)
-        self._motion_num_frames = int(self._motion_joint_pos.shape[0])
-        self._motion_fps = float(np.asarray(data["fps"]).reshape(-1)[0])
-        self._motion_reference_path = motion_path
-        self._motion_reference_joint_names = reference_joint_names
-        self._motion_action_joint_names = action_joint_names
-        self._motion_reference_remap = remap
-
-        if self._motion_num_frames < 2:
-            raise RuntimeError(f"Motion reference must contain at least 2 frames, got {self._motion_num_frames}.")
+        self.motion_lib = LafanMotionLibrary(
+            motion_reference_dir=str(motion_dir_path),
+            device=self.sim.device,
+            isaac_action_joint_names=action_joint_names,
+            motion_fps=int(getattr(self.cfg, "motion_fps", 30)),
+            motion_min_length_s=float(getattr(self.cfg, "motion_min_length_s", 1.0)),
+            motion_max_cost=getattr(self.cfg, "motion_max_cost", None),
+            cache_on_gpu=bool(getattr(self.cfg, "motion_cache_on_gpu", True)),
+            motion_manifest_file=manifest_path,
+        )
 
         if bool(getattr(self.cfg, "motion_reference_debug_print", False)):
-            duration = (self._motion_num_frames - 1) / max(self._motion_fps, 1e-6)
             print(
                 "[MotionReference] loaded "
-                f"path={motion_path} frames={self._motion_num_frames} fps={self._motion_fps:g} "
-                f"duration={duration:.3f}s",
+                f"motions={self.motion_lib.num_motions} fps={self.motion_lib.motion_fps} "
+                f"max_length={self.motion_lib.max_length} dir={motion_dir_path}",
                 flush=True,
             )
-            print(f"[MotionReference] reference joint_names={reference_joint_names}", flush=True)
             print(f"[MotionReference] action joint_names={action_joint_names}", flush=True)
-            print(f"[MotionReference] remap reference->action={remap}", flush=True)
+            print(f"[MotionReference] remap mujoco->action={self.motion_lib.mujoco_to_isaac}", flush=True)
 
     def _update_motion_targets(self) -> None:
         if not self._motion_reference_enabled:
             return
-        if self._motion_joint_pos is None or self._motion_joint_vel is None:
+        if self.motion_lib is None:
             return
 
-        frame_stride = self._control_dt * self._motion_fps
-        frame_offsets = torch.floor(self.episode_length_buf.float() * frame_stride).long()
-        self.motion_frame = (self.motion_start_frame + frame_offsets) % self._motion_num_frames
-        self.motion_target_joint_pos = self._motion_joint_pos[self.motion_frame]
-        self.motion_target_joint_vel = self._motion_joint_vel[self.motion_frame]
-        self.motion_target_joint_pos_error = self.motion_target_joint_pos - self.act_pos
+        self.motion_frame = self.motion_start_frame + self.episode_length_buf
+        self.motion_done = self.motion_frame >= self.motion_end_frame
+        ref = self.motion_lib.get_frames(self.motion_ids, self.motion_frame)
+        self.motion_target_root_pos = ref["root_pos"]
+        self.motion_target_root_quat = ref["root_quat"]
+        self.motion_target_joint_pos = ref["joint_pos"]
+        self.motion_target_joint_vel = ref["joint_vel"]
+        self.motion_target_root_lin_vel_w = ref["root_lin_vel_w"]
+        self.motion_target_root_lin_vel_b = ref["root_lin_vel_b"]
+        self.motion_target_root_ang_vel_w = ref["root_ang_vel_w"]
+        self.motion_target_root_ang_vel_b = ref["root_ang_vel_b"]
+        self.motion_target_root_yaw = ref["root_yaw"]
+        self.motion_target_yaw_rate = ref["yaw_rate_ref"]
+        self.motion_target_future_joint_pos = self.motion_lib.get_future_joint_pos(
+            self.motion_ids,
+            self.motion_frame,
+            self._future_ref_offsets,
+        )
+
+        if hasattr(self, "act_pos"):
+            self.motion_target_joint_pos_error = self.motion_target_joint_pos - self.act_pos
+            self.motion_target_future_joint_pos_error = (
+                self.motion_target_future_joint_pos - self.act_pos.unsqueeze(1)
+            )
+        if hasattr(self, "root_pos_local"):
+            self.motion_target_root_height_error = self.motion_target_root_pos[:, 2] - self.root_pos_local[:, 2]
+        if hasattr(self, "root_yaw"):
+            self.motion_target_root_yaw_error = wrap_angle(self.motion_target_root_yaw - self.root_yaw)
+        if hasattr(self, "root_ang_vel_b"):
+            self.motion_target_yaw_rate_error = self.root_ang_vel_b[:, 2] - self.motion_target_yaw_rate
 
         if bool(getattr(self.cfg, "motion_reference_debug_print", False)) and not self._motion_debug_printed:
             env_id = max(0, min(int(getattr(self.cfg, "debug_obs_print_env", 0)), self.num_envs - 1))
             print(
                 "[MotionReference] first target "
-                f"env={env_id} frame={int(self.motion_frame[env_id].item())} "
+                f"env={env_id} motion={int(self.motion_ids[env_id].item())} "
+                f"frame={int(self.motion_frame[env_id].item())} "
+                f"end={int(self.motion_end_frame[env_id].item())} "
                 f"target_joint_pos={self.motion_target_joint_pos[env_id].detach().cpu().tolist()} "
                 f"target_joint_vel={self.motion_target_joint_vel[env_id].detach().cpu().tolist()}",
                 flush=True,
@@ -1012,13 +1049,15 @@ class LocomotionEnv(DirectRLEnv):
             self._motion_debug_printed = True
 
     def _apply_action(self):
+        self._update_motion_targets()
+        actions = torch.zeros_like(self.actions) if self._motion_reference_playback else self.actions
         pos_offsets = (
             self.action_scale
             * self._action_scale_per_joint.unsqueeze(0)
-            * self.actions
+            * actions
             * self.motor_strength_mult
         )  # [N, 10]
-        q_des = self.default_actuated_pos.unsqueeze(0) + pos_offsets
+        q_des = self.motion_target_joint_pos + pos_offsets
         q_des = torch.clamp(q_des, self.actuated_lower.unsqueeze(0), self.actuated_upper.unsqueeze(0))
         self.q_des = q_des
         self.robot.set_joint_position_target(q_des, joint_ids=self._joint_dof_idx)
@@ -1057,6 +1096,16 @@ class LocomotionEnv(DirectRLEnv):
             self.up_cmd = self._rotate_xy(self.up_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
         else:
             self.up_cmd = self.up_b
+
+        # Root state used for LAFAN reference tracking.
+        self.root_pos_w = self.robot.data.root_pos_w
+        self.root_pos_local = self.root_pos_w - self.scene.env_origins
+        self.root_quat_w = self.robot.data.root_quat_w
+        self.root_lin_vel_w = self.robot.data.root_lin_vel_w
+        self.root_ang_vel_w = self.robot.data.root_ang_vel_w
+        self.root_lin_vel_b = quat_rotate_inverse(self.root_quat_w, self.root_lin_vel_w)
+        self.root_ang_vel_b = quat_rotate_inverse(self.root_quat_w, self.root_ang_vel_w)
+        self.root_yaw = yaw_from_quat(self.root_quat_w)
 
         # ------------------------------------------
         # B) Tracking state from site frame "top"
@@ -1103,25 +1152,26 @@ class LocomotionEnv(DirectRLEnv):
         self._state_valid = True
 
     def _compute_single_observation(self) -> torch.Tensor:
-        up_cmd = self.up_cmd
-        ang_vel_cmd = self.imu_ang_vel_cmd
+        up_b = self.up_b
+        root_lin_vel_b = self.root_lin_vel_b
+        root_ang_vel_b = self.root_ang_vel_b
         act_pos = self.act_pos
         act_vel = self.act_vel
 
         # IMU biases + mount misalignment (ADR)
-        up_cmd = up_cmd + self.imu_bias_gravity
-        ang_vel_cmd = ang_vel_cmd + self.imu_bias_gyro
+        up_b = up_b + self.imu_bias_gravity
+        root_ang_vel_b = root_ang_vel_b + self.imu_bias_gyro
 
         theta = self.imu_mount_axis * self.imu_mount_ang.unsqueeze(-1)
-        up_cmd = up_cmd + torch.cross(theta, up_cmd, dim=-1)
-        ang_vel_cmd = ang_vel_cmd + torch.cross(theta, ang_vel_cmd, dim=-1)
+        up_b = up_b + torch.cross(theta, up_b, dim=-1)
+        root_ang_vel_b = root_ang_vel_b + torch.cross(theta, root_ang_vel_b, dim=-1)
 
         # Observation noise (ADR)
         if self.adr is not None:
             if self._obs_noise["gravity_std"] > 0.0:
-                up_cmd = up_cmd + torch.randn_like(up_cmd) * self._obs_noise["gravity_std"]
+                up_b = up_b + torch.randn_like(up_b) * self._obs_noise["gravity_std"]
             if self._obs_noise["gyro_std"] > 0.0:
-                ang_vel_cmd = ang_vel_cmd + torch.randn_like(ang_vel_cmd) * self._obs_noise["gyro_std"]
+                root_ang_vel_b = root_ang_vel_b + torch.randn_like(root_ang_vel_b) * self._obs_noise["gyro_std"]
             if self._obs_noise["joint_pos_std"] > 0.0:
                 act_pos = act_pos + torch.randn_like(act_pos) * self._obs_noise["joint_pos_std"]
             if self._obs_noise["joint_vel_std"] > 0.0:
@@ -1138,10 +1188,9 @@ class LocomotionEnv(DirectRLEnv):
 
         obs = torch.cat(
             (
-                self.imu_lin_vel_cmd,                            # command-frame lin vel
-                ang_vel_cmd * self.cfg.ang_vel_scale,            # command-frame ang vel
-                up_cmd,                                          # IMU-ish orientation feature
-                self.commands,                                   # commanded [vx, vy, yaw_rate] in BODY frame
+                up_b,
+                root_lin_vel_b,
+                root_ang_vel_b * self.cfg.ang_vel_scale,
                 act_pos_scaled,
                 act_vel * self.cfg.dof_vel_scale,
                 self.prev_actions,
@@ -1149,24 +1198,8 @@ class LocomotionEnv(DirectRLEnv):
             dim=-1,
         )
 
-        if self.cfg.use_phase_obs:
-            t = self.episode_length_buf.float() * self._control_dt
-            phase = 2.0 * torch.pi * (t / self.cfg.gait_period_s) + self.phase_offset
-
-            if self.cfg.freeze_phase_when_standing:
-                stand_mask = (
-                    torch.norm(self.commands[:, :2], dim=1) < self.cfg.stand_phase_lin_threshold
-                ) & (torch.abs(self.commands[:, 2]) < self.cfg.stand_phase_yaw_threshold)
-                phase = torch.where(
-                    stand_mask,
-                    torch.full_like(phase, self.cfg.stand_phase_value),
-                    phase,
-                )
-
-            clock = torch.stack([torch.sin(phase), torch.cos(phase)], dim=1)
-            obs = torch.cat([obs, clock], dim=-1)
-
         if self._motion_reference_enabled and self._motion_reference_observation:
+            future_joint_errors = self.motion_target_future_joint_pos_error.reshape(self.num_envs, -1)
             obs = torch.cat(
                 [
                     obs,
@@ -1174,6 +1207,12 @@ class LocomotionEnv(DirectRLEnv):
                     * float(getattr(self.cfg, "motion_reference_pos_error_scale", 1.0)),
                     self.motion_target_joint_vel
                     * float(getattr(self.cfg, "motion_reference_vel_scale", self.cfg.dof_vel_scale)),
+                    self.motion_target_root_height_error.unsqueeze(-1),
+                    self.motion_target_root_yaw_error.unsqueeze(-1),
+                    self.motion_target_root_lin_vel_b,
+                    self.motion_target_yaw_rate.unsqueeze(-1),
+                    self.motion_target_yaw_rate_error.unsqueeze(-1),
+                    future_joint_errors * float(getattr(self.cfg, "motion_reference_pos_error_scale", 1.0)),
                 ],
                 dim=-1,
             )
@@ -1222,334 +1261,94 @@ class LocomotionEnv(DirectRLEnv):
     def _get_rewards(self) -> torch.Tensor:
         self._update_state()
 
-        # --- Base velocity tracking ---
-        vel_err = self.com_lin_vel_cmd[:, :2] - self.commands[:, :2]
-        yaw_err = self.com_ang_vel_cmd[:, 2]  - self.commands[:, 2]
+        joint_pos_err = torch.mean((self.act_pos - self.motion_target_joint_pos) ** 2, dim=1)
+        joint_vel_err = torch.mean((self.act_vel - self.motion_target_joint_vel) ** 2, dim=1)
+        root_h_err = (self.root_pos_local[:, 2] - self.motion_target_root_pos[:, 2]) ** 2
+        root_yaw_err = wrap_angle(self.root_yaw - self.motion_target_root_yaw) ** 2
+        root_lin_vel_err = torch.sum((self.root_lin_vel_b - self.motion_target_root_lin_vel_b) ** 2, dim=1)
+        yaw_rate_err = (self.root_ang_vel_b[:, 2] - self.motion_target_yaw_rate) ** 2
 
-        r_lin = torch.exp(-torch.sum(vel_err * vel_err, dim=1) / self.cfg.lin_vel_sigma)
-        r_yaw = torch.exp(-(yaw_err * yaw_err) / self.cfg.yaw_rate_sigma)
+        r_q = torch.exp(-joint_pos_err / (float(self.cfg.sigma_q) + 1e-6))
+        r_joint_vel = torch.exp(-joint_vel_err / (float(self.cfg.sigma_joint_vel) + 1e-6))
+        r_h = torch.exp(-root_h_err / (float(self.cfg.sigma_h) + 1e-6))
+        r_yaw = torch.exp(-root_yaw_err / (float(self.cfg.sigma_yaw) + 1e-6))
+        r_root_vel = torch.exp(-root_lin_vel_err / (float(self.cfg.sigma_root_vel) + 1e-6))
+        r_yaw_rate = torch.exp(-yaw_rate_err / (float(self.cfg.sigma_yaw_rate) + 1e-6))
+        alive = (self.up_b[:, 2] > self.cfg.upright_threshold).float()
 
-        vel_err_norm = torch.norm(vel_err, dim=1)
-        yaw_err_abs = torch.abs(yaw_err)
-        self._ep_lin_err_sum += vel_err_norm
-        self._ep_yaw_err_sum += yaw_err_abs
-        self._ep_len += 1.0
-
-        upright = torch.clamp(self.up_b[:, 2], 0.0, 1.0)
-
-        cmd_speed = torch.norm(self.commands[:, :2], dim=1)
-        t = self.episode_length_buf.float() * self._control_dt
-        phase = 2.0 * torch.pi * (t / self.cfg.gait_period_s) + self.phase_offset
-        air_time_gate = (cmd_speed > self.cfg.air_time_command_speed_threshold).float()
-        act_speed = torch.norm(self.com_lin_vel_b[:, :2], dim=1)
-        gait_gate = (
-            (cmd_speed > self.cfg.anti_phase_min_speed)
-            & (act_speed > self.cfg.gait_actual_speed_thresh)
-            & (self.up_b[:, 2] > self.cfg.gait_upright_thresh)
-        ).float()
-        yaw_cmd_mag = torch.abs(self.commands[:, 2])
-        yaw_gate = (yaw_cmd_mag > self.cfg.yaw_cmd_reward_thresh).float()
-        r_yaw = r_yaw * yaw_gate
-        standstill = torch.clamp(self.cfg.standstill_speed_threshold - act_speed, min=0.0)
-        standstill = standstill * (cmd_speed > self.cfg.command_speed_threshold).float()
-        speed_shortfall = torch.clamp(cmd_speed - act_speed, min=0.0)
-
-        # Stand command mask (explicit "should be standing")
-        stand_cmd = (
-            torch.norm(self.commands[:, :2], dim=1) < self.cfg.stand_cmd_lin_thresh
-        ) & (
-            torch.abs(self.commands[:, 2]) < self.cfg.stand_cmd_yaw_thresh
-        )
-        stand_cmd_f = stand_cmd.float()
-
-        # Stand posture reward/cost terms
-        pose_err_all = self.act_pos - self.default_actuated_pos.unsqueeze(0)
-        stand_pose_err = torch.mean(pose_err_all * pose_err_all, dim=1)
-        stand_pose_rew = torch.exp(-stand_pose_err / (self.cfg.stand_pose_sigma + 1e-6))
-
-        stand_upright_rew = torch.clamp(self.up_b[:, 2], 0.0, 1.0)
-
-        # Penalize motion while standing
-        stand_vel_cost = (
-            torch.sum(self.com_lin_vel_cmd[:, :2] ** 2, dim=1)
-            + 0.5 * (self.com_ang_vel_cmd[:, 2] ** 2)
-        )
-
-        stand_action_cost = torch.sum(self.actions * self.actions, dim=1)
-
-        # Stronger anti-inward penalty on hip2 during stand
-        stand_hip2_pen = torch.zeros_like(stand_pose_err)
-        if self._hip2_action_ids.numel() > 0:
-            hip2_off = self.act_pos[:, self._hip2_action_ids] - self.default_actuated_pos[self._hip2_action_ids].unsqueeze(0)
-            stand_hip2_pen = torch.mean(hip2_off * hip2_off, dim=1)
-
-        walk_hip2_pen = torch.zeros_like(r_lin)
-        if self._hip2_action_ids.numel() > 0:
-            hip2_off_walk = self.act_pos[:, self._hip2_action_ids] - self.default_actuated_pos[self._hip2_action_ids].unsqueeze(0)
-            walk_mask = (cmd_speed > self.cfg.walk_cmd_speed_thresh).float()
-            walk_hip2_pen = torch.mean(hip2_off_walk * hip2_off_walk, dim=1) * walk_mask
-
-        # --- Anti-phase gait reward (HIP1 joints, forward-walk gated) ---
-        anti_phase_rew = torch.zeros_like(r_lin)
-        if (self._hip1_left_action_id is not None) and (self._hip1_right_action_id is not None):
-            target = torch.sin(phase)  # desired left hip1 profile
-
-            # hip1 offsets around default pose
-            left_off = self.act_pos[:, self._hip1_left_action_id] - self.default_actuated_pos[self._hip1_left_action_id]
-            right_off = self.act_pos[:, self._hip1_right_action_id] - self.default_actuated_pos[self._hip1_right_action_id]
-
-            # normalize offsets to bounded range for stable matching
-            k = float(self.cfg.anti_phase_pos_gain)
-            left_norm = torch.tanh(k * left_off)
-            right_norm = torch.tanh(k * right_off)
-
-            # anti-phase match: left follows +target, right follows -target
-            sig = float(self.cfg.anti_phase_sigma)
-            left_match = torch.exp(-((left_norm - target) ** 2) / (sig + 1e-6))
-            right_match = torch.exp(-((right_norm + target) ** 2) / (sig + 1e-6))
-            anti_phase_rew = 0.5 * (left_match + right_match)
-
-            anti_phase_rew = anti_phase_rew * gait_gate
-
-        act_cost = torch.sum(self.actions * self.actions, dim=1)
         at_limit = torch.sum(torch.abs(self.act_pos_scaled) > 0.98, dim=1).float()
-
-        pose_err = self.act_pos - self.default_actuated_pos.unsqueeze(0)
-        pose_pen = (pose_err * pose_err).mean(dim=1)
-        pose_return_penalty = torch.where(
-            self.up_b[:, 2] > self.cfg.pose_return_upright_threshold,
-            self.cfg.pose_return_scale * pose_pen,
-            torch.zeros_like(pose_pen),
-        )
-
-        sym_pen = torch.zeros_like(pose_pen)
-        if self._sym_left_action_ids.numel() > 0:
-            left_off = self.act_pos[:, self._sym_left_action_ids] - self.default_actuated_pos[self._sym_left_action_ids].unsqueeze(0)
-            right_off = self.act_pos[:, self._sym_right_action_ids] - self.default_actuated_pos[self._sym_right_action_ids].unsqueeze(0)
-            sym_pen = torch.mean((torch.abs(left_off) - torch.abs(right_off)) ** 2, dim=1)
-
-        thigh_pose_pen = torch.zeros_like(pose_pen)
-        if self._thigh_action_ids.numel() > 0:
-            thigh_off = self.act_pos[:, self._thigh_action_ids] - self.default_actuated_pos[self._thigh_action_ids].unsqueeze(0)
-            thigh_pose_pen = torch.mean(thigh_off * thigh_off, dim=1)
-            thigh_pose_pen = torch.where(
-                self.up_b[:, 2] > self.cfg.pose_return_upright_threshold,
-                thigh_pose_pen,
-                torch.zeros_like(thigh_pose_pen),
-            )
-
-        # --- Stability costs (prevent hopping/rolling) ---
-        lin_vel_z_cost = self.imu_lin_vel_b[:, 2] ** 2
-        ang_vel_xy_cost = torch.sum(self.imu_ang_vel_b[:, :2] ** 2, dim=1)
-        flat_ori_cost = torch.sum(self.up_b[:, :2] ** 2, dim=1)  # up_b ~= [0,0,1] when upright
-
-        # --- Smoothness costs ---
         action_rate_cost = torch.sum((self.actions - self.prev_actions) ** 2, dim=1)
-        dof_vel_cost = torch.sum(self.act_vel ** 2, dim=1)
-        
-        # Penalize velocity changes (not acceleration, to avoid dt sensitivity)
-        dof_vel_delta = self.act_vel - self.prev_act_vel
-        dof_vel_delta_cost = torch.sum(dof_vel_delta * dof_vel_delta, dim=1)
-
         joint_torques = self.robot.data.applied_torque[:, self._joint_dof_idx]
         energy_cost = torch.sum(torch.abs(joint_torques * self.act_vel), dim=1)
-
         self.prev_act_vel[:] = self.act_vel
 
-        # --- Contact-based rewards (air-time, slip, undesired contacts) ---
+        # --- Contact-based penalties: slip and undesired contacts only for v1 tracking. ---
         self._init_feet()
-
-        # Latest normal forces (history index 0 is most recent)
         forces_hist = self._contact_sensor.data.net_forces_w_history  # (N,T,B,3)
         foot_forces = forces_hist[:, 0, self._feet_sensor_ids, :]     # (N,2,3)
-        
-        # Use positive vertical force component for contact detection
-        foot_force_z = torch.clamp(foot_forces[:, :, 2], min=0.0)  # (N,2)
-        foot_contact = foot_force_z > self.cfg.foot_contact_force_thresh  # (N,2)
-
-        # (1) air-time reward at touchdown
-        air_time = self._contact_sensor.data.current_air_time[:, self._feet_sensor_ids]  # (N,2)
-        touchdown = foot_contact & (~self.prev_foot_contact)
-        air_rew = torch.sum(torch.clamp(air_time - self.cfg.min_air_time, min=0.0) * touchdown.float(), dim=1)
-        air_time_sym_pen = (air_time[:, 0] - air_time[:, 1]) ** 2
-        air_rew = air_rew * air_time_gate
-        air_time_sym_pen = air_time_sym_pen * air_time_gate
-
-        # (2) slip penalty when in contact (horizontal foot speed)
+        foot_contact = torch.clamp(foot_forces[:, :, 2], min=0.0) > self.cfg.foot_contact_force_thresh
         feet_vel_w = self.robot.data.body_lin_vel_w[:, self._feet_body_ids, :]  # (N,2,3)
-        slip_speed_sq = torch.sum(feet_vel_w[..., :2] ** 2, dim=-1)            # (N,2)
-        slip_cost = torch.sum(slip_speed_sq * foot_contact.float(), dim=1)     # (N,)
-
-        # --- Anti-stomp: penalize hard touchdowns ---
-        downward_speed = torch.clamp(-feet_vel_w[..., 2], min=0.0)  # (N,2)
-        v_ref = float(getattr(self.cfg, "touchdown_vel_ref", 0.6))
-        touchdown_vel_cost = torch.sum(
-            ((downward_speed / (v_ref + 1e-6)) ** 2) * touchdown.float(),
-            dim=1,
-        )
-
-        speed_gate = (cmd_speed > float(getattr(self.cfg, "touchdown_min_cmd_speed", 0.15))).float()
-        touchdown_vel_cost = touchdown_vel_cost * speed_gate
-
-        touchdown_force_scale = float(getattr(self.cfg, "touchdown_force_cost_scale", 0.0))
-        touchdown_force_cost = torch.zeros_like(touchdown_vel_cost)
-        if touchdown_force_scale > 0.0:
-            f_thresh = float(getattr(self.cfg, "touchdown_force_thresh", 120.0))
-            excess_fz = torch.clamp(foot_force_z - f_thresh, min=0.0)
-            touchdown_force_cost = torch.sum(
-                ((excess_fz / (f_thresh + 1e-6)) ** 2) * touchdown.float(),
-                dim=1,
-            ) * speed_gate
-
-        # (3) penalize "non-foot contacts" (knees/shins/torso scraping)
-        all_forces = forces_hist[:, 0, :, :]                 # (N,B,3)
-        all_mag = torch.linalg.norm(all_forces, dim=-1)      # (N,B)
+        slip_cost = torch.sum(torch.sum(feet_vel_w[..., :2] ** 2, dim=-1) * foot_contact.float(), dim=1)
+        all_forces = forces_hist[:, 0, :, :]
+        all_mag = torch.linalg.norm(all_forces, dim=-1)
         all_mag[:, self._feet_sensor_ids] = 0.0
         undesired = (all_mag > self.cfg.undesired_contact_force_thresh).any(dim=1).float()
-
         self.prev_foot_contact[:] = foot_contact
 
-        # --- Swing-phase gating for energy/smoothness costs ---
-        if self.cfg.gate_smoothness_to_swing:
-            swing_frac = (~foot_contact).float().mean(dim=1)
-            swing_gate = (1.0 - self.cfg.swing_gate_alpha) + self.cfg.swing_gate_alpha * swing_frac
-            act_cost = act_cost * swing_gate
-            action_rate_cost = action_rate_cost * swing_gate
-            dof_vel_cost = dof_vel_cost * swing_gate
-            dof_vel_delta_cost = dof_vel_delta_cost * swing_gate
-
-        foot_force_z = torch.clamp(foot_forces[:, :, 2], min=0.0)  # (N,2)
-        foot_contact = foot_force_z > self.cfg.foot_contact_force_thresh  # (N,2)
-
-        # left-right contact signal in {-1, 0, +1}
-        contact_signal = foot_contact[:, 0].float() - foot_contact[:, 1].float()
-        contact_target = torch.sin(phase)
-        contact_phase_rew = torch.exp(-((contact_signal - contact_target) ** 2) / (self.cfg.contact_phase_sigma + 1e-6))
-        contact_phase_rew = contact_phase_rew * gait_gate
-
-        # (0) explicit no-fly penalty: both feet off ground
-        no_fly = (foot_contact.sum(dim=1) == 0).float()  # (N,)
-
-        # --- Combine all rewards ---
         reward = (
-            self.cfg.lin_vel_reward_scale * r_lin # reward for linear velocity tracking
-            + self.cfg.yaw_rate_reward_scale * r_yaw # reward for yaw tracking
-            + self.cfg.upright_reward_scale * upright # reward for staying upright (measured from IMU)
-            + self.cfg.alive_reward # reward for liveness
-            # - self.cfg.action_cost_scale * act_cost # penalty for large actions
-            - self.cfg.joint_limit_cost_scale * at_limit # penalty for being at joint limits
-            # - pose_return_penalty # penalty for deviating from default pose (encourages natural stance and self-righting)
-            # - self.cfg.lin_vel_z_cost_scale * lin_vel_z_cost # no jumping/hopping: penalize vertical velocity
-            # # - self.cfg.ang_vel_xy_cost_scale * ang_vel_xy_cost 
-            # # - self.cfg.flat_ori_cost_scale * flat_ori_cost
-            # - self.cfg.action_rate_cost_scale * action_rate_cost
-            # # - self.cfg.dof_vel_cost_scale * dof_vel_cost
-            # # - self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost
-            # - self.cfg.energy_cost_scale * energy_cost
-            # # - self.cfg.standstill_penalty_scale * standstill # helps exploration early on by rewarding any movement, but eventually encourages matching the command speed
-            # # - self.cfg.speed_shortfall_cost_scale * speed_shortfall # penalty for not matching cmd speed
-            # - self.cfg.symmetry_cost_scale * sym_pen
-            # # - self.cfg.thigh_pose_cost_scale * thigh_pose_pen
-            + self.cfg.feet_air_time_reward_scale * air_rew
-            # + self.cfg.anti_phase_reward_scale * anti_phase_rew
-            # + self.cfg.contact_phase_reward_scale * contact_phase_rew
-            # - self.cfg.air_time_symmetry_cost_scale * air_time_sym_pen
-            # # - self.cfg.walk_hip2_cost_scale * walk_hip2_pen
-            # - self.cfg.foot_slip_cost_scale * slip_cost
-            # - self.cfg.undesired_contact_cost_scale * undesired
-            # - self.cfg.touchdown_cost_scale * touchdown_vel_cost
-            # - touchdown_force_scale * touchdown_force_cost
-            # - self.cfg.no_fly_cost_scale * no_fly
-            # + stand_cmd_f
-            # * (
-                # self.cfg.stand_pose_reward_scale * stand_pose_rew
-                # + self.cfg.stand_upright_reward_scale * stand_upright_rew
-                # - self.cfg.stand_vel_cost_scale * stand_vel_cost
-                # - self.cfg.stand_action_cost_scale * stand_action_cost
-                # - self.cfg.stand_hip2_cost_scale * stand_hip2_pen
-            # )
+            self.cfg.joint_pos_tracking_reward_scale * r_q
+            + self.cfg.joint_vel_tracking_reward_scale * r_joint_vel
+            + self.cfg.root_height_tracking_reward_scale * r_h
+            + self.cfg.root_yaw_tracking_reward_scale * r_yaw
+            + self.cfg.root_lin_vel_tracking_reward_scale * r_root_vel
+            + self.cfg.yaw_rate_tracking_reward_scale * r_yaw_rate
+            + self.cfg.alive_reward * alive
+            - self.cfg.action_rate_cost_scale * action_rate_cost
+            - self.cfg.energy_cost_scale * energy_cost
+            - self.cfg.joint_limit_cost_scale * at_limit
+            - self.cfg.foot_slip_cost_scale * slip_cost
+            - self.cfg.undesired_contact_cost_scale * undesired
         )
 
         reward = torch.where(self.reset_terminated, torch.ones_like(reward) * self.cfg.death_cost, reward)
+        self._ep_lin_err_sum += torch.sqrt(root_lin_vel_err)
+        self._ep_yaw_err_sum += torch.abs(self.root_ang_vel_b[:, 2] - self.motion_target_yaw_rate)
+        self._ep_len += 1.0
 
-        # --- Logging (every N steps) ---
         if (
             bool(getattr(self.cfg, "enable_reward_logging", False))
             and hasattr(self, "common_step_counter")
             and (self.common_step_counter % 200) == 0
         ):
-            # Tracking rewards (what we want to maximize)
-            self.extras["reward_tracking/r_lin"] = float(r_lin.mean().item())
-            self.extras["reward_tracking/r_yaw"] = float(r_yaw.mean().item())
-            self.extras["reward_tracking/upright"] = float(upright.mean().item())
-            self.extras["reward_tracking/alive"] = float(self.cfg.alive_reward)
-            self.extras["reward_tracking/air_time"] = float(air_rew.mean().item())
-
-            # Penalties (what we want to minimize)
-            self.extras["reward_penalties/action_cost"] = float(act_cost.mean().item())
-            self.extras["reward_penalties/joint_limit"] = float(at_limit.mean().item())
-            self.extras["reward_penalties/pose_return"] = float(pose_return_penalty.mean().item())
-            self.extras["reward_penalties/lin_vel_z"] = float(lin_vel_z_cost.mean().item())
-            self.extras["reward_penalties/ang_vel_xy"] = float(ang_vel_xy_cost.mean().item())
-            self.extras["reward_penalties/flat_ori"] = float(flat_ori_cost.mean().item())
-            self.extras["reward_penalties/action_rate"] = float(action_rate_cost.mean().item())
-            self.extras["reward_penalties/dof_vel"] = float(dof_vel_cost.mean().item())
-            self.extras["reward_penalties/dof_vel_delta"] = float(dof_vel_delta_cost.mean().item())
-            self.extras["reward_penalties/energy"] = float(energy_cost.mean().item())
-            self.extras["reward_penalties/standstill"] = float(standstill.mean().item())
-            self.extras["reward_penalties/symmetry"] = float(sym_pen.mean().item())
-            self.extras["reward_penalties/thigh_pose"] = float(thigh_pose_pen.mean().item())
-            self.extras["reward_penalties/air_time_symmetry"] = float(air_time_sym_pen.mean().item())
-            self.extras["reward_penalties/slip"] = float(slip_cost.mean().item())
-            self.extras["reward_penalties/undesired_contact"] = float(undesired.mean().item())
-            self.extras["reward_penalties/touchdown_vel"] = float(touchdown_vel_cost.mean().item())
-            self.extras["reward_penalties/touchdown_force"] = float(touchdown_force_cost.mean().item())
-
-            # Scaled contributions (actual impact on total reward)
-            self.extras["reward_scaled/lin_tracking"] = float((self.cfg.lin_vel_reward_scale * r_lin).mean().item())
-            self.extras["reward_scaled/yaw_tracking"] = float((self.cfg.yaw_rate_reward_scale * r_yaw).mean().item())
-            self.extras["reward_scaled/upright"] = float((self.cfg.upright_reward_scale * upright).mean().item())
-            self.extras["reward_scaled/pose_return"] = float(pose_return_penalty.mean().item())
-            self.extras["reward_scaled/air_time"] = float((self.cfg.feet_air_time_reward_scale * air_rew).mean().item())
-            self.extras["reward_scaled/slip_cost"] = float((self.cfg.foot_slip_cost_scale * slip_cost).mean().item())
-            self.extras["reward_scaled/undesired_cost"] = float((self.cfg.undesired_contact_cost_scale * undesired).mean().item())
-            self.extras["reward_scaled/standstill_cost"] = float((self.cfg.standstill_penalty_scale * standstill).mean().item())
-            self.extras["reward_scaled/dof_vel_delta_cost"] = float((self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost).mean().item())
-            self.extras["reward_scaled/energy_cost"] = float((self.cfg.energy_cost_scale * energy_cost).mean().item())
-            self.extras["reward_scaled/symmetry_cost"] = float((self.cfg.symmetry_cost_scale * sym_pen).mean().item())
-            self.extras["reward_scaled/thigh_pose_cost"] = float((self.cfg.thigh_pose_cost_scale * thigh_pose_pen).mean().item())
-            self.extras["reward_scaled/air_time_symmetry_cost"] = float((self.cfg.air_time_symmetry_cost_scale * air_time_sym_pen).mean().item())
-            self.extras["reward_scaled/touchdown_vel_cost"] = float((self.cfg.touchdown_cost_scale * touchdown_vel_cost).mean().item())
-            self.extras["reward_scaled/touchdown_force_cost"] = float((touchdown_force_scale * touchdown_force_cost).mean().item())
-
-            # Total reward stats
-            self.extras["reward_total/mean"] = float(reward.mean().item())
-            self.extras["reward_total/std"] = float(reward.std().item())
-            self.extras["reward_total/min"] = float(reward.min().item())
-            self.extras["reward_total/max"] = float(reward.max().item())
-
-            # Command tracking errors (diagnostics)
-            self.extras["diagnostics/vel_err_x"] = float(vel_err[:, 0].abs().mean().item())
-            self.extras["diagnostics/vel_err_y"] = float(vel_err[:, 1].abs().mean().item())
-            self.extras["diagnostics/yaw_err"] = float(yaw_err.abs().mean().item())
-            self.extras["diagnostics/contact_rate"] = float(foot_contact.float().mean().item())
-            self.extras["diagnostics/avg_air_time"] = float(air_time.mean().item())
-            self.extras["diagnostics/touchdown_rate"] = float(touchdown.float().mean().item())
-            self.extras["diagnostics/downward_speed_at_touchdown"] = float(
-                (downward_speed * touchdown.float()).sum(dim=1).mean().item()
-            )
-            self.extras["diagnostics/curriculum_stage"] = float(self._current_curriculum_stage)
+            log = self.extras.setdefault("log", {})
+            log["tracking/joint_pos_err"] = float(joint_pos_err.mean().item())
+            log["tracking/joint_vel_err"] = float(joint_vel_err.mean().item())
+            log["tracking/root_height_err"] = float(root_h_err.mean().item())
+            log["tracking/root_yaw_err"] = float(root_yaw_err.mean().item())
+            log["tracking/root_lin_vel_err"] = float(torch.sqrt(root_lin_vel_err).mean().item())
+            log["tracking/yaw_rate_err"] = float(torch.sqrt(yaw_rate_err).mean().item())
+            log["tracking/foot_slip"] = float(slip_cost.mean().item())
+            log["tracking/undesired_contact"] = float(undesired.mean().item())
+            log["tracking/fall_rate"] = float(self.reset_terminated.float().mean().item())
+            log["tracking/clip_completion_rate"] = float(self.motion_done.float().mean().item())
+            log["reward_total/mean"] = float(reward.mean().item())
 
         return reward
 
     def _get_dones(self):
         self._update_state()
         time_out = self.episode_length_buf >= self.randomized_episode_lengths - 1
+        if self._motion_reference_enabled:
+            time_out = time_out | self.motion_done
 
         fell = self.track_pos_w[:, 2] < self.cfg.termination_height
         too_tilted = self.up_b[:, 2] < self.cfg.upright_threshold
 
         died = fell | too_tilted
+
+        log = self.extras.setdefault("log", {})
+        log["tracking/fall_rate"] = float(died.float().mean().item())
+        log["tracking/clip_completion_rate"] = float(self.motion_done.float().mean().item())
 
         return died, time_out
 
@@ -1571,30 +1370,49 @@ class LocomotionEnv(DirectRLEnv):
         super()._reset_idx(env_ids)
         self._resample_episode_lengths(env_ids)
 
-        joint_pos = self.robot.data.default_joint_pos[env_ids]
-        joint_vel = self.robot.data.default_joint_vel[env_ids]
+        joint_pos = self.robot.data.default_joint_pos[env_ids].clone()
+        joint_vel = self.robot.data.default_joint_vel[env_ids].clone()
+        root_pose = self.robot.data.default_root_state[env_ids, :7].clone()
+        root_vel = self.robot.data.default_root_state[env_ids, 7:].clone()
 
-        # Initial pose randomization (ADR)
-        if self.adr is not None:
-            jpos_w = float(self.adr.get_custom("robot_spawn", "joint_pos_noise"))
-            jvel_w = float(self.adr.get_custom("robot_spawn", "joint_vel_noise"))
+        if self._motion_reference_enabled:
+            if self.motion_lib is None:
+                raise RuntimeError("Motion reference is enabled but motion_lib was not initialized.")
+            motion_ids, start_frames, end_frames = self.motion_lib.sample(
+                env_ids.numel(),
+                random_start=bool(getattr(self.cfg, "motion_random_start", True)),
+            )
+            self.motion_ids[env_ids] = motion_ids
+            self.motion_start_frame[env_ids] = start_frames
+            self.motion_frame[env_ids] = start_frames
+            self.motion_end_frame[env_ids] = end_frames
+            self.motion_done[env_ids] = False
 
-            if jpos_w > 0.0:
-                noise = torch.empty_like(joint_pos).uniform_(-jpos_w, jpos_w)
-                joint_pos = joint_pos + noise
+            ref = self.motion_lib.get_frames(motion_ids, start_frames)
+            root_pose[:, 0:3] = ref["root_pos"] + self.scene.env_origins[env_ids]
+            root_pose[:, 3:7] = ref["root_quat"]
+            root_vel = torch.cat([ref["root_lin_vel_w"], ref["root_ang_vel_w"]], dim=-1)
+            joint_pos[:, self._joint_dof_idx] = ref["joint_pos"]
+            joint_vel[:, self._joint_dof_idx] = ref["joint_vel"]
+        else:
+            root_pose[:, :3] += self.scene.env_origins[env_ids]
 
-                lo = self.robot.data.soft_joint_pos_limits[0, :, 0].unsqueeze(0)
-                hi = self.robot.data.soft_joint_pos_limits[0, :, 1].unsqueeze(0)
-                joint_pos = torch.clamp(joint_pos, lo, hi)
+        jpos_w = float(getattr(self.cfg, "reset_joint_pos_noise", 0.0))
+        jvel_w = float(getattr(self.cfg, "reset_joint_vel_noise", 0.0))
+        if jpos_w > 0.0:
+            noise = torch.empty((env_ids.numel(), self.num_actions), device=self.sim.device).uniform_(-jpos_w, jpos_w)
+            joint_pos[:, self._joint_dof_idx] += noise
+            lo = self.robot.data.soft_joint_pos_limits[0, :, 0].unsqueeze(0)
+            hi = self.robot.data.soft_joint_pos_limits[0, :, 1].unsqueeze(0)
+            joint_pos = torch.clamp(joint_pos, lo, hi)
+        if jvel_w > 0.0:
+            joint_vel[:, self._joint_dof_idx] += torch.empty(
+                (env_ids.numel(), self.num_actions),
+                device=self.sim.device,
+            ).uniform_(-jvel_w, jvel_w)
 
-            if jvel_w > 0.0:
-                joint_vel = joint_vel + torch.empty_like(joint_vel).uniform_(-jvel_w, jvel_w)
-
-        root = self.robot.data.default_root_state[env_ids]
-        root[:, :3] += self.scene.env_origins[env_ids]
-
-        self.robot.write_root_pose_to_sim(root[:, :7], env_ids)
-        self.robot.write_root_velocity_to_sim(root[:, 7:], env_ids)
+        self.robot.write_root_pose_to_sim(root_pose, env_ids)
+        self.robot.write_root_velocity_to_sim(root_vel, env_ids)
         self.robot.write_joint_state_to_sim(joint_pos, joint_vel, None, env_ids)
         self._invalidate_state_cache()
 
@@ -1610,18 +1428,9 @@ class LocomotionEnv(DirectRLEnv):
         self._ep_lin_err_sum[env_ids] = 0.0
         self._ep_yaw_err_sum[env_ids] = 0.0
         self._ep_len[env_ids] = 0.0
-
-        if self._motion_reference_enabled:
-            if bool(getattr(self.cfg, "motion_reference_random_start", True)):
-                self.motion_start_frame[env_ids] = torch.randint(
-                    0,
-                    self._motion_num_frames,
-                    (env_ids.numel(),),
-                    device=self.sim.device,
-                )
-            else:
-                self.motion_start_frame[env_ids] = 0
-            self.motion_frame[env_ids] = self.motion_start_frame[env_ids]
+        self.commands[env_ids] = 0.0
+        if self._feet_inited:
+            self.prev_foot_contact[env_ids] = False
 
         # reset push timers
         self.push_counters[env_ids] = 0
@@ -1635,13 +1444,7 @@ class LocomotionEnv(DirectRLEnv):
         # sample per-episode DR variables (strength, imu bias)
         self._sample_custom_dr_for_resets(env_ids)
 
-        # Sample commands based on current curriculum stage
-        self._sample_commands(env_ids)
-
-        if bool(getattr(self.cfg, "randomize_phase", False)):
-            self.phase_offset[env_ids] = torch.rand(env_ids.numel(), device=self.sim.device) * (2.0 * torch.pi)
-        else:
-            self.phase_offset[env_ids] = 0.0
+        self.phase_offset[env_ids] = 0.0
 
         if self._visualization_enabled or self.obs_stack_buf is not None or self.obs_hist_buf is not None:
             self._update_state()
