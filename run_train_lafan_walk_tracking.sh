@@ -91,12 +91,23 @@ if [[ -n "${CHECKPOINT}" ]]; then
   TRAIN_ARGS+=(--checkpoint "${CHECKPOINT}")
 fi
 
-python scripts/rl_games/train.py \
-  "${TRAIN_ARGS[@]}" \
-  env.motion_reference_dir="${MOTION_DIR}" \
-  env.motion_manifest_file="${MOTION_MANIFEST}" \
-  env.motion_reference_playback=false \
-  env.motion_random_start=true \
-  env.motion_min_length_s=1.0 \
-  env.motion_cache_on_gpu=true \
+CMD=(
+  python scripts/rl_games/train.py
+  "${TRAIN_ARGS[@]}"
+  env.motion_reference_dir="${MOTION_DIR}"
+  env.motion_manifest_file="${MOTION_MANIFEST}"
+  env.motion_reference_playback=false
+  env.motion_random_start=true
+  env.motion_min_length_s=1.0
+  env.motion_cache_on_gpu=true
   "$@"
+)
+
+if [[ "${DRY_RUN:-0}" != "0" ]]; then
+  printf '[DRY_RUN]'
+  printf ' %q' "${CMD[@]}"
+  printf '\n'
+  exit 0
+fi
+
+"${CMD[@]}"

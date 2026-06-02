@@ -61,6 +61,12 @@ If your checkpoints live elsewhere, override the search root:
 RESUME_LAST=1 LOG_ROOT=/path/to/logs/rl_games/humanoid_flat_direct ./run_train_lafan_walk_tracking.sh
 ```
 
+Preview the exact training command without launching IsaacSim:
+
+```bash
+DRY_RUN=1 RESUME_LAST=1 ./run_train_lafan_walk_tracking.sh
+```
+
 Extra Hydra overrides can be appended:
 
 ```bash
