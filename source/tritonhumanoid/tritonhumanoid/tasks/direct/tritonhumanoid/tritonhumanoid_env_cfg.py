@@ -233,7 +233,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     contact_sensor: ContactSensorCfg = ContactSensorCfg(
         prim_path="/World/envs/env_.*/Robot/.*", history_length=3, update_period=0.005, track_air_time=True
     )
-    enable_frame_transformer: bool = False
+    enable_frame_transformer: bool = True
 
     # scene.ee_site = FrameTransformerCfg(
     #     prim_path="{ENV_REGEX_NS}/Robot/world",   # source frame
@@ -281,6 +281,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     motion_min_length_s: float = 1.0
     motion_max_cost: float | None = None
     motion_cache_on_gpu: bool = True
+    motion_root_height_offset: float | None = None
     future_ref_offsets: tuple[int, ...] = (1, 2, 4, 6)
     motion_reference_observation: bool = True
     motion_reference_pos_error_scale: float = 1.0

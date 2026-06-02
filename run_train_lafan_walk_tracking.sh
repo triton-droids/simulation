@@ -147,7 +147,6 @@ if [[ "${FAST_TRAIN}" != "0" ]]; then
     env.enable_adr=false
     env.enable_contact_rewards=false
     env.enable_contact_sensors=false
-    env.enable_frame_transformer=false
     env.enable_reward_logging=false
     env.push_force_range=[0.0,0.0]
     env.reset_joint_pos_noise=0.0

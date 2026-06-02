@@ -314,7 +314,7 @@ class LocomotionEnv(DirectRLEnv):
 
         # Optional tracking-site sensor. Fast training computes the same top point
         # analytically from the configured body pose and offset.
-        self._frame_transformer_enabled = bool(getattr(self.cfg, "enable_frame_transformer", False))
+        self._frame_transformer_enabled = bool(getattr(self.cfg, "enable_frame_transformer", True))
         self._top_frame_idx = None
         top_frame_cfg = None
         for frame_cfg in getattr(self.cfg.ee_site, "target_frames", []):
@@ -398,6 +398,14 @@ class LocomotionEnv(DirectRLEnv):
         self.motion_done = torch.zeros(self.num_envs, dtype=torch.bool, device=self.sim.device)
         self.motion_lib = None
         self._motion_debug_printed = False
+        root_height_offset = getattr(self.cfg, "motion_root_height_offset", None)
+        if root_height_offset is None:
+            root_height_offset = float(self.robot.data.default_root_state[0, 2].item())
+        self._motion_root_pos_offset = torch.tensor(
+            [0.0, 0.0, float(root_height_offset)],
+            device=self.sim.device,
+            dtype=torch.float32,
+        ).unsqueeze(0)
         if self._motion_reference_enabled:
             self._load_motion_reference()
 
@@ -654,7 +662,7 @@ class LocomotionEnv(DirectRLEnv):
             self.scene.sensors["contact_sensor"] = self._contact_sensor
         self.scene.articulations["robot"] = self.robot
         self._ee_site_sensor = None
-        if bool(getattr(self.cfg, "enable_frame_transformer", False)):
+        if bool(getattr(self.cfg, "enable_frame_transformer", True)):
             self._ee_site_sensor = FrameTransformer(self.cfg.ee_site)
             self.scene.sensors["ee_site"] = self._ee_site_sensor
 
@@ -1053,7 +1061,7 @@ class LocomotionEnv(DirectRLEnv):
         self.motion_frame = self.motion_start_frame + self.episode_length_buf
         self.motion_done = self.motion_frame >= self.motion_end_frame
         ref = self.motion_lib.get_frames(self.motion_ids, self.motion_frame)
-        self.motion_target_root_pos = ref["root_pos"]
+        self.motion_target_root_pos = ref["root_pos"] + self._motion_root_pos_offset
         self.motion_target_root_quat = ref["root_quat"]
         self.motion_target_joint_pos = ref["joint_pos"]
         self.motion_target_joint_vel = ref["joint_vel"]
@@ -1446,7 +1454,9 @@ class LocomotionEnv(DirectRLEnv):
             self.motion_done[env_ids] = False
 
             ref = self.motion_lib.get_frames(motion_ids, start_frames)
-            root_pose[:, 0:3] = ref["root_pos"] + self.scene.env_origins[env_ids]
+            root_pose[:, 0:3] = (
+                ref["root_pos"] + self._motion_root_pos_offset + self.scene.env_origins[env_ids]
+            )
             root_pose[:, 3:7] = ref["root_quat"]
             root_vel = torch.cat([ref["root_lin_vel_w"], ref["root_ang_vel_w"]], dim=-1)
             joint_pos[:, self._joint_dof_idx] = ref["joint_pos"]
