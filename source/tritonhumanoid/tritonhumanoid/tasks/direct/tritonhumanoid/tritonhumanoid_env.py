@@ -516,13 +516,24 @@ class LocomotionEnv(DirectRLEnv):
         # init ADR controller after event_manager exists
         self.adr = None
         if getattr(self.cfg, "enable_adr", False):
+            self._domain_randomization_mode = str(
+                getattr(self.cfg, "domain_randomization_mode", "adaptive")
+            ).lower()
+            if self._domain_randomization_mode not in ("adaptive", "fixed"):
+                raise ValueError(
+                    "domain_randomization_mode must be 'adaptive' or 'fixed', "
+                    f"got {self._domain_randomization_mode!r}."
+                )
             self.adr = LocomotionADR(
                 self.event_manager,
                 self.cfg.adr_event_cfg_dict,
                 self.cfg.adr_custom_cfg_dict,
                 num_increments=self.cfg.num_adr_increments,
             )
-            self.adr.set_num_increments(self.cfg.starting_adr_increments)
+            if self._domain_randomization_mode == "fixed":
+                self.adr.set_num_increments(self.cfg.num_adr_increments)
+            else:
+                self.adr.set_num_increments(self.cfg.starting_adr_increments)
             self._update_adr_custom_params()
             if getattr(self.cfg, "adr_print_every_update", True):
                 print(self.adr.print_params())
@@ -804,6 +815,10 @@ class LocomotionEnv(DirectRLEnv):
         """Increase/decrease ADR based on EMA survival rate."""
         if self.adr is None:
             return
+        if getattr(self, "_domain_randomization_mode", "adaptive") == "fixed":
+            self.extras["log"]["adr_increments"] = int(self.adr.num_increments())
+            self.extras["log"]["adr_difficulty"] = float(self.adr.difficulty())
+            return
 
         if self._global_policy_step < int(getattr(self.cfg, "adr_warmup_steps", 0)):
             return
@@ -835,6 +850,7 @@ class LocomotionEnv(DirectRLEnv):
         self.extras["log"]["adr_tracking_lin_err_ema"] = float(self.lin_err_ema.item())
         self.extras["log"]["adr_tracking_yaw_err_ema"] = float(self.yaw_err_ema.item())
         self.extras["log"]["adr_increments"] = int(self.adr.num_increments())
+        self.extras["log"]["adr_difficulty"] = float(self.adr.difficulty())
 
         if (self._global_policy_step - self._last_adr_update_step) < int(self.cfg.adr_update_interval_steps):
             return

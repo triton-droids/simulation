@@ -90,3 +90,4 @@ params:
       deterministic: True
       games_num: 100000
       print_stats: True
+    use_diagnostics: True

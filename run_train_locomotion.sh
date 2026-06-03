@@ -3,8 +3,14 @@ set -euo pipefail
 
 NUM_ENVS="${NUM_ENVS:-16384}"
 FAST_TRAIN="${FAST_TRAIN:-0}"
+DOMAIN_RANDOMIZATION_MODE="${DOMAIN_RANDOMIZATION_MODE:-}"
 SOLVER_POSITION_ITERATIONS="${SOLVER_POSITION_ITERATIONS:-}"
 SOLVER_VELOCITY_ITERATIONS="${SOLVER_VELOCITY_ITERATIONS:-}"
+if [[ "${FAST_TRAIN}" != "0" && ( "${DOMAIN_RANDOMIZATION_MODE}" == "adaptive" || "${DOMAIN_RANDOMIZATION_MODE}" == "fixed" ) ]]; then
+  echo "FAST_TRAIN disables domain randomization; use DOMAIN_RANDOMIZATION_MODE=off or leave FAST_TRAIN=0." >&2
+  exit 2
+fi
+
 PYTHON_CMD=()
 if [[ -n "${ISAAC_PYTHON:-}" ]]; then
   PYTHON_CMD=("${ISAAC_PYTHON}")
@@ -41,6 +47,24 @@ fi
 
 if [[ -n "${SOLVER_VELOCITY_ITERATIONS}" ]]; then
   EXTRA_OVERRIDES+=(env.robot.spawn.articulation_props.solver_velocity_iteration_count="${SOLVER_VELOCITY_ITERATIONS}")
+fi
+
+if [[ -n "${DOMAIN_RANDOMIZATION_MODE}" ]]; then
+  case "${DOMAIN_RANDOMIZATION_MODE}" in
+    adaptive|fixed)
+      EXTRA_OVERRIDES+=(
+        env.enable_adr=true
+        env.domain_randomization_mode="${DOMAIN_RANDOMIZATION_MODE}"
+      )
+      ;;
+    off|none|disabled)
+      EXTRA_OVERRIDES+=(env.enable_adr=false)
+      ;;
+    *)
+      echo "DOMAIN_RANDOMIZATION_MODE must be adaptive, fixed, or off; got '${DOMAIN_RANDOMIZATION_MODE}'." >&2
+      exit 2
+      ;;
+  esac
 fi
 
 "${PYTHON_CMD[@]}" scripts/rl_games/train.py \

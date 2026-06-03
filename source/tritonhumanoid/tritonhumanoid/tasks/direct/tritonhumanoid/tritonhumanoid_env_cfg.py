@@ -434,6 +434,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
 
     # === ADR configuration ===
     enable_adr: bool = True
+    domain_randomization_mode: str = "adaptive"  # "adaptive" ramps ADR; "fixed" holds max ADR ranges.
     num_adr_increments: int = 100
     starting_adr_increments: int = 0
     adr_update_interval_steps: int = 500
