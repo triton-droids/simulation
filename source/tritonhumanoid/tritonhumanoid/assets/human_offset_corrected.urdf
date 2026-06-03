@@ -19,13 +19,6 @@
         izz="0.03104"/>
     </inertial>
 
-    <collision>
-      <origin xyz="-0.157672 -0.03 0.667" rpy="0 0 0"/>
-      <geometry>
-        <cylinder radius="0.105" length="0.02279"/> 
-      </geometry>
-    </collision>
-
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
@@ -53,12 +46,6 @@
               izz="0.02517"/>
     </inertial>
 
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="robot_meshes/hip_ch.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </collision>
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
@@ -79,12 +66,6 @@
               izz="0.003391"/>
     </inertial>
 
-    <collision>
-      <origin xyz="0.068372 0.029495 -0.577401" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="robot_meshes/left_leg1_ch.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </collision>
     <visual>
       <origin xyz="0.068372 0.029495 -0.577401" rpy="0 0 0" />
       <geometry>
@@ -105,12 +86,6 @@
               izz="0.002818"/>
     </inertial>
 
-    <collision>
-      <origin xyz="4.8e-05 0.029495 -0.577401" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="robot_meshes/left_leg2_ch.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </collision>
     <visual>
       <origin xyz="4.8e-05 0.029495 -0.577401" rpy="0 0 0" />
       <geometry>
@@ -131,12 +106,6 @@
               izz="0.004377"/>
     </inertial>
 
-    <collision>
-      <origin xyz="4.8e-05 0.029495 -0.463816" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="robot_meshes/left_leg3_ch.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </collision>
     <visual>
       <origin xyz="4.8e-05 0.029495 -0.463816" rpy="0 0 0" />
       <geometry>
@@ -157,12 +126,6 @@
               izz="0.002972"/>
     </inertial>
 
-    <collision>
-      <origin xyz="4.8e-05 0.029495 -0.306338" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="robot_meshes/left_leg4_ch.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </collision>
     <visual>
       <origin xyz="4.8e-05 0.029495 -0.306338" rpy="0 0 0" />
       <geometry>
@@ -216,12 +179,6 @@
               iyz="0.00000024481"
               izz="0.003391"/>
     </inertial>
-    <collision>
-      <origin xyz="0.2429 0.029495 -0.577401" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="robot_meshes/right_leg1_ch.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </collision>
     <visual>
       <origin xyz="0.2429 0.029495 -0.577401" rpy="0 0 0" />
       <geometry>
@@ -242,12 +199,6 @@
               izz="0.002818"/>
     </inertial>
 
-    <collision>
-      <origin xyz="0.311223 0.029495 -0.577401" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="robot_meshes/right_leg2_ch.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </collision>
     <visual>
       <origin xyz="0.311223 0.029495 -0.577401" rpy="0 0 0" />
       <geometry>
@@ -266,12 +217,6 @@
               iyz="-0.000049473856"
               izz="0.004377"/>
     </inertial>
-    <collision>
-      <origin xyz="0.311223 0.029495 -0.463816" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="robot_meshes/right_leg3_ch.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </collision>
     <visual>
       <origin xyz="0.311223 0.029495 -0.463816" rpy="0 0 0" />
       <geometry>
@@ -290,12 +235,6 @@
               iyz="-0.0002341"
               izz="0.002972"/>
     </inertial>
-    <collision>
-      <origin xyz="0.311223 0.029495 -0.306338" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="robot_meshes/right_leg4_ch.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </collision>
     <visual>
       <origin xyz="0.311223 0.029495 -0.306338" rpy="0 0 0" />
       <geometry>

@@ -225,8 +225,22 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Locomotion uses a dedicated delayed-PD asset with motor-pair-specific latency groups
     # derived from the embedded motor dataset analysis.
     robot: ArticulationCfg = HUMANOID_LOCOMOTION_DELAYED_PD_CFG.replace(prim_path="/World/envs/env_.*/Robot")
+    disable_non_foot_collisions: bool = False
+    non_foot_collision_body_names: tuple[str, ...] = (
+        "torso",
+        "hip",
+        "left_leg1",
+        "left_leg2",
+        "left_leg3",
+        "left_leg4",
+        "right_leg1",
+        "right_leg2",
+        "right_leg3",
+        "right_leg4",
+    )
+    enable_contact_sensor: bool = False
     contact_sensor: ContactSensorCfg = ContactSensorCfg(
-        prim_path="/World/envs/env_.*/Robot/.*", history_length=3, update_period=0.005, track_air_time=True
+        prim_path="/World/envs/env_.*/Robot/.*_foot", history_length=3, update_period=0.005, track_air_time=True
     )
 
     # scene.ee_site = FrameTransformerCfg(
@@ -288,16 +302,16 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
 
     # Tracking sharpness
     tracking_sigma: float = 0.25
-    # height_tracking_sigma: float = 0.01
+    height_tracking_sigma: float = 0.02
 
     # Command tracking
     tracking_x_vel_scale: float = 1.5
     tracking_y_vel_scale: float = 1.0
     tracking_ang_vel_scale: float = 2.0
 
-    # Fixed walking height, not a command. Disabled for now; the observation does not include height.
-    # base_height_target: float = 0.70
-    # tracking_base_height_scale: float = 2.0
+    # HOMIE-style fixed walking height target. This is a privileged reward term only.
+    base_height_target: float = 0.70
+    tracking_base_height_scale: float = 1.0
 
     # Base stability
     lin_vel_z_scale: float = -0.5
@@ -320,19 +334,23 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     dof_pos_limits_scale: float = -2.0
     soft_dof_pos_limit: float = 0.975
 
-    # Contacts
+    # Distance-based feet shaping. These replace contact/air-time rewards so training does
+    # not depend on contact sensor signals or non-foot self-collision.
     foot_body_regex: str = "left_foot|right_foot"
-    foot_contact_force_thresh: float = 30.0
-    min_air_time: float = 0.2
-
-    feet_air_time_scale: float = 0.05
-    feet_slip_scale: float = -0.25
-    undesired_contact_scale: float = -0.10
-    undesired_contact_force_thresh: float = 80.0
-
-    no_fly_scale: float = 0.75
-    feet_contact_force_scale: float = -2.5e-4
-    max_contact_force: float = 400.0
+    knee_body_regex: str = "left_leg4|right_leg4"
+    foot_ground_height_target: float = 0.035
+    foot_clearance_target: float = 0.10
+    foot_height_sigma: float = 0.01
+    foot_swing_speed_threshold: float = 0.15
+    feet_support_height_scale: float = 0.50
+    feet_clearance_scale: float = -0.75
+    feet_near_ground_velocity_scale: float = -0.05
+    feet_distance_scale: float = -0.20
+    feet_distance_min: float = 0.12
+    feet_distance_max: float = 0.38
+    knee_distance_scale: float = -0.15
+    knee_distance_min: float = 0.08
+    knee_distance_max: float = 0.32
 
     # Stand behavior
     stand_still_scale: float = -0.15

@@ -7,8 +7,17 @@
 Python module serving as a project/extension template.
 """
 
-# Register Gym environments.
-from .tasks import *
+# Register Gym environments when IsaacLab is available. MuJoCo eval helpers are
+# intentionally importable in lightweight Python environments without IsaacLab.
+try:
+    from .tasks import *  # noqa: F401,F403
+except ModuleNotFoundError as exc:
+    if exc.name not in {"isaaclab", "isaaclab_tasks", "isaacsim"}:
+        raise
 
-# Register UI extensions.
-from .ui_extension_example import *
+# Register UI extensions when IsaacLab/Omniverse dependencies are available.
+try:
+    from .ui_extension_example import *  # noqa: F401,F403
+except ModuleNotFoundError as exc:
+    if exc.name not in {"isaaclab", "isaaclab_tasks", "isaacsim", "omni"}:
+        raise

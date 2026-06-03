@@ -15,6 +15,9 @@ from isaaclab.assets import ArticulationCfg
 
 import math
 
+SIM2SIM_JOINT_VELOCITY_LIMIT = 15.0
+SIM2SIM_JOINT_ARMATURE = 0.01
+
 qz_minus_90 = (
     math.cos(math.pi / 4.0),  # ≈ 0.7071
     0.0,
@@ -27,7 +30,7 @@ HUMANOID_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         # usd_path=f"{Path(__file__).parent}/human/human.usd",
         usd_path=f"{Path(__file__).parent}/human_offset_corrected/human_offset_corrected.usd",
-        activate_contact_sensors=True,
+        activate_contact_sensors=False,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
             retain_accelerations=False,
@@ -38,7 +41,7 @@ HUMANOID_CFG = ArticulationCfg(
             max_depenetration_velocity=5.0,
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=True,
+            enabled_self_collisions=False,
             solver_position_iteration_count=12,
             solver_velocity_iteration_count=2,
         ),
@@ -80,7 +83,7 @@ HUMANOID_CFG = ArticulationCfg(
                 "right_ankle_joint",
             ],
             effort_limit_sim=120.0,
-            velocity_limit_sim=20.0,
+            velocity_limit_sim=SIM2SIM_JOINT_VELOCITY_LIMIT,
 
             # Velocity-control regime: P ≈ 0, D > 0
             stiffness={
@@ -99,7 +102,7 @@ HUMANOID_CFG = ArticulationCfg(
 
             # Optional: very small joint friction/armature so it’s not totally ideal
             friction=0.05,
-            armature=0.0,
+            armature=SIM2SIM_JOINT_ARMATURE,
         ),
     },
 )
@@ -118,9 +121,9 @@ HUMANOID_LOCOMOTION_DELAYED_PD_CFG = HUMANOID_CFG.replace(
                 "right_hip1_joint",
             ],
             effort_limit=120.0,
-            velocity_limit=20.0,
+            velocity_limit=SIM2SIM_JOINT_VELOCITY_LIMIT,
             effort_limit_sim=120.0,
-            velocity_limit_sim=20.0,
+            velocity_limit_sim=SIM2SIM_JOINT_VELOCITY_LIMIT,
             stiffness={
                 "left_hip1_joint": 250.0,
                 "right_hip1_joint": 250.0,
@@ -132,7 +135,7 @@ HUMANOID_LOCOMOTION_DELAYED_PD_CFG = HUMANOID_CFG.replace(
             min_delay=1,
             max_delay=1,
             friction=0.0,
-            armature=0.0,
+            armature=SIM2SIM_JOINT_ARMATURE,
         ),
         "hip2_pair_2_7": DelayedPDActuatorCfg(
             joint_names_expr=[
@@ -140,9 +143,9 @@ HUMANOID_LOCOMOTION_DELAYED_PD_CFG = HUMANOID_CFG.replace(
                 "right_hip2_joint",
             ],
             effort_limit=120.0,
-            velocity_limit=20.0,
+            velocity_limit=SIM2SIM_JOINT_VELOCITY_LIMIT,
             effort_limit_sim=120.0,
-            velocity_limit_sim=20.0,
+            velocity_limit_sim=SIM2SIM_JOINT_VELOCITY_LIMIT,
             stiffness={
                 "left_hip2_joint": 250.0,
                 "right_hip2_joint": 250.0,
@@ -154,7 +157,7 @@ HUMANOID_LOCOMOTION_DELAYED_PD_CFG = HUMANOID_CFG.replace(
             min_delay=0,
             max_delay=1,
             friction=0.0,
-            armature=0.0,
+            armature=SIM2SIM_JOINT_ARMATURE,
         ),
         "thigh_pair_3_8": DelayedPDActuatorCfg(
             joint_names_expr=[
@@ -162,9 +165,9 @@ HUMANOID_LOCOMOTION_DELAYED_PD_CFG = HUMANOID_CFG.replace(
                 "right_thigh_joint",
             ],
             effort_limit=120.0,
-            velocity_limit=20.0,
+            velocity_limit=SIM2SIM_JOINT_VELOCITY_LIMIT,
             effort_limit_sim=120.0,
-            velocity_limit_sim=20.0,
+            velocity_limit_sim=SIM2SIM_JOINT_VELOCITY_LIMIT,
             stiffness={
                 "left_thigh_joint": 100.0,
                 "right_thigh_joint": 100.0,
@@ -176,7 +179,7 @@ HUMANOID_LOCOMOTION_DELAYED_PD_CFG = HUMANOID_CFG.replace(
             min_delay=0,
             max_delay=1,
             friction=0.0,
-            armature=0.0,
+            armature=SIM2SIM_JOINT_ARMATURE,
         ),
         "knee_pair_4_9": DelayedPDActuatorCfg(
             joint_names_expr=[
@@ -184,9 +187,9 @@ HUMANOID_LOCOMOTION_DELAYED_PD_CFG = HUMANOID_CFG.replace(
                 "right_knee_joint",
             ],
             effort_limit=120.0,
-            velocity_limit=20.0,
+            velocity_limit=SIM2SIM_JOINT_VELOCITY_LIMIT,
             effort_limit_sim=120.0,
-            velocity_limit_sim=20.0,
+            velocity_limit_sim=SIM2SIM_JOINT_VELOCITY_LIMIT,
             stiffness={
                 "left_knee_joint": 150.0,
                 "right_knee_joint": 150.0,
@@ -198,7 +201,7 @@ HUMANOID_LOCOMOTION_DELAYED_PD_CFG = HUMANOID_CFG.replace(
             min_delay=1,
             max_delay=2,
             friction=0.0,
-            armature=0.0,
+            armature=SIM2SIM_JOINT_ARMATURE,
         ),
         "ankle_pair_5_10": DelayedPDActuatorCfg(
             joint_names_expr=[
@@ -206,9 +209,9 @@ HUMANOID_LOCOMOTION_DELAYED_PD_CFG = HUMANOID_CFG.replace(
                 "right_ankle_joint",
             ],
             effort_limit=120.0,
-            velocity_limit=20.0,
+            velocity_limit=SIM2SIM_JOINT_VELOCITY_LIMIT,
             effort_limit_sim=120.0,
-            velocity_limit_sim=20.0,
+            velocity_limit_sim=SIM2SIM_JOINT_VELOCITY_LIMIT,
             stiffness={
                 "left_ankle_joint": 120.0,
                 "right_ankle_joint": 120.0,
@@ -220,7 +223,7 @@ HUMANOID_LOCOMOTION_DELAYED_PD_CFG = HUMANOID_CFG.replace(
             min_delay=0,
             max_delay=1,
             friction=0.0,
-            armature=0.0,
+            armature=SIM2SIM_JOINT_ARMATURE,
         ),
     },
 )

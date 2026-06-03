@@ -320,6 +320,7 @@ class LocomotionEnv(DirectRLEnv):
         self.actions = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
         self.prev_actions = torch.zeros_like(self.actions)
         self.q_des = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
+        self.last_reward_terms: dict[str, torch.Tensor] = {}
         self.action_max_latency = int(getattr(self.cfg, "action_max_latency", 0))
         self.action_latency_steps = torch.zeros(self.num_envs, dtype=torch.long, device=self.sim.device)
         if self.action_max_latency > 0:
@@ -547,11 +548,14 @@ class LocomotionEnv(DirectRLEnv):
     def _setup_scene(self):
         self.robot = Articulation(self.cfg.robot)
 
-        # add contact sensors
-        self._contact_sensor = ContactSensor(self.cfg.contact_sensor)
+        # Contact sensors are optional. Locomotion rewards are kinematic/distance-based by default.
+        self._contact_sensor = None
+        if bool(getattr(self.cfg, "enable_contact_sensor", False)):
+            self._contact_sensor = ContactSensor(self.cfg.contact_sensor)
         self._ee_site_sensor = FrameTransformer(self.cfg.ee_site)
         self.scene.articulations["robot"] = self.robot
-        self.scene.sensors["contact_sensor"] = self._contact_sensor
+        if self._contact_sensor is not None:
+            self.scene.sensors["contact_sensor"] = self._contact_sensor
         self.scene.sensors["ee_site"] = self._ee_site_sensor
 
         # add ground plane
@@ -560,6 +564,7 @@ class LocomotionEnv(DirectRLEnv):
         self.terrain = self.cfg.terrain.class_type(self.cfg.terrain)
         # clone and replicate
         self.scene.clone_environments(copy_from_source=False)
+        self._disable_non_foot_collisions()
         # we need to explicitly filter collisions for CPU simulation
         if self.device == "cpu":
             self.scene.filter_collisions(global_prim_paths=[self.cfg.terrain.prim_path])
@@ -568,6 +573,31 @@ class LocomotionEnv(DirectRLEnv):
         # add lights
         light_cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
         light_cfg.func("/World/Light", light_cfg)
+
+    def _disable_non_foot_collisions(self) -> None:
+        """Disable collider prims for non-foot links in the referenced USD asset."""
+        if not bool(getattr(self.cfg, "disable_non_foot_collisions", True)):
+            return
+
+        from pxr import UsdPhysics
+
+        stage = sim_utils.get_current_stage()
+        root_regex = self.cfg.robot.prim_path
+        for body_name in getattr(self.cfg, "non_foot_collision_body_names", ()):
+            body_paths = sim_utils.find_matching_prim_paths(f"{root_regex}/{body_name}")
+            for body_path in body_paths:
+                body_prim = stage.GetPrimAtPath(body_path)
+                if not body_prim.IsValid():
+                    continue
+                prims = [body_prim]
+                while prims:
+                    prim = prims.pop(0)
+                    if prim.IsInstance():
+                        continue
+                    collision_api = UsdPhysics.CollisionAPI(prim)
+                    if collision_api:
+                        collision_api.GetCollisionEnabledAttr().Set(False)
+                    prims.extend(prim.GetChildren())
 
     def _cache_body_masses(self) -> None:
         """Cache link masses on sim device. Prefer default_mass (fast, GPU)."""
@@ -1087,7 +1117,7 @@ class LocomotionEnv(DirectRLEnv):
 
         return {"policy": obs}
 
-    def _get_rewards(self) -> torch.Tensor:
+    def _compute_reward_terms(self) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         self._update_state()
 
         # --- Command and fixed-height tracking ---
@@ -1099,9 +1129,8 @@ class LocomotionEnv(DirectRLEnv):
         r_x = torch.exp(-(x_err * x_err) / tracking_sigma)
         r_y = torch.exp(-(y_err * y_err) / tracking_sigma)
         r_yaw = torch.exp(-(yaw_err * yaw_err) / tracking_sigma)
-        # Fixed-height tracking is intentionally disabled for this locomotion setup.
-        # height_err = self.track_pos_w[:, 2] - self.cfg.base_height_target
-        # r_height = torch.exp(-(height_err * height_err) / (self.cfg.height_tracking_sigma + 1e-6))
+        height_err = self.track_pos_w[:, 2] - self.cfg.base_height_target
+        r_height = torch.exp(-(height_err * height_err) / (self.cfg.height_tracking_sigma + 1e-6))
 
         self._ep_lin_err_sum += torch.sqrt(x_err * x_err + y_err * y_err)
         self._ep_yaw_err_sum += torch.abs(yaw_err)
@@ -1141,37 +1170,43 @@ class LocomotionEnv(DirectRLEnv):
         limit_excess = torch.clamp(torch.abs(self.act_pos_scaled) - self.cfg.soft_dof_pos_limit, min=0.0)
         dof_pos_limits = torch.sum(limit_excess ** 2, dim=1)
 
-        # --- Contacts ---
+        # --- Distance-based feet shaping ---
         self._init_feet()
 
-        forces_hist = self._contact_sensor.data.net_forces_w_history
-        foot_forces = forces_hist[:, 0, self._feet_sensor_ids, :]
-        
-        foot_force_z = torch.clamp(foot_forces[:, :, 2], min=0.0)
-        foot_contact = foot_force_z > self.cfg.foot_contact_force_thresh
-
-        air_time = self._contact_sensor.data.current_air_time[:, self._feet_sensor_ids]
-        touchdown = foot_contact & (~self.prev_foot_contact)
-        air_rew = torch.sum(torch.clamp(air_time - self.cfg.min_air_time, min=0.0) * touchdown.float(), dim=1)
-
+        feet_pos_w = self.robot.data.body_pos_w[:, self._feet_body_ids, :]
         feet_vel_w = self.robot.data.body_lin_vel_w[:, self._feet_body_ids, :]
-        slip_speed_sq = torch.sum(feet_vel_w[..., :2] ** 2, dim=-1)
-        slip_cost = torch.sum(slip_speed_sq * foot_contact.float(), dim=1)
+        foot_height = feet_pos_w[:, :, 2] - float(self.cfg.foot_ground_height_target)
+        foot_speed_xy = torch.linalg.norm(feet_vel_w[:, :, :2], dim=-1)
 
-        all_forces = forces_hist[:, 0, :, :]
-        all_mag = torch.linalg.norm(all_forces, dim=-1)
-        all_mag[:, self._feet_sensor_ids] = 0.0
-        undesired = (all_mag > self.cfg.undesired_contact_force_thresh).any(dim=1).float()
+        min_foot_height = torch.min(torch.abs(foot_height), dim=1).values
+        r_support_height = torch.exp(-(min_foot_height * min_foot_height) / (self.cfg.foot_height_sigma + 1e-6))
 
-        is_flying = (foot_contact.sum(dim=1) == 0).float()
-        r_no_fly = 1.0 - is_flying
+        swing_weight = torch.clamp(
+            (foot_speed_xy - self.cfg.foot_swing_speed_threshold)
+            / (self.cfg.foot_swing_speed_threshold + 1e-6),
+            min=0.0,
+            max=1.0,
+        )
+        clearance_err = foot_height - self.cfg.foot_clearance_target
+        feet_clearance_cost = torch.sum(swing_weight * clearance_err * clearance_err, dim=1)
 
-        contact_force_cost = torch.sum(
-            torch.clamp(foot_force_z - self.cfg.max_contact_force, min=0.0) ** 2,
-            dim=1,
+        near_ground_weight = torch.exp(
+            -(foot_height * foot_height) / (self.cfg.foot_height_sigma + 1e-6)
+        )
+        feet_near_ground_velocity = torch.sum(near_ground_weight * foot_speed_xy * foot_speed_xy, dim=1)
+
+        feet_distance = torch.linalg.norm(feet_pos_w[:, 0, :2] - feet_pos_w[:, 1, :2], dim=1)
+        feet_distance_cost = (
+            torch.clamp(self.cfg.feet_distance_min - feet_distance, min=0.0) ** 2
+            + torch.clamp(feet_distance - self.cfg.feet_distance_max, min=0.0) ** 2
         )
 
-        self.prev_foot_contact[:] = foot_contact
+        knee_pos_w = self.robot.data.body_pos_w[:, self._knee_body_ids, :]
+        knee_distance = torch.linalg.norm(knee_pos_w[:, 0, :2] - knee_pos_w[:, 1, :2], dim=1)
+        knee_distance_cost = (
+            torch.clamp(self.cfg.knee_distance_min - knee_distance, min=0.0) ** 2
+            + torch.clamp(knee_distance - self.cfg.knee_distance_max, min=0.0) ** 2
+        )
 
         # --- Stand behavior for explicit zero commands ---
         stand_cmd = (
@@ -1186,33 +1221,77 @@ class LocomotionEnv(DirectRLEnv):
             + 0.05 * torch.sum(self.actions ** 2, dim=1)
         ) * stand_cmd.float()
 
-        # --- Combine all rewards ---
-        reward = (
-            self.cfg.tracking_x_vel_scale * r_x
-            + self.cfg.tracking_y_vel_scale * r_y
-            + self.cfg.tracking_ang_vel_scale * r_yaw
-            # + self.cfg.tracking_base_height_scale * r_height
-            + self.cfg.lin_vel_z_scale * lin_vel_z_cost
-            + self.cfg.ang_vel_xy_scale * ang_vel_xy_cost
-            + self.cfg.orientation_scale * flat_ori_cost
-            + self.cfg.deviation_hip_joint_scale * hip_dev
-            + self.cfg.deviation_knee_joint_scale * knee_dev
-            + self.cfg.deviation_ankle_joint_scale * ankle_dev
-            + self.cfg.action_rate_scale * action_rate
-            + self.cfg.dof_vel_reward_scale * dof_vel
-            + self.cfg.dof_acc_scale * dof_acc
-            + self.cfg.torques_scale * torques
-            + self.cfg.joint_power_scale * joint_power
-            + self.cfg.dof_pos_limits_scale * dof_pos_limits
-            + self.cfg.feet_air_time_scale * air_rew
-            + self.cfg.feet_slip_scale * slip_cost
-            + self.cfg.undesired_contact_scale * undesired
-            + self.cfg.no_fly_scale * r_no_fly
-            + self.cfg.feet_contact_force_scale * contact_force_cost
-            + self.cfg.stand_still_scale * stand_still_cost
-        )
+        terms = {
+            "tracking_x": r_x,
+            "tracking_y": r_y,
+            "tracking_yaw": r_yaw,
+            "tracking_height": r_height,
+            "lin_vel_z": lin_vel_z_cost,
+            "ang_vel_xy": ang_vel_xy_cost,
+            "orientation": flat_ori_cost,
+            "hip_dev": hip_dev,
+            "knee_dev": knee_dev,
+            "ankle_dev": ankle_dev,
+            "action_rate": action_rate,
+            "dof_vel": dof_vel,
+            "dof_acc": dof_acc,
+            "torques": torques,
+            "joint_power": joint_power,
+            "dof_pos_limits": dof_pos_limits,
+            "feet_support_height": r_support_height,
+            "feet_clearance": feet_clearance_cost,
+            "feet_near_ground_velocity": feet_near_ground_velocity,
+            "feet_distance": feet_distance,
+            "feet_distance_cost": feet_distance_cost,
+            "knee_distance": knee_distance,
+            "knee_distance_cost": knee_distance_cost,
+            "stand_still": stand_still_cost,
+            "foot_height_left": foot_height[:, 0],
+            "foot_height_right": foot_height[:, 1],
+            "x_err_abs": torch.abs(x_err),
+            "y_err_abs": torch.abs(y_err),
+            "yaw_err_abs": torch.abs(yaw_err),
+            "height_err_abs": torch.abs(height_err),
+        }
+
+        scaled_terms = {
+            "scaled_tracking_x": self.cfg.tracking_x_vel_scale * r_x,
+            "scaled_tracking_y": self.cfg.tracking_y_vel_scale * r_y,
+            "scaled_tracking_yaw": self.cfg.tracking_ang_vel_scale * r_yaw,
+            "scaled_tracking_height": self.cfg.tracking_base_height_scale * r_height,
+            "scaled_lin_vel_z": self.cfg.lin_vel_z_scale * lin_vel_z_cost,
+            "scaled_ang_vel_xy": self.cfg.ang_vel_xy_scale * ang_vel_xy_cost,
+            "scaled_orientation": self.cfg.orientation_scale * flat_ori_cost,
+            "scaled_hip_dev": self.cfg.deviation_hip_joint_scale * hip_dev,
+            "scaled_knee_dev": self.cfg.deviation_knee_joint_scale * knee_dev,
+            "scaled_ankle_dev": self.cfg.deviation_ankle_joint_scale * ankle_dev,
+            "scaled_action_rate": self.cfg.action_rate_scale * action_rate,
+            "scaled_dof_vel": self.cfg.dof_vel_reward_scale * dof_vel,
+            "scaled_dof_acc": self.cfg.dof_acc_scale * dof_acc,
+            "scaled_torques": self.cfg.torques_scale * torques,
+            "scaled_joint_power": self.cfg.joint_power_scale * joint_power,
+            "scaled_dof_pos_limits": self.cfg.dof_pos_limits_scale * dof_pos_limits,
+            "scaled_feet_support_height": self.cfg.feet_support_height_scale * r_support_height,
+            "scaled_feet_clearance": self.cfg.feet_clearance_scale * feet_clearance_cost,
+            "scaled_feet_near_ground_velocity": (
+                self.cfg.feet_near_ground_velocity_scale * feet_near_ground_velocity
+            ),
+            "scaled_feet_distance": self.cfg.feet_distance_scale * feet_distance_cost,
+            "scaled_knee_distance": self.cfg.knee_distance_scale * knee_distance_cost,
+            "scaled_stand_still": self.cfg.stand_still_scale * stand_still_cost,
+        }
+        terms.update(scaled_terms)
+
+        reward = sum(scaled_terms.values())
 
         reward = torch.where(self.reset_terminated, torch.ones_like(reward) * self.cfg.death_cost, reward)
+        terms["total"] = reward
+        terms["terminated"] = self.reset_terminated.float()
+        return reward, terms
+
+    def _get_rewards(self) -> torch.Tensor:
+        reward, terms = self._compute_reward_terms()
+        self.last_reward_terms = terms
 
         # --- Logging (every N steps) ---
         if (
@@ -1220,62 +1299,60 @@ class LocomotionEnv(DirectRLEnv):
             and hasattr(self, "common_step_counter")
             and (self.common_step_counter % 200) == 0
         ):
-            self.extras["reward_tracking/x"] = float(r_x.mean().item())
-            self.extras["reward_tracking/y"] = float(r_y.mean().item())
-            self.extras["reward_tracking/yaw"] = float(r_yaw.mean().item())
-            # self.extras["reward_tracking/height"] = float(r_height.mean().item())
-            self.extras["reward_tracking/air_time"] = float(air_rew.mean().item())
-            self.extras["reward_tracking/no_fly"] = float(r_no_fly.mean().item())
+            self.extras["reward_tracking/x"] = float(terms["tracking_x"].mean().item())
+            self.extras["reward_tracking/y"] = float(terms["tracking_y"].mean().item())
+            self.extras["reward_tracking/yaw"] = float(terms["tracking_yaw"].mean().item())
+            self.extras["reward_tracking/height"] = float(terms["tracking_height"].mean().item())
+            self.extras["reward_tracking/feet_support_height"] = float(terms["feet_support_height"].mean().item())
 
-            self.extras["reward_penalties/lin_vel_z"] = float(lin_vel_z_cost.mean().item())
-            self.extras["reward_penalties/ang_vel_xy"] = float(ang_vel_xy_cost.mean().item())
-            self.extras["reward_penalties/flat_ori"] = float(flat_ori_cost.mean().item())
-            self.extras["reward_penalties/hip_dev"] = float(hip_dev.mean().item())
-            self.extras["reward_penalties/knee_dev"] = float(knee_dev.mean().item())
-            self.extras["reward_penalties/ankle_dev"] = float(ankle_dev.mean().item())
-            self.extras["reward_penalties/action_rate"] = float(action_rate.mean().item())
-            self.extras["reward_penalties/dof_vel"] = float(dof_vel.mean().item())
-            self.extras["reward_penalties/dof_acc"] = float(dof_acc.mean().item())
-            self.extras["reward_penalties/torques"] = float(torques.mean().item())
-            self.extras["reward_penalties/joint_power"] = float(joint_power.mean().item())
-            self.extras["reward_penalties/dof_pos_limits"] = float(dof_pos_limits.mean().item())
-            self.extras["reward_penalties/slip"] = float(slip_cost.mean().item())
-            self.extras["reward_penalties/undesired_contact"] = float(undesired.mean().item())
-            self.extras["reward_penalties/contact_force"] = float(contact_force_cost.mean().item())
-            self.extras["reward_penalties/stand_still"] = float(stand_still_cost.mean().item())
+            self.extras["reward_penalties/lin_vel_z"] = float(terms["lin_vel_z"].mean().item())
+            self.extras["reward_penalties/ang_vel_xy"] = float(terms["ang_vel_xy"].mean().item())
+            self.extras["reward_penalties/flat_ori"] = float(terms["orientation"].mean().item())
+            self.extras["reward_penalties/hip_dev"] = float(terms["hip_dev"].mean().item())
+            self.extras["reward_penalties/knee_dev"] = float(terms["knee_dev"].mean().item())
+            self.extras["reward_penalties/ankle_dev"] = float(terms["ankle_dev"].mean().item())
+            self.extras["reward_penalties/action_rate"] = float(terms["action_rate"].mean().item())
+            self.extras["reward_penalties/dof_vel"] = float(terms["dof_vel"].mean().item())
+            self.extras["reward_penalties/dof_acc"] = float(terms["dof_acc"].mean().item())
+            self.extras["reward_penalties/torques"] = float(terms["torques"].mean().item())
+            self.extras["reward_penalties/joint_power"] = float(terms["joint_power"].mean().item())
+            self.extras["reward_penalties/dof_pos_limits"] = float(terms["dof_pos_limits"].mean().item())
+            self.extras["reward_penalties/feet_clearance"] = float(terms["feet_clearance"].mean().item())
+            self.extras["reward_penalties/near_ground_velocity"] = float(
+                terms["feet_near_ground_velocity"].mean().item()
+            )
+            self.extras["reward_penalties/feet_distance"] = float(terms["feet_distance_cost"].mean().item())
+            self.extras["reward_penalties/knee_distance"] = float(terms["knee_distance_cost"].mean().item())
+            self.extras["reward_penalties/stand_still"] = float(terms["stand_still"].mean().item())
 
-            self.extras["reward_scaled/x_tracking"] = float((self.cfg.tracking_x_vel_scale * r_x).mean().item())
-            self.extras["reward_scaled/y_tracking"] = float((self.cfg.tracking_y_vel_scale * r_y).mean().item())
-            self.extras["reward_scaled/yaw_tracking"] = float((self.cfg.tracking_ang_vel_scale * r_yaw).mean().item())
-            # self.extras["reward_scaled/height_tracking"] = float(
-            #     (self.cfg.tracking_base_height_scale * r_height).mean().item()
-            # )
-            self.extras["reward_scaled/air_time"] = float((self.cfg.feet_air_time_scale * air_rew).mean().item())
-            self.extras["reward_scaled/no_fly"] = float((self.cfg.no_fly_scale * r_no_fly).mean().item())
-            self.extras["reward_scaled/slip"] = float((self.cfg.feet_slip_scale * slip_cost).mean().item())
-            self.extras["reward_scaled/contact_force"] = float(
-                (self.cfg.feet_contact_force_scale * contact_force_cost).mean().item()
+            self.extras["reward_scaled/x_tracking"] = float(terms["scaled_tracking_x"].mean().item())
+            self.extras["reward_scaled/y_tracking"] = float(terms["scaled_tracking_y"].mean().item())
+            self.extras["reward_scaled/yaw_tracking"] = float(terms["scaled_tracking_yaw"].mean().item())
+            self.extras["reward_scaled/height_tracking"] = float(terms["scaled_tracking_height"].mean().item())
+            self.extras["reward_scaled/feet_support_height"] = float(
+                terms["scaled_feet_support_height"].mean().item()
             )
-            self.extras["reward_scaled/stand_still"] = float(
-                (self.cfg.stand_still_scale * stand_still_cost).mean().item()
+            self.extras["reward_scaled/feet_clearance"] = float(terms["scaled_feet_clearance"].mean().item())
+            self.extras["reward_scaled/near_ground_velocity"] = float(
+                terms["scaled_feet_near_ground_velocity"].mean().item()
             )
+            self.extras["reward_scaled/feet_distance"] = float(terms["scaled_feet_distance"].mean().item())
+            self.extras["reward_scaled/knee_distance"] = float(terms["scaled_knee_distance"].mean().item())
+            self.extras["reward_scaled/stand_still"] = float(terms["scaled_stand_still"].mean().item())
 
             self.extras["reward_total/mean"] = float(reward.mean().item())
             self.extras["reward_total/std"] = float(reward.std().item())
             self.extras["reward_total/min"] = float(reward.min().item())
             self.extras["reward_total/max"] = float(reward.max().item())
 
-            self.extras["diagnostics/x_err"] = float(x_err.abs().mean().item())
-            self.extras["diagnostics/y_err"] = float(y_err.abs().mean().item())
-            self.extras["diagnostics/yaw_err"] = float(yaw_err.abs().mean().item())
-            # self.extras["diagnostics/height_err"] = float(height_err.abs().mean().item())
-            self.extras["diagnostics/contact_rate"] = float(foot_contact.float().mean().item())
-            self.extras["diagnostics/is_flying"] = float(is_flying.mean().item())
-            self.extras["diagnostics/slip"] = float(slip_cost.mean().item())
-            self.extras["diagnostics/torques"] = float(torques.mean().item())
-            self.extras["diagnostics/joint_power"] = float(joint_power.mean().item())
-            self.extras["diagnostics/avg_air_time"] = float(air_time.mean().item())
-            self.extras["diagnostics/touchdown_rate"] = float(touchdown.float().mean().item())
+            self.extras["diagnostics/x_err"] = float(terms["x_err_abs"].mean().item())
+            self.extras["diagnostics/y_err"] = float(terms["y_err_abs"].mean().item())
+            self.extras["diagnostics/yaw_err"] = float(terms["yaw_err_abs"].mean().item())
+            self.extras["diagnostics/height_err"] = float(terms["height_err_abs"].mean().item())
+            self.extras["diagnostics/feet_distance"] = float(terms["feet_distance"].mean().item())
+            self.extras["diagnostics/knee_distance"] = float(terms["knee_distance"].mean().item())
+            self.extras["diagnostics/torques"] = float(terms["torques"].mean().item())
+            self.extras["diagnostics/joint_power"] = float(terms["joint_power"].mean().item())
             self.extras["diagnostics/curriculum_stage"] = float(self._current_curriculum_stage)
 
         return reward
@@ -1490,27 +1567,27 @@ class LocomotionEnv(DirectRLEnv):
             self.commands[env_ids[turn_mask], 2] = yaw[turn_mask]
 
     def _init_feet(self):
-        """Initialize foot body and contact sensor indices (call once before using contact rewards)."""
+        """Initialize body indices used by distance-based locomotion rewards."""
         if self._feet_inited:
             return
 
-        # 1) feet kinematics indices (for slip / clearance)
         foot_body_ids, foot_body_names = self.robot.find_bodies(self.cfg.foot_body_regex)
         if len(foot_body_ids) != 2:
             raise RuntimeError(f"Expected 2 feet from regex {self.cfg.foot_body_regex}, got {foot_body_names}")
-        self._feet_body_ids = torch.tensor(foot_body_ids, device=self.sim.device, dtype=torch.long)
+        foot_pairs = sorted(
+            zip(foot_body_ids, foot_body_names),
+            key=lambda pair: (0 if "left" in pair[1] else 1, pair[1]),
+        )
+        self._feet_body_ids = torch.tensor([pair[0] for pair in foot_pairs], device=self.sim.device, dtype=torch.long)
 
-        # 2) feet contact-sensor indices (for contact forces / air time)
-        sensor_names = self._contact_sensor.body_names  # list[str]
-        foot_sensor_ids = []
-        for n in foot_body_names:
-            match = next((i for i, sn in enumerate(sensor_names) if (sn.endswith(n) or (n in sn))), None)
-            if match is None:
-                raise RuntimeError(f"Foot body '{n}' not found in contact_sensor.body_names.")
-            foot_sensor_ids.append(match)
-
-        self._feet_sensor_ids = torch.tensor(foot_sensor_ids, device=self.sim.device, dtype=torch.long)
-        self.prev_foot_contact = torch.zeros(self.num_envs, 2, dtype=torch.bool, device=self.sim.device)
+        knee_body_ids, knee_body_names = self.robot.find_bodies(self.cfg.knee_body_regex)
+        if len(knee_body_ids) != 2:
+            raise RuntimeError(f"Expected 2 knee bodies from regex {self.cfg.knee_body_regex}, got {knee_body_names}")
+        knee_pairs = sorted(
+            zip(knee_body_ids, knee_body_names),
+            key=lambda pair: (0 if "left" in pair[1] else 1, pair[1]),
+        )
+        self._knee_body_ids = torch.tensor([pair[0] for pair in knee_pairs], device=self.sim.device, dtype=torch.long)
         self._feet_inited = True
 
     def _resample_episode_lengths(self, env_ids: torch.Tensor):

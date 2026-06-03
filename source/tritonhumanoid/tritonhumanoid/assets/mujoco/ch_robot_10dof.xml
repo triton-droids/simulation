@@ -1,0 +1,7 @@
+<!-- PLACEHOLDER_MJCF: replace with the canonical ch_robot_10dof.xml before MuJoCo eval. -->
+<mujoco model="placeholder_ch_robot">
+  <worldbody>
+    <body name="placeholder"/>
+  </worldbody>
+</mujoco>
+

@@ -57,6 +57,12 @@ parser.add_argument("--yaw_rate", type=float, default=0.6, help="Yaw command for
 parser.add_argument("--output", type=str, default=None, help="Output .npz path.")
 parser.add_argument("--metadata_out", type=str, default=None, help="Optional metadata .json path.")
 parser.add_argument(
+    "--sim2sim-log",
+    action="store_true",
+    default=False,
+    help="Record MuJoCo playback/eval channels in addition to the base parity channels.",
+)
+parser.add_argument(
     "--compare_with",
     type=str,
     default=None,
@@ -133,6 +139,34 @@ def _obs_row_for_env(obs_any: Any, env_index: int) -> np.ndarray:
     if arr.ndim == 1:
         return arr.copy()
     return arr[env_index].copy()
+
+
+def _row_np(value: Any, env_index: int, dtype=np.float32) -> np.ndarray:
+    if torch.is_tensor(value):
+        if value.ndim == 0:
+            return value.detach().cpu().reshape(1).numpy().astype(dtype)
+        if value.ndim == 1:
+            return value.detach().cpu().numpy().astype(dtype)
+        return value[env_index].detach().cpu().numpy().astype(dtype)
+    arr = np.asarray(value)
+    if arr.ndim == 0:
+        return arr.reshape(1).astype(dtype)
+    if arr.ndim == 1:
+        return arr.astype(dtype)
+    return arr[env_index].astype(dtype)
+
+
+def _scalar_row_np(value: Any, env_index: int) -> np.ndarray:
+    if value is None:
+        return np.asarray([0.0], dtype=np.float32)
+    if torch.is_tensor(value):
+        if value.ndim == 0:
+            return np.asarray([float(value.detach().cpu().item())], dtype=np.float32)
+        return np.asarray([float(value[env_index].detach().cpu().item())], dtype=np.float32)
+    arr = np.asarray(value)
+    if arr.ndim == 0:
+        return np.asarray([float(arr.item())], dtype=np.float32)
+    return np.asarray([float(arr[env_index])], dtype=np.float32)
 
 
 def _compute_clock(env_obj) -> torch.Tensor | None:
@@ -348,7 +382,17 @@ def compare_logs(path_a: str, path_b: str, max_lag: int = 10) -> dict[str, Any]:
     return metrics
 
 
-def _log_state(env_obj, env_index: int, action_input_row: torch.Tensor, obs_out: Any) -> dict[str, np.ndarray]:
+def _log_state(
+    env_obj,
+    env_index: int,
+    action_input_row: torch.Tensor,
+    obs_out: Any,
+    reward: Any = None,
+    dones: Any = None,
+    truncated: Any = None,
+    *,
+    sim2sim_log: bool = False,
+) -> dict[str, np.ndarray]:
     if hasattr(env_obj, "_update_state"):
         env_obj._update_state()
     idx = int(np.clip(env_index, 0, int(env_obj.num_envs) - 1))
@@ -378,6 +422,54 @@ def _log_state(env_obj, env_index: int, action_input_row: torch.Tensor, obs_out:
     out["base_ang_vel"] = env_obj.com_ang_vel_cmd[idx].detach().cpu().numpy().astype(np.float32)
     out["up_b"] = env_obj.up_b[idx].detach().cpu().numpy().astype(np.float32)
     out["obs_latest"] = _obs_row_for_env(obs_out, idx)
+    if not sim2sim_log:
+        return out
+
+    env_origin = env_obj.scene.env_origins[idx].detach().cpu().numpy().astype(np.float32)
+    root_pos_w = env_obj.root_pos_w[idx].detach().cpu().numpy().astype(np.float32)
+    root_pos_local = (env_obj.root_pos_w[idx] - env_obj.scene.env_origins[idx]).detach().cpu().numpy().astype(np.float32)
+    root_quat_w = env_obj.root_quat_w[idx].detach().cpu().numpy().astype(np.float32)
+    root_lin_vel_w = env_obj.root_lin_vel_w[idx].detach().cpu().numpy().astype(np.float32)
+    root_ang_vel_w = env_obj.root_ang_vel_w[idx].detach().cpu().numpy().astype(np.float32)
+
+    out["env_origin_w"] = env_origin
+    out["root_pos_w"] = root_pos_w
+    out["root_pos_local"] = root_pos_local
+    out["root_quat_w"] = root_quat_w
+    out["root_lin_vel_w"] = root_lin_vel_w
+    out["root_ang_vel_w"] = root_ang_vel_w
+    out["joint_pos"] = out["act_pos"]
+    out["joint_vel"] = out["act_vel"]
+    out["qpos"] = np.concatenate([root_pos_local, root_quat_w, out["act_pos"]]).astype(np.float32)
+    out["qvel"] = np.concatenate([root_lin_vel_w, root_ang_vel_w, out["act_vel"]]).astype(np.float32)
+    out["reward"] = _scalar_row_np(reward, idx)
+    out["done"] = _scalar_row_np(dones, idx)
+    out["timeout"] = _scalar_row_np(truncated, idx)
+
+    joint_torque = env_obj.robot.data.applied_torque[:, env_obj._joint_dof_idx]
+    out["joint_torque"] = joint_torque[idx].detach().cpu().numpy().astype(np.float32)
+
+    if hasattr(env_obj, "_init_feet"):
+        env_obj._init_feet()
+        foot_body_ids = env_obj._feet_body_ids
+        foot_sensor_ids = env_obj._feet_sensor_ids
+        out["foot_pos_w"] = env_obj.robot.data.body_pos_w[idx, foot_body_ids, :].detach().cpu().numpy().astype(np.float32)
+        out["foot_quat_w"] = env_obj.robot.data.body_quat_w[idx, foot_body_ids, :].detach().cpu().numpy().astype(np.float32)
+        out["foot_lin_vel_w"] = env_obj.robot.data.body_lin_vel_w[idx, foot_body_ids, :].detach().cpu().numpy().astype(np.float32)
+        forces_hist = env_obj._contact_sensor.data.net_forces_w_history
+        foot_forces = forces_hist[:, 0, foot_sensor_ids, :]
+        foot_force_z = torch.clamp(foot_forces[:, :, 2], min=0.0)
+        foot_contact = foot_force_z > env_obj.cfg.foot_contact_force_thresh
+        out["foot_contact_forces_w"] = foot_forces[idx].detach().cpu().numpy().astype(np.float32)
+        out["foot_contact"] = foot_contact[idx].detach().cpu().numpy().astype(np.float32)
+
+    reward_terms = getattr(env_obj, "last_reward_terms", {})
+    if reward_terms:
+        keys = sorted(reward_terms.keys())
+        out["reward_terms"] = np.asarray(
+            [float(reward_terms[key][idx].detach().cpu().item()) for key in keys],
+            dtype=np.float32,
+        )
     return out
 
 
@@ -454,7 +546,7 @@ def main():
                     actions = actions.unsqueeze(0).expand(num_envs, -1).contiguous()
 
             step_out = step_env.step(actions)
-            obs, _, dones, truncated, _ = _parse_step_out(step_out)
+            obs, reward, dones, truncated, info = _parse_step_out(step_out)
 
             if agent is not None and agent.is_rnn and agent.states is not None:
                 if dones is not None:
@@ -471,6 +563,10 @@ def main():
             args_cli.env_index,
             actions[int(np.clip(args_cli.env_index, 0, num_envs - 1))],
             obs,
+            reward=reward,
+            dones=dones,
+            truncated=truncated,
+            sim2sim_log=bool(args_cli.sim2sim_log),
         )
         for k, v in logged.items():
             logs.setdefault(k, []).append(v)
@@ -494,10 +590,37 @@ def main():
         "task": args_cli.task,
         "num_steps_logged": int(data_to_save["time_s"].shape[0]),
         "dt": dt,
+        "decimation": int(getattr(env_obj.cfg, "decimation", 1)),
         "num_envs": num_envs,
         "num_actions": num_actions,
         "env_index": int(args_cli.env_index),
         "action_source": args_cli.action_source,
+        "checkpoint": args_cli.checkpoint,
+        "sim2sim_log": bool(args_cli.sim2sim_log),
+        "quaternion_order": "wxyz",
+        "joint_order": [
+            str(env_obj.robot.data.joint_names[int(jid)])
+            for jid in getattr(env_obj, "_joint_dof_idx", [])
+        ] if hasattr(env_obj.robot.data, "joint_names") else [],
+        "observation_layout": [
+            "base_lin_vel_cmd[3]",
+            "base_ang_vel_cmd_scaled[3]",
+            "up_cmd[3]",
+            "commands[3]",
+            "act_pos_scaled[10]",
+            "act_vel_scaled[10]",
+            "prev_actions[10]",
+        ],
+        "obs_stack_frames": int(getattr(env_obj.cfg, "obs_stack_frames", 1)),
+        "action_scale": float(getattr(env_obj.cfg, "action_scale", 1.0)),
+        "action_scale_per_joint": (
+            env_obj._action_scale_per_joint.detach().cpu().numpy().astype(float).tolist()
+            if hasattr(env_obj, "_action_scale_per_joint")
+            else []
+        ),
+        "joint_velocity_limit": 15.0,
+        "armature": 0.01,
+        "reward_term_names": sorted(getattr(env_obj, "last_reward_terms", {}).keys()),
         "command_profile": args_cli.command_profile,
         "command_profile_params": {
             "stand_s": float(args_cli.stand_s),
