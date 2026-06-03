@@ -412,6 +412,7 @@ class LocomotionEnv(DirectRLEnv):
         # buffers
         self.actions = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
         self.prev_actions = torch.zeros_like(self.actions)
+        self.prev_prev_actions = torch.zeros_like(self.actions)
         self.q_des = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
         self.action_max_latency = int(getattr(self.cfg, "action_max_latency", 0))
         self.action_latency_steps = torch.zeros(self.num_envs, dtype=torch.long, device=self.sim.device)
@@ -973,6 +974,7 @@ class LocomotionEnv(DirectRLEnv):
         if self._motion_reference_playback:
             a = torch.zeros_like(a)
 
+        self.prev_prev_actions[:] = self.prev_actions
         self.prev_actions[:] = self.actions
         self.actions = a
 
@@ -1339,6 +1341,10 @@ class LocomotionEnv(DirectRLEnv):
 
         at_limit = torch.sum(torch.abs(self.act_pos_scaled) > 0.98, dim=1).float()
         action_rate_cost = torch.sum((self.actions - self.prev_actions) ** 2, dim=1)
+        action_smoothness_cost = torch.sum(
+            (self.actions - 2.0 * self.prev_actions + self.prev_prev_actions) ** 2,
+            dim=1,
+        )
         dof_vel_cost = torch.sum(self.act_vel ** 2, dim=1)
         dof_vel_delta = self.act_vel - self.prev_act_vel
         dof_vel_delta_cost = torch.sum(dof_vel_delta * dof_vel_delta, dim=1)
@@ -1382,6 +1388,7 @@ class LocomotionEnv(DirectRLEnv):
             + self.cfg.yaw_rate_tracking_reward_scale * r_yaw_rate
             + self.cfg.alive_reward * alive
             - self.cfg.action_rate_cost_scale * action_rate_cost
+            - self.cfg.action_smoothness_cost_scale * action_smoothness_cost
             - self.cfg.dof_vel_cost_scale * dof_vel_cost
             - self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost
             - self.cfg.energy_cost_scale * energy_cost
@@ -1413,6 +1420,7 @@ class LocomotionEnv(DirectRLEnv):
             log["tracking/undesired_contact"] = float(undesired.mean().item())
             log["tracking/fall_rate"] = float(self.reset_terminated.float().mean().item())
             log["tracking/clip_completion_rate"] = float(self.motion_done.float().mean().item())
+            log["reward_penalties/action_smoothness"] = float(action_smoothness_cost.mean().item())
             log["reward_penalties/dof_vel"] = float(dof_vel_cost.mean().item())
             log["reward_penalties/dof_vel_delta"] = float(dof_vel_delta_cost.mean().item())
             log["reward_penalties/overspeed"] = float(overspeed_cost.mean().item())
@@ -1510,6 +1518,7 @@ class LocomotionEnv(DirectRLEnv):
 
         self.actions[env_ids] = 0.0
         self.prev_actions[env_ids] = 0.0
+        self.prev_prev_actions[env_ids] = 0.0
         self.action_latency_steps[env_ids] = 0
         if self.action_hist_buf is not None:
             self.action_hist_buf[env_ids] = 0.0

@@ -136,7 +136,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Residual reference tracking control:
     # q_des = q_ref + residual_action_scale * residual_action_scale_by_joint * action
     action_scale: float = 1.0
-    residual_action_scale: float = 0.10
+    residual_action_scale: float = 0.15
     residual_action_scale_by_joint: dict[str, float] = {
         "left_hip1_joint": 1.0,
         "right_hip1_joint": 1.0,
@@ -146,8 +146,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
         "right_thigh_joint": 1.0,
         "left_knee_joint": 1.0,
         "right_knee_joint": 1.0,
-        "left_ankle_joint": 0.5,
-        "right_ankle_joint": 0.5,
+        "left_ankle_joint": 0.7,
+        "right_ankle_joint": 0.7,
     }
 
     # 10 actuated leg joints
@@ -347,13 +347,14 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     air_time_command_speed_threshold: float = 0.1
 
     # Smoothness costs (reduce jitter)
-    action_rate_cost_scale: float = 0.03
-    dof_vel_cost_scale: float = 0.0002
-    dof_vel_delta_cost_scale: float = 0.02  # penalize velocity changes (instead of acceleration)
-    energy_cost_scale: float = 0.002  # penalize mechanical power |tau * qdot|
+    action_rate_cost_scale: float = 0.01
+    action_smoothness_cost_scale: float = 0.05
+    dof_vel_cost_scale: float = 0.0001
+    dof_vel_delta_cost_scale: float = 0.00001  # HOMIE-style gentle joint acceleration regularization
+    energy_cost_scale: float = 0.00002  # penalize mechanical power |tau * qdot|
     joint_velocity_soft_limit: float = 15.0
     overspeed_start_ratio: float = 0.8
-    overspeed_cost_scale: float = 0.05
+    overspeed_cost_scale: float = 0.002
 
     # standing command detect
     stand_cmd_lin_thresh: float = 0.08
@@ -389,7 +390,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     gait_upright_thresh: float = 0.70
     yaw_cmd_reward_thresh: float = 0.15
     walk_cmd_speed_thresh: float = 0.15
-    walk_hip2_cost_scale: float = 0.25
+    walk_hip2_cost_scale: float = 0.10
     contact_phase_reward_scale: float = 0.08
     contact_phase_sigma: float = 0.35
     contact_phase_min_speed: float = 0.15

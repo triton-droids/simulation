@@ -60,7 +60,7 @@ CLIP_OBSERVATIONS = 5.0
 CLIP_ACTIONS = 1.0
 ANG_VEL_SCALE = 0.25
 DOF_VEL_SCALE = 0.1
-RESIDUAL_ACTION_SCALE = 0.10
+RESIDUAL_ACTION_SCALE = 0.15
 DEFAULT_JOINT_VELOCITY_LIMIT = 15.0
 FUTURE_REF_OFFSETS = (1, 2, 4, 6)
 MOTION_REFERENCE_POS_ERROR_SCALE = 1.0
@@ -73,12 +73,12 @@ RESIDUAL_ACTION_SCALE_BY_JOINT: dict[str, float] = {
     "left_hip2_joint": 0.8,
     "left_thigh_joint": 1.0,
     "left_knee_joint": 1.0,
-    "left_ankle_joint": 0.5,
+    "left_ankle_joint": 0.7,
     "right_hip1_joint": 1.0,
     "right_hip2_joint": 0.8,
     "right_thigh_joint": 1.0,
     "right_knee_joint": 1.0,
-    "right_ankle_joint": 0.5,
+    "right_ankle_joint": 0.7,
 }
 
 
