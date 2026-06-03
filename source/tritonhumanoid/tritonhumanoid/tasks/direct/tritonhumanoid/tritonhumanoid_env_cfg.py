@@ -38,8 +38,8 @@ class EventCfg:
         min_step_count_between_reset=0,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "static_friction_range": (0.6, 1.2),
-            "dynamic_friction_range": (0.5, 1.1),
+            "static_friction_range": (0.1, 3.0),
+            "dynamic_friction_range": (0.1, 3.0),
             "restitution_range": (0.0, 0.2),
             "num_buckets": 128,
         },
@@ -459,8 +459,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # ADR event randomization ranges (max difficulty)
     adr_event_cfg_dict: dict = {
         "robot_physics_material": {
-            "static_friction_range": (0.4, 1.5),
-            "dynamic_friction_range": (0.3, 1.4),
+            "static_friction_range": (0.1, 3.0),
+            "dynamic_friction_range": (0.1, 3.0),
             "restitution_range": (0.0, 0.4),
         },
         "robot_joint_stiffness_and_damping": {
