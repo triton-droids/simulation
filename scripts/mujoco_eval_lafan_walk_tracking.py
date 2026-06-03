@@ -50,6 +50,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--validate-only", action="store_true")
     parser.add_argument("--metrics-json", type=Path, default=None)
     parser.add_argument("--refresh-model", action="store_true", help="Regenerate the cached Isaac-trained MJCF.")
+    parser.add_argument(
+        "--joint-velocity-limit",
+        type=float,
+        default=None,
+        help="Actuated joint velocity clip in rad/s. Defaults to MUJOCO_JOINT_VELOCITY_LIMIT or 15.0; use 0 to disable.",
+    )
     return parser.parse_args()
 
 
@@ -149,6 +155,7 @@ def run_rollout(args: argparse.Namespace) -> list[dict]:
         seed=args.seed,
         render=args.render,
         refresh_model=args.refresh_model,
+        joint_velocity_limit=args.joint_velocity_limit,
     )
 
     results = []

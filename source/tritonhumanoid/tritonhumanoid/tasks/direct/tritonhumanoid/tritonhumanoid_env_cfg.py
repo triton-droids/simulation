@@ -38,9 +38,9 @@ class EventCfg:
         min_step_count_between_reset=0,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "static_friction_range": (0.6, 1.2),
-            "dynamic_friction_range": (0.5, 1.1),
-            "restitution_range": (0.0, 0.2),
+            "static_friction_range": (0.8, 1.2),
+            "dynamic_friction_range": (0.7, 1.2),
+            "restitution_range": (0.0, 0.05),
             "num_buckets": 128,
         },
     )
@@ -53,8 +53,8 @@ class EventCfg:
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
             "operation": "scale",
-            "stiffness_distribution_params": (1.0, 1.0),
-            "damping_distribution_params": (1.0, 1.0),
+            "stiffness_distribution_params": (0.9, 1.1),
+            "damping_distribution_params": (0.85, 1.15),
             "distribution": "uniform",
         },
     )
@@ -65,7 +65,7 @@ class EventCfg:
         mode="reset",
         min_step_count_between_reset=0,
         params={
-            "gravity_distribution_params": (0.9, 1.1),  # scale factor range
+            "gravity_distribution_params": (0.98, 1.02),  # scale factor range
             "operation": "scale",
             "distribution": "uniform",
         },
@@ -78,7 +78,7 @@ class EventCfg:
         min_step_count_between_reset=0,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "mass_distribution_params": (1.0, 1.2),
+            "mass_distribution_params": (0.9, 1.1),
             "operation": "scale",
             "distribution": "uniform",
         },
@@ -92,7 +92,7 @@ class EventCfg:
             min_step_count_between_reset=0,
             params={
                 "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-                "com_range": {"x": (0.0, 0.005), "y": (0.0, 0.005), "z": (0.0, 0.005)},
+                "com_range": {"x": (-0.005, 0.005), "y": (-0.005, 0.005), "z": (-0.005, 0.005)},
             },
         )
 
@@ -104,7 +104,7 @@ class EventCfg:
             min_step_count_between_reset=0,
             params={
                 "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-                "inertia_distribution_params": (0.85, 1.15),
+                "inertia_distribution_params": (0.9, 1.1),
                 "operation": "scale",
                 "distribution": "uniform",
             },
@@ -117,9 +117,9 @@ class EventCfg:
         min_step_count_between_reset=0,
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-            "friction_distribution_params": (0.5, 1.5),
-            "armature_distribution_params": (0.5, 1.5),
-            "operation": "scale",
+            "friction_distribution_params": (0.0, 0.03),
+            "armature_distribution_params": (0.0, 0.01),
+            "operation": "abs",
             "distribution": "uniform",
         },
     )
@@ -136,7 +136,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Residual reference tracking control:
     # q_des = q_ref + residual_action_scale * residual_action_scale_by_joint * action
     action_scale: float = 1.0
-    residual_action_scale: float = 0.15
+    residual_action_scale: float = 0.10
     residual_action_scale_by_joint: dict[str, float] = {
         "left_hip1_joint": 1.0,
         "right_hip1_joint": 1.0,
@@ -146,8 +146,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
         "right_thigh_joint": 1.0,
         "left_knee_joint": 1.0,
         "right_knee_joint": 1.0,
-        "left_ankle_joint": 0.7,
-        "right_ankle_joint": 0.7,
+        "left_ankle_joint": 0.5,
+        "right_ankle_joint": 0.5,
     }
 
     # 10 actuated leg joints
@@ -347,10 +347,13 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     air_time_command_speed_threshold: float = 0.1
 
     # Smoothness costs (reduce jitter)
-    action_rate_cost_scale: float = 0.01
-    dof_vel_cost_scale: float = 0.0001
-    dof_vel_delta_cost_scale: float = 0.01  # penalize velocity changes (instead of acceleration)
-    energy_cost_scale: float = 0.001  # penalize mechanical power |tau * qdot|
+    action_rate_cost_scale: float = 0.03
+    dof_vel_cost_scale: float = 0.0002
+    dof_vel_delta_cost_scale: float = 0.02  # penalize velocity changes (instead of acceleration)
+    energy_cost_scale: float = 0.002  # penalize mechanical power |tau * qdot|
+    joint_velocity_soft_limit: float = 15.0
+    overspeed_start_ratio: float = 0.8
+    overspeed_cost_scale: float = 0.05
 
     # standing command detect
     stand_cmd_lin_thresh: float = 0.08
@@ -386,7 +389,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     gait_upright_thresh: float = 0.70
     yaw_cmd_reward_thresh: float = 0.15
     walk_cmd_speed_thresh: float = 0.15
-    walk_hip2_cost_scale: float = 0.12
+    walk_hip2_cost_scale: float = 0.25
     contact_phase_reward_scale: float = 0.08
     contact_phase_sigma: float = 0.35
     contact_phase_min_speed: float = 0.15
@@ -465,8 +468,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
 
     # --- Per-episode reset randomization (always-on, ADR or not) ---
     # Joint state noise at reset (actuated joints only)
-    reset_joint_pos_noise: float = 0.0
-    reset_joint_vel_noise: float = 0.0
+    reset_joint_pos_noise: float = 0.02
+    reset_joint_vel_noise: float = 0.10
 
     # === Disturbance (push) parameters ===
     # treat as delta-velocity, not force

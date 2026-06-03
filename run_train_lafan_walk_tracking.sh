@@ -9,7 +9,7 @@ NUM_GPUS="${NUM_GPUS:-1}"
 LOG_ROOT="${LOG_ROOT:-logs/rl_games/humanoid_flat_direct/${EXPERIMENT_NAME}}"
 CHECKPOINT="${CHECKPOINT:-}"
 RESUME_LAST="${RESUME_LAST:-0}"
-FAST_TRAIN="${FAST_TRAIN:-1}"
+FAST_TRAIN="${FAST_TRAIN:-0}"
 PYTHON_CMD=()
 if [[ -n "${ISAAC_PYTHON:-}" ]]; then
   PYTHON_CMD=("${ISAAC_PYTHON}")

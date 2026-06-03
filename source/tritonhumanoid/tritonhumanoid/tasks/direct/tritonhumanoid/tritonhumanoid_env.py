@@ -1339,6 +1339,20 @@ class LocomotionEnv(DirectRLEnv):
 
         at_limit = torch.sum(torch.abs(self.act_pos_scaled) > 0.98, dim=1).float()
         action_rate_cost = torch.sum((self.actions - self.prev_actions) ** 2, dim=1)
+        dof_vel_cost = torch.sum(self.act_vel ** 2, dim=1)
+        dof_vel_delta = self.act_vel - self.prev_act_vel
+        dof_vel_delta_cost = torch.sum(dof_vel_delta * dof_vel_delta, dim=1)
+        velocity_limit = float(getattr(self.cfg, "joint_velocity_soft_limit", 15.0))
+        overspeed_start = float(getattr(self.cfg, "overspeed_start_ratio", 0.8))
+        if velocity_limit > 0.0:
+            speed_ratio = torch.abs(self.act_vel) / velocity_limit
+            overspeed_cost = torch.sum(torch.relu(speed_ratio - overspeed_start) ** 2, dim=1)
+        else:
+            overspeed_cost = torch.zeros_like(joint_pos_err)
+        if self._hip2_action_ids.numel() > 0:
+            hip2_neutral_cost = torch.sum(self.act_pos[:, self._hip2_action_ids] ** 2, dim=1)
+        else:
+            hip2_neutral_cost = torch.zeros_like(joint_pos_err)
         joint_torques = self.robot.data.applied_torque[:, self._joint_dof_idx]
         energy_cost = torch.sum(torch.abs(joint_torques * self.act_vel), dim=1)
         self.prev_act_vel[:] = self.act_vel
@@ -1368,7 +1382,11 @@ class LocomotionEnv(DirectRLEnv):
             + self.cfg.yaw_rate_tracking_reward_scale * r_yaw_rate
             + self.cfg.alive_reward * alive
             - self.cfg.action_rate_cost_scale * action_rate_cost
+            - self.cfg.dof_vel_cost_scale * dof_vel_cost
+            - self.cfg.dof_vel_delta_cost_scale * dof_vel_delta_cost
             - self.cfg.energy_cost_scale * energy_cost
+            - self.cfg.overspeed_cost_scale * overspeed_cost
+            - self.cfg.walk_hip2_cost_scale * hip2_neutral_cost
             - self.cfg.joint_limit_cost_scale * at_limit
             - self.cfg.foot_slip_cost_scale * slip_cost
             - self.cfg.undesired_contact_cost_scale * undesired
@@ -1395,6 +1413,10 @@ class LocomotionEnv(DirectRLEnv):
             log["tracking/undesired_contact"] = float(undesired.mean().item())
             log["tracking/fall_rate"] = float(self.reset_terminated.float().mean().item())
             log["tracking/clip_completion_rate"] = float(self.motion_done.float().mean().item())
+            log["reward_penalties/dof_vel"] = float(dof_vel_cost.mean().item())
+            log["reward_penalties/dof_vel_delta"] = float(dof_vel_delta_cost.mean().item())
+            log["reward_penalties/overspeed"] = float(overspeed_cost.mean().item())
+            log["reward_penalties/hip2_neutral"] = float(hip2_neutral_cost.mean().item())
             log["reward_total/mean"] = float(reward.mean().item())
 
         return reward

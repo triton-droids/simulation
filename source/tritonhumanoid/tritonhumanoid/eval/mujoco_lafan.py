@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 import importlib
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -59,7 +60,8 @@ CLIP_OBSERVATIONS = 5.0
 CLIP_ACTIONS = 1.0
 ANG_VEL_SCALE = 0.25
 DOF_VEL_SCALE = 0.1
-RESIDUAL_ACTION_SCALE = 0.15
+RESIDUAL_ACTION_SCALE = 0.10
+DEFAULT_JOINT_VELOCITY_LIMIT = 15.0
 FUTURE_REF_OFFSETS = (1, 2, 4, 6)
 MOTION_REFERENCE_POS_ERROR_SCALE = 1.0
 MOTION_REFERENCE_VEL_SCALE = 0.1
@@ -71,12 +73,12 @@ RESIDUAL_ACTION_SCALE_BY_JOINT: dict[str, float] = {
     "left_hip2_joint": 0.8,
     "left_thigh_joint": 1.0,
     "left_knee_joint": 1.0,
-    "left_ankle_joint": 0.7,
+    "left_ankle_joint": 0.5,
     "right_hip1_joint": 1.0,
     "right_hip2_joint": 0.8,
     "right_thigh_joint": 1.0,
     "right_knee_joint": 1.0,
-    "right_ankle_joint": 0.7,
+    "right_ankle_joint": 0.5,
 }
 
 
@@ -95,16 +97,17 @@ class PDGroupSpec:
     stiffness: tuple[float, ...]
     damping: tuple[float, ...]
     effort_limit: float
+    velocity_limit: float
     min_delay: int
     max_delay: int
 
 
 TRAINED_PD_GROUPS: tuple[PDGroupSpec, ...] = (
-    PDGroupSpec(("left_hip1_joint", "right_hip1_joint"), (250.0, 250.0), (5.0, 5.0), 120.0, 1, 1),
-    PDGroupSpec(("left_hip2_joint", "right_hip2_joint"), (250.0, 250.0), (5.0, 5.0), 120.0, 0, 1),
-    PDGroupSpec(("left_thigh_joint", "right_thigh_joint"), (100.0, 100.0), (2.0, 2.0), 120.0, 0, 1),
-    PDGroupSpec(("left_knee_joint", "right_knee_joint"), (150.0, 150.0), (5.0, 5.0), 120.0, 1, 2),
-    PDGroupSpec(("left_ankle_joint", "right_ankle_joint"), (120.0, 120.0), (0.8, 1.0), 120.0, 0, 1),
+    PDGroupSpec(("left_hip1_joint", "right_hip1_joint"), (250.0, 250.0), (5.0, 5.0), 120.0, 15.0, 1, 1),
+    PDGroupSpec(("left_hip2_joint", "right_hip2_joint"), (250.0, 250.0), (5.0, 5.0), 120.0, 15.0, 0, 1),
+    PDGroupSpec(("left_thigh_joint", "right_thigh_joint"), (100.0, 100.0), (2.0, 2.0), 120.0, 15.0, 0, 1),
+    PDGroupSpec(("left_knee_joint", "right_knee_joint"), (150.0, 150.0), (5.0, 5.0), 120.0, 15.0, 1, 2),
+    PDGroupSpec(("left_ankle_joint", "right_ankle_joint"), (120.0, 120.0), (0.8, 1.0), 120.0, 15.0, 0, 1),
 )
 
 
@@ -122,6 +125,22 @@ def _require_module(name: str):
                 "Run this under the project/Isaac Python environment with sim dependencies installed."
             ) from exc
         raise
+
+
+def resolve_joint_velocity_limit(value: float | None = None) -> float:
+    if value is not None:
+        return float(value)
+    raw = os.environ.get("MUJOCO_JOINT_VELOCITY_LIMIT")
+    if raw is None or raw == "":
+        return DEFAULT_JOINT_VELOCITY_LIMIT
+    return float(raw)
+
+
+def clip_joint_velocity_array(np, qvel: object, qvel_addr: object, velocity_limit: float) -> None:
+    limit = float(velocity_limit)
+    if limit <= 0.0:
+        return
+    qvel[qvel_addr] = np.clip(qvel[qvel_addr], -limit, limit)
 
 
 def _fmt_float(value: float) -> str:
@@ -650,6 +669,7 @@ class DelayedPDController:
         self.kp = self.np.zeros(len(joint_names), dtype=self.np.float64)
         self.kd = self.np.zeros(len(joint_names), dtype=self.np.float64)
         self.effort = self.np.zeros(len(joint_names), dtype=self.np.float64)
+        self.velocity_limit = self.np.zeros(len(joint_names), dtype=self.np.float64)
         self._group_bounds: list[tuple[list[int], int, int]] = []
         index = {name: i for i, name in enumerate(joint_names)}
         for group in TRAINED_PD_GROUPS:
@@ -658,6 +678,7 @@ class DelayedPDController:
                 self.kp[joint_id] = group.stiffness[local]
                 self.kd[joint_id] = group.damping[local]
                 self.effort[joint_id] = group.effort_limit
+                self.velocity_limit[joint_id] = group.velocity_limit
             self._group_bounds.append((ids, group.min_delay, group.max_delay))
         self.delays = self.np.zeros(len(joint_names), dtype=self.np.int64)
         self.history: deque[object] = deque(maxlen=max(group.max_delay for group in TRAINED_PD_GROUPS) + 1)
@@ -742,11 +763,13 @@ class MujocoLafanWalkTrackingEnv:
         seed: int | None = None,
         render: bool = False,
         refresh_model: bool = False,
+        joint_velocity_limit: float | None = None,
     ) -> None:
         self.np = _require_module("numpy")
         self.mujoco = _require_module("mujoco")
         self.rng = self.np.random.default_rng(seed)
         self.policy_dt = float(policy_dt)
+        self.joint_velocity_limit = resolve_joint_velocity_limit(joint_velocity_limit)
         self.decimation = int(round(self.policy_dt / PHYSICS_DT))
         if self.decimation != DECIMATION:
             raise ValueError(f"expected decimation={DECIMATION}, got {self.decimation}")
@@ -857,6 +880,7 @@ class MujocoLafanWalkTrackingEnv:
             qd = self.data.qvel[self.qvel_addr].copy()
             self.data.ctrl[:] = self.pd.torque(q_des, q, qd)
             self.mujoco.mj_step(self.model, self.data)
+            clip_joint_velocity_array(self.np, self.data.qvel, self.qvel_addr, self.joint_velocity_limit)
 
         self.step_count += 1
         obs0 = self._compute_single_observation()

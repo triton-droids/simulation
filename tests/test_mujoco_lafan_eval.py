@@ -77,12 +77,35 @@ def test_delayed_pd_controller_uses_trained_joint_contract() -> None:
     assert controller.kp.shape == (10,)
     assert controller.kd.shape == (10,)
     assert controller.effort.tolist() == [120.0] * 10
+    assert controller.velocity_limit.tolist() == [15.0] * 10
     assert controller.kp[ml.CH_MUJOCO_JOINT_NAMES.index("left_knee_joint")] == pytest.approx(150.0)
     assert controller.kd[ml.CH_MUJOCO_JOINT_NAMES.index("right_ankle_joint")] == pytest.approx(1.0)
 
     tau = controller.torque(np.ones(10), np.zeros(10), np.zeros(10))
     assert tau.shape == (10,)
     assert np.all(tau <= 120.0)
+
+
+def test_joint_velocity_limit_resolves_default_env_and_override(monkeypatch) -> None:
+    monkeypatch.delenv("MUJOCO_JOINT_VELOCITY_LIMIT", raising=False)
+    assert ml.resolve_joint_velocity_limit() == pytest.approx(15.0)
+
+    monkeypatch.setenv("MUJOCO_JOINT_VELOCITY_LIMIT", "12.5")
+    assert ml.resolve_joint_velocity_limit() == pytest.approx(12.5)
+    assert ml.resolve_joint_velocity_limit(9.0) == pytest.approx(9.0)
+
+
+def test_joint_velocity_clipping_can_be_disabled() -> None:
+    np = pytest.importorskip("numpy")
+    qvel = np.asarray([20.0, -18.0, 3.0], dtype=np.float64)
+    qvel_addr = np.asarray([0, 1], dtype=np.int64)
+
+    ml.clip_joint_velocity_array(np, qvel, qvel_addr, 15.0)
+    assert qvel.tolist() == [15.0, -15.0, 3.0]
+
+    qvel = np.asarray([20.0, -18.0, 3.0], dtype=np.float64)
+    ml.clip_joint_velocity_array(np, qvel, qvel_addr, 0.0)
+    assert qvel.tolist() == [20.0, -18.0, 3.0]
 
 
 def test_exported_policy_metadata_contract_when_available() -> None:
