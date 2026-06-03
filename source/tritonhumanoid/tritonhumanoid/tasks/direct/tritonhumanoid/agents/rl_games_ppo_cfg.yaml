@@ -76,10 +76,10 @@ params:
     truncate_grads: True
 
     e_clip: 0.2
-    horizon_length: 24           # 24 steps per env per update, same as hexapod
+    horizon_length: 24           # 16384 envs -> 393216 samples/update
 
-    minibatch_size: 24576        # with 4096 envs → 24*4096 ≈ 98k samples per iteration
-    mini_epochs: 5
+    minibatch_size: 98304        # 4 minibatches/update at 16384 envs; keeps learner overhead sane
+    mini_epochs: 3               # 12 optimizer steps/update instead of 80 at the old 16k setting
     critic_coef: 2.0
     clip_value: True
 

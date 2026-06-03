@@ -160,6 +160,9 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     sim = SimulationCfg(
         dt=1/200,
         render_interval=decimation,
+        physx=PhysxCfg(
+            enable_external_forces_every_iteration=True,
+        ),
         physics_material=RigidBodyMaterialCfg(
             static_friction=1.0,
             dynamic_friction=1.0,
@@ -272,6 +275,9 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
         ],
         debug_vis=False,  # keep off during training/headless
     )
+    use_frame_transformer_sensor: bool = False
+    track_body_name: str = "torso"
+    track_body_offset: tuple[float, float, float] = (-0.155, -0.016, 0.6996)
 
     # Observation scales
     ang_vel_scale: float = 0.25
@@ -446,8 +452,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     adr_push_ramp_difficulty: float = 0.3
     adr_micro_wrench_start_difficulty: float = 0.4
     adr_micro_wrench_ramp_difficulty: float = 0.3
-    adr_print_every_update: bool = True
-    adr_debug_print: bool = True
+    adr_print_every_update: bool = False
+    adr_debug_print: bool = False
     adr_debug_print_every_steps: int = 2000   # print cadence
 
     # ADR event randomization ranges (max difficulty)

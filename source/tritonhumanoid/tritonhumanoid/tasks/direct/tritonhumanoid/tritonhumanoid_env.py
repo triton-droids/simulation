@@ -194,10 +194,6 @@ class LocomotionEnv(DirectRLEnv):
         )
         self._joint_dof_idx, _ = self.robot.find_joints(actuated_joint_regex)
 
-        print("\n")
-        print(self._joint_dof_idx)
-        print(_)
-        print("\n")
         self.num_actions = len(self._joint_dof_idx)
 
         # Left/right joint pairs for symmetry penalty (action indices)
@@ -296,11 +292,18 @@ class LocomotionEnv(DirectRLEnv):
         imu_ids, _ = self.robot.find_bodies("world")
         self._imu_body_idx = int(imu_ids[0])
 
-        # tracking site index (for velocity/height tracking)
-        site_names = self.scene["ee_site"].data.target_frame_names
-        if "top" not in site_names:
-            raise RuntimeError(f"'top' not found in ee_site target_frame_names: {site_names}")
-        self._top_frame_idx = site_names.index("top")
+        self._use_frame_transformer_sensor = bool(getattr(self.cfg, "use_frame_transformer_sensor", False))
+        if self._use_frame_transformer_sensor:
+            site_names = self.scene["ee_site"].data.target_frame_names
+            if "top" not in site_names:
+                raise RuntimeError(f"'top' not found in ee_site target_frame_names: {site_names}")
+            self._top_frame_idx = site_names.index("top")
+        else:
+            torso_ids, _ = self.robot.find_bodies(getattr(self.cfg, "track_body_name", "torso"))
+            if len(torso_ids) == 0:
+                raise RuntimeError(f"Tracking body '{getattr(self.cfg, 'track_body_name', 'torso')}' was not found.")
+            self._track_body_idx = int(torso_ids[0])
+            self._track_offset_b = torch.tensor(self.cfg.track_body_offset, device=self.sim.device).unsqueeze(0)
 
         # pre-create world up for speed (avoid allocating every step)
         self._world_up = torch.tensor([0.0, 0.0, 1.0], device=self.sim.device).unsqueeze(0).repeat(self.num_envs, 1)
@@ -309,10 +312,6 @@ class LocomotionEnv(DirectRLEnv):
         default_joint_pos = self.robot.data.default_joint_pos[0]
         self.default_actuated_pos = default_joint_pos[self._joint_dof_idx].clone()
         
-        print("\n")
-        print(self.default_actuated_pos)
-        print("\n")
-
         self.actuated_lower = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 0].clone()
         self.actuated_upper = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 1].clone()
 
@@ -425,6 +424,8 @@ class LocomotionEnv(DirectRLEnv):
                 joint_names = self.robot.data.joint_names
             except Exception:
                 joint_names = None
+            print("[DebugOrder] joint dof ids:", self._joint_dof_idx)
+            print("[DebugOrder] default actuated pose:", self.default_actuated_pos)
             print("[DebugOrder] action/act_pos order (index -> joint name):")
             for i, jid in enumerate(self._joint_dof_idx):
                 name = joint_names[jid] if joint_names is not None and jid < len(joint_names) else str(jid)
@@ -552,11 +553,12 @@ class LocomotionEnv(DirectRLEnv):
         self._contact_sensor = None
         if bool(getattr(self.cfg, "enable_contact_sensor", False)):
             self._contact_sensor = ContactSensor(self.cfg.contact_sensor)
-        self._ee_site_sensor = FrameTransformer(self.cfg.ee_site)
         self.scene.articulations["robot"] = self.robot
         if self._contact_sensor is not None:
             self.scene.sensors["contact_sensor"] = self._contact_sensor
-        self.scene.sensors["ee_site"] = self._ee_site_sensor
+        if bool(getattr(self.cfg, "use_frame_transformer_sensor", False)):
+            self._ee_site_sensor = FrameTransformer(self.cfg.ee_site)
+            self.scene.sensors["ee_site"] = self._ee_site_sensor
 
         # add ground plane
         self.cfg.terrain.num_envs = self.scene.cfg.num_envs
@@ -959,10 +961,15 @@ class LocomotionEnv(DirectRLEnv):
             self.up_cmd = self.up_b
 
         # ------------------------------------------
-        # B) Tracking state from site frame "top"
+        # B) Tracking state from torso-offset point
         # ------------------------------------------
-        ft = self.scene["ee_site"].data
-        self.track_pos_w = ft.target_pos_w[:, self._top_frame_idx]
+        if self._use_frame_transformer_sensor:
+            ft = self.scene["ee_site"].data
+            self.track_pos_w = ft.target_pos_w[:, self._top_frame_idx]
+        else:
+            torso_pos_w = self.robot.data.body_pos_w[:, self._track_body_idx]
+            torso_quat_w = self.robot.data.body_quat_w[:, self._track_body_idx]
+            self.track_pos_w = torso_pos_w + quat_rotate(torso_quat_w, self._track_offset_b.expand(self.num_envs, -1))
 
         # ------------------------------------------
         # C) Center of mass (COM) state for tracking
