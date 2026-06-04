@@ -153,9 +153,9 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # 10 actuated leg joints
     action_space = 10
 
-    # obs_dim base = 39, plus 67 for current/future motion reference targets.
+    # obs_dim base = 39, plus 69 for current/future motion reference targets.
     # The env recomputes the final dimension at runtime based on enabled optional observations.
-    observation_space_single = 106
+    observation_space_single = 108
     obs_stack_frames: int = 3
     observation_space = observation_space_single * obs_stack_frames
 
@@ -285,6 +285,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     future_ref_offsets: tuple[int, ...] = (1, 2, 4, 6)
     motion_reference_observation: bool = True
     motion_reference_pos_error_scale: float = 1.0
+    motion_reference_root_xy_error_scale: float = 1.0
     motion_reference_vel_scale: float = 0.1
     motion_reference_debug_print: bool = False
     motion_reference_playback: bool = False
@@ -308,6 +309,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Imitation reward shaping.
     joint_pos_tracking_reward_scale: float = 4.0
     joint_vel_tracking_reward_scale: float = 0.5
+    root_xy_tracking_reward_scale: float = 1.0
     root_height_tracking_reward_scale: float = 1.0
     root_yaw_tracking_reward_scale: float = 1.0
     root_lin_vel_tracking_reward_scale: float = 0.5
@@ -321,6 +323,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Tracking sharpness (bigger = easier / smoother)
     sigma_q: float = 0.25
     sigma_joint_vel: float = 5.0
+    sigma_root_xy: float = 0.25
     sigma_h: float = 0.04
     sigma_yaw: float = 0.25
     sigma_root_vel: float = 1.0
@@ -625,12 +628,13 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     prev_actions: [29, 39)
     joint_pos_ref_error: [39, 49)
     joint_vel_ref: [49, 59)
-    root_height_error: [59, 60)
-    root_yaw_error: [60, 61)
-    root_lin_vel_b_ref: [61, 64)
-    yaw_rate_ref: [64, 65)
-    yaw_rate_error: [65, 66)
-    future_joint_pos_ref_error: [66, 106)
+    root_xy_error: [59, 61)
+    root_height_error: [61, 62)
+    root_yaw_error: [62, 63)
+    root_lin_vel_b_ref: [63, 66)
+    yaw_rate_ref: [66, 67)
+    yaw_rate_error: [67, 68)
+    future_joint_pos_ref_error: [68, 108)
 
 
 [JointLimits]

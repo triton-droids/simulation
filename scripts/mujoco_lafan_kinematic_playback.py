@@ -42,6 +42,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-steps", type=int, default=0, help="0 means play the whole trace.")
     parser.add_argument("--render", action="store_true")
     parser.add_argument("--real-time", action="store_true")
+    parser.add_argument(
+        "--hold-open",
+        action="store_true",
+        help="Keep the MuJoCo viewer open after playback finishes. Useful for short clips.",
+    )
     parser.add_argument("--validate-only", action="store_true")
     parser.add_argument("--refresh-model", action="store_true", help="Regenerate the cached Isaac-trained MJCF.")
     parser.add_argument(
@@ -322,6 +327,18 @@ def add_reference_points(np, mujoco, viewer, model, data, body_ids: list[int], *
         viewer.user_scn.ngeom += 1
 
 
+def hold_viewer_open(viewer) -> None:
+    if viewer is None:
+        return
+    print("[INFO] Playback finished. Close the MuJoCo viewer window or press Ctrl-C to exit.", flush=True)
+    try:
+        while viewer.is_running():
+            viewer.sync()
+            time.sleep(1.0 / 60.0)
+    except KeyboardInterrupt:
+        pass
+
+
 def run_validate_only(args: argparse.Namespace) -> None:
     np = require_numpy()
     trace = np.load(args.trace)
@@ -429,6 +446,8 @@ def main() -> None:
                 viewer.sync()
             if args.real_time:
                 sleep_for_realtime(start, CONTROL_DT)
+        if args.hold_open:
+            hold_viewer_open(viewer)
     finally:
         if viewer is not None:
             viewer.close()

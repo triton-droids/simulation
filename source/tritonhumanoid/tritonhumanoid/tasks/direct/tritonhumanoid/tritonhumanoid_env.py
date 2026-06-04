@@ -197,6 +197,7 @@ class LocomotionEnv(DirectRLEnv):
             future_count = len(tuple(getattr(cfg, "future_ref_offsets", (1, 2, 4, 6))))
             obs_single_dim += (
                 cfg.action_space * 2  # current q_ref error + joint_vel_ref
+                + 2  # root xy error
                 + 1  # root height error
                 + 1  # root yaw error
                 + 3  # root_lin_vel_b_ref
@@ -389,6 +390,7 @@ class LocomotionEnv(DirectRLEnv):
         self.motion_target_root_ang_vel_b = torch.zeros(self.num_envs, 3, device=self.sim.device)
         self.motion_target_root_yaw = torch.zeros(self.num_envs, device=self.sim.device)
         self.motion_target_yaw_rate = torch.zeros(self.num_envs, device=self.sim.device)
+        self.motion_target_root_xy_error = torch.zeros(self.num_envs, 2, device=self.sim.device)
         self.motion_target_root_height_error = torch.zeros(self.num_envs, device=self.sim.device)
         self.motion_target_root_yaw_error = torch.zeros(self.num_envs, device=self.sim.device)
         self.motion_target_yaw_rate_error = torch.zeros(self.num_envs, device=self.sim.device)
@@ -510,6 +512,7 @@ class LocomotionEnv(DirectRLEnv):
         if self._motion_reference_enabled and self._motion_reference_observation:
             _add_obs_slice("joint_pos_ref_error", self.num_actions)
             _add_obs_slice("joint_vel_ref", self.num_actions)
+            _add_obs_slice("root_xy_error", 2)
             _add_obs_slice("root_height_error", 1)
             _add_obs_slice("root_yaw_error", 1)
             _add_obs_slice("root_lin_vel_b_ref", 3)
@@ -1087,6 +1090,8 @@ class LocomotionEnv(DirectRLEnv):
                     self.motion_target_future_joint_pos - self.act_pos.unsqueeze(1)
                 )
         if update_errors and hasattr(self, "root_pos_local"):
+            self.motion_target_root_xy_error = self.motion_target_root_pos[:, :2] - self.root_pos_local[:, :2]
+        if update_errors and hasattr(self, "root_pos_local"):
             self.motion_target_root_height_error = self.motion_target_root_pos[:, 2] - self.root_pos_local[:, 2]
         if update_errors and hasattr(self, "root_yaw"):
             self.motion_target_root_yaw_error = wrap_angle(self.motion_target_root_yaw - self.root_yaw)
@@ -1270,6 +1275,8 @@ class LocomotionEnv(DirectRLEnv):
                     * float(getattr(self.cfg, "motion_reference_pos_error_scale", 1.0)),
                     self.motion_target_joint_vel
                     * float(getattr(self.cfg, "motion_reference_vel_scale", self.cfg.dof_vel_scale)),
+                    self.motion_target_root_xy_error
+                    * float(getattr(self.cfg, "motion_reference_root_xy_error_scale", 1.0)),
                     self.motion_target_root_height_error.unsqueeze(-1),
                     self.motion_target_root_yaw_error.unsqueeze(-1),
                     self.motion_target_root_lin_vel_b,
@@ -1326,6 +1333,7 @@ class LocomotionEnv(DirectRLEnv):
 
         joint_pos_err = torch.mean((self.act_pos - self.motion_target_joint_pos) ** 2, dim=1)
         joint_vel_err = torch.mean((self.act_vel - self.motion_target_joint_vel) ** 2, dim=1)
+        root_xy_err = torch.sum((self.root_pos_local[:, :2] - self.motion_target_root_pos[:, :2]) ** 2, dim=1)
         root_h_err = (self.root_pos_local[:, 2] - self.motion_target_root_pos[:, 2]) ** 2
         root_yaw_err = wrap_angle(self.root_yaw - self.motion_target_root_yaw) ** 2
         root_lin_vel_err = torch.sum((self.root_lin_vel_b - self.motion_target_root_lin_vel_b) ** 2, dim=1)
@@ -1333,6 +1341,7 @@ class LocomotionEnv(DirectRLEnv):
 
         r_q = torch.exp(-joint_pos_err / (float(self.cfg.sigma_q) + 1e-6))
         r_joint_vel = torch.exp(-joint_vel_err / (float(self.cfg.sigma_joint_vel) + 1e-6))
+        r_root_xy = torch.exp(-root_xy_err / (float(self.cfg.sigma_root_xy) + 1e-6))
         r_h = torch.exp(-root_h_err / (float(self.cfg.sigma_h) + 1e-6))
         r_yaw = torch.exp(-root_yaw_err / (float(self.cfg.sigma_yaw) + 1e-6))
         r_root_vel = torch.exp(-root_lin_vel_err / (float(self.cfg.sigma_root_vel) + 1e-6))
@@ -1382,6 +1391,7 @@ class LocomotionEnv(DirectRLEnv):
         reward = (
             self.cfg.joint_pos_tracking_reward_scale * r_q
             + self.cfg.joint_vel_tracking_reward_scale * r_joint_vel
+            + self.cfg.root_xy_tracking_reward_scale * r_root_xy
             + self.cfg.root_height_tracking_reward_scale * r_h
             + self.cfg.root_yaw_tracking_reward_scale * r_yaw
             + self.cfg.root_lin_vel_tracking_reward_scale * r_root_vel
@@ -1412,6 +1422,7 @@ class LocomotionEnv(DirectRLEnv):
             log = self.extras.setdefault("log", {})
             log["tracking/joint_pos_err"] = float(joint_pos_err.mean().item())
             log["tracking/joint_vel_err"] = float(joint_vel_err.mean().item())
+            log["tracking/root_xy_err"] = float(torch.sqrt(root_xy_err).mean().item())
             log["tracking/root_height_err"] = float(root_h_err.mean().item())
             log["tracking/root_yaw_err"] = float(root_yaw_err.mean().item())
             log["tracking/root_lin_vel_err"] = float(torch.sqrt(root_lin_vel_err).mean().item())
