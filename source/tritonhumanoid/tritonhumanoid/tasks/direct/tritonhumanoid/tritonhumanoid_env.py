@@ -460,6 +460,20 @@ class LocomotionEnv(DirectRLEnv):
         self._ep_lin_err_sum = torch.zeros(self.num_envs, device=self.sim.device)
         self._ep_yaw_err_sum = torch.zeros(self.num_envs, device=self.sim.device)
         self._ep_len = torch.zeros(self.num_envs, device=self.sim.device)
+        self.forward_progress_vel = torch.zeros(self.num_envs, device=self.sim.device)
+        self.forward_progress_reward = torch.zeros(self.num_envs, device=self.sim.device)
+        self.forward_stuck_progress_ema = torch.zeros(self.num_envs, device=self.sim.device)
+        self.forward_stuck_penalty = torch.zeros(self.num_envs, device=self.sim.device)
+        self.forward_stuck = torch.zeros(self.num_envs, dtype=torch.bool, device=self.sim.device)
+        self._forward_progress_prev_pos_w = torch.zeros(self.num_envs, 3, device=self.sim.device)
+        self._forward_progress_initialized = torch.zeros(self.num_envs, dtype=torch.bool, device=self.sim.device)
+        self._forward_progress_metric_step = -1
+        self._forward_stuck_warmup_steps = max(
+            1,
+            int(float(getattr(self.cfg, "forward_stuck_warmup_s", 0.75)) / self._control_dt),
+        )
+        window_s = max(float(getattr(self.cfg, "forward_stuck_window_s", 0.5)), self._control_dt)
+        self._forward_stuck_ema_alpha = min(1.0, self._control_dt / window_s)
 
         # observation latency buffers
         self.obs_max_latency = int(getattr(self.cfg, "obs_max_latency", 0))
@@ -890,7 +904,9 @@ class LocomotionEnv(DirectRLEnv):
 
     def _pre_physics_step(self, actions: torch.Tensor):
         self._global_policy_step += 1
+        self._capture_forward_progress_reference()
         self._invalidate_state_cache()
+        self._forward_progress_metric_step = -1
 
         a = actions.clone().clamp(-1.0, 1.0)
 
@@ -1024,6 +1040,56 @@ class LocomotionEnv(DirectRLEnv):
         self.act_pos_scaled = 2.0 * (self.act_pos - lo) / (hi - lo + 1e-6) - 1.0
         self._state_valid = True
 
+    def _forward_progress_position_w(self) -> torch.Tensor:
+        if self._track_com_linear and hasattr(self, "com_pos_w"):
+            return self.com_pos_w
+        return self.track_pos_w
+
+    def _capture_forward_progress_reference(self) -> None:
+        self._update_state()
+        self._forward_progress_prev_pos_w[:] = self._forward_progress_position_w()
+        self._forward_progress_initialized[:] = True
+
+    def _update_forward_progress_metrics(self) -> None:
+        if self._forward_progress_metric_step == self._global_policy_step:
+            return
+
+        self._update_state()
+        pos_w = self._forward_progress_position_w()
+        initialized = self._forward_progress_initialized
+        delta_w = torch.where(
+            initialized.unsqueeze(-1),
+            pos_w - self._forward_progress_prev_pos_w,
+            torch.zeros_like(pos_w),
+        )
+        delta_b = quat_rotate_inverse(self.imu_quat_w, delta_w)
+        if self._use_cmd_yaw_offset:
+            delta_cmd = self._rotate_xy(delta_b, self._cmd_yaw_cos, self._cmd_yaw_sin)
+        else:
+            delta_cmd = delta_b
+
+        progress_vel = delta_cmd[:, 0] / self._control_dt
+        cmd_threshold = float(getattr(self.cfg, "forward_progress_command_threshold", 0.15))
+        forward_cmd = self.commands[:, 0] > cmd_threshold
+        denom = torch.clamp(self.commands[:, 0], min=cmd_threshold)
+        progress_reward = torch.clamp(progress_vel / denom, min=-1.0, max=1.0) * forward_cmd.float()
+
+        alpha = float(self._forward_stuck_ema_alpha)
+        next_ema = (1.0 - alpha) * self.forward_stuck_progress_ema + alpha * progress_vel
+        self.forward_stuck_progress_ema = torch.where(forward_cmd, next_ema, torch.zeros_like(next_ema))
+
+        min_vel = float(getattr(self.cfg, "forward_progress_min_vel", 0.08))
+        warm = self.episode_length_buf >= self._forward_stuck_warmup_steps
+        stuck = forward_cmd & warm & (self.forward_stuck_progress_ema < min_vel)
+        if not bool(getattr(self.cfg, "forward_stuck_termination_enabled", True)):
+            stuck = torch.zeros_like(stuck)
+
+        self.forward_progress_vel = progress_vel
+        self.forward_progress_reward = progress_reward
+        self.forward_stuck = stuck
+        self.forward_stuck_penalty = (forward_cmd & warm & (self.forward_stuck_progress_ema < min_vel)).float()
+        self._forward_progress_metric_step = self._global_policy_step
+
     def _action_ids_for_joint_names(self, names: list[str], joint_id_to_action: dict[int, int]) -> torch.Tensor:
         ids = []
         for name in names:
@@ -1142,6 +1208,7 @@ class LocomotionEnv(DirectRLEnv):
 
     def _compute_reward_terms(self) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         self._update_state()
+        self._update_forward_progress_metrics()
 
         # --- Command and fixed-height tracking ---
         x_err = self.com_lin_vel_cmd[:, 0] - self.commands[:, 0]
@@ -1269,6 +1336,11 @@ class LocomotionEnv(DirectRLEnv):
             "knee_distance": knee_distance,
             "knee_distance_cost": knee_distance_cost,
             "stand_still": stand_still_cost,
+            "forward_progress_vel": self.forward_progress_vel,
+            "forward_progress": self.forward_progress_reward,
+            "forward_stuck_progress_ema": self.forward_stuck_progress_ema,
+            "forward_stuck_penalty": self.forward_stuck_penalty,
+            "forward_stuck": self.forward_stuck.float(),
             "foot_height_left": foot_height[:, 0],
             "foot_height_right": foot_height[:, 1],
             "x_err_abs": torch.abs(x_err),
@@ -1302,6 +1374,8 @@ class LocomotionEnv(DirectRLEnv):
             "scaled_feet_distance": self.cfg.feet_distance_scale * feet_distance_cost,
             "scaled_knee_distance": self.cfg.knee_distance_scale * knee_distance_cost,
             "scaled_stand_still": self.cfg.stand_still_scale * stand_still_cost,
+            "scaled_forward_progress": self.cfg.forward_progress_scale * self.forward_progress_reward,
+            "scaled_forward_stuck": self.cfg.forward_stuck_penalty_scale * self.forward_stuck_penalty,
         }
         terms.update(scaled_terms)
 
@@ -1347,6 +1421,7 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["reward_penalties/feet_distance"] = float(terms["feet_distance_cost"].mean().item())
             self.extras["reward_penalties/knee_distance"] = float(terms["knee_distance_cost"].mean().item())
             self.extras["reward_penalties/stand_still"] = float(terms["stand_still"].mean().item())
+            self.extras["reward_penalties/forward_stuck"] = float(terms["forward_stuck_penalty"].mean().item())
 
             self.extras["reward_scaled/x_tracking"] = float(terms["scaled_tracking_x"].mean().item())
             self.extras["reward_scaled/y_tracking"] = float(terms["scaled_tracking_y"].mean().item())
@@ -1362,6 +1437,8 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["reward_scaled/feet_distance"] = float(terms["scaled_feet_distance"].mean().item())
             self.extras["reward_scaled/knee_distance"] = float(terms["scaled_knee_distance"].mean().item())
             self.extras["reward_scaled/stand_still"] = float(terms["scaled_stand_still"].mean().item())
+            self.extras["reward_scaled/forward_progress"] = float(terms["scaled_forward_progress"].mean().item())
+            self.extras["reward_scaled/forward_stuck"] = float(terms["scaled_forward_stuck"].mean().item())
 
             self.extras["reward_total/mean"] = float(reward.mean().item())
             self.extras["reward_total/std"] = float(reward.std().item())
@@ -1377,17 +1454,23 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["diagnostics/torques"] = float(terms["torques"].mean().item())
             self.extras["diagnostics/joint_power"] = float(terms["joint_power"].mean().item())
             self.extras["diagnostics/curriculum_stage"] = float(self._current_curriculum_stage)
+            self.extras["diagnostics/forward_progress_vel"] = float(terms["forward_progress_vel"].mean().item())
+            self.extras["diagnostics/forward_stuck_progress_ema"] = float(
+                terms["forward_stuck_progress_ema"].mean().item()
+            )
+            self.extras["diagnostics/forward_stuck"] = float(terms["forward_stuck"].mean().item())
 
         return reward
 
     def _get_dones(self):
         self._update_state()
+        self._update_forward_progress_metrics()
         time_out = self.episode_length_buf >= self.randomized_episode_lengths - 1
 
         fell = self.track_pos_w[:, 2] < self.cfg.termination_height
         too_tilted = self.up_b[:, 2] < self.cfg.upright_threshold
 
-        died = fell | too_tilted
+        died = fell | too_tilted | self.forward_stuck
 
         return died, time_out
 
@@ -1448,6 +1531,14 @@ class LocomotionEnv(DirectRLEnv):
         self._ep_lin_err_sum[env_ids] = 0.0
         self._ep_yaw_err_sum[env_ids] = 0.0
         self._ep_len[env_ids] = 0.0
+        self.forward_progress_vel[env_ids] = 0.0
+        self.forward_progress_reward[env_ids] = 0.0
+        self.forward_stuck_progress_ema[env_ids] = 0.0
+        self.forward_stuck_penalty[env_ids] = 0.0
+        self.forward_stuck[env_ids] = False
+        self._forward_progress_prev_pos_w[env_ids] = 0.0
+        self._forward_progress_initialized[env_ids] = False
+        self._forward_progress_metric_step = -1
 
         # reset push timers
         self.push_counters[env_ids] = 0

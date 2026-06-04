@@ -1,0 +1,10 @@
+{
+  "config_name": "slippery_medium",
+  "description": "Moderately slippery surface - significantly reduced friction (medium)",
+
+  "contact_surface": {
+    "friction": [0.3, 0.005, 0.0001],
+    "solref": [0.01, 2],
+    "solimp": [0.9, 0.95, 0.001]
+  }
+}

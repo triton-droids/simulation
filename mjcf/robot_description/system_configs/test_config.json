@@ -1,0 +1,69 @@
+{
+  "config_name": "test_config",
+  "description": "Test config with DIFFERENT parameters to verify they actually change",
+
+  "contact_surface": {
+    "friction": [2.0, 0.01, 0.0002],
+    "solref": [0.02, 1.5],
+    "solimp": [0.85, 0.9, 0.002]
+  },
+
+  "default_joint": {
+    "damping": 2.0,
+    "frictionloss": 0.25,
+    "armature": 0.02
+  },
+
+  "actuators": {
+    "left_hip1_act": {
+      "kp": 400,
+      "kv": 20,
+      "forcerange": [-150, 150]
+    },
+    "left_hip2_act": {
+      "kp": 400,
+      "kv": 20,
+      "forcerange": [-150, 150]
+    },
+    "left_thigh_act": {
+      "kp": 400,
+      "kv": 20,
+      "forcerange": [-150, 150]
+    },
+    "left_knee_act": {
+      "kp": 400,
+      "kv": 20,
+      "forcerange": [-150, 150]
+    },
+    "left_ankle_act": {
+      "kp": 150,
+      "kv": 10,
+      "forcerange": [-80, 80]
+    },
+    "right_hip1_act": {
+      "kp": 400,
+      "kv": 20,
+      "forcerange": [-150, 150]
+    },
+    "right_hip2_act": {
+      "kp": 400,
+      "kv": 20,
+      "forcerange": [-150, 150]
+    },
+    "right_thigh_act": {
+      "kp": 400,
+      "kv": 20,
+      "forcerange": [-150, 150]
+    },
+    "right_knee_act": {
+      "kp": 400,
+      "kv": 20,
+      "forcerange": [-150, 150]
+    },
+    "right_ankle_act": {
+      "kp": 150,
+      "kv": 10,
+      "forcerange": [-80, 80]
+    }
+  }
+}

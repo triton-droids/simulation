@@ -1,0 +1,10 @@
+{
+  "config_name": "bouncy_high",
+  "description": "Very bouncy surface - very low contact damping like a trampoline (high)",
+
+  "contact_surface": {
+    "friction": [1.5, 0.005, 0.0001],
+    "solref": [0.01, 0.5],
+    "solimp": [0.97, 0.99, 0.001]
+  }
+}

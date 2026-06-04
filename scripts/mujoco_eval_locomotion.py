@@ -48,7 +48,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--refresh-model", action="store_true")
     parser.add_argument("--metrics-json", type=Path, default=None)
     parser.add_argument("--output", type=Path, default=None, help="Optional rollout .npz path.")
-    parser.add_argument("--command-profile", choices=["none", "stand_forward_yaw"], default="stand_forward_yaw")
+    parser.add_argument("--command-profile", choices=["none", "stand_forward_yaw", "forward"], default="stand_forward_yaw")
     parser.add_argument(
         "--joint-velocity-limit",
         type=float,
@@ -116,11 +116,18 @@ def _append(logs: dict[str, list], info: dict) -> None:
 
 def run_rollout(args: argparse.Namespace) -> tuple[list[dict], dict[str, list]]:
     torch, policy = load_torchscript_policy(args.policy)
+    model_xml = args.model_xml
+    if model_xml is None:
+        model_xml = ensure_isaac_locomotion_mjcf(
+            source_xml=args.source_xml,
+            model_dir=DEFAULT_MODEL_CACHE,
+            urdf_path=DEFAULT_ACTIVE_URDF,
+            refresh=args.refresh_model,
+        )
     env = MujocoLocomotionEnv(
-        model_xml=args.model_xml,
+        model_xml=model_xml,
         seed=args.seed,
         render=args.render,
-        refresh_model=args.refresh_model,
         joint_velocity_limit=args.joint_velocity_limit,
     )
     infos: list[dict] = []
@@ -180,4 +187,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
