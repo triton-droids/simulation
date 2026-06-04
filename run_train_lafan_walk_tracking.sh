@@ -4,7 +4,7 @@ set -euo pipefail
 MOTION_DIR="${MOTION_DIR:-/cephfs/holosoma/data/lafan/retargeted/ch_robot_stance_flatfoot_locomotion_full_floor_norm_with_vel}"
 EXPERIMENT_NAME="${EXPERIMENT_NAME:-lafan_walk_tracking}"
 MOTION_MANIFEST="${MOTION_MANIFEST:-manifests/${EXPERIMENT_NAME}_manifest.txt}"
-NUM_ENVS="${NUM_ENVS:-8192}"
+NUM_ENVS="${NUM_ENVS:-16384}"
 NUM_GPUS="${NUM_GPUS:-1}"
 LOG_ROOT="${LOG_ROOT:-logs/rl_games/humanoid_flat_direct/${EXPERIMENT_NAME}}"
 CHECKPOINT="${CHECKPOINT:-}"
