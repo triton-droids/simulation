@@ -20,7 +20,7 @@ parser = argparse.ArgumentParser(description="Parity logger for Isaac Lab rollou
 parser.add_argument("--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O.")
 parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
-parser.add_argument("--num_steps", type=int, default=2000, help="Number of rollout steps to log.")
+parser.add_argument("--num_steps", type=int, default=2000, help="Number of rollout steps to log. Use 0 for current full LAFAN clip.")
 parser.add_argument("--env_index", type=int, default=0, help="Which env index to log.")
 
 parser.add_argument(
@@ -56,6 +56,9 @@ parser.add_argument("--yaw_rate", type=float, default=0.6, help="Yaw command for
 
 parser.add_argument("--output", type=str, default=None, help="Output .npz path.")
 parser.add_argument("--metadata_out", type=str, default=None, help="Optional metadata .json path.")
+parser.add_argument("--motion_dir", type=str, default=None, help="Override LAFAN motion reference directory.")
+parser.add_argument("--motion_manifest", type=str, default=None, help="Override LAFAN motion manifest file.")
+parser.add_argument("--motion_random_start", action="store_true", default=False, help="Use random reference start frames.")
 parser.add_argument(
     "--compare_with",
     type=str,
@@ -91,6 +94,7 @@ from isaaclab_rl.rl_games import RlGamesGpuEnv, RlGamesVecEnvWrapper
 from isaaclab_tasks.utils import load_cfg_from_registry, parse_env_cfg
 
 import tritonhumanoid.tasks  # noqa: F401
+from tritonhumanoid.eval.mujoco_lafan import CH_MUJOCO_JOINT_NAMES
 
 
 def _timestamp() -> str:
@@ -378,13 +382,44 @@ def _log_state(env_obj, env_index: int, action_input_row: torch.Tensor, obs_out:
     out["base_ang_vel"] = env_obj.com_ang_vel_cmd[idx].detach().cpu().numpy().astype(np.float32)
     out["up_b"] = env_obj.up_b[idx].detach().cpu().numpy().astype(np.float32)
     out["obs_latest"] = _obs_row_for_env(obs_out, idx)
+    qpos, qvel = _mujoco_trace_state(env_obj, idx)
+    out["qpos"] = qpos
+    out["qvel"] = qvel
     return out
+
+
+def _mujoco_trace_state(env_obj, env_index: int) -> tuple[np.ndarray, np.ndarray]:
+    try:
+        action_joint_names = env_obj._action_joint_names()
+    except AttributeError:
+        joint_names = env_obj.robot.data.joint_names
+        action_joint_names = [str(joint_names[int(jid)]) for jid in env_obj._joint_dof_idx]
+    order = [action_joint_names.index(name) for name in CH_MUJOCO_JOINT_NAMES]
+
+    root_pos = env_obj.robot.data.root_pos_w[env_index].detach().cpu().numpy().astype(np.float32)
+    root_quat = env_obj.robot.data.root_quat_w[env_index].detach().cpu().numpy().astype(np.float32)
+    root_lin_vel = env_obj.robot.data.root_lin_vel_w[env_index].detach().cpu().numpy().astype(np.float32)
+    root_ang_vel = env_obj.robot.data.root_ang_vel_w[env_index].detach().cpu().numpy().astype(np.float32)
+    joint_pos = env_obj.act_pos[env_index, order].detach().cpu().numpy().astype(np.float32)
+    joint_vel = env_obj.act_vel[env_index, order].detach().cpu().numpy().astype(np.float32)
+
+    qpos = np.concatenate([root_pos, root_quat, joint_pos], axis=0).astype(np.float32)
+    qvel = np.concatenate([root_lin_vel, root_ang_vel, joint_vel], axis=0).astype(np.float32)
+    return qpos, qvel
 
 
 def main():
     env_cfg = parse_env_cfg(
         args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric
     )
+    if hasattr(env_cfg, "use_curriculum"):
+        env_cfg.use_curriculum = False
+    if args_cli.motion_dir is not None and hasattr(env_cfg, "motion_reference_dir"):
+        env_cfg.motion_reference_dir = args_cli.motion_dir
+    if args_cli.motion_manifest is not None and hasattr(env_cfg, "motion_manifest_file"):
+        env_cfg.motion_manifest_file = args_cli.motion_manifest
+    if hasattr(env_cfg, "motion_random_start"):
+        env_cfg.motion_random_start = bool(args_cli.motion_random_start)
     env = gym.make(args_cli.task, cfg=env_cfg)
     if isinstance(env.unwrapped, DirectMARLEnv):
         env = multi_agent_to_single_agent(env)
@@ -423,8 +458,20 @@ def main():
 
     logs: dict[str, list[np.ndarray]] = {}
     step_times = []
+    requested_steps = int(args_cli.num_steps)
+    if requested_steps <= 0:
+        if not hasattr(env_obj, "motion_frame") or not hasattr(env_obj, "motion_end_frame"):
+            raise ValueError("--num_steps 0 is only supported for LAFAN motion-reference envs.")
+        idx = int(np.clip(args_cli.env_index, 0, num_envs - 1))
+        current_frame = int(env_obj.motion_frame[idx].item())
+        end_frame = int(env_obj.motion_end_frame[idx].item())
+        requested_steps = max(1, end_frame - current_frame - 1)
+        print(
+            f"[INFO] Recording full LAFAN clip: motion={int(env_obj.motion_ids[idx].item())} "
+            f"start_frame={current_frame} end_frame={end_frame} steps={requested_steps}"
+        )
 
-    for step in range(int(args_cli.num_steps)):
+    for step in range(requested_steps):
         if not simulation_app.is_running():
             break
 
