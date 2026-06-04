@@ -2,13 +2,14 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PYTHON_CMD="${PYTHON:-python}"
+PYTHON_CMD_RAW="${PYTHON:-${ISAAC_PY:-python}}"
+read -r -a PYTHON_CMD <<< "${PYTHON_CMD_RAW}"
 ASSET_DIR="${REPO_ROOT}/source/tritonhumanoid/tritonhumanoid/assets/mujoco"
 MJCF_PATH="${ASSET_DIR}/ch_robot_10dof.xml"
 
 mkdir -p "${ASSET_DIR}"
 
-"${PYTHON_CMD}" - <<'PY'
+"${PYTHON_CMD[@]}" - <<'PY'
 import importlib.util
 import subprocess
 import sys
@@ -17,7 +18,7 @@ required = {
     "mujoco": "mujoco==3.9.0",
     "glfw": "glfw",
     "OpenGL": "PyOpenGL",
-    "numpy": "numpy",
+    "numpy": "numpy<2",
 }
 missing = [pip_name for module, pip_name in required.items() if importlib.util.find_spec(module) is None]
 if missing:
@@ -39,7 +40,7 @@ fi
 
 set +e
 PYTHONPATH="${REPO_ROOT}/source/tritonhumanoid:${PYTHONPATH:-}" \
-  "${PYTHON_CMD}" "${REPO_ROOT}/scripts/mujoco_eval_locomotion.py" --validate-only
+  "${PYTHON_CMD[@]}" "${REPO_ROOT}/scripts/mujoco_eval_locomotion.py" --validate-only
 status=$?
 set -e
 
@@ -50,7 +51,7 @@ if [[ ${status} -ne 0 ]]; then
        ${MJCF_PATH}
 
 Next checks after replacing the MJCF:
-  PYTHONPATH=${REPO_ROOT}/source/tritonhumanoid:\${PYTHONPATH:-} ${PYTHON_CMD} scripts/mujoco_eval_locomotion.py --validate-only
+  PYTHONPATH=${REPO_ROOT}/source/tritonhumanoid:\${PYTHONPATH:-} ${PYTHON_CMD_RAW} scripts/mujoco_eval_locomotion.py --validate-only
 EOF
   exit 0
 fi
@@ -59,7 +60,7 @@ cat <<EOF
 [INFO] MuJoCo locomotion setup is valid.
 
 Useful commands:
-  ${PYTHON_CMD} scripts/mujoco_eval_locomotion.py --validate-only
-  ${PYTHON_CMD} scripts/mujoco_playback_locomotion.py --trace logs/parity/<trace>.npz --validate-only
+  ${PYTHON_CMD_RAW} scripts/mujoco_eval_locomotion.py --validate-only
+  ${PYTHON_CMD_RAW} scripts/mujoco_playback_locomotion.py --trace logs/parity/<trace>.npz --validate-only
 EOF
 

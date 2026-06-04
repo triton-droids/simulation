@@ -228,6 +228,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Locomotion uses a dedicated delayed-PD asset with motor-pair-specific latency groups
     # derived from the embedded motor dataset analysis.
     robot: ArticulationCfg = HUMANOID_LOCOMOTION_DELAYED_PD_CFG.replace(prim_path="/World/envs/env_.*/Robot")
+    robot.spawn.activate_contact_sensors = True
     disable_non_foot_collisions: bool = False
     non_foot_collision_body_names: tuple[str, ...] = (
         "torso",
@@ -241,7 +242,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
         "right_leg3",
         "right_leg4",
     )
-    enable_contact_sensor: bool = False
+    enable_contact_sensor: bool = True
     contact_sensor: ContactSensorCfg = ContactSensorCfg(
         prim_path="/World/envs/env_.*/Robot/.*_foot", history_length=3, update_period=0.005, track_air_time=True
     )
@@ -311,7 +312,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     height_tracking_sigma: float = 0.02
 
     # Command tracking
-    tracking_x_vel_scale: float = 3.0
+    tracking_x_vel_scale: float = 1.5
     tracking_y_vel_scale: float = 1.0
     tracking_ang_vel_scale: float = 2.0
 
@@ -326,7 +327,7 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
 
     # HOMIE-style fixed walking height target. This is a privileged reward term only.
     base_height_target: float = 0.70
-    tracking_base_height_scale: float = 1.0
+    tracking_base_height_scale: float = 2.0
 
     # Base stability
     lin_vel_z_scale: float = -0.5
@@ -334,12 +335,13 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     orientation_scale: float = -1.5
 
     # Joint posture regularization
-    deviation_hip_joint_scale: float = -0.10
+    deviation_hip_joint_scale: float = -0.20
     deviation_knee_joint_scale: float = -0.15
-    deviation_ankle_joint_scale: float = -0.20
+    deviation_ankle_joint_scale: float = -0.50
 
     # Smoothness / effort
     action_rate_scale: float = -0.01
+    smoothness_scale: float = -0.05
     dof_vel_reward_scale: float = -1.0e-4
     dof_acc_scale: float = -2.5e-7
     torques_scale: float = -2.5e-6
@@ -347,18 +349,23 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
 
     # Limits
     dof_pos_limits_scale: float = -2.0
+    dof_vel_limits_scale: float = -2.0e-3
+    torque_limits_scale: float = -0.10
+    action_vanish_scale: float = -1.0
     soft_dof_pos_limit: float = 0.975
+    soft_dof_vel_limit: float = 0.80
+    soft_torque_limit: float = 0.95
 
-    # Distance-based feet shaping. These replace contact/air-time rewards so training does
-    # not depend on contact sensor signals or non-foot self-collision.
+    # HOMIE-style foot shaping. Contact rewards use only the foot contact sensor.
+    homie_contact_rewards_enabled: bool = True
     foot_body_regex: str = "left_foot|right_foot"
     knee_body_regex: str = "left_leg4|right_leg4"
     foot_ground_height_target: float = 0.035
-    foot_clearance_target: float = 0.10
+    foot_clearance_target: float = 0.14
     foot_height_sigma: float = 0.01
     foot_swing_speed_threshold: float = 0.15
     feet_support_height_scale: float = 0.50
-    feet_clearance_scale: float = -0.75
+    feet_clearance_scale: float = -0.25
     feet_near_ground_velocity_scale: float = -0.05
     feet_distance_scale: float = -0.20
     feet_distance_min: float = 0.12
@@ -366,6 +373,20 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     knee_distance_scale: float = -0.15
     knee_distance_min: float = 0.08
     knee_distance_max: float = 0.32
+    feet_air_time_scale: float = 0.05
+    feet_air_time_min: float = 0.50
+    feet_contact_force_threshold: float = 1.0
+    no_fly_scale: float = 0.75
+    feet_slip_scale: float = -0.25
+    feet_contact_forces_scale: float = -0.00025
+    max_contact_force: float = 400.0
+    contact_momentum_scale: float = 2.5e-4
+    contact_momentum_force_threshold: float = 50.0
+    feet_stumble_scale: float = -1.5
+    feet_stumble_ratio: float = 3.0
+    feet_ground_parallel_scale: float = -2.0
+    feet_parallel_scale: float = -3.0
+    joint_tracking_error_scale: float = -0.1
 
     # Stand behavior
     stand_still_scale: float = -0.15

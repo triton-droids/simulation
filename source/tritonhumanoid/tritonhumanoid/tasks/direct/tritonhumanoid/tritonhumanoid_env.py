@@ -307,6 +307,8 @@ class LocomotionEnv(DirectRLEnv):
 
         # pre-create world up for speed (avoid allocating every step)
         self._world_up = torch.tensor([0.0, 0.0, 1.0], device=self.sim.device).unsqueeze(0).repeat(self.num_envs, 1)
+        self._foot_local_forward = torch.tensor([1.0, 0.0, 0.0], device=self.sim.device)
+        self._foot_local_up = torch.tensor([0.0, 0.0, 1.0], device=self.sim.device)
 
         # default pose + joint limits (actuated only)
         default_joint_pos = self.robot.data.default_joint_pos[0]
@@ -314,10 +316,14 @@ class LocomotionEnv(DirectRLEnv):
         
         self.actuated_lower = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 0].clone()
         self.actuated_upper = self.robot.data.soft_joint_pos_limits[0, self._joint_dof_idx, 1].clone()
+        self.actuated_vel_limits = self.robot.data.soft_joint_vel_limits[0, self._joint_dof_idx].clone()
+        self.actuated_effort_limits = self.robot.data.joint_effort_limits[0, self._joint_dof_idx].clone()
 
         # buffers
         self.actions = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
+        self.origin_actions = torch.zeros_like(self.actions)
         self.prev_actions = torch.zeros_like(self.actions)
+        self.last_last_actions = torch.zeros_like(self.actions)
         self.q_des = torch.zeros(self.num_envs, self.num_actions, device=self.sim.device)
         self.last_reward_terms: dict[str, torch.Tensor] = {}
         self.action_max_latency = int(getattr(self.cfg, "action_max_latency", 0))
@@ -908,7 +914,8 @@ class LocomotionEnv(DirectRLEnv):
         self._invalidate_state_cache()
         self._forward_progress_metric_step = -1
 
-        a = actions.clone().clamp(-1.0, 1.0)
+        self.origin_actions = actions.clone()
+        a = self.origin_actions.clamp(-1.0, 1.0)
 
         # action noise (ADR)
         if self._action_noise_std > 0.0:
@@ -922,6 +929,7 @@ class LocomotionEnv(DirectRLEnv):
             gather_idx = idx.view(-1, 1, 1).expand(-1, a.shape[1], 1)
             a = torch.gather(self.action_hist_buf, dim=2, index=gather_idx).squeeze(-1)
 
+        self.last_last_actions[:] = self.prev_actions
         self.prev_actions[:] = self.actions
         self.actions = a
 
@@ -1247,56 +1255,145 @@ class LocomotionEnv(DirectRLEnv):
 
         # --- Smoothness / effort ---
         action_rate = torch.sum((self.actions - self.prev_actions) ** 2, dim=1)
+        smoothness = torch.sum((self.actions - 2.0 * self.prev_actions + self.last_last_actions) ** 2, dim=1)
         dof_vel = torch.sum(self.act_vel ** 2, dim=1)
         dof_acc = torch.sum(((self.act_vel - self.prev_act_vel) / self._control_dt) ** 2, dim=1)
 
         joint_torques = self.robot.data.applied_torque[:, self._joint_dof_idx]
         torques = torch.sum(joint_torques ** 2, dim=1)
         joint_power = torch.sum(torch.abs(joint_torques * self.act_vel), dim=1)
+        joint_tracking_error = torch.sum((self.q_des - self.act_pos) ** 2, dim=1)
 
         self.prev_act_vel[:] = self.act_vel
 
         # --- Limits ---
         limit_excess = torch.clamp(torch.abs(self.act_pos_scaled) - self.cfg.soft_dof_pos_limit, min=0.0)
         dof_pos_limits = torch.sum(limit_excess ** 2, dim=1)
+        vel_limit = self.actuated_vel_limits.unsqueeze(0) * self.cfg.soft_dof_vel_limit
+        effort_limit = self.actuated_effort_limits.unsqueeze(0) * self.cfg.soft_torque_limit
+        dof_vel_limits = torch.sum(torch.clamp(torch.abs(self.act_vel) - vel_limit, min=0.0), dim=1)
+        torque_limits = torch.sum(torch.clamp(torch.abs(joint_torques) - effort_limit, min=0.0), dim=1)
+        action_vanish = torch.sum(
+            torch.clamp(self.origin_actions - 1.0, min=0.0) + torch.clamp(-1.0 - self.origin_actions, min=0.0),
+            dim=1,
+        )
 
-        # --- Distance-based feet shaping ---
+        # --- HOMIE-style foot shaping ---
         self._init_feet()
 
         feet_pos_w = self.robot.data.body_pos_w[:, self._feet_body_ids, :]
         feet_vel_w = self.robot.data.body_lin_vel_w[:, self._feet_body_ids, :]
         foot_height = feet_pos_w[:, :, 2] - float(self.cfg.foot_ground_height_target)
         foot_speed_xy = torch.linalg.norm(feet_vel_w[:, :, :2], dim=-1)
+        cmd_norm = torch.norm(self.commands, dim=1)
+        locomotion_cmd = cmd_norm > 0.1
 
         min_foot_height = torch.min(torch.abs(foot_height), dim=1).values
         r_support_height = torch.exp(-(min_foot_height * min_foot_height) / (self.cfg.foot_height_sigma + 1e-6))
 
-        swing_weight = torch.clamp(
-            (foot_speed_xy - self.cfg.foot_swing_speed_threshold)
-            / (self.cfg.foot_swing_speed_threshold + 1e-6),
-            min=0.0,
-            max=1.0,
-        )
+        imu_quat_for_feet = self.imu_quat_w.unsqueeze(1).expand(-1, 2, -1).reshape(-1, 4)
+        foot_rel_vel_w = feet_vel_w - self.imu_lin_vel_w.unsqueeze(1)
+        foot_vel_b = quat_rotate_inverse(imu_quat_for_feet, foot_rel_vel_w.reshape(-1, 3)).reshape(self.num_envs, 2, 3)
+        foot_lateral_speed = torch.linalg.norm(foot_vel_b[:, :, :2], dim=-1)
         clearance_err = foot_height - self.cfg.foot_clearance_target
-        feet_clearance_cost = torch.sum(swing_weight * clearance_err * clearance_err, dim=1)
+        feet_clearance_cost = torch.sum(clearance_err * clearance_err * foot_lateral_speed, dim=1)
 
         near_ground_weight = torch.exp(
             -(foot_height * foot_height) / (self.cfg.foot_height_sigma + 1e-6)
         )
         feet_near_ground_velocity = torch.sum(near_ground_weight * foot_speed_xy * foot_speed_xy, dim=1)
 
-        feet_distance = torch.linalg.norm(feet_pos_w[:, 0, :2] - feet_pos_w[:, 1, :2], dim=1)
+        feet_rel_pos_w = feet_pos_w - self.imu_pos_w.unsqueeze(1)
+        feet_pos_b = quat_rotate_inverse(imu_quat_for_feet, feet_rel_pos_w.reshape(-1, 3)).reshape(self.num_envs, 2, 3)
+        feet_distance = torch.abs(feet_pos_b[:, 0, 1] - feet_pos_b[:, 1, 1])
         feet_distance_cost = (
             torch.clamp(self.cfg.feet_distance_min - feet_distance, min=0.0) ** 2
             + torch.clamp(feet_distance - self.cfg.feet_distance_max, min=0.0) ** 2
         )
 
         knee_pos_w = self.robot.data.body_pos_w[:, self._knee_body_ids, :]
-        knee_distance = torch.linalg.norm(knee_pos_w[:, 0, :2] - knee_pos_w[:, 1, :2], dim=1)
+        knee_rel_pos_w = knee_pos_w - self.imu_pos_w.unsqueeze(1)
+        imu_quat_for_knees = self.imu_quat_w.unsqueeze(1).expand(-1, 2, -1).reshape(-1, 4)
+        knee_pos_b = quat_rotate_inverse(imu_quat_for_knees, knee_rel_pos_w.reshape(-1, 3)).reshape(self.num_envs, 2, 3)
+        knee_distance = torch.abs(knee_pos_b[:, 0, 1] - knee_pos_b[:, 1, 1])
         knee_distance_cost = (
             torch.clamp(self.cfg.knee_distance_min - knee_distance, min=0.0) ** 2
             + torch.clamp(knee_distance - self.cfg.knee_distance_max, min=0.0) ** 2
         )
+
+        zeros = torch.zeros(self.num_envs, device=self.sim.device)
+        foot_force_z = torch.zeros(self.num_envs, 2, device=self.sim.device)
+        foot_force_norm = torch.zeros(self.num_envs, 2, device=self.sim.device)
+        foot_contact = torch.zeros(self.num_envs, 2, dtype=torch.bool, device=self.sim.device)
+        foot_contact_filt = foot_contact
+        first_contact = foot_contact
+        feet_air_time_before_reset = self.feet_air_time.clone()
+        contact_rewards_on = (
+            bool(getattr(self.cfg, "homie_contact_rewards_enabled", True))
+            and self._contact_sensor is not None
+            and self._feet_sensor_ids is not None
+        )
+        if contact_rewards_on:
+            forces_hist = self._contact_sensor.data.net_forces_w_history
+            foot_forces = forces_hist[:, 0, self._feet_sensor_ids, :]
+            foot_force_z = torch.clamp(foot_forces[:, :, 2], min=0.0)
+            foot_force_norm = torch.linalg.norm(foot_forces, dim=-1)
+            foot_contact = foot_force_z > self.cfg.feet_contact_force_threshold
+            foot_contact_filt = foot_contact | self.prev_foot_contact
+            first_contact = (self.feet_air_time >= self._control_dt) & foot_contact_filt
+            self.feet_air_time += self._control_dt
+            feet_air_time_before_reset = self.feet_air_time.clone()
+
+        feet_air_time = torch.sum((feet_air_time_before_reset - self.cfg.feet_air_time_min) * first_contact.float(), dim=1)
+        feet_air_time = feet_air_time * locomotion_cmd.float()
+        single_contact = torch.sum(foot_contact.float(), dim=1) == 1
+        no_fly = torch.maximum(single_contact.float(), (~locomotion_cmd).float())
+        feet_slip = torch.sum(torch.linalg.norm(feet_vel_w[:, :, :2], dim=-1) * foot_contact.float(), dim=1)
+        feet_contact_forces = torch.sum(torch.clamp(foot_force_norm - self.cfg.max_contact_force, min=0.0), dim=1)
+        contact_momentum = torch.sum(
+            torch.clamp(feet_vel_w[:, :, 2], max=0.0)
+            * torch.clamp(foot_force_z - self.cfg.contact_momentum_force_threshold, min=0.0),
+            dim=1,
+        )
+        feet_stumble = (
+            torch.linalg.norm(foot_forces[:, :, :2], dim=-1)
+            > self.cfg.feet_stumble_ratio * torch.abs(foot_forces[:, :, 2])
+        ).any(dim=1).float() if contact_rewards_on else zeros
+
+        foot_quat_w = self.robot.data.body_quat_w[:, self._feet_body_ids, :]
+        foot_quat_flat = foot_quat_w.reshape(-1, 4)
+        local_forward = self._foot_local_forward.expand(self.num_envs * 2, -1)
+        local_up = self._foot_local_up.expand(self.num_envs * 2, -1)
+        foot_forward_b = quat_rotate_inverse(
+            imu_quat_for_feet,
+            quat_rotate(foot_quat_flat, local_forward),
+        ).reshape(self.num_envs, 2, 3)
+        foot_up_b = quat_rotate_inverse(
+            imu_quat_for_feet,
+            quat_rotate(foot_quat_flat, local_up),
+        ).reshape(self.num_envs, 2, 3)
+        default_up_b = self._default_foot_up_b.expand(self.num_envs, -1, -1)
+        default_forward_b = self._default_foot_forward_b.expand(self.num_envs, -1, -1)
+        feet_ground_parallel = torch.sum(
+            torch.sum((foot_up_b - default_up_b) ** 2, dim=-1) * foot_contact_filt.float(),
+            dim=1,
+        )
+        feet_parallel = (
+            torch.sum((foot_up_b[:, 0] - foot_up_b[:, 1]) ** 2, dim=1)
+            + torch.sum((torch.abs(foot_forward_b[:, 0]) - torch.abs(foot_forward_b[:, 1])) ** 2, dim=1)
+            + torch.sum((foot_forward_b - default_forward_b) ** 2, dim=(1, 2)) * 0.25
+        )
+
+        if contact_rewards_on:
+            self.prev_foot_contact[:] = foot_contact
+            self.feet_air_time *= (~foot_contact_filt).float()
+        else:
+            feet_air_time = zeros
+            no_fly = zeros
+            feet_slip = zeros
+            feet_contact_forces = zeros
+            contact_momentum = zeros
+            feet_stumble = zeros
 
         # --- Stand behavior for explicit zero commands ---
         stand_cmd = (
@@ -1323,18 +1420,31 @@ class LocomotionEnv(DirectRLEnv):
             "knee_dev": knee_dev,
             "ankle_dev": ankle_dev,
             "action_rate": action_rate,
+            "smoothness": smoothness,
             "dof_vel": dof_vel,
             "dof_acc": dof_acc,
             "torques": torques,
             "joint_power": joint_power,
+            "joint_tracking_error": joint_tracking_error,
             "dof_pos_limits": dof_pos_limits,
+            "dof_vel_limits": dof_vel_limits,
+            "torque_limits": torque_limits,
+            "action_vanish": action_vanish,
             "feet_support_height": r_support_height,
+            "feet_air_time": feet_air_time,
+            "no_fly": no_fly,
             "feet_clearance": feet_clearance_cost,
             "feet_near_ground_velocity": feet_near_ground_velocity,
             "feet_distance": feet_distance,
             "feet_distance_cost": feet_distance_cost,
             "knee_distance": knee_distance,
             "knee_distance_cost": knee_distance_cost,
+            "feet_ground_parallel": feet_ground_parallel,
+            "feet_parallel": feet_parallel,
+            "feet_slip": feet_slip,
+            "feet_contact_forces": feet_contact_forces,
+            "contact_momentum": contact_momentum,
+            "feet_stumble": feet_stumble,
             "stand_still": stand_still_cost,
             "forward_progress_vel": self.forward_progress_vel,
             "forward_progress": self.forward_progress_reward,
@@ -1343,6 +1453,11 @@ class LocomotionEnv(DirectRLEnv):
             "forward_stuck": self.forward_stuck.float(),
             "foot_height_left": foot_height[:, 0],
             "foot_height_right": foot_height[:, 1],
+            "contact_rate": foot_contact.float().mean(dim=1),
+            "single_contact": single_contact.float(),
+            "first_contact": first_contact.float().mean(dim=1),
+            "mean_air_time": feet_air_time_before_reset.mean(dim=1),
+            "max_foot_force": foot_force_norm.max(dim=1).values,
             "x_err_abs": torch.abs(x_err),
             "y_err_abs": torch.abs(y_err),
             "yaw_err_abs": torch.abs(yaw_err),
@@ -1361,18 +1476,31 @@ class LocomotionEnv(DirectRLEnv):
             "scaled_knee_dev": self.cfg.deviation_knee_joint_scale * knee_dev,
             "scaled_ankle_dev": self.cfg.deviation_ankle_joint_scale * ankle_dev,
             "scaled_action_rate": self.cfg.action_rate_scale * action_rate,
+            "scaled_smoothness": self.cfg.smoothness_scale * smoothness,
             "scaled_dof_vel": self.cfg.dof_vel_reward_scale * dof_vel,
             "scaled_dof_acc": self.cfg.dof_acc_scale * dof_acc,
             "scaled_torques": self.cfg.torques_scale * torques,
             "scaled_joint_power": self.cfg.joint_power_scale * joint_power,
+            "scaled_joint_tracking_error": self.cfg.joint_tracking_error_scale * joint_tracking_error,
             "scaled_dof_pos_limits": self.cfg.dof_pos_limits_scale * dof_pos_limits,
+            "scaled_dof_vel_limits": self.cfg.dof_vel_limits_scale * dof_vel_limits,
+            "scaled_torque_limits": self.cfg.torque_limits_scale * torque_limits,
+            "scaled_action_vanish": self.cfg.action_vanish_scale * action_vanish,
             "scaled_feet_support_height": self.cfg.feet_support_height_scale * r_support_height,
+            "scaled_feet_air_time": self.cfg.feet_air_time_scale * feet_air_time,
+            "scaled_no_fly": self.cfg.no_fly_scale * no_fly,
             "scaled_feet_clearance": self.cfg.feet_clearance_scale * feet_clearance_cost,
             "scaled_feet_near_ground_velocity": (
                 self.cfg.feet_near_ground_velocity_scale * feet_near_ground_velocity
             ),
             "scaled_feet_distance": self.cfg.feet_distance_scale * feet_distance_cost,
             "scaled_knee_distance": self.cfg.knee_distance_scale * knee_distance_cost,
+            "scaled_feet_ground_parallel": self.cfg.feet_ground_parallel_scale * feet_ground_parallel,
+            "scaled_feet_parallel": self.cfg.feet_parallel_scale * feet_parallel,
+            "scaled_feet_slip": self.cfg.feet_slip_scale * feet_slip,
+            "scaled_feet_contact_forces": self.cfg.feet_contact_forces_scale * feet_contact_forces,
+            "scaled_contact_momentum": self.cfg.contact_momentum_scale * contact_momentum,
+            "scaled_feet_stumble": self.cfg.feet_stumble_scale * feet_stumble,
             "scaled_stand_still": self.cfg.stand_still_scale * stand_still_cost,
             "scaled_forward_progress": self.cfg.forward_progress_scale * self.forward_progress_reward,
             "scaled_forward_stuck": self.cfg.forward_stuck_penalty_scale * self.forward_stuck_penalty,
@@ -1409,17 +1537,36 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["reward_penalties/knee_dev"] = float(terms["knee_dev"].mean().item())
             self.extras["reward_penalties/ankle_dev"] = float(terms["ankle_dev"].mean().item())
             self.extras["reward_penalties/action_rate"] = float(terms["action_rate"].mean().item())
+            self.extras["reward_penalties/smoothness"] = float(terms["smoothness"].mean().item())
             self.extras["reward_penalties/dof_vel"] = float(terms["dof_vel"].mean().item())
             self.extras["reward_penalties/dof_acc"] = float(terms["dof_acc"].mean().item())
             self.extras["reward_penalties/torques"] = float(terms["torques"].mean().item())
             self.extras["reward_penalties/joint_power"] = float(terms["joint_power"].mean().item())
+            self.extras["reward_penalties/joint_tracking_error"] = float(
+                terms["joint_tracking_error"].mean().item()
+            )
             self.extras["reward_penalties/dof_pos_limits"] = float(terms["dof_pos_limits"].mean().item())
+            self.extras["reward_penalties/dof_vel_limits"] = float(terms["dof_vel_limits"].mean().item())
+            self.extras["reward_penalties/torque_limits"] = float(terms["torque_limits"].mean().item())
+            self.extras["reward_penalties/action_vanish"] = float(terms["action_vanish"].mean().item())
+            self.extras["reward_tracking/feet_air_time"] = float(terms["feet_air_time"].mean().item())
+            self.extras["reward_tracking/no_fly"] = float(terms["no_fly"].mean().item())
             self.extras["reward_penalties/feet_clearance"] = float(terms["feet_clearance"].mean().item())
             self.extras["reward_penalties/near_ground_velocity"] = float(
                 terms["feet_near_ground_velocity"].mean().item()
             )
             self.extras["reward_penalties/feet_distance"] = float(terms["feet_distance_cost"].mean().item())
             self.extras["reward_penalties/knee_distance"] = float(terms["knee_distance_cost"].mean().item())
+            self.extras["reward_penalties/feet_ground_parallel"] = float(
+                terms["feet_ground_parallel"].mean().item()
+            )
+            self.extras["reward_penalties/feet_parallel"] = float(terms["feet_parallel"].mean().item())
+            self.extras["reward_penalties/feet_slip"] = float(terms["feet_slip"].mean().item())
+            self.extras["reward_penalties/feet_contact_forces"] = float(
+                terms["feet_contact_forces"].mean().item()
+            )
+            self.extras["reward_penalties/contact_momentum"] = float(terms["contact_momentum"].mean().item())
+            self.extras["reward_penalties/feet_stumble"] = float(terms["feet_stumble"].mean().item())
             self.extras["reward_penalties/stand_still"] = float(terms["stand_still"].mean().item())
             self.extras["reward_penalties/forward_stuck"] = float(terms["forward_stuck_penalty"].mean().item())
 
@@ -1431,11 +1578,30 @@ class LocomotionEnv(DirectRLEnv):
                 terms["scaled_feet_support_height"].mean().item()
             )
             self.extras["reward_scaled/feet_clearance"] = float(terms["scaled_feet_clearance"].mean().item())
+            self.extras["reward_scaled/feet_air_time"] = float(terms["scaled_feet_air_time"].mean().item())
+            self.extras["reward_scaled/no_fly"] = float(terms["scaled_no_fly"].mean().item())
             self.extras["reward_scaled/near_ground_velocity"] = float(
                 terms["scaled_feet_near_ground_velocity"].mean().item()
             )
             self.extras["reward_scaled/feet_distance"] = float(terms["scaled_feet_distance"].mean().item())
             self.extras["reward_scaled/knee_distance"] = float(terms["scaled_knee_distance"].mean().item())
+            self.extras["reward_scaled/smoothness"] = float(terms["scaled_smoothness"].mean().item())
+            self.extras["reward_scaled/joint_tracking_error"] = float(
+                terms["scaled_joint_tracking_error"].mean().item()
+            )
+            self.extras["reward_scaled/dof_vel_limits"] = float(terms["scaled_dof_vel_limits"].mean().item())
+            self.extras["reward_scaled/torque_limits"] = float(terms["scaled_torque_limits"].mean().item())
+            self.extras["reward_scaled/action_vanish"] = float(terms["scaled_action_vanish"].mean().item())
+            self.extras["reward_scaled/feet_ground_parallel"] = float(
+                terms["scaled_feet_ground_parallel"].mean().item()
+            )
+            self.extras["reward_scaled/feet_parallel"] = float(terms["scaled_feet_parallel"].mean().item())
+            self.extras["reward_scaled/feet_slip"] = float(terms["scaled_feet_slip"].mean().item())
+            self.extras["reward_scaled/feet_contact_forces"] = float(
+                terms["scaled_feet_contact_forces"].mean().item()
+            )
+            self.extras["reward_scaled/contact_momentum"] = float(terms["scaled_contact_momentum"].mean().item())
+            self.extras["reward_scaled/feet_stumble"] = float(terms["scaled_feet_stumble"].mean().item())
             self.extras["reward_scaled/stand_still"] = float(terms["scaled_stand_still"].mean().item())
             self.extras["reward_scaled/forward_progress"] = float(terms["scaled_forward_progress"].mean().item())
             self.extras["reward_scaled/forward_stuck"] = float(terms["scaled_forward_stuck"].mean().item())
@@ -1453,6 +1619,13 @@ class LocomotionEnv(DirectRLEnv):
             self.extras["diagnostics/knee_distance"] = float(terms["knee_distance"].mean().item())
             self.extras["diagnostics/torques"] = float(terms["torques"].mean().item())
             self.extras["diagnostics/joint_power"] = float(terms["joint_power"].mean().item())
+            self.extras["diagnostics/contact_rate"] = float(terms["contact_rate"].mean().item())
+            self.extras["diagnostics/single_contact_rate"] = float(terms["single_contact"].mean().item())
+            self.extras["diagnostics/first_contact_rate"] = float(terms["first_contact"].mean().item())
+            self.extras["diagnostics/mean_air_time"] = float(terms["mean_air_time"].mean().item())
+            self.extras["diagnostics/slip"] = float(terms["feet_slip"].mean().item())
+            self.extras["diagnostics/max_foot_force"] = float(terms["max_foot_force"].mean().item())
+            self.extras["diagnostics/no_fly"] = float(terms["no_fly"].mean().item())
             self.extras["diagnostics/curriculum_stage"] = float(self._current_curriculum_stage)
             self.extras["diagnostics/forward_progress_vel"] = float(terms["forward_progress_vel"].mean().item())
             self.extras["diagnostics/forward_stuck_progress_ema"] = float(
@@ -1523,7 +1696,9 @@ class LocomotionEnv(DirectRLEnv):
             self._cache_body_masses()
 
         self.actions[env_ids] = 0.0
+        self.origin_actions[env_ids] = 0.0
         self.prev_actions[env_ids] = 0.0
+        self.last_last_actions[env_ids] = 0.0
         self.action_latency_steps[env_ids] = 0
         if self.action_hist_buf is not None:
             self.action_hist_buf[env_ids] = 0.0
@@ -1536,6 +1711,9 @@ class LocomotionEnv(DirectRLEnv):
         self.forward_stuck_progress_ema[env_ids] = 0.0
         self.forward_stuck_penalty[env_ids] = 0.0
         self.forward_stuck[env_ids] = False
+        if self._feet_inited:
+            self.prev_foot_contact[env_ids] = False
+            self.feet_air_time[env_ids] = 0.0
         self._forward_progress_prev_pos_w[env_ids] = 0.0
         self._forward_progress_initialized[env_ids] = False
         self._forward_progress_metric_step = -1
@@ -1681,7 +1859,7 @@ class LocomotionEnv(DirectRLEnv):
             self.commands[env_ids[turn_mask], 2] = yaw[turn_mask]
 
     def _init_feet(self):
-        """Initialize body indices used by distance-based locomotion rewards."""
+        """Initialize left/right foot, knee, contact, and foot-orientation reward buffers."""
         if self._feet_inited:
             return
 
@@ -1693,6 +1871,7 @@ class LocomotionEnv(DirectRLEnv):
             key=lambda pair: (0 if "left" in pair[1] else 1, pair[1]),
         )
         self._feet_body_ids = torch.tensor([pair[0] for pair in foot_pairs], device=self.sim.device, dtype=torch.long)
+        self._feet_body_names = tuple(pair[1] for pair in foot_pairs)
 
         knee_body_ids, knee_body_names = self.robot.find_bodies(self.cfg.knee_body_regex)
         if len(knee_body_ids) != 2:
@@ -1702,6 +1881,33 @@ class LocomotionEnv(DirectRLEnv):
             key=lambda pair: (0 if "left" in pair[1] else 1, pair[1]),
         )
         self._knee_body_ids = torch.tensor([pair[0] for pair in knee_pairs], device=self.sim.device, dtype=torch.long)
+
+        self._feet_sensor_ids = None
+        if self._contact_sensor is not None:
+            sensor_names = self._contact_sensor.body_names
+            foot_sensor_ids = []
+            for foot_name in self._feet_body_names:
+                match = next(
+                    (i for i, sensor_name in enumerate(sensor_names) if sensor_name.endswith(foot_name) or foot_name in sensor_name),
+                    None,
+                )
+                if match is None:
+                    raise RuntimeError(f"Foot body '{foot_name}' not found in contact_sensor.body_names.")
+                foot_sensor_ids.append(match)
+            self._feet_sensor_ids = torch.tensor(foot_sensor_ids, device=self.sim.device, dtype=torch.long)
+
+        self.prev_foot_contact = torch.zeros(self.num_envs, 2, dtype=torch.bool, device=self.sim.device)
+        self.feet_air_time = torch.zeros(self.num_envs, 2, device=self.sim.device)
+
+        foot_quat_w = self.robot.data.body_quat_w[:, self._feet_body_ids, :]
+        imu_quat_w = self.imu_quat_w.unsqueeze(1).expand(-1, 2, -1).reshape(-1, 4)
+        local_forward = self._foot_local_forward.expand(self.num_envs * 2, -1)
+        local_up = self._foot_local_up.expand(self.num_envs * 2, -1)
+        foot_quat_flat = foot_quat_w.reshape(-1, 4)
+        default_forward_b = quat_rotate_inverse(imu_quat_w, quat_rotate(foot_quat_flat, local_forward)).reshape(self.num_envs, 2, 3)
+        default_up_b = quat_rotate_inverse(imu_quat_w, quat_rotate(foot_quat_flat, local_up)).reshape(self.num_envs, 2, 3)
+        self._default_foot_forward_b = default_forward_b[:1].clone()
+        self._default_foot_up_b = default_up_b[:1].clone()
         self._feet_inited = True
 
     def _resample_episode_lengths(self, env_ids: torch.Tensor):
