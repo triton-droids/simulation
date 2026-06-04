@@ -1076,7 +1076,7 @@ class LocomotionEnv(DirectRLEnv):
 
         alpha = float(self._forward_stuck_ema_alpha)
         next_ema = (1.0 - alpha) * self.forward_stuck_progress_ema + alpha * progress_vel
-        self.forward_stuck_progress_ema = torch.where(forward_cmd, next_ema, torch.zeros_like(next_ema))
+        self.forward_stuck_progress_ema[:] = torch.where(forward_cmd, next_ema, torch.zeros_like(next_ema))
 
         min_vel = float(getattr(self.cfg, "forward_progress_min_vel", 0.08))
         warm = self.episode_length_buf >= self._forward_stuck_warmup_steps
@@ -1084,10 +1084,10 @@ class LocomotionEnv(DirectRLEnv):
         if not bool(getattr(self.cfg, "forward_stuck_termination_enabled", True)):
             stuck = torch.zeros_like(stuck)
 
-        self.forward_progress_vel = progress_vel
-        self.forward_progress_reward = progress_reward
-        self.forward_stuck = stuck
-        self.forward_stuck_penalty = (forward_cmd & warm & (self.forward_stuck_progress_ema < min_vel)).float()
+        self.forward_progress_vel[:] = progress_vel
+        self.forward_progress_reward[:] = progress_reward
+        self.forward_stuck[:] = stuck
+        self.forward_stuck_penalty[:] = (forward_cmd & warm & (self.forward_stuck_progress_ema < min_vel)).float()
         self._forward_progress_metric_step = self._global_policy_step
 
     def _action_ids_for_joint_names(self, names: list[str], joint_id_to_action: dict[int, int]) -> torch.Tensor:
