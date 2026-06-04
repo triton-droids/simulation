@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import os
 from pathlib import Path
 import sys
 import time
@@ -59,6 +60,19 @@ def parse_args() -> argparse.Namespace:
         help="Keep MuJoCo gravity enabled during kinematic playback.",
     )
     parser.add_argument("--hide-floor", action="store_true", help="Hide floor/ground geoms during playback.")
+    parser.add_argument("--reference-trace", type=Path, default=None, help="Optional qpos .npz to draw as body-position points.")
+    parser.add_argument(
+        "--reference-lafan",
+        action="store_true",
+        help="Treat --reference-trace qpos as raw LAFAN reference qpos and add the Isaac root-height offset.",
+    )
+    parser.add_argument("--reference-point-size", type=float, default=0.025, help="Reference point sphere radius.")
+    parser.add_argument(
+        "--reference-point-stride",
+        type=int,
+        default=1,
+        help="Draw every Nth reference body point.",
+    )
     parser.add_argument("--output", type=Path, default=None, help="Optional copied playback .npz path.")
     return parser.parse_args()
 
@@ -78,6 +92,34 @@ def require_mujoco():
     except ModuleNotFoundError as exc:
         raise ModuleNotFoundError("mujoco is required for MuJoCo kinematic playback.") from exc
     return mujoco
+
+
+def warn_if_isaac_python_for_viewer() -> None:
+    """MuJoCo's GLFW viewer is fragile when launched through IsaacSim's wrapper."""
+
+    isaac_path = os.environ.get("ISAAC_PATH", "")
+    ld_preload = os.environ.get("LD_PRELOAD", "")
+    if isaac_path or "libcarb.so" in ld_preload:
+        print(
+            "[WARN] This MuJoCo viewer is running inside the IsaacSim Python wrapper. "
+            "If it segfaults on exit, run with the conda/system interpreter instead, "
+            "for example: command python scripts/mujoco_lafan_kinematic_playback.py ...",
+            flush=True,
+        )
+
+
+def launch_viewer(mujoco, model, data):
+    warn_if_isaac_python_for_viewer()
+    try:
+        return mujoco.viewer.launch_passive(model, data)
+    except Exception as exc:
+        display = os.environ.get("DISPLAY", "<unset>")
+        raise RuntimeError(
+            "Could not launch the MuJoCo GLFW viewer. "
+            f"DISPLAY={display!r}. If you are in an interactive shell where "
+            "`python` is aliased to IsaacSim's python.sh, use `command python` "
+            "from the conda env or run without `--render`."
+        ) from exc
 
 
 def validate_trace(trace) -> None:
@@ -246,6 +288,40 @@ def set_state_from_trace(np, mujoco, model, data, trace, step: int, *, lafan_ref
     mujoco.mj_forward(model, data)
 
 
+def moving_body_ids(model) -> list[int]:
+    ids = []
+    for body_id in range(1, model.nbody):
+        name = model.body(body_id).name
+        if name in {"world", "floating_root"}:
+            continue
+        ids.append(body_id)
+    return ids
+
+
+def add_reference_points(np, mujoco, viewer, model, data, body_ids: list[int], *, size: float, stride: int) -> None:
+    if viewer is None:
+        return
+    viewer.user_scn.ngeom = 0
+    radius = float(size)
+    geom_size = np.asarray([radius, radius, radius], dtype=np.float64)
+    mat = np.eye(3, dtype=np.float64).reshape(-1)
+    rgba = np.asarray([0.1, 0.85, 1.0, 0.85], dtype=np.float32)
+    stride = max(1, int(stride))
+    for body_id in body_ids[::stride]:
+        if viewer.user_scn.ngeom >= viewer.user_scn.maxgeom:
+            break
+        geom = viewer.user_scn.geoms[viewer.user_scn.ngeom]
+        mujoco.mjv_initGeom(
+            geom,
+            mujoco.mjtGeom.mjGEOM_SPHERE,
+            geom_size,
+            data.xpos[body_id],
+            mat,
+            rgba,
+        )
+        viewer.user_scn.ngeom += 1
+
+
 def run_validate_only(args: argparse.Namespace) -> None:
     np = require_numpy()
     trace = np.load(args.trace)
@@ -272,6 +348,10 @@ def main() -> None:
     mujoco = require_mujoco()
     trace = np.load(args.trace)
     validate_trace(trace)
+    reference_trace = None
+    if args.reference_trace is not None:
+        reference_trace = np.load(args.reference_trace)
+        validate_trace(reference_trace)
 
     source_model_xml = resolve_model_xml(args)
     model_xml = ensure_mujoco_loadable_xml(source_model_xml)
@@ -279,13 +359,26 @@ def main() -> None:
         validate_mjcf_against_urdf(source_model_xml, DEFAULT_ACTIVE_URDF, require_mujoco=False)
     model = mujoco.MjModel.from_xml_path(str(model_xml))
     data = mujoco.MjData(model)
+    reference_model = None
+    reference_data = None
+    reference_body_ids: list[int] = []
+    if reference_trace is not None:
+        reference_model = mujoco.MjModel.from_xml_path(str(model_xml))
+        reference_data = mujoco.MjData(reference_model)
+        reference_body_ids = moving_body_ids(reference_model)
 
     if not args.enable_contact:
         disable_contact(mujoco, model)
+        if reference_model is not None:
+            disable_contact(mujoco, reference_model)
     if not args.enable_gravity:
         disable_gravity(np, model)
+        if reference_model is not None:
+            disable_gravity(np, reference_model)
     if args.hide_floor:
         hide_geoms(model, ("floor", "ground"))
+        if reference_model is not None:
+            hide_geoms(reference_model, ("floor", "ground"))
 
     frames = int(trace["qpos"].shape[0])
     if args.max_steps > 0:
@@ -295,7 +388,7 @@ def main() -> None:
     logs = {"time_s": [], "qpos": [], "qvel": []}
     try:
         if args.render:
-            viewer = mujoco.viewer.launch_passive(model, data)
+            viewer = launch_viewer(mujoco, model, data)
         for step in range(frames):
             start = time.time()
             set_state_from_trace(
@@ -307,10 +400,32 @@ def main() -> None:
                 step,
                 lafan_reference=args.lafan_reference,
             )
+            if reference_trace is not None and reference_model is not None and reference_data is not None:
+                ref_step = min(step, int(reference_trace["qpos"].shape[0]) - 1)
+                set_state_from_trace(
+                    np,
+                    mujoco,
+                    reference_model,
+                    reference_data,
+                    reference_trace,
+                    ref_step,
+                    lafan_reference=args.reference_lafan,
+                )
             logs["time_s"].append(step * CONTROL_DT)
             logs["qpos"].append(data.qpos.copy())
             logs["qvel"].append(data.qvel.copy())
             if viewer is not None:
+                if reference_trace is not None and reference_data is not None:
+                    add_reference_points(
+                        np,
+                        mujoco,
+                        viewer,
+                        reference_model,
+                        reference_data,
+                        reference_body_ids,
+                        size=args.reference_point_size,
+                        stride=args.reference_point_stride,
+                    )
                 viewer.sync()
             if args.real_time:
                 sleep_for_realtime(start, CONTROL_DT)

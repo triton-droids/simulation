@@ -22,6 +22,7 @@ parser.add_argument("--num_envs", type=int, default=1, help="Number of environme
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--num_steps", type=int, default=2000, help="Number of rollout steps to log. Use 0 for current full LAFAN clip.")
 parser.add_argument("--env_index", type=int, default=0, help="Which env index to log.")
+parser.add_argument("--stop_on_done", action="store_true", default=False, help="Stop logging before recording an auto-reset frame.")
 
 parser.add_argument(
     "--action_source",
@@ -414,6 +415,10 @@ def main():
     )
     if hasattr(env_cfg, "use_curriculum"):
         env_cfg.use_curriculum = False
+    if int(args_cli.num_steps) <= 0 and hasattr(env_cfg, "episode_length_s"):
+        env_cfg.episode_length_s = 10000.0
+    if int(args_cli.num_steps) <= 0 and hasattr(env_cfg, "randomize_episode_length"):
+        env_cfg.randomize_episode_length = False
     if args_cli.motion_dir is not None and hasattr(env_cfg, "motion_reference_dir"):
         env_cfg.motion_reference_dir = args_cli.motion_dir
     if args_cli.motion_manifest is not None and hasattr(env_cfg, "motion_manifest_file"):
@@ -502,6 +507,14 @@ def main():
 
             step_out = step_env.step(actions)
             obs, _, dones, truncated, _ = _parse_step_out(step_out)
+            if args_cli.stop_on_done and dones is not None:
+                done_t = torch.as_tensor(dones, device=device).bool()
+                if truncated is not None:
+                    done_t = torch.logical_or(done_t, torch.as_tensor(truncated, device=device).bool())
+                done_idx = int(np.clip(args_cli.env_index, 0, num_envs - 1))
+                if bool(done_t[done_idx].item()):
+                    print(f"[INFO] Stopping at step {step} before logging auto-reset frame for env {done_idx}.")
+                    break
 
             if agent is not None and agent.is_rnn and agent.states is not None:
                 if dones is not None:

@@ -1,0 +1,1 @@
+/cephfs/holosoma/data/lafan/retargeted/ch_robot_stance_flatfoot_locomotion_full_floor_norm_with_vel/walk2_subject1_original_floor_norm_with_vel.npz

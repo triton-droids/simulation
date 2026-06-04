@@ -1,0 +1,17 @@
+{
+  "task": "Isaac-Humanoid-Locomotion-Flat-Direct-v0",
+  "num_steps_logged": 159,
+  "dt": 0.03333333333333333,
+  "num_envs": 1,
+  "num_actions": 10,
+  "env_index": 0,
+  "action_source": "policy",
+  "command_profile": "none",
+  "command_profile_params": {
+    "stand_s": 2.0,
+    "forward_s": 4.0,
+    "yaw_s": 4.0,
+    "forward_vx": 0.6,
+    "yaw_rate": 0.6
+  }
+}

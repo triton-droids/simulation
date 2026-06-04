@@ -1,0 +1,9 @@
+Thu Jun  4 08:36:37 2026
+ERROR: could not create window
+
+Thu Jun  4 08:37:36 2026
+ERROR: could not create window
+
+Thu Jun  4 08:37:56 2026
+ERROR: could not create window
+
