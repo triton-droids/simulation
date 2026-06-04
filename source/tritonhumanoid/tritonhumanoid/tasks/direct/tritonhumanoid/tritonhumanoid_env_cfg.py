@@ -311,9 +311,18 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     height_tracking_sigma: float = 0.02
 
     # Command tracking
-    tracking_x_vel_scale: float = 1.5
+    tracking_x_vel_scale: float = 3.0
     tracking_y_vel_scale: float = 1.0
     tracking_ang_vel_scale: float = 2.0
+
+    # Forward progress shaping. This closes the rocking-in-place loophole for forward commands.
+    forward_progress_scale: float = 2.0
+    forward_progress_command_threshold: float = 0.15
+    forward_progress_min_vel: float = 0.08
+    forward_stuck_penalty_scale: float = -2.0
+    forward_stuck_termination_enabled: bool = True
+    forward_stuck_warmup_s: float = 0.75
+    forward_stuck_window_s: float = 0.5
 
     # HOMIE-style fixed walking height target. This is a privileged reward term only.
     base_height_target: float = 0.70
@@ -402,8 +411,8 @@ class HumanoidEnvCfg(DirectRLEnvCfg):
     # Stage 0: encourage forward motion (not standing still)
     curriculum_stage0_vx_min: float = 0.2  # minimum forward velocity command in stage 0
     curriculum_stage0_vx_max: float = 0.6  # maximum forward velocity command in stage 0
-    zero_command_probability: float = 0.10  # chance to sample a standstill command (vx=vy=yaw=0)
-    turn_in_place_probability: float = 0.02  # chance to sample vx=vy=0, yaw!=0
+    zero_command_probability: float = 0.0  # chance to sample a standstill command (vx=vy=yaw=0)
+    turn_in_place_probability: float = 0.0  # chance to sample vx=vy=0, yaw!=0
     turn_in_place_yaw_min: float = 0.3
     turn_in_place_yaw_max: float = 1.0
     turn_in_place_min_stage: int = 1  # only allow in-place turns once yaw commands are introduced
