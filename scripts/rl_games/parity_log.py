@@ -45,7 +45,7 @@ parser.add_argument(
     "--command_profile",
     type=str,
     default="stand_forward_yaw",
-    choices=["none", "stand_forward_yaw"],
+    choices=["none", "stand_forward_yaw", "forward"],
     help="Command profile to apply manually each step.",
 )
 parser.add_argument("--stand_s", type=float, default=2.0, help="Stand segment duration (seconds).")
@@ -169,6 +169,19 @@ def _scalar_row_np(value: Any, env_index: int) -> np.ndarray:
     return np.asarray([float(arr[env_index])], dtype=np.float32)
 
 
+def _env_row_np(env_obj, env_index: int, *names: str, dtype=np.float32) -> np.ndarray:
+    for name in names:
+        if not hasattr(env_obj, name):
+            continue
+        return _row_np(getattr(env_obj, name), env_index, dtype=dtype)
+    robot_data = getattr(getattr(env_obj, "robot", None), "data", None)
+    if robot_data is not None:
+        for name in names:
+            if hasattr(robot_data, name):
+                return _row_np(getattr(robot_data, name), env_index, dtype=dtype)
+    raise AttributeError(f"{type(env_obj).__name__} has none of: {', '.join(names)}")
+
+
 def _compute_clock(env_obj) -> torch.Tensor | None:
     if not bool(getattr(env_obj.cfg, "use_phase_obs", False)):
         return None
@@ -187,6 +200,8 @@ def _compute_clock(env_obj) -> torch.Tensor | None:
 def _command_profile(step: int, dt: float, args: argparse.Namespace) -> tuple[float, float, float]:
     if args.command_profile == "none":
         return (0.0, 0.0, 0.0)
+    if args.command_profile == "forward":
+        return (float(args.forward_vx), 0.0, 0.0)
     t = float(step) * float(dt)
     cycle = float(args.stand_s + args.forward_s + args.yaw_s)
     if cycle <= 0.0:
@@ -426,11 +441,11 @@ def _log_state(
         return out
 
     env_origin = env_obj.scene.env_origins[idx].detach().cpu().numpy().astype(np.float32)
-    root_pos_w = env_obj.root_pos_w[idx].detach().cpu().numpy().astype(np.float32)
-    root_pos_local = (env_obj.root_pos_w[idx] - env_obj.scene.env_origins[idx]).detach().cpu().numpy().astype(np.float32)
-    root_quat_w = env_obj.root_quat_w[idx].detach().cpu().numpy().astype(np.float32)
-    root_lin_vel_w = env_obj.root_lin_vel_w[idx].detach().cpu().numpy().astype(np.float32)
-    root_ang_vel_w = env_obj.root_ang_vel_w[idx].detach().cpu().numpy().astype(np.float32)
+    root_pos_w = _env_row_np(env_obj, idx, "root_pos_w")
+    root_quat_w = _env_row_np(env_obj, idx, "root_quat_w")
+    root_lin_vel_w = _env_row_np(env_obj, idx, "root_lin_vel_w")
+    root_ang_vel_w = _env_row_np(env_obj, idx, "root_ang_vel_w")
+    root_pos_local = root_pos_w - env_origin
 
     out["env_origin_w"] = env_origin
     out["root_pos_w"] = root_pos_w
@@ -452,16 +467,18 @@ def _log_state(
     if hasattr(env_obj, "_init_feet"):
         env_obj._init_feet()
         foot_body_ids = env_obj._feet_body_ids
-        foot_sensor_ids = env_obj._feet_sensor_ids
         out["foot_pos_w"] = env_obj.robot.data.body_pos_w[idx, foot_body_ids, :].detach().cpu().numpy().astype(np.float32)
         out["foot_quat_w"] = env_obj.robot.data.body_quat_w[idx, foot_body_ids, :].detach().cpu().numpy().astype(np.float32)
         out["foot_lin_vel_w"] = env_obj.robot.data.body_lin_vel_w[idx, foot_body_ids, :].detach().cpu().numpy().astype(np.float32)
-        forces_hist = env_obj._contact_sensor.data.net_forces_w_history
-        foot_forces = forces_hist[:, 0, foot_sensor_ids, :]
-        foot_force_z = torch.clamp(foot_forces[:, :, 2], min=0.0)
-        foot_contact = foot_force_z > env_obj.cfg.foot_contact_force_thresh
-        out["foot_contact_forces_w"] = foot_forces[idx].detach().cpu().numpy().astype(np.float32)
-        out["foot_contact"] = foot_contact[idx].detach().cpu().numpy().astype(np.float32)
+        contact_sensor = getattr(env_obj, "_contact_sensor", None)
+        foot_sensor_ids = getattr(env_obj, "_feet_sensor_ids", None)
+        if contact_sensor is not None and foot_sensor_ids is not None:
+            forces_hist = contact_sensor.data.net_forces_w_history
+            foot_forces = forces_hist[:, idx, foot_sensor_ids, :]
+            foot_force_z = torch.clamp(foot_forces[:, :, 2], min=0.0)
+            foot_contact = foot_force_z > env_obj.cfg.foot_contact_force_thresh
+            out["foot_contact_forces_w"] = foot_forces[-1].detach().cpu().numpy().astype(np.float32)
+            out["foot_contact"] = foot_contact[-1].detach().cpu().numpy().astype(np.float32)
 
     reward_terms = getattr(env_obj, "last_reward_terms", {})
     if reward_terms:

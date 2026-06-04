@@ -53,10 +53,10 @@ def test_patches_canonical_mjcf_to_active_isaac_urdf_contract() -> None:
     assert right_hip2.attrib["range"] == "-0.436332 1.57"
     assert left_thigh.attrib["armature"] == "0.01"
 
-    world = root.find("./worldbody/body[@name='world']")
-    assert world is not None
-    assert world.find("freejoint") is not None
-    torso = world.find("./body[@name='torso']")
+    root_body = root.find(f"./worldbody/body[@name='{ml.MUJOCO_ROOT_BODY_NAME}']")
+    assert root_body is not None
+    assert root_body.find("freejoint") is not None
+    torso = root_body.find("./body[@name='torso']")
     assert torso is not None
     assert torso.attrib["pos"] == "0.1505 0.008 -0.6996"
 
@@ -76,6 +76,21 @@ def test_observation_stack_matches_isaac_flattening_order() -> None:
 
     assert reset.tolist() == [1.0, 1.0, 1.0, 2.0, 2.0, 2.0]
     assert appended.tolist() == [1.0, 1.0, 3.0, 2.0, 2.0, 4.0]
+
+
+def test_joint_order_permutation_maps_isaac_policy_to_mujoco_order() -> None:
+    assert ml.ISAAC_POLICY_JOINT_NAMES != ml.CH_MUJOCO_JOINT_NAMES
+    perm = ml.joint_order_permutation(ml.ISAAC_POLICY_JOINT_NAMES, ml.CH_MUJOCO_JOINT_NAMES)
+
+    assert perm == (0, 2, 4, 6, 8, 1, 3, 5, 7, 9)
+    assert tuple(ml.ISAAC_POLICY_JOINT_NAMES[i] for i in perm) == ml.CH_MUJOCO_JOINT_NAMES
+
+
+def test_joint_order_permutation_rejects_missing_or_duplicate_names() -> None:
+    with pytest.raises(ValueError, match="duplicates"):
+        ml.joint_order_permutation(["a", "a"], ["a", "b"])
+    with pytest.raises(ValueError, match="missing"):
+        ml.joint_order_permutation(["a", "b"], ["a", "c"])
 
 
 def test_delayed_pd_controller_uses_trained_joint_contract() -> None:
@@ -144,4 +159,3 @@ def test_exported_policy_metadata_contract_when_available(tmp_path: Path) -> Non
 
 def test_eval_module_imports_without_runtime_sim_dependencies() -> None:
     assert importlib.util.find_spec("tritonhumanoid.eval.mujoco_locomotion") is not None
-

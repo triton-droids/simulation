@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 import sys
 import time
@@ -38,7 +39,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--real-time", action="store_true")
     parser.add_argument("--validate-only", action="store_true")
     parser.add_argument("--refresh-model", action="store_true")
-    parser.add_argument("--command-profile", choices=["none", "stand_forward_yaw"], default="stand_forward_yaw")
+    parser.add_argument("--command-profile", choices=["none", "stand_forward_yaw", "forward"], default="stand_forward_yaw")
+    parser.add_argument("--enable-contact", action="store_true", help="Keep MuJoCo contact detection enabled during kinematic playback.")
+    parser.add_argument("--enable-gravity", action="store_true", help="Keep MuJoCo gravity enabled during kinematic playback.")
+    parser.add_argument("--hide-floor", action="store_true", help="Hide floor/ground geoms during kinematic playback.")
     parser.add_argument("--output", type=Path, default=None, help="Optional copied playback .npz path.")
     return parser.parse_args()
 
@@ -49,6 +53,17 @@ def validate_trace(trace) -> None:
             raise RuntimeError(f"Trace is missing required key {key!r}. Re-record with --sim2sim-log.")
     if trace["qpos"].ndim != 2 or trace["qvel"].ndim != 2:
         raise RuntimeError("Trace qpos/qvel must be rank-2 arrays.")
+
+
+def load_trace_joint_order(trace_path: Path) -> tuple[str, ...] | None:
+    metadata_path = trace_path.with_suffix(".json")
+    if not metadata_path.exists():
+        return None
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    joint_order = metadata.get("joint_order")
+    if joint_order is None:
+        return None
+    return tuple(str(name) for name in joint_order)
 
 
 def run_validate_only(args: argparse.Namespace) -> None:
@@ -68,6 +83,9 @@ def run_validate_only(args: argparse.Namespace) -> None:
     print(f"  trace: {args.trace}")
     print(f"  patched MJCF: {xml_path}")
     print(f"  frames: {trace['qpos'].shape[0]}")
+    joint_order = load_trace_joint_order(args.trace)
+    if joint_order is not None:
+        print(f"  trace joint order: {list(joint_order)}")
 
 
 def main() -> None:
@@ -79,12 +97,26 @@ def main() -> None:
         np = __import__("numpy")
         trace = np.load(args.trace)
         validate_trace(trace)
+        trace_joint_order = load_trace_joint_order(args.trace)
+        model_xml = args.model_xml
+        if model_xml is None:
+            model_xml = ensure_isaac_locomotion_mjcf(
+                source_xml=args.source_xml,
+                model_dir=DEFAULT_MODEL_CACHE,
+                urdf_path=DEFAULT_ACTIVE_URDF,
+                refresh=args.refresh_model,
+            )
         env = MujocoLocomotionEnv(
-            model_xml=args.model_xml,
+            model_xml=model_xml,
             seed=args.seed,
             render=args.render,
-            refresh_model=args.refresh_model,
         )
+        if not args.enable_contact:
+            env.disable_contact()
+        if not args.enable_gravity:
+            env.disable_gravity()
+        if args.hide_floor:
+            env.hide_geoms(("floor", "ground"))
         frames = int(trace["qpos"].shape[0])
         if args.max_steps > 0:
             frames = min(frames, int(args.max_steps))
@@ -93,7 +125,7 @@ def main() -> None:
             env.reset()
             for step in range(frames):
                 start = time.time()
-                env.set_state_from_trace(trace, step)
+                env.set_state_from_trace(trace, step, joint_names=trace_joint_order)
                 logs["time_s"].append(step * CONTROL_DT)
                 logs["qpos"].append(env.data.qpos.copy())
                 logs["qvel"].append(env.data.qvel.copy())
@@ -114,4 +146,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

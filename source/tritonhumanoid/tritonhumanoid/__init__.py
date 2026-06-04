@@ -12,12 +12,12 @@ Python module serving as a project/extension template.
 try:
     from .tasks import *  # noqa: F401,F403
 except ModuleNotFoundError as exc:
-    if exc.name not in {"isaaclab", "isaaclab_tasks", "isaacsim"}:
+    if exc.name not in {"isaaclab", "isaaclab_tasks", "isaacsim", "pxr"}:
         raise
 
 # Register UI extensions when IsaacLab/Omniverse dependencies are available.
 try:
     from .ui_extension_example import *  # noqa: F401,F403
 except ModuleNotFoundError as exc:
-    if exc.name not in {"isaaclab", "isaaclab_tasks", "isaacsim", "omni"}:
+    if exc.name not in {"isaaclab", "isaaclab_tasks", "isaacsim", "omni", "pxr"}:
         raise

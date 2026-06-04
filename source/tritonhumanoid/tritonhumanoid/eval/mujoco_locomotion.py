@@ -28,6 +28,19 @@ CH_MUJOCO_JOINT_NAMES: tuple[str, ...] = (
     "right_knee_joint",
     "right_ankle_joint",
 )
+ISAAC_POLICY_JOINT_NAMES: tuple[str, ...] = (
+    "left_hip1_joint",
+    "right_hip1_joint",
+    "left_hip2_joint",
+    "right_hip2_joint",
+    "left_thigh_joint",
+    "right_thigh_joint",
+    "left_knee_joint",
+    "right_knee_joint",
+    "left_ankle_joint",
+    "right_ankle_joint",
+)
+MUJOCO_ROOT_BODY_NAME = "floating_base"
 
 MODULE_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -128,6 +141,20 @@ def clip_joint_velocity_array(np, qvel: object, qvel_addr: object, velocity_limi
     if limit <= 0.0:
         return
     qvel[qvel_addr] = np.clip(qvel[qvel_addr], -limit, limit)
+
+
+def joint_order_permutation(source_names: tuple[str, ...] | list[str], target_names: tuple[str, ...] | list[str]) -> tuple[int, ...]:
+    source = tuple(str(name) for name in source_names)
+    target = tuple(str(name) for name in target_names)
+    if len(source) != len(set(source)):
+        raise ValueError(f"source joint names contain duplicates: {source}")
+    if len(target) != len(set(target)):
+        raise ValueError(f"target joint names contain duplicates: {target}")
+    missing = [name for name in target if name not in source]
+    extra = [name for name in source if name not in target]
+    if missing or extra:
+        raise ValueError(f"joint order mismatch: missing={missing}, extra={extra}")
+    return tuple(source.index(name) for name in target)
 
 
 def _fmt_float(value: float) -> str:
@@ -289,7 +316,11 @@ def _patch_root_to_isaac_world(root: ET.Element, world_to_torso: tuple[float, fl
     if worldbody is None:
         raise ContractValidationError("MJCF is missing worldbody")
 
-    world_body = _find_direct_body(worldbody, "world")
+    world_body = _find_direct_body(worldbody, MUJOCO_ROOT_BODY_NAME)
+    legacy_world_body = _find_direct_body(worldbody, "world")
+    if world_body is None and legacy_world_body is not None:
+        legacy_world_body.attrib["name"] = MUJOCO_ROOT_BODY_NAME
+        world_body = legacy_world_body
     if world_body is not None:
         _remove_children_by_tag_and_name(world_body, "freejoint")
         world_body.insert(0, ET.Element("freejoint"))
@@ -313,7 +344,7 @@ def _patch_root_to_isaac_world(root: ET.Element, world_to_torso: tuple[float, fl
     _remove_children_by_tag_and_name(torso, "site", "imu")
     torso.attrib["pos"] = _fmt_vec(world_to_torso)
 
-    world_body = ET.Element("body", {"name": "world", "pos": "0 0 0.6846"})
+    world_body = ET.Element("body", {"name": MUJOCO_ROOT_BODY_NAME, "pos": "0 0 0.6846"})
     world_body.append(ET.Element("freejoint"))
     world_body.append(ET.Element("site", {"name": "imu"}))
     world_body.append(torso)
@@ -456,12 +487,16 @@ def validate_mjcf_text_against_urdf(xml_text: str, urdf_path: Path = DEFAULT_ACT
         raise ContractValidationError("generated MJCF must use torque motor actuators")
 
     worldbody = root.find("worldbody")
-    world = _find_direct_body(worldbody, "world")
-    if world is None or world.find("freejoint") is None:
-        raise ContractValidationError("generated MJCF must have a root body named 'world' with a freejoint")
-    torso = _find_direct_body(world, "torso")
+    root_body = _find_direct_body(worldbody, MUJOCO_ROOT_BODY_NAME)
+    if root_body is None or root_body.find("freejoint") is None:
+        raise ContractValidationError(
+            f"generated MJCF must have a root body named {MUJOCO_ROOT_BODY_NAME!r} with a freejoint"
+        )
+    torso = _find_direct_body(root_body, "torso")
     if torso is None:
-        raise ContractValidationError("generated MJCF root body 'world' must contain child body 'torso'")
+        raise ContractValidationError(
+            f"generated MJCF root body {MUJOCO_ROOT_BODY_NAME!r} must contain child body 'torso'"
+        )
     expected_torso_pos = parse_urdf_world_to_torso(urdf_path)
     torso_pos = _parse_vec(torso.attrib.get("pos"), 3)
     if not _allclose(torso_pos, expected_torso_pos):
@@ -643,6 +678,15 @@ class MujocoLocomotionEnv:
         self.data = self.mujoco.MjData(self.model)
 
         self.joint_names = CH_MUJOCO_JOINT_NAMES
+        self.policy_joint_names = ISAAC_POLICY_JOINT_NAMES
+        self.policy_to_mujoco = self.np.asarray(
+            joint_order_permutation(self.policy_joint_names, self.joint_names),
+            dtype=self.np.int64,
+        )
+        self.mujoco_to_policy = self.np.asarray(
+            joint_order_permutation(self.joint_names, self.policy_joint_names),
+            dtype=self.np.int64,
+        )
         self.joint_ids = [
             self.mujoco.mj_name2id(self.model, self.mujoco.mjtObj.mjOBJ_JOINT, name)
             for name in self.joint_names
@@ -668,7 +712,7 @@ class MujocoLocomotionEnv:
         self.commands = self.np.zeros(3, dtype=self.np.float64)
         self.step_count = 0
         self.last_obs = self.np.zeros(OBS_DIM, dtype=self.np.float32)
-        self.last_q_des = self.default_joint_pos.copy()
+        self.last_q_des_mujoco = self.default_joint_pos.copy()
         self._viewer = None
         self._render_enabled = bool(render)
         if self._render_enabled:
@@ -679,6 +723,7 @@ class MujocoLocomotionEnv:
         self.actions[:] = 0.0
         self.prev_actions[:] = 0.0
         self.commands[:] = 0.0 if command is None else self.np.asarray(command, dtype=self.np.float64)
+        self.last_q_des_mujoco = self.default_joint_pos.copy()
         self.pd.reset()
         self.data.qpos[:] = 0.0
         self.data.qvel[:] = 0.0
@@ -697,9 +742,23 @@ class MujocoLocomotionEnv:
         self.last_obs = self.obs_stack.reset(obs0)
         return self.last_obs
 
-    def set_state_from_trace(self, trace, index: int):
-        self.data.qpos[:] = self.np.asarray(_as_trace_row(trace, "qpos", index), dtype=self.np.float64)
-        self.data.qvel[:] = self.np.asarray(_as_trace_row(trace, "qvel", index), dtype=self.np.float64)
+    def set_state_from_trace(self, trace, index: int, *, joint_names: tuple[str, ...] | list[str] | None = None):
+        source_joint_names = tuple(joint_names) if joint_names is not None else self.policy_joint_names
+        source_to_mujoco = self.np.asarray(
+            joint_order_permutation(source_joint_names, self.joint_names),
+            dtype=self.np.int64,
+        )
+        qpos = self.np.asarray(_as_trace_row(trace, "qpos", index), dtype=self.np.float64).copy()
+        qvel = self.np.asarray(_as_trace_row(trace, "qvel", index), dtype=self.np.float64).copy()
+        if qpos.shape[0] != self.model.nq or qvel.shape[0] != self.model.nv:
+            raise ValueError(
+                f"trace state shape mismatch: qpos={qpos.shape} qvel={qvel.shape}, "
+                f"expected {(self.model.nq,)} and {(self.model.nv,)}"
+            )
+        qpos[self.qpos_addr] = qpos[self.qpos_addr][source_to_mujoco]
+        qvel[self.qvel_addr] = qvel[self.qvel_addr][source_to_mujoco]
+        self.data.qpos[:] = qpos
+        self.data.qvel[:] = qvel
         if "commands" in trace:
             self.commands[:] = self.np.asarray(trace["commands"][index], dtype=self.np.float64)
         self.mujoco.mj_forward(self.model, self.data)
@@ -715,9 +774,10 @@ class MujocoLocomotionEnv:
         self.actions = self.np.clip(action, -CLIP_ACTIONS, CLIP_ACTIONS)
         self.prev_actions = old_action
 
-        q_des = self.default_joint_pos + ACTION_SCALE * self.action_scale_per_joint * self.actions
+        actions_mujoco = self.actions[self.policy_to_mujoco]
+        q_des = self.default_joint_pos + ACTION_SCALE * self.action_scale_per_joint * actions_mujoco
         q_des = self.np.clip(q_des, self.hard_lower, self.hard_upper)
-        self.last_q_des = q_des.copy()
+        self.last_q_des_mujoco = q_des.copy()
         for _ in range(self.decimation):
             q = self.data.qpos[self.qpos_addr].copy()
             qd = self.data.qvel[self.qvel_addr].copy()
@@ -742,9 +802,11 @@ class MujocoLocomotionEnv:
         ang_vel_cmd = _rotate_xy(self.np, ang_vel_b)
         up_b = _quat_rotate_inverse(self.np, root_quat, self.np.asarray([0.0, 0.0, 1.0], dtype=self.np.float64))
         up_cmd = _rotate_xy(self.np, up_b)
-        q = self.data.qpos[self.qpos_addr].copy()
-        qd = self.data.qvel[self.qvel_addr].copy()
-        act_pos_scaled = 2.0 * (q - self.soft_lower) / (self.soft_upper - self.soft_lower + 1e-6) - 1.0
+        q_mujoco = self.data.qpos[self.qpos_addr].copy()
+        qd_mujoco = self.data.qvel[self.qvel_addr].copy()
+        act_pos_scaled_mujoco = 2.0 * (q_mujoco - self.soft_lower) / (self.soft_upper - self.soft_lower + 1e-6) - 1.0
+        act_pos_scaled = act_pos_scaled_mujoco[self.mujoco_to_policy]
+        qd_policy = qd_mujoco[self.mujoco_to_policy]
         obs = self.np.concatenate(
             [
                 lin_vel_cmd,
@@ -752,7 +814,7 @@ class MujocoLocomotionEnv:
                 up_cmd,
                 self.commands,
                 act_pos_scaled,
-                qd * DOF_VEL_SCALE,
+                qd_policy * DOF_VEL_SCALE,
                 self.prev_actions,
             ]
         ).astype(self.np.float32)
@@ -770,16 +832,16 @@ class MujocoLocomotionEnv:
         return False, ""
 
     def _info(self, done_reason: str) -> dict[str, object]:
-        q = self.data.qpos[self.qpos_addr].copy()
-        qd = self.data.qvel[self.qvel_addr].copy()
+        q_mujoco = self.data.qpos[self.qpos_addr].copy()
+        qd_mujoco = self.data.qvel[self.qvel_addr].copy()
         return {
             "step": int(self.step_count),
             "done_reason": done_reason,
             "qpos": self.data.qpos.copy(),
             "qvel": self.data.qvel.copy(),
-            "joint_pos": q,
-            "joint_vel": qd,
-            "q_des": self.last_q_des.copy(),
+            "joint_pos": q_mujoco[self.mujoco_to_policy],
+            "joint_vel": qd_mujoco[self.mujoco_to_policy],
+            "q_des": self.last_q_des_mujoco[self.mujoco_to_policy],
             "actions": self.actions.copy(),
             "commands": self.commands.copy(),
             "root_pos_w": self.data.qpos[0:3].copy(),
@@ -787,7 +849,7 @@ class MujocoLocomotionEnv:
             "root_lin_vel_w": self.data.qvel[0:3].copy(),
             "root_ang_vel_w": self.data.qvel[3:6].copy(),
             "obs_latest": self.last_obs.copy(),
-            "torque": self.data.ctrl.copy(),
+            "torque": self.data.ctrl.copy()[self.mujoco_to_policy],
         }
 
     def render(self) -> None:
@@ -795,6 +857,21 @@ class MujocoLocomotionEnv:
         if self._viewer is None:
             self._viewer = viewer_mod.launch_passive(self.model, self.data)
         self._viewer.sync()
+
+    def disable_contact(self) -> None:
+        self.model.opt.disableflags |= int(self.mujoco.mjtDisableBit.mjDSBL_CONTACT)
+
+    def disable_gravity(self) -> None:
+        self.model.opt.gravity[:] = 0.0
+
+    def hide_geoms(self, names: tuple[str, ...] | list[str]) -> None:
+        for name in names:
+            geom_id = self.mujoco.mj_name2id(self.model, self.mujoco.mjtObj.mjOBJ_GEOM, str(name))
+            if geom_id < 0:
+                continue
+            self.model.geom_contype[geom_id] = 0
+            self.model.geom_conaffinity[geom_id] = 0
+            self.model.geom_rgba[geom_id, 3] = 0.0
 
     def close(self) -> None:
         if self._viewer is not None:
@@ -805,6 +882,8 @@ class MujocoLocomotionEnv:
 def command_profile(step: int, dt: float, profile: str = "stand_forward_yaw") -> tuple[float, float, float]:
     if profile == "none":
         return (0.0, 0.0, 0.0)
+    if profile == "forward":
+        return (0.6, 0.0, 0.0)
     if profile != "stand_forward_yaw":
         raise ValueError(f"unsupported command profile: {profile}")
     t = float(step) * float(dt)
