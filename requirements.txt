@@ -1,0 +1,18 @@
+# Core dependency for the beginner Unitree G1 loading workflow.
+mujoco
+
+# Dependencies imported by the existing MJX/Brax PPO training, playback, and
+# rendering code. These are intentionally not pinned yet because the repository
+# did not previously define validated compatible versions.
+jax
+brax
+hydra-core
+omegaconf
+orbax-checkpoint
+flax
+wandb
+mediapy
+moviepy
+opencv-python
+matplotlib
+scipy

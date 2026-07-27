@@ -1,71 +1,159 @@
-# Triton Droids Humanoid Robot Simulator
+# Triton Droids RoboCup Simulator
 
-Official repository for **Triton Droids** simulations.
+## Run Unitree G1
 
-This codebase provides a framework to train, evaluate, and test reinforcement learning (RL) policies using MJX and MuJoCo.
+1. Install the dependencies:
 
-## Installation and Configuration
+   ```bash
+   python -m pip install -r requirements.txt
+   ```
 
-Please refer to [setup.md] for installation and configuration steps.
+2. Open this file:
 
-## 🚀 Features
+   ```text
+   scripts/load_unitree_g1.py
+   ```
 
-This simulator codebase provides a platform for:
+3. Press Run.
 
-- **Train**: Learn policies using MJX and Brax PPO.
+The first run downloads the pinned public Unitree G1 model automatically into a
+hidden local cache. MuJoCo should open and display the robot.
 
-- **Play**: Test trained policies inside MuJoCo environments.
+## PyCharm
 
-- **Sim2Sim Transfer**: Transfer policies between simulators to improve robustness. (WIP)
+1. Open the repository.
+2. Select or create a Python interpreter.
+3. Run:
 
-- **Sim2Real Transfer**: Deploy policies to physical robots for real-world control. (Future goal)
+   ```bash
+   python -m pip install -r requirements.txt
+   ```
 
-## 📂 Project Structure
+4. Open `scripts/load_unitree_g1.py`.
+5. Right-click the file and select Run, or press the green Run button.
 
-```Markdown
-/simulation
-├── /scripts                              # Shell scripts to automate training execution
-├── /src
-│   ├── /configs                          # Dataclass config files for environmnets, sim, and rl params
-│   ├── /locomotion                       # (mjx) Locomotion task environments
-│   ├── /rewards                          # Reward functions
-│   ├── /robots                           # Robot object to represent MuJoCo model
-│   ├── /scripts                          # Python entry points for training and policy playback
-│   ├── /sim                              # MuJoCo utilities (physics rendering and sim-state management)
-│   ├── /tools                            # Experiment tools
-│   ├── /utils                            # General-purpose uitilites
+No committed PyCharm project settings are required.
+
+## VS Code
+
+1. Open the repository.
+2. Select a Python interpreter.
+3. Run:
+
+   ```bash
+   python -m pip install -r requirements.txt
+   ```
+
+4. Open `scripts/load_unitree_g1.py`.
+5. Use the standard Run Python File button.
+
+No custom launch configuration is required.
+
+## Command Line
+
+Open the viewer:
+
+```bash
+python scripts/load_unitree_g1.py
 ```
 
-## Usage
+Validate without opening the viewer:
 
-### 1. Training
-
-Run the following command to start training:
-
-```shell
-./scripts/single_train_mjx.sh
+```bash
+python scripts/load_unitree_g1.py --no-viewer
 ```
 
-Parameter Description
+Show options:
 
-- `VIDEO`: Flag to enable/disable video recording during training.
+```bash
+python scripts/load_unitree_g1.py --help
+```
 
-- `VIDEO_LENGTH`: Number of simulation steps (frames) to record per video. Controls how long each video lasts.
-- `VIDEO_INTERVAL`:Interval (in training steps or timesteps) between video recordings.
+Create a clean upload zip:
 
-### 2. Play
+```bash
+python scripts/export_repo_zip.py
+```
 
-Coming soon.
+If an IDE run window closes before you can read it, run:
 
-### 3. Sim2Sim
+```bash
+python scripts/export_repo_zip.py --pause
+```
 
-Coming soon.
+The zip is written to:
 
-## Future Plans
+```text
+exports/simulation_robocup_export.zip
+```
 
-- **Ros Integration**
-- **Isaac Lab**
+## Project Layout
 
-## Acknowledgments
+```text
+scripts/load_unitree_g1.py  Press Run here to load Unitree G1
+scripts/export_repo_zip.py  Create a clean upload zip
+source/                     Simulator and training internals
+requirements.txt            Python dependencies
+README.md                   Setup and basic instructions
+```
 
-This repository incorporates code from [toddlerbot](https://github.com/hshi74/toddlerbot).
+Local generated folders such as `.cache/`, `.venv/`, `venv/`, `exports/`, and
+`__pycache__/` are ignored by Git.
+
+## Model Source
+
+The loader uses the public Unitree G1 model from MuJoCo Menagerie:
+
+```text
+https://github.com/google-deepmind/mujoco_menagerie
+```
+
+Pinned commit:
+
+```text
+71f066ad0be9cd271f7ed58c030243ef157af9f4
+```
+
+Default scene:
+
+```text
+unitree_g1/scene.xml
+```
+
+The downloaded model is stored locally at:
+
+```text
+.cache/mujoco_menagerie/
+```
+
+That cache is not committed and is excluded from export zips.
+
+## Troubleshooting
+
+- PyCharm says no interpreter:
+  select or create a Python interpreter, then install `requirements.txt`.
+- MuJoCo is not installed:
+  run `python -m pip install -r requirements.txt` in the selected interpreter.
+- The model download fails:
+  install Git, or run `python scripts/load_unitree_g1.py --model path/to/scene.xml`.
+- The viewer does not open:
+  run `python scripts/load_unitree_g1.py --no-viewer`. If that works, the model
+  loaded and the remaining issue is local graphics/OpenGL support.
+
+## Advanced Development
+
+The `source/` folder contains the simulator internals: config, locomotion,
+rewards, robot definitions, MuJoCo utilities, MJX helpers, and training/playback
+code. Unitree G1 currently loads in MuJoCo but is not yet integrated with the
+existing locomotion training environment.
+
+Docker, ROS, Isaac Lab, GPU compute, and reinforcement learning are not required
+to load Unitree G1.
+
+## Attribution
+
+This repository contains Triton Droids simulator code and code derived from
+[toddlerbot](https://github.com/hshi74/toddlerbot). The Unitree G1 loading
+workflow uses model assets from
+[MuJoCo Menagerie](https://github.com/google-deepmind/mujoco_menagerie), where
+the `unitree_g1` model is provided under a BSD-3-Clause license.

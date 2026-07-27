@@ -1,5 +1,38 @@
-.vscode
-
-__pycache__/
-
 .DS_Store
+
+# Local Python environments
+.venv/
+venv/
+env/
+
+# Local IDE settings
+.idea/
+.vscode/
+
+# Downloaded robot models and local caches
+.cache/
+mujoco_menagerie/
+
+# Generated outputs
+exports/
+logs/
+results/
+wandb/
+
+# Python/tool caches
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Temporary files and generated media
+*.log
+*.tmp
+*.zip
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
