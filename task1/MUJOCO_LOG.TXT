@@ -1,0 +1,6 @@
+Sun Apr 26 17:19:17 2026
+ERROR: could not initialize GLFW
+
+Sun Apr 26 17:20:42 2026
+ERROR: could not initialize GLFW
+

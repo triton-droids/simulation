@@ -1,0 +1,19 @@
+<mujocoinclude>
+    <asset>
+        <texture name="woodTexture" type="cube" height="1" width="1" file="wood2.png" />
+        <material name="wood" texture="woodTexture" rgba="0.8 0.8 0.8 1" shininess="0.2" reflectance="0.3" texuniform="false" />
+    </asset>
+
+    <default>
+
+        <default class="viz_simpleBin" >
+            <geom group="1" contype="0" conaffinity="0" type="mesh" material="wood"/>
+        </default>
+
+        <default class="body_simpleBin" >
+            <geom contype="1" conaffinity="1" group="4" rgba=".4 .5 .6 1" />
+        </default>
+
+   </default>
+
+</mujocoinclude>

@@ -1,0 +1,90 @@
+_wandb:
+    value:
+        cli_version: 0.26.1
+        e:
+            lxox7m3rt8m13r00lsfn0sw85k9evupv:
+                codePath: /home/thewheelneedsme/Projects/droids/simulation/task3/reinforcement_learning.ipynb
+                codePathLocal: task3/reinforcement_learning.ipynb
+                cpu_count: 8
+                cpu_count_logical: 16
+                cudaVersion: "13.1"
+                disk:
+                    /:
+                        total: "982240026624"
+                        used: "153532710912"
+                email: gustavo.a.garcia234@gmail.com
+                executable: /home/thewheelneedsme/miniforge3/envs/mujoco_cpu/bin/python
+                git:
+                    commit: b6c05b4988d5c93802283912bb353499b5765822
+                    remote: https://github.com/triton-droids/simulation.git
+                gpu: NVIDIA GeForce RTX 5060 Ti
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Blackwell
+                      cudaCores: 4608
+                      memoryTotal: "17103323136"
+                      name: NVIDIA GeForce RTX 5060 Ti
+                      uuid: GPU-c821389c-94df-9243-95e9-e184af7ee91f
+                host: robo
+                memory:
+                    total: "32710275072"
+                os: Linux-6.17.0-22-generic-x86_64-with-glibc2.39
+                program: /home/thewheelneedsme/Projects/droids/simulation/task3/reinforcement_learning.ipynb
+                python: CPython 3.11.15
+                root: /home/thewheelneedsme/Projects/droids/simulation
+                startedAt: "2026-04-28T18:44:53.691676Z"
+                writerId: lxox7m3rt8m13r00lsfn0sw85k9evupv
+        m: []
+        python_version: 3.11.15
+        t:
+            "1":
+                - 12
+                - 45
+            "2":
+                - 12
+                - 45
+            "3":
+                - 2
+                - 13
+                - 16
+                - 61
+            "4": 3.11.15
+            "5": 0.26.1
+            "8":
+                - 1
+            "12": 0.26.1
+            "13": linux-x86_64
+action_repeat:
+    value: 1
+batch_size:
+    value: 256
+clipping_epsilon:
+    value: 0.2
+discounting:
+    value: 0.97
+entropy_cost:
+    value: 0.02
+episode_length:
+    value: 500
+learning_rate:
+    value: 0.0003
+max_grad_norm:
+    value: 1
+normalize_observations:
+    value: true
+num_envs:
+    value: 1024
+num_evals:
+    value: 100
+num_minibatches:
+    value: 32
+num_resets_per_eval:
+    value: 1
+num_timesteps:
+    value: 10000000
+num_updates_per_batch:
+    value: 4
+seed:
+    value: 42
+unroll_length:
+    value: 50

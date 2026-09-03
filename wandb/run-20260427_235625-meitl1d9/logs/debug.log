@@ -1,0 +1,25 @@
+2026-04-27 23:56:25,212 INFO    MainThread:43454 [wandb_setup.py:_flush():81] Current SDK version is 0.26.1
+2026-04-27 23:56:25,212 INFO    MainThread:43454 [wandb_setup.py:_flush():81] Configure stats pid to 43454
+2026-04-27 23:56:25,212 INFO    MainThread:43454 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2026-04-27 23:56:25,212 INFO    MainThread:43454 [wandb_init.py:setup_run_log_directory():723] Logging user logs to /home/thewheelneedsme/Projects/droids/simulation/wandb/run-20260427_235625-meitl1d9/logs/debug.log
+2026-04-27 23:56:25,212 INFO    MainThread:43454 [wandb_init.py:setup_run_log_directory():724] Logging internal logs to /home/thewheelneedsme/Projects/droids/simulation/wandb/run-20260427_235625-meitl1d9/logs/debug-internal.log
+2026-04-27 23:56:25,212 INFO    MainThread:43454 [wandb_init.py:monkeypatch_ipython():642] configuring jupyter hooks <wandb.sdk.wandb_init._WandbInit object at 0x7a2bd84f5090>
+2026-04-27 23:56:25,212 INFO    MainThread:43454 [wandb_init.py:init():850] calling init triggers
+2026-04-27 23:56:25,212 INFO    MainThread:43454 [wandb_init.py:init():855] wandb.init called with sweep_config: {}
+config: {'num_timesteps': 10000000, 'num_evals': 100, 'episode_length': 500, 'unroll_length': 50, 'num_minibatches': 32, 'num_updates_per_batch': 4, 'discounting': 0.97, 'learning_rate': 0.0003, 'entropy_cost': 0.02, 'clipping_epsilon': 0.2, 'num_envs': 1024, 'batch_size': 256, 'seed': 42, 'normalize_observations': True, 'action_repeat': 1, 'max_grad_norm': 1.0, 'num_resets_per_eval': 1, '_wandb': {}}
+2026-04-27 23:56:25,212 INFO    MainThread:43454 [wandb_init.py:init():898] starting backend
+2026-04-27 23:56:25,446 INFO    MainThread:43454 [wandb_init.py:init():913] sending inform_init request
+2026-04-27 23:56:25,648 INFO    MainThread:43454 [wandb_init.py:init():918] backend started and connected
+2026-04-27 23:56:25,649 INFO    MainThread:43454 [wandb_run.py:_label_probe_notebook():1345] probe notebook
+2026-04-27 23:56:25,649 INFO    MainThread:43454 [wandb_init.py:init():988] updated telemetry
+2026-04-27 23:56:25,670 INFO    MainThread:43454 [wandb_init.py:init():1011] communicating run to backend with 90.0 second timeout
+2026-04-27 23:56:26,647 INFO    MainThread:43454 [wandb_init.py:init():1056] starting run threads in backend
+2026-04-27 23:56:26,692 INFO    MainThread:43454 [wandb_run.py:_console_start():2554] atexit reg
+2026-04-27 23:56:26,692 INFO    MainThread:43454 [wandb_run.py:_redirect():2403] redirect: wrap_raw
+2026-04-27 23:56:26,692 INFO    MainThread:43454 [wandb_run.py:_redirect():2472] Wrapping output streams.
+2026-04-27 23:56:26,692 INFO    MainThread:43454 [wandb_run.py:_redirect():2495] Redirects installed.
+2026-04-27 23:56:26,693 INFO    MainThread:43454 [wandb_init.py:init():1094] run started, returning control to user process
+2026-04-27 23:56:26,694 INFO    MainThread:43454 [wandb_init.py:_post_run_cell_hook():612] [no run ID] resuming backend
+2026-04-27 23:56:29,103 INFO    MainThread:43454 [jupyter.py:save_ipynb():362] [no run ID] not saving jupyter notebook
+2026-04-27 23:56:29,103 INFO    MainThread:43454 [wandb_init.py:_pre_run_cell_hook():601] [no run ID] pausing backend
+2026-04-27 23:56:42,183 INFO    MainThread:43454 [wandb_init.py:_post_run_cell_hook():612] [no run ID] resuming backend

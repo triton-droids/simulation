@@ -1,0 +1,40 @@
+{
+  "os":  "Linux-6.17.0-22-generic-x86_64-with-glibc2.39",
+  "python":  "CPython 3.11.15",
+  "startedAt":  "2026-05-03T00:28:13.101750Z",
+  "program":  "/home/thewheelneedsme/Projects/droids/simulation/task3/reinforcement_learning.ipynb",
+  "codePath":  "/home/thewheelneedsme/Projects/droids/simulation/task3/reinforcement_learning.ipynb",
+  "codePathLocal":  "task3/reinforcement_learning.ipynb",
+  "git":  {
+    "remote":  "https://github.com/triton-droids/simulation.git",
+    "commit":  "b6c05b4988d5c93802283912bb353499b5765822"
+  },
+  "email":  "gustavo.a.garcia234@gmail.com",
+  "root":  "/home/thewheelneedsme/Projects/droids/simulation",
+  "host":  "robo",
+  "executable":  "/home/thewheelneedsme/miniforge3/envs/mujoco_cpu/bin/python",
+  "cpu_count":  8,
+  "cpu_count_logical":  16,
+  "gpu":  "NVIDIA GeForce RTX 5060 Ti",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "982240026624",
+      "used":  "153645027328"
+    }
+  },
+  "memory":  {
+    "total":  "32710275072"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA GeForce RTX 5060 Ti",
+      "memoryTotal":  "17103323136",
+      "cudaCores":  4608,
+      "architecture":  "Blackwell",
+      "uuid":  "GPU-c821389c-94df-9243-95e9-e184af7ee91f"
+    }
+  ],
+  "cudaVersion":  "13.1",
+  "writerId":  "x4ip7s4ob1ip9tabnm2ie9ypbx1le7c3"
+}

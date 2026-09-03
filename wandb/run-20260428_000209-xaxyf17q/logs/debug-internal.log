@@ -1,0 +1,81 @@
+{"time":"2026-04-28T00:02:09.694131601-07:00","level":"INFO","msg":"wandb-core"}
+{"time":"2026-04-28T00:02:09.694289083-07:00","level":"INFO","msg":"stream: starting","core version":"0.26.1"}
+{"time":"2026-04-28T00:02:09.902017737-07:00","level":"INFO","msg":"stream: created new stream","id":"xaxyf17q"}
+{"time":"2026-04-28T00:02:09.902117769-07:00","level":"INFO","msg":"handler: started"}
+{"time":"2026-04-28T00:02:09.902170841-07:00","level":"INFO","msg":"stream: started"}
+{"time":"2026-04-28T00:02:09.902181231-07:00","level":"INFO","msg":"writer: started","stream_id":"xaxyf17q"}
+{"time":"2026-04-28T00:02:09.902184236-07:00","level":"INFO","msg":"sender: started"}
+{"time":"2026-04-28T00:02:16.250456556-07:00","level":"INFO","msg":"filestream: sending request","total_files":0,"uploaded_len":1}
+{"time":"2026-04-28T00:02:16.555683557-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:02:31.250634588-07:00","level":"INFO","msg":"filestream: sending request","total_files":0,"uploaded_len":1}
+{"time":"2026-04-28T00:02:31.715872256-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:03:01.251255298-07:00","level":"INFO","msg":"filestream: sending request","total_files":0}
+{"time":"2026-04-28T00:03:01.509136389-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:03:10.824085214-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":0,"events_lines":1}
+{"time":"2026-04-28T00:03:11.162735868-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:03:25.824651668-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":1,"events_lines":2}
+{"time":"2026-04-28T00:03:26.292463514-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:03:40.824937827-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":3,"events_lines":2}
+{"time":"2026-04-28T00:03:41.236199519-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:03:55.824119505-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":5,"events_lines":1}
+{"time":"2026-04-28T00:03:56.217561009-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:04:10.82412769-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":6,"events_lines":2}
+{"time":"2026-04-28T00:04:11.244552974-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:04:25.824097755-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":8,"events_lines":3}
+{"time":"2026-04-28T00:04:26.397712983-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:04:40.824723117-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":11,"events_lines":2}
+{"time":"2026-04-28T00:04:41.137519826-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:04:55.824185244-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":13,"events_lines":1}
+{"time":"2026-04-28T00:04:56.189105343-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:05:10.824207248-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":14,"events_lines":2}
+{"time":"2026-04-28T00:05:11.25313214-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:05:25.824829948-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":16,"events_lines":3}
+{"time":"2026-04-28T00:05:26.602169743-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:05:40.824152034-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":19,"events_lines":1}
+{"time":"2026-04-28T00:05:41.34476379-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:05:55.824811318-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":20,"events_lines":3}
+{"time":"2026-04-28T00:05:56.507401436-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:06:10.82451902-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":23,"events_lines":1}
+{"time":"2026-04-28T00:06:11.552867428-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:06:25.825014882-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":24,"events_lines":3}
+{"time":"2026-04-28T00:06:26.500182796-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:06:40.825046396-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":27,"events_lines":2}
+{"time":"2026-04-28T00:06:41.552712991-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:06:55.82438183-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":29,"events_lines":1}
+{"time":"2026-04-28T00:06:56.090342767-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:07:10.824191966-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":30,"events_lines":2}
+{"time":"2026-04-28T00:07:11.143622151-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:07:25.824116995-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":32,"events_lines":2}
+{"time":"2026-04-28T00:07:26.113578851-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:07:40.8249626-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":34,"events_lines":3}
+{"time":"2026-04-28T00:07:41.770473793-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:07:55.824112789-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":37,"events_lines":1}
+{"time":"2026-04-28T00:07:57.117165007-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:08:10.824334495-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":38,"events_lines":2}
+{"time":"2026-04-28T00:08:11.145722206-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:08:25.82412785-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":40,"events_lines":2}
+{"time":"2026-04-28T00:08:26.507473418-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:08:40.824106221-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":42,"events_lines":3}
+{"time":"2026-04-28T00:08:41.459965041-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:08:55.824631881-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":45,"events_lines":2}
+{"time":"2026-04-28T00:08:56.201437262-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:09:10.825026111-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":47,"events_lines":2}
+{"time":"2026-04-28T00:09:11.779219419-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:09:25.824917688-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":49,"events_lines":2}
+{"time":"2026-04-28T00:09:26.405927058-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:09:40.825041724-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":51,"events_lines":2}
+{"time":"2026-04-28T00:09:41.266801569-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:09:55.824175092-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":53,"events_lines":1}
+{"time":"2026-04-28T00:09:56.104297332-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:10:10.825113839-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":54,"events_lines":3}
+{"time":"2026-04-28T00:10:11.09693447-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:10:25.824157972-07:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":57,"events_lines":1}
+{"time":"2026-04-28T00:10:26.204871713-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:10:35.033762291-07:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-28T00:10:35.033873677-07:00","level":"INFO","msg":"filestream: sending request","total_files":3,"history_offset":0,"history_lines":1,"events_offset":58,"events_lines":2,"uploaded_len":2,"complete":true,"exit_code":0}
+{"time":"2026-04-28T00:10:35.625510195-07:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-04-28T00:10:35.626594729-07:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-28T00:10:35.628939482-07:00","level":"INFO","msg":"stream: finishing up"}
+{"time":"2026-04-28T00:10:35.628946445-07:00","level":"INFO","msg":"handler: closed"}
+{"time":"2026-04-28T00:10:35.628996668-07:00","level":"INFO","msg":"sender: closed"}
+{"time":"2026-04-28T00:10:35.629000906-07:00","level":"INFO","msg":"stream: all finished"}
