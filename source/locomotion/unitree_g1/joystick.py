@@ -21,6 +21,19 @@ from source.locomotion.unitree_g1.base import UnitreeG1Env
 from source.locomotion.unitree_g1 import rewards as reward_terms
 
 
+def rigid_body_point_velocity(
+    body_position: jax.Array,
+    body_linear_velocity: jax.Array,
+    body_angular_velocity: jax.Array,
+    point_position: jax.Array,
+) -> jax.Array:
+    """Return world velocity of a rigidly attached world-frame point."""
+
+    return body_linear_velocity + jp.cross(
+        body_angular_velocity, point_position - body_position
+    )
+
+
 class Joystick(UnitreeG1Env):
     """Flat-ground 29-actuator G1 environment with joystick commands."""
 
@@ -77,6 +90,26 @@ class Joystick(UnitreeG1Env):
         targets = jp.clip(targets, self.ctrl_lower, self.ctrl_upper)
         return clipped_action, targets
 
+    def get_foot_global_linvel(self, pipeline_state: base.State) -> jax.Array:
+        """Return world-frame velocity at each named foot site.
+
+        ``pipeline_state.xd.vel`` is the linear velocity of the body-frame
+        origin, not of an offset site.  Playground defines this quantity with
+        MuJoCo ``framelinvel`` site sensors, so include the rigid-body
+        ``omega x r`` contribution explicitly for the Menagerie model.
+        """
+
+        body_position = pipeline_state.x.pos[self.foot_link_ids]
+        body_motion = jax.tree_util.tree_map(
+            lambda value: value[self.foot_link_ids], pipeline_state.xd
+        )
+        return rigid_body_point_velocity(
+            body_position,
+            body_motion.vel,
+            body_motion.ang,
+            pipeline_state.site_xpos[self.foot_site_ids],
+        )
+
     def reset(self, rng: jax.Array) -> State:
         qpos = self.init_q
         qvel = jp.zeros(self.nv)
@@ -118,8 +151,14 @@ class Joystick(UnitreeG1Env):
                 )
             )
 
-        pipeline_state = self.pipeline_init(qpos, qvel)
-        contact, undesired, collision = self.contact_state(pipeline_state)
+        # Position actuators must initially hold the pose they were forwarded
+        # from.  Brax otherwise defaults ``ctrl`` to zero, creating a large,
+        # artificial reset impulse and inconsistent critic observation.
+        pipeline_state = self.pipeline_init(qpos, qvel, ctrl=qpos[7:])
+        contact, undesired, self_collision, nonfoot_ground = self.contact_details(
+            pipeline_state
+        )
+        collision = self_collision | nonfoot_ground
         rng, frequency_rng, command_rng, push_rng = jax.random.split(rng, 4)
         gait_frequency = jax.random.uniform(frequency_rng, (), minval=1.25, maxval=1.5)
         phase = jp.array([0.0, jp.pi])
@@ -135,7 +174,7 @@ class Joystick(UnitreeG1Env):
             "command": self.sample_command(command_rng),
             "last_act": jp.zeros(self.nu),
             "last_last_act": jp.zeros(self.nu),
-            "motor_targets": self.default_pose,
+            "motor_targets": qpos[7:],
             "feet_air_time": jp.zeros(2),
             "first_contact": jp.zeros(2, dtype=bool),
             "last_contact": contact,
@@ -149,6 +188,8 @@ class Joystick(UnitreeG1Env):
             ),
             "undesired_contact": undesired,
             "collision_contact": collision,
+            "self_collision_contact": self_collision,
+            "nonfoot_ground_contact": nonfoot_ground,
         }
         obs = self._get_obs(pipeline_state, info, contact)
         metrics = {
@@ -156,6 +197,8 @@ class Joystick(UnitreeG1Env):
             "foot_contact_right": contact[1].astype(jp.float32),
             "undesired_contact": undesired.astype(jp.float32),
             "collision_contact": collision.astype(jp.float32),
+            "self_collision_contact": self_collision.astype(jp.float32),
+            "nonfoot_ground_contact": nonfoot_ground.astype(jp.float32),
         }
         metrics.update(
             {f"reward/{name}": jp.zeros(()) for name in self.reward_scales}
@@ -165,29 +208,42 @@ class Joystick(UnitreeG1Env):
 
     def step(self, state: State, action: jax.Array) -> State:
         state, push = self._apply_scheduled_push(state)
+        # Treat ``info`` and ``metrics`` as next-state values.  Mutating the
+        # dictionaries carried by the input State aliases rollout history and
+        # makes observation timing depend on tracing details.
+        info = dict(state.info)
+        metrics = dict(state.metrics)
         clipped_action, motor_targets = self.action_to_targets(action)
         pipeline_state = self.pipeline_step(state.pipeline_state, motor_targets)
-        contact, undesired, collision = self.contact_state(pipeline_state)
+        contact, undesired, self_collision, nonfoot_ground = self.contact_details(
+            pipeline_state
+        )
+        collision = self_collision | nonfoot_ground
 
-        contact_filtered = contact | state.info["last_contact"]
-        first_contact = (state.info["feet_air_time"] > 0.0) & contact_filtered
-        feet_air_time = state.info["feet_air_time"] + self.dt
+        contact_filtered = contact | info["last_contact"]
+        first_contact = (info["feet_air_time"] > 0.0) & contact_filtered
+        feet_air_time = info["feet_air_time"] + self.dt
         foot_z = pipeline_state.site_xpos[self.foot_site_ids, 2]
-        swing_peak = jp.maximum(state.info["swing_peak"], foot_z)
+        swing_peak = jp.maximum(info["swing_peak"], foot_z)
 
-        state.info["motor_targets"] = motor_targets
-        state.info["first_contact"] = first_contact
-        state.info["feet_air_time"] = feet_air_time * ~contact
-        state.info["swing_peak"] = swing_peak * ~contact
-        state.info["undesired_contact"] = undesired
-        state.info["collision_contact"] = collision
-
-        obs = self._get_obs(pipeline_state, state.info, contact)
+        # Rewards belong to the transition just taken: use the command, phase,
+        # previous action and *unreset* air time that governed that transition.
+        reward_info = {
+            **info,
+            "motor_targets": motor_targets,
+            "first_contact": first_contact,
+            "feet_air_time": feet_air_time,
+            "swing_peak": swing_peak,
+            "undesired_contact": undesired,
+            "collision_contact": collision,
+            "self_collision_contact": self_collision,
+            "nonfoot_ground_contact": nonfoot_ground,
+        }
         done = self.get_termination(pipeline_state, undesired)
         raw_rewards = self._reward_terms(
             pipeline_state,
             clipped_action,
-            state.info,
+            reward_info,
             done,
             first_contact,
             contact,
@@ -200,33 +256,43 @@ class Joystick(UnitreeG1Env):
         }
         reward = reward_terms.aggregate_weighted_terms(weighted_rewards, self.dt)
 
-        state.info["push"] = push
-        state.info["push_step"] += 1
-        state.info["step"] += 1
-        state.info["phase"] = jp.fmod(
-            state.info["phase"] + state.info["phase_dt"] + jp.pi, 2.0 * jp.pi
+        # Build the state observed by the next policy call only after the
+        # transition reward has been evaluated.
+        next_info = dict(reward_info)
+        next_info["push"] = push
+        next_info["push_step"] = info["push_step"] + 1
+        next_info["step"] = info["step"] + 1
+        next_info["phase"] = jp.fmod(
+            info["phase"] + info["phase_dt"] + jp.pi, 2.0 * jp.pi
         ) - jp.pi
-        state.info["last_last_act"] = state.info["last_act"]
-        state.info["last_act"] = clipped_action
-        state.info["last_contact"] = contact
-        state.info["rng"], command_rng = jax.random.split(state.info["rng"])
-        state.info["command"] = jax.lax.cond(
-            state.info["step"] % self.resample_steps == 0,
+        next_info["last_last_act"] = info["last_act"]
+        next_info["last_act"] = clipped_action
+        next_info["last_contact"] = contact
+        next_info["feet_air_time"] = feet_air_time * ~contact
+        next_info["swing_peak"] = swing_peak * ~contact
+        next_info["rng"], command_rng = jax.random.split(info["rng"])
+        next_info["command"] = jax.lax.cond(
+            next_info["step"] % self.resample_steps == 0,
             lambda: self.sample_command(command_rng),
-            lambda: state.info["command"],
+            lambda: info["command"],
         )
+        obs = self._get_obs(pipeline_state, next_info, contact)
 
-        state.metrics["foot_contact_left"] = contact[0].astype(jp.float32)
-        state.metrics["foot_contact_right"] = contact[1].astype(jp.float32)
-        state.metrics["undesired_contact"] = undesired.astype(jp.float32)
-        state.metrics["collision_contact"] = collision.astype(jp.float32)
+        metrics["foot_contact_left"] = contact[0].astype(jp.float32)
+        metrics["foot_contact_right"] = contact[1].astype(jp.float32)
+        metrics["undesired_contact"] = undesired.astype(jp.float32)
+        metrics["collision_contact"] = collision.astype(jp.float32)
+        metrics["self_collision_contact"] = self_collision.astype(jp.float32)
+        metrics["nonfoot_ground_contact"] = nonfoot_ground.astype(jp.float32)
         for name, value in weighted_rewards.items():
-            state.metrics[f"reward/{name}"] = value
+            metrics[f"reward/{name}"] = value
         return state.replace(
             pipeline_state=pipeline_state,
             obs=obs,
             reward=reward,
             done=done.astype(jp.float32),
+            metrics=metrics,
+            info=next_info,
         )
 
     def _reward_terms(
@@ -244,7 +310,7 @@ class Joystick(UnitreeG1Env):
 
         joint_position = pipeline_state.qpos[7:]
         joint_velocity = pipeline_state.qvel[6:]
-        foot_velocity = pipeline_state.xd.vel[self.foot_link_ids]
+        foot_velocity = self.get_foot_global_linvel(pipeline_state)
         return {
             "tracking_lin_vel": reward_terms.tracking_linear_velocity(
                 info["command"],
@@ -314,6 +380,16 @@ class Joystick(UnitreeG1Env):
         still-upright recovery impossible.
         """
 
+        contact, termination, self_collision, nonfoot_ground = self.contact_details(
+            pipeline_state
+        )
+        return contact, termination, self_collision | nonfoot_ground
+
+    def contact_details(
+        self, pipeline_state: base.State
+    ) -> tuple[jax.Array, jax.Array, jax.Array, jax.Array]:
+        """Return support, terminal cross-leg, self, and ground contacts."""
+
         geom_pairs = pipeline_state.contact.geom
         active = pipeline_state.contact.dist < 0.0
         geom1 = geom_pairs[:, 0]
@@ -345,23 +421,34 @@ class Joystick(UnitreeG1Env):
         dangerous_cross_leg |= pair_matches(
             right_cross_foot, self.shin_geom_ids[0]
         )
-        collision = pair_matches(self.hand_geom_ids[:1], self.thigh_geom_ids[:1])
-        collision |= pair_matches(self.hand_geom_ids[1:], self.thigh_geom_ids[1:])
-        collision |= nonfoot_ground
+        self_collision = pair_matches(
+            self.hand_geom_ids[:1], self.thigh_geom_ids[:1]
+        )
+        self_collision |= pair_matches(
+            self.hand_geom_ids[1:], self.thigh_geom_ids[1:]
+        )
 
         termination_contact = jp.any(active & dangerous_cross_leg)
-        collision_contact = jp.any(active & collision)
-        return jp.stack(foot_contacts), termination_contact, collision_contact
+        self_collision_contact = jp.any(active & self_collision)
+        nonfoot_ground_contact = jp.any(nonfoot_ground)
+        return (
+            jp.stack(foot_contacts),
+            termination_contact,
+            self_collision_contact,
+            nonfoot_ground_contact,
+        )
 
     def get_termination(
         self, pipeline_state: base.State, undesired_contact: jax.Array
     ) -> jax.Array:
-        """Terminate on inverted/low/high pelvis, undesired contact, or NaNs."""
+        """Terminate on an invalid pose/contact or any non-finite state."""
 
         # The pelvis carries the free joint, so q[2] is its verified world z.
         pelvis_height = pipeline_state.q[2]
         torso_up_z = self.get_gravity(pipeline_state, "torso")[2]
-        invalid = jp.isnan(pipeline_state.q).any() | jp.isnan(pipeline_state.qd).any()
+        invalid = ~jp.isfinite(pipeline_state.q).all() | ~jp.isfinite(
+            pipeline_state.qd
+        ).all()
         return (
             (pelvis_height < self.cfg.termination.min_pelvis_height)
             | (pelvis_height > self.cfg.termination.max_pelvis_height)
@@ -371,9 +458,8 @@ class Joystick(UnitreeG1Env):
         )
 
     def _apply_scheduled_push(self, state: State) -> tuple[State, jax.Array]:
-        state.info["rng"], theta_rng, magnitude_rng = jax.random.split(
-            state.info["rng"], 3
-        )
+        info = dict(state.info)
+        info["rng"], theta_rng, magnitude_rng = jax.random.split(info["rng"], 3)
         theta = jax.random.uniform(theta_rng, (), maxval=2.0 * jp.pi)
         magnitude = jax.random.uniform(
             magnitude_rng,
@@ -382,11 +468,16 @@ class Joystick(UnitreeG1Env):
             maxval=self.push_magnitude_range[1],
         )
         scheduled = (
-            (state.info["push_step"] + 1) % state.info["push_interval_steps"] == 0
+            (info["push_step"] + 1) % info["push_interval_steps"] == 0
         ) & self.add_push
         push = jp.array([jp.cos(theta), jp.sin(theta)]) * magnitude * scheduled
         qd = state.pipeline_state.qd.at[:2].add(push)
-        return state.replace(pipeline_state=state.pipeline_state.replace(qd=qd)), push
+        return (
+            state.replace(
+                pipeline_state=state.pipeline_state.replace(qd=qd), info=info
+            ),
+            push,
+        )
 
     def _get_obs(
         self, pipeline_state: base.State, info: dict[str, Any], contact: jax.Array
@@ -422,7 +513,7 @@ class Joystick(UnitreeG1Env):
 
         accelerometer = self.get_accelerometer(pipeline_state, "pelvis")
         global_angvel = self.get_global_angvel(pipeline_state, "pelvis")
-        foot_vel = pipeline_state.xd.vel[self.foot_link_ids].reshape(-1)
+        foot_vel = self.get_foot_global_linvel(pipeline_state).reshape(-1)
         privileged = jp.concatenate(
             [
                 actor,

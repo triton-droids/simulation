@@ -17,7 +17,7 @@ xla_flags = os.environ.get("XLA_FLAGS", "")
 xla_flags += " --xla_gpu_triton_gemm_any=True"
 os.environ["XLA_FLAGS"] = xla_flags
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-os.environ["MUJOCO_GL"] = "egl"
+os.environ["MUJOCO_GL"] = "glfw" if sys.platform == "win32" else "egl"
 os.environ.setdefault(
     "JAX_COMPILATION_CACHE_DIR",
     str(Path(__file__).resolve().parents[2] / ".cache" / "jax_compilation_cache"),

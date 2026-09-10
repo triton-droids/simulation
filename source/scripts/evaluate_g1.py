@@ -26,7 +26,7 @@ os.environ.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
 os.environ.setdefault(
     "JAX_COMPILATION_CACHE_DIR", str(PROJECT_ROOT / ".cache" / "jax_compilation_cache")
 )
-os.environ.setdefault("MUJOCO_GL", "egl")
+os.environ.setdefault("MUJOCO_GL", "glfw" if sys.platform == "win32" else "egl")
 
 from brax.io import model
 from brax.training.agents.ppo import networks as ppo_networks
@@ -140,6 +140,71 @@ def _replace_command(state: Any, command: jax.Array) -> Any:
     return state.replace(info=info, obs=observations)
 
 
+def _action_diagnostics(
+    env: Any, action: jax.Array
+) -> tuple[jax.Array, jax.Array, dict[str, jax.Array]]:
+    """Return the applied action/target and actuator-bound diagnostics.
+
+    Policies can emit values outside the normalized action interval and the
+    default-pose offset can reach a physical actuator limit before a normalized
+    action reaches +/-1.  Keep those two saturation mechanisms separate.
+    """
+
+    applied_action, motor_targets = env.action_to_targets(action)
+    diagnostics = {
+        "action_clipping_fraction": jp.mean(
+            (jp.abs(action - applied_action) > 1.0e-6).astype(jp.float32)
+        ),
+        "action_saturation_fraction": jp.mean(
+            (jp.abs(applied_action) >= 1.0 - 1.0e-6).astype(jp.float32)
+        ),
+        "target_saturation_fraction": jp.mean(
+            (
+                jp.isclose(motor_targets, env.ctrl_lower, rtol=0.0, atol=1.0e-6)
+                | jp.isclose(
+                    motor_targets, env.ctrl_upper, rtol=0.0, atol=1.0e-6
+                )
+            ).astype(jp.float32)
+        ),
+        "maximum_abs_applied_action": jp.max(jp.abs(applied_action)),
+    }
+    return applied_action, motor_targets, diagnostics
+
+
+def _applied_action_rate(
+    applied_action: jax.Array, previous_applied_action: jax.Array
+) -> jax.Array:
+    """Quadratic action delta using actuator-bound normalized actions."""
+
+    return jp.sum(jp.square(applied_action - previous_applied_action))
+
+
+def _contact_breakdown(env: Any, pipeline_state: Any) -> tuple[jax.Array, jax.Array]:
+    """Separate non-foot floor contact from robot self-contact.
+
+    The flat G1 scene has one floor geom.  Every active contact containing that
+    geom is a ground contact, and every active contact containing no floor geom
+    is a robot--robot contact.  The known support geoms are excluded from the
+    non-foot-ground category.  This is intentionally evaluation-side
+    instrumentation; it does not alter reward or termination behavior.
+    """
+
+    geom_pairs = pipeline_state.contact.geom
+    active = pipeline_state.contact.dist < 0.0
+    geom1 = geom_pairs[:, 0]
+    geom2 = geom_pairs[:, 1]
+    floor_first = geom1 == env.floor_geom_id
+    floor_second = geom2 == env.floor_geom_id
+    floor_contact = floor_first | floor_second
+    foot_geom_ids = jp.concatenate(tuple(env.foot_geom_ids))
+    foot_ground = (floor_first & jp.isin(geom2, foot_geom_ids)) | (
+        floor_second & jp.isin(geom1, foot_geom_ids)
+    )
+    nonfoot_ground = jp.any(active & floor_contact & ~foot_ground)
+    self_collision = jp.any(active & ~floor_contact)
+    return nonfoot_ground, self_collision
+
+
 def _build_rollout(
     env: Any, ppo_network: Any, steps: int, *, capture_pipeline: bool = False
 ):
@@ -152,10 +217,17 @@ def _build_rollout(
         inference = make_policy(params, deterministic=True)
 
         def one_step(carry, _):
-            state, active, policy_key, previous_action = carry
+            (
+                state,
+                active,
+                policy_key,
+                previous_applied_action,
+                previous_contact,
+            ) = carry
             policy_key, action_key = jax.random.split(policy_key)
             policy_action, _ = inference(state.obs, action_key)
             action = jp.where(use_policy, policy_action, jp.zeros(env.action_size))
+            applied_action, _, action_diagnostics = _action_diagnostics(env, action)
 
             def active_step(current_state):
                 # The environments use mutable Python dictionaries as PyTree
@@ -175,14 +247,20 @@ def _build_rollout(
             contact, undesired, collision = env.contact_state(
                 next_state.pipeline_state
             )
-            foot_velocity = next_state.pipeline_state.xd.vel[env.foot_link_ids, :2]
+            nonfoot_ground, self_collision = _contact_breakdown(
+                env, next_state.pipeline_state
+            )
+            contact_transition = contact != previous_contact
+            foot_velocity = env.get_foot_global_linvel(next_state.pipeline_state)[
+                :, :2
+            ]
             joint_position = next_state.pipeline_state.q[7:]
             low = next_state.pipeline_state.q[2] < env.cfg.termination.min_pelvis_height
             high = next_state.pipeline_state.q[2] > env.cfg.termination.max_pelvis_height
             inverted = torso_up[2] < env.cfg.termination.min_torso_up_z
             invalid = (
-                jp.isnan(next_state.pipeline_state.q).any()
-                | jp.isnan(next_state.pipeline_state.qd).any()
+                ~jp.isfinite(next_state.pipeline_state.q).all()
+                | ~jp.isfinite(next_state.pipeline_state.qd).all()
             )
             limit_violation = jp.any(
                 (joint_position < env.soft_joint_lower)
@@ -203,7 +281,12 @@ def _build_rollout(
                         * next_state.pipeline_state.actuator_force
                     )
                 ),
-                "action_rate": jp.sum(jp.square(action - previous_action)),
+                # Match the environment reward semantics: action rate is based
+                # on the normalized action actually applied after clipping.
+                "action_rate": _applied_action_rate(
+                    applied_action, previous_applied_action
+                ),
+                **action_diagnostics,
                 "joint_acceleration": jp.sum(
                     jp.square(next_state.pipeline_state.qacc[6:])
                 ),
@@ -214,7 +297,11 @@ def _build_rollout(
                 "right_contact": contact[1],
                 "undesired_contact": undesired,
                 "collision_contact": collision,
+                "nonfoot_ground_contact": nonfoot_ground,
+                "self_collision_contact": self_collision,
                 "joint_limit_violation": limit_violation,
+                "left_contact_transition": contact_transition[0],
+                "right_contact_transition": contact_transition[1],
                 "cause_low": low,
                 "cause_high": high,
                 "cause_inverted": inverted,
@@ -223,13 +310,20 @@ def _build_rollout(
             }
             if capture_pipeline:
                 trace["pipeline_state"] = next_state.pipeline_state
-            return (next_state, next_active, policy_key, action), trace
+            return (
+                next_state,
+                next_active,
+                policy_key,
+                applied_action,
+                contact,
+            ), trace
 
         initial_carry = (
             state,
             jp.array(True),
             policy_key,
-            jp.zeros(env.action_size),
+            state.info["last_act"],
+            env.contact_state(state.pipeline_state)[0],
         )
         _, trace = jax.lax.scan(one_step, initial_carry, xs=None, length=steps)
         return initial_pipeline_state, trace
@@ -260,6 +354,20 @@ def _summarize_trace(
     yaw_error = np.asarray(trace["yaw_error"])[valid]
     linear_norm = np.linalg.norm(linear_error, axis=-1)
     yaw_abs = np.abs(yaw_error)
+    left_contact = np.asarray(trace["left_contact"])[valid].astype(bool)
+    right_contact = np.asarray(trace["right_contact"])[valid].astype(bool)
+    double_support = left_contact & right_contact
+    left_only_support = left_contact & ~right_contact
+    right_only_support = ~left_contact & right_contact
+    single_support = left_only_support | right_only_support
+    flight = ~left_contact & ~right_contact
+    left_transition_count = int(
+        np.count_nonzero(np.asarray(trace["left_contact_transition"])[valid])
+    )
+    right_transition_count = int(
+        np.count_nonzero(np.asarray(trace["right_contact_transition"])[valid])
+    )
+    episode_duration = completed_steps * dt
     fall = bool(np.asarray(trace["done"])[terminal_index])
     all_numeric = [
         np.asarray(value)[valid]
@@ -292,6 +400,7 @@ def _summarize_trace(
         ),
         "episode_success": bool(
             completed_steps == requested_steps
+            and not fall
             and linear_norm.mean() <= 0.25
             and yaw_abs.mean() <= 0.25
         ),
@@ -311,20 +420,50 @@ def _summarize_trace(
             np.asarray(trace["power"])[valid].sum() * dt
         ),
         "mean_action_rate_cost": _masked_mean(trace["action_rate"], valid),
+        "mean_action_clipping_fraction": _masked_mean(
+            trace["action_clipping_fraction"], valid
+        ),
+        "mean_action_saturation_fraction": _masked_mean(
+            trace["action_saturation_fraction"], valid
+        ),
+        "mean_target_saturation_fraction": _masked_mean(
+            trace["target_saturation_fraction"], valid
+        ),
+        "maximum_abs_applied_action": float(
+            np.asarray(trace["maximum_abs_applied_action"])[valid].max()
+        ),
         "mean_joint_acceleration_cost": _masked_mean(
             trace["joint_acceleration"], valid
         ),
         "mean_foot_slip_cost": _masked_mean(trace["foot_slip"], valid),
         "undesired_contact_rate": _masked_mean(trace["undesired_contact"], valid),
         "collision_contact_rate": _masked_mean(trace["collision_contact"], valid),
+        "nonfoot_ground_contact_rate": _masked_mean(
+            trace["nonfoot_ground_contact"], valid
+        ),
+        "self_collision_contact_rate": _masked_mean(
+            trace["self_collision_contact"], valid
+        ),
         "joint_limit_violation_rate": _masked_mean(
             trace["joint_limit_violation"], valid
         ),
-        "left_contact_duty": _masked_mean(trace["left_contact"], valid),
-        "right_contact_duty": _masked_mean(trace["right_contact"], valid),
+        "left_contact_duty": float(left_contact.mean()),
+        "right_contact_duty": float(right_contact.mean()),
         "gait_contact_asymmetry": abs(
-            _masked_mean(trace["left_contact"], valid)
-            - _masked_mean(trace["right_contact"], valid)
+            float(left_contact.mean()) - float(right_contact.mean())
+        ),
+        "double_support_fraction": float(double_support.mean()),
+        "single_support_fraction": float(single_support.mean()),
+        "flight_fraction": float(flight.mean()),
+        "left_only_support_fraction": float(left_only_support.mean()),
+        "right_only_support_fraction": float(right_only_support.mean()),
+        "left_contact_transition_count": left_transition_count,
+        "right_contact_transition_count": right_transition_count,
+        "contact_transitions_per_second": float(
+            (left_transition_count + right_transition_count) / episode_duration
+        ),
+        "both_feet_transitioned": bool(
+            left_transition_count > 0 and right_transition_count > 0
         ),
         "terminal_low_pelvis": bool(np.asarray(trace["cause_low"])[terminal_index]),
         "terminal_high_pelvis": bool(np.asarray(trace["cause_high"])[terminal_index]),
@@ -355,12 +494,28 @@ def _aggregate(rows: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
         "mean_actuator_effort",
         "mechanical_energy_proxy",
         "mean_action_rate_cost",
+        "mean_action_clipping_fraction",
+        "mean_action_saturation_fraction",
+        "mean_target_saturation_fraction",
+        "maximum_abs_applied_action",
         "mean_joint_acceleration_cost",
         "mean_foot_slip_cost",
         "undesired_contact_rate",
         "collision_contact_rate",
+        "nonfoot_ground_contact_rate",
+        "self_collision_contact_rate",
         "joint_limit_violation_rate",
+        "left_contact_duty",
+        "right_contact_duty",
         "gait_contact_asymmetry",
+        "double_support_fraction",
+        "single_support_fraction",
+        "flight_fraction",
+        "left_only_support_fraction",
+        "right_only_support_fraction",
+        "left_contact_transition_count",
+        "right_contact_transition_count",
+        "contact_transitions_per_second",
     )
     for controller in sorted({row["controller"] for row in rows}):
         selected = [row for row in rows if row["controller"] == controller]
@@ -375,6 +530,9 @@ def _aggregate(rows: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
         )
         aggregate["finite_rate"] = float(
             np.mean([row["all_finite"] for row in selected])
+        )
+        aggregate["both_feet_transitioned_rate"] = float(
+            np.mean([row["both_feet_transitioned"] for row in selected])
         )
         output[controller] = aggregate
     return output

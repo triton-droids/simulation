@@ -3,7 +3,12 @@
 from hydra.core.config_store import ConfigStore
 from source.config.config import Config
 from source.config.envs import HumanoidLegsEnv, UnitreeG1Env
-from source.config.agents import G1PPOConfig, G1PPOSmokeConfig, PPOConfig
+from source.config.agents import (
+    G1PPOConfig,
+    G1PPOCorrectiveConfig,
+    G1PPOSmokeConfig,
+    PPOConfig,
+)
 from source.config.robots import DefaultHumanoidLegsRobot, UnitreeG1Robot
 from source.config.sim import MJXConfig
 from source.config.g1 import G1MJXConfig
@@ -19,6 +24,7 @@ cs.store(group="env", name="unitree_g1", node=UnitreeG1Env)
 cs.store(group="agent", name="ppo", node=PPOConfig)
 cs.store(group="agent", name="ppo_g1_smoke", node=G1PPOSmokeConfig)
 cs.store(group="agent", name="ppo_g1", node=G1PPOConfig)
+cs.store(group="agent", name="ppo_g1_corrective", node=G1PPOCorrectiveConfig)
 
 # robot group
 cs.store(group="robot", name="humanoid_legs", node=DefaultHumanoidLegsRobot)

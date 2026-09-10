@@ -50,6 +50,12 @@ class UnitreeG1Env(PipelineEnv):
         self.obs_size = cfg.obs.num_single_obs
         self.privileged_obs_size = cfg.obs.num_single_privileged_obs
         self.add_domain_rand = cfg.domain_rand.add_domain_rand
+        if self.add_domain_rand:
+            raise NotImplementedError(
+                "Unitree G1 domain randomization is disabled until the generic "
+                "randomizer has a tested G1 torso/contact mapping and its qpos0 "
+                "jitter is applied by reset()."
+            )
 
     def get_sensor(self, pipeline_state: Any, name: str) -> jax.Array:
         return get_sensor_data(self.sys.mj_model, pipeline_state, name)

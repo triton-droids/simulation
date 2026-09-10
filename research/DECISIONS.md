@@ -207,6 +207,93 @@ WSL had no `ffmpeg` on `PATH`. The failed attempt is retained. The bundled
 encoder was functionally checked on Windows and WSL, and a regression test
 forces and verifies the OpenCV fallback.
 
+## D-021 -- Start a new corrective family with functional transition timing
+
+**Decision:** Treat every run after commit `27de436` as a new, non-comparable
+corrective experiment family. Compute the reward from the command, phase,
+previous action, and accumulated foot-air time that governed the transition;
+then advance history/resample the command and construct the next observation.
+Initialize reset actuator targets from the sampled joint pose and never mutate
+the input state's `info` or `metrics` dictionaries.
+
+**Evidence:** The preserved Gate 4 environment returned an observation with an
+extra-step-stale previous action and, at resampling, a command different from
+its returned `info`. It also reset foot-air time before reward evaluation, so a
+genuine touchdown after `0.4 s` received the negative `-0.2` raw term instead
+of a positive reward; every Gate 4 training log accumulated a negative
+feet-air-time term. Finally, reset forwarded the pose with zero actuator
+targets (summed absolute reset force about `380.1`) while metadata claimed the
+pose was held. Integration tests now encode all four invariants. Playground's
+current `step` also constructs its observation before history updates; that
+ordering is intentionally corrected rather than copied because it violates the
+stated observation semantics.
+
+## D-022 -- Pinned Playground/native semantic comparison
+
+**Decision:** Keep the pinned Menagerie/Brax seam for one corrected short
+diagnostic, but make its differences from Playground explicit. Escalate to a
+thin pinned Playground adapter if corrected short training still lacks a
+plausible balance/gait signal. Do not copy an apparent stale upstream joint
+range or known reward implementation defect merely to make arrays equal.
+
+The comparison used Playground commit
+`8a4b4642d8eba8a80ac99ed125cb62c16e1457ad`, including its G1 XML overlay,
+environment, randomizer, and `locomotion_params.py`, against Menagerie commit
+`71f066ad0be9cd271f7ed58c030243ef157af9f4` and the live native environment.
+
+| Area | Pinned Playground | Native corrective status / decision |
+|---|---|---|
+| Model and scene | Feet-only flat MJX overlay; expects Menagerie `1b86ece...`; `36/35/29`, 31 bodies, 72 geoms, 5 pairs, 29 sensors | Pinned newer Menagerie `scene_mjx.xml`; same state/action/body counts, 63 geoms, 49 explicit full-collision pairs, 14 sensors. Preserve for the first diagnostic and instrument extra contacts. |
+| Joint and actuator order | Same 29 names and one-to-one order | Exact equality is introspected and tested. |
+| Joint/control ranges | Same except Playground right-hip-roll `[-0.5236, 2.9671]` | Menagerie has mirrored/right range `[-2.9671, 0.5236]`; retain the pinned model value rather than copy the apparent left-side range. Targets are tested against all live ranges. |
+| Default pose | Same leg/waist pose; arm rolls `+/-0.2`, elbows `0.6` | Pinned `knees_bent` arm rolls `+/-0.22`, elbows `1.0`; retain exact model keyframe and serialize it. |
+| Action | 29 position offsets, scale `0.5`; no environment-side normalized/target clip | Same scale; explicitly clip normalized actions and physical targets. Evaluation reports both action and target saturation. |
+| PD and integration | Euler, 2 ms; joint damping mostly `2`, ankle pitch `1`, ankle roll/wrists `0.2`; gains mostly `75`, ankle pitch `20`, ankle roll/wrists `2` | 2 ms override but inherited ImplicitFast; actuator velocity gain `2`, zero joint damping; ankle roll/wrist gains `20`. This is the largest unresolved dynamics difference and the next controlled ablation if the corrected run fails. Both disable Euler damping and use solver/iterations/line-search `2/3/5`. |
+| Control rate | 10 substeps, 20 ms / 50 Hz | Exact match. |
+| Actor/critic observations | 103/216 values: local velocity, gyro, gravity, command, joint offsets/velocities, previous action, phase; privileged physical state/contact/site velocity/air time | Same dimensions, order, frames, and noise scales. Previous action, command, and phase now match returned next-state metadata; true foot-site velocity replaces body-origin velocity. |
+| Action history/timing | Reward uses old action; current upstream returns obs before shifting history | Reward uses old action and returned obs uses just-applied action. Functional state update has regression tests. |
+| Commands | Uniform independent `[vx,vy,yaw]`, 10% zero; ranges `+/-1.0`, `+/-0.5`, `+/-1.0`; effectively resamples after 501 steps | Same representation and zero probability; conservative `+/-0.5`, `+/-0.3`, `+/-0.5`; exact 500-step interval. Transition reward uses old command and next obs uses resampled command. |
+| Reward kernels/signs | Exponential planar/yaw tracking; signed costs; no total clipping | Same tracking kernels/sign convention and signed aggregation. Native keeps prior measured nonzero regularizers and `alive=0.5`; Playground defaults several to zero, adds contact-force/hip/knee terms, and has tracking `1/0.75` versus native `2/1.5`. Touchdown ordering is corrected. |
+| Foot slip | Current code uses pelvis speed times contact despite defining foot-site sensors | Native uses squared true foot-site planar velocity times support contact; retain the semantically correct quantity. |
+| Termination | Inverted torso, cross-foot/cross-shin sensors, NaNs | Adds low/high pelvis and full-state finite check. Full-collision non-foot ground remains separately observable so evaluation can reject crawling/falls. |
+| Contact detection | Two foot-floor found sensors in feet-only scene; selected self/cross sensors | Explicit named Menagerie pairs: three support capsules per foot, separate cross-contact boxes/shins, hand-thigh and non-foot-ground categories. All categories are tested. |
+| Orientation and velocity frames | Torso up-vector; pelvis-local planar velocity/gyro yaw | Exact sensor convention. Tests prove positive yaw sign and the world-to-local `+90 deg` transform. |
+| Reset | XY/yaw, joint multiplier `0.5..1.5`, base velocity `+/-0.5`; control initialized to sampled qpos | Same distribution (with joint-range clip), now correct initial control. A 2,000-reset probe found only 49.8% double support, so nominal reset is used only for the first diagnostic; broader reset is restored progressively. |
+| Push/domain randomization | Push enabled; optional friction, frictionloss, armature, mass, torso-mass, and qpos0 randomization | Push and domain randomization remain off during diagnosis. Construction now explicitly rejects G1 domain randomization because the generic path lacks G1 torso/contact mapping and its qpos0 jitter cannot reach the fixed reset pose; it can no longer fail later or silently pretend to randomize. |
+| PPO | 200M steps; 8192 envs; unroll 20; 32 minibatches; 4 updates; discount `.97`; LR `3e-4`; entropy `.005`; reward scale `1`; `512/256/128` actor and critic | Failed family used materially different low-entropy/low-LR/scaled-reward settings. New corrective profile preserves Playground optimizer/network semantics while scaling the batch to 512 laptop environments with `32*16=512`; budget starts at 262,144 steps. |
+
+## D-023 -- Strengthen held-out gait and exploit diagnostics before tuning
+
+**Decision:** A held-out episode cannot be successful if it terminates on its
+final requested step. Evaluate action clipping/target saturation, non-foot
+ground and self-contact rates, double/single/flight support fractions, per-foot
+contact transitions, and transition cadence in addition to tracking, horizon,
+tilt, height, effort, and slip. Use the environment-applied normalized action
+for action-rate cost.
+
+**Evidence:** The earlier evaluator's success predicate omitted `not fall`, and
+its raw-policy action rate disagreed with the reward whenever a policy output
+saturated. Contact asymmetry alone cannot distinguish alternating walking from
+both-feet-planted or hopping motion, and the combined collision bit cannot
+identify knee-crawling. The old foot velocity was measured at the ankle-body
+origin; an independent MuJoCo site-Jacobian check found `0.038/0.022 m/s`
+left/right differences on a moderate test velocity. The rigid-body point
+formula now matches the site definition, and synthetic regression traces
+exercise the reporting cases.
+
+## D-024 -- Preserve the failed PPO profile and add a corrective one
+
+**Decision:** Keep `ppo_g1` as the historical failed-family configuration and
+register `ppo_g1_corrective` for new work. The corrective profile uses the
+pinned Playground learning rate, entropy, discount, reward scale, update count,
+and actor/critic widths, but starts at 512 environments and 262,144 steps.
+
+**Evidence:** Gate 4 used reward scale `0.1`, discount `.98`, zero entropy,
+different critic layers, and often a learning rate below Playground's tuned
+profile. Those differences are too large to attribute the result solely to
+environment bugs. Keeping both names makes old run manifests reproducible and
+prevents post-result configuration drift.
+
 ## Gate status
 
 - Gate 0: **passed 2026-09-08**. Clean install, dependency check, local logger tests, secret-pattern scan, and both loader modes passed; revisions/licenses are recorded in `research/SOURCE_LEDGER.md`.

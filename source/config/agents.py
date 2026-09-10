@@ -67,7 +67,7 @@ class G1PPOSmokeConfig(PPOConfig):
 
 @dataclass
 class G1PPOConfig(PPOConfig):
-    """Exploratory laptop-GPU profile derived from Playground's G1 PPO setup."""
+    """Historical profile used by the preserved failed Gate 4 family."""
 
     name: str = "ppo_g1"
     num_timesteps: int = 5_000_000
@@ -85,3 +85,33 @@ class G1PPOConfig(PPOConfig):
     reward_scaling: float = 0.1
     policy_hidden_layer_sizes: Tuple[int, ...] = (512, 256, 64)
     value_hidden_layer_sizes: Tuple[int, ...] = (256, 256, 256, 256)
+
+
+@dataclass
+class G1PPOCorrectiveConfig(PPOConfig):
+    """Diagnostic-first G1 profile aligned to pinned Playground PPO semantics.
+
+    The 512-environment laptop batch keeps exactly one 20-step rollout per
+    epoch (``32 * 16 == 512``), while retaining Playground's optimizer,
+    entropy, discount, update count, reward scale, and asymmetric networks.
+    Timesteps and evaluation count remain deliberately diagnostic-sized and
+    are overridden only after short-run behavior justifies scaling.
+    """
+
+    name: str = "ppo_g1_corrective"
+    num_timesteps: int = 262_144
+    num_evals: int = 5
+    episode_length: int = 1000
+    unroll_length: int = 20
+    num_minibatches: int = 16
+    num_updates_per_batch: int = 4
+    discounting: float = 0.97
+    learning_rate: float = 3e-4
+    entropy_cost: float = 0.005
+    clipping_epsilon: float = 0.2
+    num_envs: int = 512
+    num_eval_envs: int = 32
+    batch_size: int = 32
+    reward_scaling: float = 1.0
+    policy_hidden_layer_sizes: Tuple[int, ...] = (512, 256, 128)
+    value_hidden_layer_sizes: Tuple[int, ...] = (512, 256, 128)

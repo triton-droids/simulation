@@ -2,8 +2,10 @@
 
 from types import SimpleNamespace
 
+from omegaconf import OmegaConf
 import pytest
 
+from source.config.agents import G1PPOCorrectiveConfig
 from source.utils.ppo_config import trainer_runtime_controls
 
 
@@ -35,3 +37,27 @@ def test_invalid_runtime_controls_are_rejected(field, value):
 
     with pytest.raises(ValueError):
         trainer_runtime_controls(SimpleNamespace(**values))
+
+
+def test_corrective_g1_profile_preserves_playground_ppo_semantics():
+    cfg = G1PPOCorrectiveConfig()
+
+    assert cfg.unroll_length == 20
+    assert cfg.batch_size * cfg.num_minibatches == cfg.num_envs
+    assert cfg.num_updates_per_batch == 4
+    assert cfg.discounting == 0.97
+    assert cfg.learning_rate == 3e-4
+    assert cfg.entropy_cost == 0.005
+    assert cfg.reward_scaling == 1.0
+    assert cfg.policy_hidden_layer_sizes == (512, 256, 128)
+    assert cfg.value_hidden_layer_sizes == (512, 256, 128)
+
+
+def test_corrective_g1_profile_yaml_round_trip_is_lossless():
+    structured = OmegaConf.structured(G1PPOCorrectiveConfig())
+    serialized = OmegaConf.to_yaml(structured, resolve=True)
+    restored = OmegaConf.create(serialized)
+
+    assert OmegaConf.to_container(restored, resolve=True) == OmegaConf.to_container(
+        structured, resolve=True
+    )
