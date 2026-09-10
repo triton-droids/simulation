@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta
 from pathlib import Path
 import sys
 from types import SimpleNamespace
@@ -11,6 +12,12 @@ if sys.platform == "win32":
     os.environ["MUJOCO_GL"] = "glfw"
 
 from source.scripts import evaluate_g1
+
+
+def test_evaluation_timestamp_is_explicit_utc() -> None:
+    timestamp = datetime.fromisoformat(evaluate_g1._utc_timestamp())
+
+    assert timestamp.utcoffset() == timedelta(0)
 
 
 def _synthetic_trace(*, terminal_done: bool) -> dict[str, np.ndarray]:

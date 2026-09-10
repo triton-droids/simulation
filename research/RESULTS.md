@@ -1,6 +1,31 @@
 # G1 Build and Research Results
 
-**Outcome:** Gates 0-3 passed, but the authorized Gate 4 standard commanded-velocity baseline was executed and **failed** the frozen acceptance rule. Across 216 held-out episodes, the trained family improved linear-vector RMSE and mean duration over both controls, but yaw RMSE was more than twice the untrained controller's, every controller fell, and zero of three policy seeds passed individually. All reported evaluation values were finite, so this is a behavioral failure rather than a numerical or checkpoint failure. A final audit also found that the returned actor observation contains an extra-step-stale previous action and an old command on resampling boundaries; the completed family is preserved unchanged, and fixing that invariant requires a new experiment family. Phases 5-7 were not started, and HOMIE-specific work is not recommended until a conventional baseline passes.
+**Outcome:** Gates 0-3 passed, but the first authorized Gate 4 standard
+commanded-velocity family **failed** its frozen acceptance rule. That negative
+result remains unchanged below. A separate corrective campaign is now active:
+the observation/history, command-resampling, touchdown-air-time, reset-control,
+finite-state, foot-site-velocity, and evaluation invariants have been fixed and
+tested. The new campaign has passed deterministic and PPO plumbing diagnostics
+but has not yet produced locomotion evidence or a Gate 4 PASS. Phases 5-7 remain
+unstarted.
+
+## Active corrective campaign (not yet a Gate 4 result)
+
+Every run in this table is intentionally non-comparable with the preserved
+failed family because the transition semantics changed. Generated artifacts are
+retained under `results/gate4_corrective/` and remain ignored by Git.
+
+| Experiment | Commit / configuration | Seed and budget | Runtime | Result and interpretation |
+|---|---|---:|---:|---|
+| C00c deterministic scan | `3f437e3f711d0478f036d3e5656fcc8df81f1ba6`; corrected native G1; sinusoidal action amplitude `0.02`; CUDA; clean checkout | seed 1707; 1,000 control steps | 41.19 s | All state and observations were finite. The untrained diagnostic first terminated at step 74 and ended at pelvis height `0.1323 m`; this passes deterministic pipeline execution only and is negative behavior evidence. |
+| C01 PPO integration | same clean commit; `ppo_g1_smoke`; 16 environments; randomized reset and observation noise; 32x32 networks | seed 0; 1,024 requested/actual steps | 280.03 s | Emitted both callbacks and `run_end`, wrote restorable checkpoints 0 and 1,024, and improved training-side return `-4.8356 -> -2.8073` with length `42.25 -> 43.75`. KL was `3.3128`, so the change is not learning evidence; C01 validates only training/checkpoint/provenance plumbing. |
+| C01 fixed-command restore | checkpoint 1,024 versus its checkpoint-0 network and standing control; all eight command axes; nominal reset seed 2000; 64 steps (`1.28 s`) | 24 episodes | about 3.5 min external wall time | Both checkpoints restored and every value was finite. Trained/untrained/standing linear-vector RMSE was `0.5452/0.5476/0.6149`; yaw RMSE was `1.7945/1.9813/0.1697`; trained fall rate was `0.125` and success was `0`. This is the expected negative result for a tiny random policy and proves the evaluator path, not locomotion. |
+
+C02 is predeclared as a nominal-reset, noise-free, 262,144-step corrective PPO
+diagnostic (Brax rounds this to 286,720 actual environment steps). It may scale
+only if metrics stay finite, PPO KL is not grossly unstable, episode length and
+tracking improve beyond controls, and a fixed-command rollout shows plausible
+balance/alternating support rather than leaning, hopping, or contact abuse.
 
 ## Principal reproduction commands
 

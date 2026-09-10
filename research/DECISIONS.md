@@ -310,6 +310,24 @@ configurations could reconstruct versions from later evaluation, but did not
 carry a complete timestamped per-run hardware/source manifest; new training
 runs must do so before any learning evidence is accepted.
 
+## D-026 -- Require a bounded corrected-learning diagnostic before scaling
+
+**Decision:** Treat C00/C01 as pipeline checks only, then run one noise-free,
+nominal-reset C02 diagnostic with the Playground-aligned PPO optimizer/network
+profile. The requested 262,144 steps resolve to 286,720 actual environment
+steps under Brax epoch rounding (`4` post-initial evaluation epochs, `7`
+training iterations per epoch, and `10,240` environment steps per iteration).
+Do not increase the budget unless C02 is finite, has controlled KL, improves
+episode length/tracking, and shows plausible support transitions in a
+fixed-command rollout. Record exact commands and elapsed time in all future
+evaluation summaries as well as training manifests.
+
+**Evidence:** C01 completed its exact 1,024-step checkpoint path on CUDA from a
+clean commit, but its final KL was `3.3128` and its held-command policy had zero
+episode successes and yaw RMSE `1.7945`, far worse than standing (`0.1697`).
+Those values correctly reject C01 as learning evidence while establishing that
+checkpoint serialization and evaluation work before more compute is used.
+
 ## Gate status
 
 - Gate 0: **passed 2026-09-08**. Clean install, dependency check, local logger tests, secret-pattern scan, and both loader modes passed; revisions/licenses are recorded in `research/SOURCE_LEDGER.md`.

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+from datetime import datetime, timezone
 import functools
 import importlib.metadata
 import json
@@ -16,6 +17,7 @@ from pathlib import Path
 import platform
 import subprocess
 import sys
+import time
 from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -52,6 +54,13 @@ COMMANDS: tuple[tuple[str, tuple[float, float, float]], ...] = (
 )
 
 _MEDIAPY_FFMPEG_SOURCE: str | None = None
+ORIGINAL_ARGV = tuple(sys.argv)
+
+
+def _utc_timestamp() -> str:
+    """Return an unambiguous UTC timestamp for evaluation provenance."""
+
+    return datetime.now(timezone.utc).isoformat()
 
 
 def parse_args() -> argparse.Namespace:
@@ -596,6 +605,8 @@ def _write_video(
 
 
 def main() -> None:
+    started_at_utc = _utc_timestamp()
+    started_monotonic = time.perf_counter()
     args = parse_args()
     if args.steps <= 0:
         raise ValueError("--steps must be positive")
@@ -717,6 +728,8 @@ def main() -> None:
 
     result = {
         "kind": "gate4_fixed_held_out_velocity_evaluation",
+        "command": list(ORIGINAL_ARGV),
+        "started_at_utc": started_at_utc,
         "run_dir": str(run_dir),
         "trained_checkpoint": checkpoint,
         "untrained_checkpoint": args.untrained_checkpoint,
@@ -744,6 +757,8 @@ def main() -> None:
             for name in ("mujoco", "jax", "jaxlib", "brax")
         },
     }
+    result["ended_at_utc"] = _utc_timestamp()
+    result["wall_time_seconds"] = time.perf_counter() - started_monotonic
     json_path = output_dir / "summary.json"
     json_path.write_text(
         json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8"
