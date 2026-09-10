@@ -328,6 +328,35 @@ episode successes and yaw RMSE `1.7945`, far worse than standing (`0.1697`).
 Those values correctly reject C01 as learning evidence while establishing that
 checkpoint serialization and evaluation work before more compute is used.
 
+## D-027 -- Escalate to a thin pinned Playground runtime adapter
+
+**Decision:** Do not scale the corrected native configuration after C02. Add a
+separately registered `unitree_g1_playground` environment that loads only the
+exact G1/mjx/wrapper modules from Playground commit `8a4b464...`, points them
+at the existing Menagerie resolver checkout, and uses Playground's feet-only
+MJX model, Euler/PD dynamics, reward scales, observation layout, contact
+sensors, and Brax training wrapper. No robot XML, mesh, or texture is copied
+into tracked source. Keep the native `unitree_g1` implementation and every
+failed checkpoint intact.
+
+Apply only narrow correctness adaptations around the authoritative task:
+functional `info`/`metrics` dictionaries; normalized-action clipping; full
+finite-state termination; synchronized returned command, prior-action, phase,
+and critic air-time slices; and an optional nominal-reset diagnostic mode. The
+reward for a transition remains the upstream reward computed before next-state
+history changes. Resolve and record both upstream revisions independently.
+
+**Evidence:** C02 was finite and its optimizer stabilized, but after 286,720
+steps all eight fixed-command rollouts still fell in about `1.54 s`, yaw RMSE
+regressed against both controls, single support was only `2.1%`, and the video
+showed planted feet followed by a sideways collapse. This fails D-026's gait
+and survival requirements. The adapter's pre-training tests load the official
+`36/35/29`, 72-geom, 5-pair, 29-sensor model; a jitted CUDA reset and step are
+finite and return observations consistent with next-state metadata. The
+Playground overlay consumes the already-pinned Menagerie asset directory; mesh
+files are byte-identical across Playground's expected Menagerie revision and
+the repository pin, as recorded in D-022.
+
 ## Gate status
 
 - Gate 0: **passed 2026-09-08**. Clean install, dependency check, local logger tests, secret-pattern scan, and both loader modes passed; revisions/licenses are recorded in `research/SOURCE_LEDGER.md`.

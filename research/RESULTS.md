@@ -20,12 +20,20 @@ retained under `results/gate4_corrective/` and remain ignored by Git.
 | C00c deterministic scan | `3f437e3f711d0478f036d3e5656fcc8df81f1ba6`; corrected native G1; sinusoidal action amplitude `0.02`; CUDA; clean checkout | seed 1707; 1,000 control steps | 41.19 s | All state and observations were finite. The untrained diagnostic first terminated at step 74 and ended at pelvis height `0.1323 m`; this passes deterministic pipeline execution only and is negative behavior evidence. |
 | C01 PPO integration | same clean commit; `ppo_g1_smoke`; 16 environments; randomized reset and observation noise; 32x32 networks | seed 0; 1,024 requested/actual steps | 280.03 s | Emitted both callbacks and `run_end`, wrote restorable checkpoints 0 and 1,024, and improved training-side return `-4.8356 -> -2.8073` with length `42.25 -> 43.75`. KL was `3.3128`, so the change is not learning evidence; C01 validates only training/checkpoint/provenance plumbing. |
 | C01 fixed-command restore | checkpoint 1,024 versus its checkpoint-0 network and standing control; all eight command axes; nominal reset seed 2000; 64 steps (`1.28 s`) | 24 episodes | about 3.5 min external wall time | Both checkpoints restored and every value was finite. Trained/untrained/standing linear-vector RMSE was `0.5452/0.5476/0.6149`; yaw RMSE was `1.7945/1.9813/0.1697`; trained fall rate was `0.125` and success was `0`. This is the expected negative result for a tiny random policy and proves the evaluator path, not locomotion. |
+| C02 native corrected-learning diagnostic | `8a7fce5c0635a602d9b2f1af2b48bf49f0b7c475`; `ppo_g1_corrective`; nominal reset; no observation noise/push/domain randomization; 512 environments; clean checkout | seed 0; 262,144 requested, 286,720 actual | 805.62 s | Training-side return rose `0.3319 -> 0.9259`, final KL was `0.03973`, and length rose only `72.0 -> 75.41` steps; every evaluation episode still terminated. The fixed-command result below falsified the hypothesis that this corrected native configuration already had a plausible gait signal. |
+| C02 fixed-command/video diagnosis | checkpoint 286,720 versus checkpoint 0 and standing; eight commands; nominal reset seed 2000; 200-step (`4 s`) request; videos enabled | 24 episodes | 322.44 s | All controllers fell. Trained/untrained/standing duration was `1.535/1.440/1.440 s`, linear-vector RMSE `0.9074/0.9224/0.9265`, and yaw RMSE `0.3727/0.2905/0.1704`. The trained policy spent `95.8%` in double support and only `2.1%` in single support, with `2.4%` non-foot-ground contact. Video frames show no step: it remains planted, leans, and collapses sideways. C02 is retained as a finite but failed native diagnostic. |
 
-C02 is predeclared as a nominal-reset, noise-free, 262,144-step corrective PPO
-diagnostic (Brax rounds this to 286,720 actual environment steps). It may scale
-only if metrics stay finite, PPO KL is not grossly unstable, episode length and
-tracking improve beyond controls, and a fixed-command rollout shows plausible
-balance/alternating support rather than leaning, hopping, or contact abuse.
+C02 failed its predeclared scale-up rule, so the native profile will not be
+scaled unchanged. C03 is predeclared as a 1,024-step training/checkpoint smoke
+of the thin pinned Playground adapter; it is plumbing evidence only. If that
+passes, the next bounded learning diagnostic will use the authoritative
+feet-only scene, dynamics, reward scales, and Brax wrapper with the same
+observation-timing corrections tested before training.
+
+C02 quantitative evidence and videos are under
+`results/gate4_corrective/C02_nominal_noisefree_seed0_262144/evaluation/checkpoint_286720_nominal_seed2000_200/`.
+The three `*_combined_seed2000.mp4` files decode successfully; review montages
+at frames 0/10/20/35 are retained in its `frame_montages/` subdirectory.
 
 ## Principal reproduction commands
 
