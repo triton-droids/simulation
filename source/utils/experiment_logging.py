@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Protocol
 
@@ -32,6 +33,12 @@ def _json_value(value: Any) -> Any:
     return value
 
 
+def _utc_timestamp() -> str:
+    """Return an unambiguous UTC timestamp for a durable run event."""
+
+    return datetime.now(timezone.utc).isoformat()
+
+
 class NullLogger:
     """No-op logger used by tests and explicitly logging-disabled runs."""
 
@@ -52,7 +59,8 @@ class JsonlLogger:
         self._write({"event": "run_start", "run_name": run_name, "config": config})
 
     def _write(self, payload: Mapping[str, Any]) -> None:
-        self._stream.write(json.dumps(_json_value(payload), sort_keys=True) + "\n")
+        event = {"timestamp_utc": _utc_timestamp(), **payload}
+        self._stream.write(json.dumps(_json_value(event), sort_keys=True) + "\n")
         self._stream.flush()
 
     def log(self, metrics: Mapping[str, Any], step: int) -> None:

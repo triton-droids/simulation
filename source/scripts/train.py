@@ -7,9 +7,15 @@ Hydra configuration, and policy checkpoint handling.
 """
 
 import argparse
+from datetime import datetime, timezone
+import importlib.metadata
 import os
 from pathlib import Path
+import platform
+import subprocess
 import sys
+
+ORIGINAL_ARGV = tuple(sys.argv)
 
 # JAX reads allocator and XLA settings during backend initialization, so set
 # them before the first JAX import. This matters on the 8 GiB target GPU.
@@ -106,6 +112,85 @@ warnings.filterwarnings("ignore", category=DeprecationWarning, module="jax")
 warnings.filterwarnings("ignore", category=UserWarning, module="absl")
 # Supress Hydra warnings
 warnings.filterwarnings("ignore", category=UserWarning)
+
+
+def _utc_timestamp() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _git_record() -> dict[str, object]:
+    """Return semantic Git state without WSL/Windows CRLF false positives."""
+
+    def git(*args: str) -> str:
+        return subprocess.run(
+            ["git", "-c", "core.autocrlf=true", *args],
+            cwd=PROJECT_ROOT,
+            check=True,
+            text=True,
+            capture_output=True,
+        ).stdout.strip()
+
+    try:
+        return {
+            "available": True,
+            "commit": git("rev-parse", "HEAD"),
+            "branch": git("branch", "--show-current"),
+            "dirty": bool(git("status", "--porcelain")),
+        }
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return {"available": False, "commit": None, "branch": None, "dirty": None}
+
+
+def _gpu_record() -> list[str]:
+    try:
+        output = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=name,driver_version,memory.total",
+                "--format=csv,noheader,nounits",
+            ],
+            check=True,
+            text=True,
+            capture_output=True,
+        ).stdout.strip()
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return []
+    return [line.strip() for line in output.splitlines() if line.strip()]
+
+
+def _runtime_manifest() -> dict[str, object]:
+    packages = (
+        "brax",
+        "flax",
+        "hydra-core",
+        "jax",
+        "jaxlib",
+        "mujoco",
+        "omegaconf",
+        "orbax-checkpoint",
+    )
+    return {
+        "started_at_utc": _utc_timestamp(),
+        "command": list(ORIGINAL_ARGV),
+        "project_root": str(PROJECT_ROOT),
+        "git": _git_record(),
+        "platform": platform.platform(),
+        "python": platform.python_version(),
+        "jax_backend": jax.default_backend(),
+        "jax_devices": [str(device) for device in jax.devices()],
+        "gpu": _gpu_record(),
+        "packages": {name: importlib.metadata.version(name) for name in packages},
+        "environment": {
+            name: os.environ.get(name)
+            for name in (
+                "JAX_COMPILATION_CACHE_DIR",
+                "JAX_DEFAULT_MATMUL_PRECISION",
+                "MUJOCO_GL",
+                "XLA_FLAGS",
+                "XLA_PYTHON_CLIENT_PREALLOCATE",
+            )
+        },
+    }
 
 
 @hydra.main(config_path="../config", config_name="config")
@@ -229,6 +314,11 @@ def main(cfg: DictConfig):
     else:
         with open(logdir.parent / Path(robot.name + ".xml"), "w") as f:
             f.write(robot.xml)
+
+    manifest_path = Path(logdir.parent) / "run_manifest.json"
+    run_manifest = _runtime_manifest()
+    with manifest_path.open("w", encoding="utf-8") as f:
+        json.dump(run_manifest, f, indent=2, sort_keys=True)
 
     print("=" * 100)
 
@@ -363,6 +453,17 @@ def main(cfg: DictConfig):
         print("No PPO progress callback was emitted.")
     print(f"best checkpoint step: {best_ckpt_step}")
     print(f"best episode reward: {best_episode_reward}")
+
+    run_manifest.update(
+        {
+            "ended_at_utc": _utc_timestamp(),
+            "wall_time_seconds": time.time() - times[0],
+            "best_checkpoint_step": best_ckpt_step,
+            "best_episode_reward": best_episode_reward,
+        }
+    )
+    with manifest_path.open("w", encoding="utf-8") as f:
+        json.dump(run_manifest, f, indent=2, sort_keys=True)
 
 
     if args_cli.video and best_ckpt_step:

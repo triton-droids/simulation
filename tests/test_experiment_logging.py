@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import builtins
+from datetime import datetime
 import json
 
 from source.utils.experiment_logging import create_metric_logger
@@ -28,6 +29,7 @@ def test_local_logger_writes_jsonl_without_importing_wandb(tmp_path, monkeypatch
 
     records = [json.loads(line) for line in (tmp_path / "metrics.jsonl").read_text().splitlines()]
     assert [record["event"] for record in records] == ["run_start", "metrics", "run_end"]
+    assert all(datetime.fromisoformat(record["timestamp_utc"]) for record in records)
     assert records[1]["step"] == 3
     assert records[1]["metrics"]["reward"] == 1.25
 

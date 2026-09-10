@@ -104,7 +104,7 @@ def _best_logged_checkpoint(run_dir: Path) -> int:
 def _git_record() -> dict[str, object]:
     def git(*args: str) -> str:
         return subprocess.run(
-            ["git", *args],
+            ["git", "-c", "core.autocrlf=true", *args],
             cwd=PROJECT_ROOT,
             check=True,
             text=True,

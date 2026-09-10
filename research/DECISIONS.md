@@ -294,6 +294,22 @@ profile. Those differences are too large to attribute the result solely to
 environment bugs. Keeping both names makes old run manifests reproducible and
 prevents post-result configuration drift.
 
+## D-025 -- Normalize cross-platform Git provenance and persist run manifests
+
+**Decision:** Query Git with `core.autocrlf=true` for run provenance, timestamp
+every local JSONL event in UTC, and write a per-run manifest containing the
+exact command, Git state, Python/package versions, platform, JAX backend and
+devices, GPU/driver/memory, and relevant runtime environment variables.
+
+**Evidence:** Two otherwise identical clean-checkout deterministic scans were
+recorded as dirty because WSL Git interpreted the Windows CRLF worktree as 35
+whole-file modifications, while Windows Git correctly reported clean and
+`git diff --ignore-space-at-eol` was empty. `git -c core.autocrlf=true status`
+is clean on the same checkout and still reports semantic edits. Prior run
+configurations could reconstruct versions from later evaluation, but did not
+carry a complete timestamped per-run hardware/source manifest; new training
+runs must do so before any learning evidence is accepted.
+
 ## Gate status
 
 - Gate 0: **passed 2026-09-08**. Clean install, dependency check, local logger tests, secret-pattern scan, and both loader modes passed; revisions/licenses are recorded in `research/SOURCE_LEDGER.md`.

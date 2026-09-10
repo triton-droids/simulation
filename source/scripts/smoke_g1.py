@@ -29,7 +29,7 @@ from source.robots.unitree_g1 import UnitreeG1Model
 def _git_record() -> dict[str, object]:
     def git(*args: str) -> str:
         return subprocess.run(
-            ["git", *args],
+            ["git", "-c", "core.autocrlf=true", *args],
             cwd=PROJECT_ROOT,
             check=True,
             text=True,
