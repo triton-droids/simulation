@@ -13,7 +13,7 @@ def get_rollout(policy_path, env, make_networks_factory, num_steps):
     Get a rollout from the policy
     """
     ppo_network = make_networks_factory(
-        env.obs_size, env.action_size
+        env.observation_size, env.action_size
     )
     make_policy = ppo_networks.make_inference_fn(ppo_network)
     params = model.load_params(policy_path)

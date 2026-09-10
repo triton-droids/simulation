@@ -1,18 +1,19 @@
-# Core dependency for the beginner Unitree G1 loading workflow.
-mujoco
-
-# Dependencies imported by the existing MJX/Brax PPO training, playback, and
-# rendering code. These are intentionally not pinned yet because the repository
-# did not previously define validated compatible versions.
-jax
-brax
-hydra-core
-omegaconf
-orbax-checkpoint
-flax
-wandb
-mediapy
-moviepy
-opencv-python
-matplotlib
-scipy
+# Validated on Python 3.12.7 and Windows 11 during Gate 0 (2026-09-08).
+# Linux GPU training may replace the CPU jaxlib wheel after this install with:
+#   python -m pip install --upgrade "jax[cuda12]==0.11.0"
+mujoco==3.10.0
+jax==0.11.0
+jaxlib==0.11.0
+brax==0.14.2
+hydra-core==1.3.4
+omegaconf==2.3.1
+orbax-checkpoint==0.12.1
+flax==0.12.8
+wandb==0.28.1
+mediapy==1.2.7
+imageio-ffmpeg==0.6.0
+moviepy==2.2.1
+opencv-python==5.0.0.93
+matplotlib==3.11.1
+scipy==1.18.0
+pytest==8.4.2

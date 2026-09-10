@@ -11,6 +11,18 @@ import os
 from pathlib import Path
 import sys
 
+# JAX reads allocator and XLA settings during backend initialization, so set
+# them before the first JAX import. This matters on the 8 GiB target GPU.
+xla_flags = os.environ.get("XLA_FLAGS", "")
+xla_flags += " --xla_gpu_triton_gemm_any=True"
+os.environ["XLA_FLAGS"] = xla_flags
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+os.environ["MUJOCO_GL"] = "egl"
+os.environ.setdefault(
+    "JAX_COMPILATION_CACHE_DIR",
+    str(Path(__file__).resolve().parents[2] / ".cache" / "jax_compilation_cache"),
+)
+
 # Make `source.*` imports work when this file is launched directly from an IDE
 # or with `python source/scripts/train.py` from the repository root.
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -19,6 +31,9 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from source.scripts import cli_args
 import jax
+from source.utils.jax_compat import install_brax_pmap_compatibility
+
+install_brax_pmap_compatibility()
 
 
 # Collect the command-line flags that should be handled before Hydra reads the
@@ -29,6 +44,12 @@ parser.add_argument("--video_length", type=int, default=200, help="Length of the
 parser.add_argument("--video_interval", type=int, default=2000, help="Interval between video recordings (in steps).")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
+parser.add_argument(
+    "--logger",
+    choices=("local", "none", "wandb-offline", "wandb"),
+    default="local",
+    help="Metrics backend. The default writes JSONL locally and needs no credentials.",
+)
 
 cli_args.add_rl_args(parser)
 
@@ -63,16 +84,11 @@ from flax.training import orbax_utils
 
 from source.config.config import Config 
 from source.tools.rollouts import save_rollout
-from source.robots.robot import Robot
+from source.robots import make_robot
 from source.randomize import domain_randomize
-import wandb
-
-#Let's actually understand these flags?
-xla_flags = os.environ.get("XLA_FLAGS", "")
-xla_flags += " --xla_gpu_triton_gemm_any=True"
-os.environ["XLA_FLAGS"] = xla_flags
-os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-os.environ["MUJOCO_GL"] = "egl"
+from source.utils.experiment_logging import create_metric_logger
+from source.utils.checkpoints import inference_params_from_training_params
+from source.utils.ppo_config import trainer_runtime_controls
 
 # Ignore the info logs from brax
 logging.set_verbosity(logging.WARNING)
@@ -94,7 +110,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 @hydra.main(config_path="../config", config_name="config")
 def main(cfg: DictConfig):
-    """Train or resume a PPO policy using the configured locomotion task.
+    """Train or parameter-warm-start a PPO policy for the configured task.
 
     Args:
         cfg: Hydra configuration containing robot, environment, simulator, and
@@ -103,11 +119,14 @@ def main(cfg: DictConfig):
     Side effects:
         Creates local `logs/` and optional `results/` folders, writes copied
         training and robot configs, logs to Weights & Biases, and saves policy
-        checkpoints.
+        checkpoints. The pinned Brax restore interface reloads normalizer,
+        policy, and value parameters but not optimizer/step/PRNG state. W&B is
+        used only when explicitly selected with
+        ``--logger wandb`` or ``--logger wandb-offline``.
 
     Failure cases:
         Missing dependencies, invalid robot/config names, unavailable GPU/JAX
-        backends, or missing resume checkpoints will stop training before a
+        backends, or missing warm-start checkpoints will stop training before a
         policy is produced.
     """
 
@@ -117,28 +136,34 @@ def main(cfg: DictConfig):
     robot_config_path = None
     if args_cli.resume:
         checkpoint_path = epath.Path(args_cli.checkpoint).resolve()
-        print(f"Restoring from checkpoint: {checkpoint_path}") 
+        print(f"Warm-starting parameters from checkpoint: {checkpoint_path}")
 
         run_dir = checkpoint_path
         while run_dir.name != "logs" and run_dir != run_dir.parent:
             run_dir = run_dir.parent
         run_dir = run_dir.parent
         
-        robot_config_path = run_dir / "robot_config.json"
-        robot_xml_path = str(run_dir / (cfg.robot.name + ".xml"))
+        if cfg.robot.name == "default_humanoid_legs":
+            robot_config_path = run_dir / "robot_config.json"
+            robot_xml_path = str(run_dir / (cfg.robot.name + ".xml"))
 
         print("Successfully loaded configuration from previous run")
 
     else:
         print("No checkpoint provided. Training from scratch.")
 
-    robot = Robot(robot_name=cfg.robot.name, 
-                  config_path=robot_config_path,
-                  xml_path=robot_xml_path)
+    robot = make_robot(
+        cfg.robot,
+        config_path=robot_config_path,
+        xml_path=robot_xml_path,
+    )
 
     EnvClass = get_env_class(cfg.env.name)
     env_cfg = cfg.sim
     train_cfg = cfg.agent
+    if args_cli.seed is not None:
+        train_cfg.seed = args_cli.seed
+        cfg.seed = args_cli.seed
 
     
     env = EnvClass(
@@ -189,20 +214,30 @@ def main(cfg: DictConfig):
     with open(logdir.parent / "train_config.json", "w") as f:
         json.dump(OmegaConf.to_container(train_cfg), f, indent=4)
 
+    with open(logdir.parent / "resolved_config.json", "w") as f:
+        json.dump(OmegaConf.to_container(cfg, resolve=True), f, indent=4)
+
     #Save robot configuration
     with open(logdir.parent / "robot_config.json", "w") as f:
         json.dump(robot.model_config, f, indent=4)
     
-    #Save robot xml
-    with open(logdir.parent / Path(robot.name + ".xml"), "w") as f:
-        f.write(robot.xml)
+    if hasattr(robot, "source_record"):
+        # An include-based external model is reconstructed from provenance;
+        # copying its top-level XML would not create a self-contained asset.
+        with open(logdir.parent / "robot_source.json", "w") as f:
+            json.dump(robot.source_record, f, indent=4)
+    else:
+        with open(logdir.parent / Path(robot.name + ".xml"), "w") as f:
+            f.write(robot.xml)
 
     print("=" * 100)
 
-    wandb.init(
+    metric_logger = create_metric_logger(
+        mode=args_cli.logger,
+        output_dir=Path(logdir),
+        run_name=run_name,
         project=args_cli.log_project_name,
-        name=run_name,
-        config=OmegaConf.to_container(train_cfg)
+        config=OmegaConf.to_container(cfg, resolve=True),
     )
     print("=" * 100)
 
@@ -219,13 +254,14 @@ def main(cfg: DictConfig):
         """
 
         # Save both the Orbax checkpoint and the smaller policy params used by
-        # playback so training output can be resumed or inspected later.
+        # playback so a policy can be inspected or parameter-warm-started.
+        # Brax 0.14.2 does not restore optimizer, step, or PRNG state here.
         orbax_checkpointer = ocp.PyTreeCheckpointer()
         save_args = orbax_utils.save_args_from_target(params)
         path = os.path.abspath(os.path.join(ckpt_path, f"{current_step}"))        
         orbax_checkpointer.save(path, params, force=True, save_args=save_args)
         policy_path = os.path.join(path, "policy")
-        model.save_params(policy_path, (params[0], params[1].policy))
+        model.save_params(policy_path, inference_params_from_training_params(params))
 
 
     domain_randomize_fn = None
@@ -256,6 +292,13 @@ def main(cfg: DictConfig):
         num_envs=train_cfg.num_envs,
         batch_size=train_cfg.batch_size,
         seed=train_cfg.seed,
+        num_resets_per_eval=train_cfg.num_resets_per_eval,
+        num_eval_envs=train_cfg.num_eval_envs,
+        deterministic_eval=train_cfg.deterministic_eval,
+        reward_scaling=train_cfg.reward_scaling,
+        gae_lambda=train_cfg.gae_lambda,
+        use_pmap_on_reset=train_cfg.use_pmap_on_reset,
+        **trainer_runtime_controls(train_cfg),
         network_factory=make_networks_factory,
         randomization_fn=domain_randomize_fn,
         policy_params_fn=policy_params_fn,
@@ -278,14 +321,14 @@ def main(cfg: DictConfig):
             metrics: Evaluation and training metrics reported by Brax.
 
         Side effects:
-            Logs metrics to Weights & Biases and may write rollout videos when
-            video capture is enabled.
+            Logs metrics to the explicitly selected backend and may write
+            rollout videos when video capture is enabled.
         """
 
         nonlocal best_episode_reward, best_ckpt_step, last_ckpt_step, last_video_step
 
         times.append(time.time())
-        wandb.log(metrics, step=num_steps)
+        metric_logger.log(metrics, step=num_steps)
 
         if args_cli.video and last_ckpt_step != 0 and (num_steps - last_video_step >= args_cli.video_interval):
             print(f"Saving rollout at step {last_ckpt_step}")
@@ -304,23 +347,29 @@ def main(cfg: DictConfig):
         print(f"{num_steps}: {metrics['eval/episode_reward']}")
     
     try:
-        make_policy, params, _ = train_fn(
-            environment=env, eval_env=eval_env, progress_fn=progress
-        )
-    except KeyboardInterrupt:
-        pass
+        try:
+            make_policy, params, _ = train_fn(
+                environment=env, eval_env=eval_env, progress_fn=progress
+            )
+        except KeyboardInterrupt:
+            pass
+    finally:
+        metric_logger.close()
 
-    print(f"time to jit: {times[1] - times[0]}")
-    print(f"time to train: {times[-1] - times[1]}")
+    if len(times) > 1:
+        print(f"time to first progress callback: {times[1] - times[0]}")
+        print(f"time after first callback: {times[-1] - times[1]}")
+    else:
+        print("No PPO progress callback was emitted.")
     print(f"best checkpoint step: {best_ckpt_step}")
     print(f"best episode reward: {best_episode_reward}")
 
 
-    #Save best rollout
-    print(f"Saving rollout for best checkpoint")
-    best_ckpt_path = os.path.join(logdir.parent, f"best_policy-{best_ckpt_step}")
-    best_policy_path = os.path.join(logdir, "checkpoints", f"{best_ckpt_step}", "policy")
-    save_rollout(best_ckpt_path, best_policy_path, test_env, make_networks_factory, 1000)
+    if args_cli.video and best_ckpt_step:
+        print("Saving rollout for best checkpoint")
+        best_ckpt_path = os.path.join(logdir.parent, f"best_policy-{best_ckpt_step}")
+        best_policy_path = os.path.join(logdir, "checkpoints", f"{best_ckpt_step}", "policy")
+        save_rollout(best_ckpt_path, best_policy_path, test_env, make_networks_factory, 1000)
 
 if __name__ == "__main__":
     main()

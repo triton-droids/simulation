@@ -1,10 +1,9 @@
 """Top-level Hydra config dataclass tying robot, environment, agent, and sim defaults together."""
 
 from dataclasses import dataclass, field
-from source.config.envs import HumanoidLegsEnv
-from source.config.agents import PPOConfig
-from source.config.robots import DefaultHumanoidLegsRobot
-from source.config.sim import MJXConfig
+from typing import Any
+
+from omegaconf import MISSING
 
 @dataclass
 class Config:
@@ -14,10 +13,19 @@ class Config:
     seed settings that the training entry point receives as one config tree.
     """
 
-    task: str = "locomotion" 
-    env: object = field(default_factory=HumanoidLegsEnv)
-    agent: object = field(default_factory=PPOConfig)
-    robot: object = field(default_factory=DefaultHumanoidLegsRobot)
-    sim: object = field(default_factory=MJXConfig)
+    defaults: list[Any] = field(
+        default_factory=lambda: [
+            "_self_",
+            {"env": "default_humanoid_legs"},
+            {"agent": "ppo"},
+            {"robot": "humanoid_legs"},
+            {"sim": "mjx"},
+        ]
+    )
+    task: str = "locomotion"
+    env: Any = MISSING
+    agent: Any = MISSING
+    robot: Any = MISSING
+    sim: Any = MISSING
     seed: int = 42
 

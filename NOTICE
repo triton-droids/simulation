@@ -8,3 +8,8 @@ Portions of this software were developed by Triton Droids at the University of
 California, San Diego.
 
 This software contains code derived from Google Deepmind.
+
+The Unitree G1 locomotion task design adapts behavior from MuJoCo Playground,
+Copyright Google LLC, licensed under the Apache License, Version 2.0. The exact
+upstream revision and adaptation boundaries are recorded in
+research/SOURCE_LEDGER.md.

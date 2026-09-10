@@ -30,6 +30,7 @@ EXCLUDED_DIR_NAMES = {
     "exports",
     "logs",
     "mujoco_menagerie",
+    "outputs",
     "results",
     "venv",
     "wandb",
@@ -179,7 +180,17 @@ def iter_export_files(root: Path, output_path: Path) -> list[Path]:
 
     included_files: list[Path] = []
     for path in root.rglob("*"):
-        if path.is_file() and should_include_file(path, root, output_path):
+        relative_path = path.relative_to(root)
+        # Check the lexical parent before statting.  Some local environments
+        # contain platform-specific or inaccessible links (for example a WSL
+        # venv's lib64 link viewed from Windows) inside excluded cache trees.
+        if has_excluded_parent(relative_path):
+            continue
+        try:
+            is_file = path.is_file()
+        except OSError:
+            continue
+        if is_file and should_include_file(path, root, output_path):
             included_files.append(path)
     return sorted(included_files)
 

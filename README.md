@@ -19,6 +19,15 @@
 The first run downloads the pinned public Unitree G1 model automatically into a
 hidden local cache. MuJoCo should open and display the robot.
 
+## Research status
+
+The separate G1 environment, deterministic MJX smoke path, local PPO workflow,
+and three-seed Gate 4 evaluation are implemented. The frozen Gate 4 family did
+**not** produce a verified locomotion baseline: yaw tracking was worse than both
+controls and every held-out rollout fell. See
+[`research/RESULTS.md`](research/RESULTS.md) for exact metrics, artifacts,
+limitations, and the recommendation to stop before HOMIE Phases 5-7.
+
 ## PyCharm
 
 1. Open the repository.
@@ -63,6 +72,13 @@ Validate without opening the viewer:
 python scripts/load_unitree_g1.py --no-viewer
 ```
 
+Validate the MJX-compatible training scene and deterministic G1 control path:
+
+```bash
+python scripts/load_unitree_g1.py --mjx-scene --no-viewer
+python source/scripts/smoke_g1.py --steps 1000 --seed 7 --no-fetch-model
+```
+
 Show options:
 
 ```bash
@@ -91,14 +107,18 @@ exports/simulation_robocup_export.zip
 
 ```text
 scripts/load_unitree_g1.py  Press Run here to load Unitree G1
+source/scripts/smoke_g1.py  Deterministic G1 reset/step validation
+source/scripts/train.py     Local-first PPO training entry point
+source/scripts/evaluate_g1.py  Fixed-command G1 policy evaluation
 scripts/export_repo_zip.py  Create a clean upload zip
 source/                     Simulator and training internals
+research/                   Source ledger, decisions, experiment plan, results
 requirements.txt            Python dependencies
 README.md                   Setup and basic instructions
 ```
 
-Local generated folders such as `.cache/`, `.venv/`, `venv/`, `exports/`, and
-`__pycache__/` are ignored by Git.
+Local generated folders such as `.cache/`, `.venv/`, `venv/`, `exports/`,
+`outputs/`, `results/`, and `__pycache__/` are ignored by Git.
 
 ## Model Source
 
@@ -119,6 +139,10 @@ Default scene:
 ```text
 unitree_g1/scene.xml
 ```
+
+The beginner viewer defaults to that full scene. G1 smoke, PPO training, and
+policy evaluation use the MJX-compatible `unitree_g1/scene_mjx.xml` from the
+same pinned checkout.
 
 The downloaded model is stored locally at:
 
@@ -144,8 +168,29 @@ That cache is not committed and is excluded from export zips.
 
 The `source/` folder contains the simulator internals: config, locomotion,
 rewards, robot definitions, MuJoCo utilities, MJX helpers, and training/playback
-code. Unitree G1 currently loads in MuJoCo but is not yet integrated with the
-existing locomotion training environment.
+code. Unitree G1 is integrated as the separate
+`source/locomotion/unitree_g1` task; the original 12-actuator
+`default_humanoid_legs` environment remains a regression baseline.
+
+Run the short, credential-free PPO integration profile from the repository
+root:
+
+```bash
+python source/scripts/train.py --logger local --seed 0 env=unitree_g1 robot=unitree_g1 sim=unitree_g1 agent=ppo_g1_smoke hydra.run.dir=results/g1_ppo_smoke hydra.job.chdir=true
+```
+
+That command writes JSONL metrics and restorable checkpoints locally. W&B is
+optional and is never required for basic tests or training. To evaluate its
+final checkpoint on a fixed command/reset trace:
+
+```bash
+python source/scripts/evaluate_g1.py --run-dir results/g1_ppo_smoke --checkpoint 1024 --steps 100 --seeds 2000 --output-dir results/g1_ppo_smoke/evaluation/checkpoint_1024
+```
+
+Native Windows JAX uses CPU on the validated host. Useful long PPO runs use the
+same commands from WSL2 with a CUDA-enabled JAX environment; the exact bounded
+Gate 4 profile and results are recorded in `research/RESULTS.md` and
+`research/EXPERIMENT_PLAN.md`.
 
 Docker, ROS, Isaac Lab, GPU compute, and reinforcement learning are not required
 to load Unitree G1.

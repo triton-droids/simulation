@@ -12,3 +12,11 @@ class HumanoidLegsEnv:
 
     name: str = "default_humanoid_legs"
     terrain: str = "flat"
+
+
+@dataclass
+class UnitreeG1Env:
+    """Unitree G1 flat-ground commanded-velocity task selector."""
+
+    name: str = "unitree_g1"
+    terrain: str = "flat"

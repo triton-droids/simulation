@@ -15,7 +15,7 @@ from brax.training.agents.ppo import networks as ppo_networks
 from etils import epath
 from omegaconf import OmegaConf
 from source.locomotion import get_env_class
-from source.robots.robot import Robot
+from source.robots import make_robot
 from brax.io import model
 import jax
 from moviepy import VideoFileClip, clips_array
@@ -50,8 +50,8 @@ def main():
     env_cfg = config.sim
     agent_cfg = config.agent
 
-    EnvClass = get_env_class('default_humanoid_legs')
-    robot = Robot(config.robot.name)
+    EnvClass = get_env_class(config.env.name)
+    robot = make_robot(config.robot)
     env = EnvClass(
         config.robot.name,
         robot,
@@ -62,10 +62,12 @@ def main():
         ppo_networks.make_ppo_networks,
         policy_hidden_layer_sizes=agent_cfg.policy_hidden_layer_sizes,
         value_hidden_layer_sizes=agent_cfg.value_hidden_layer_sizes,
+        policy_obs_key="state",
+        value_obs_key="privileged_state",
     )
    
     ppo_network = make_networks_factory(
-        env.obs_size, env.action_size
+        env.observation_size, env.action_size
     )
 
     make_policy = ppo_networks.make_inference_fn(ppo_network)

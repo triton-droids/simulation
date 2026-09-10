@@ -16,8 +16,10 @@ mujoco_menagerie/
 # Generated outputs
 exports/
 logs/
+outputs/
 results/
 wandb/
+runs/
 
 # Python/tool caches
 __pycache__/

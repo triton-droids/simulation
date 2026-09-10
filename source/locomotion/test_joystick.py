@@ -1,5 +1,13 @@
 """Manual MJX environment smoke test for the default humanoid legs task."""
 
+from pathlib import Path
+import sys
+
+# Support both ``python -m source.locomotion.test_joystick`` and direct IDE use.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 import jax
 import jax.numpy as jnp
 from jax import disable_jit
@@ -56,10 +64,10 @@ def main(cfg):
         state = env.step(state, action)
 
         print("\nPost-Step Position:")
-        print(state.q)
+        print(state.pipeline_state.q)
 
         print("\nVelocity:")
-        print(state.qd)
+        print(state.pipeline_state.qd)
 
         print("\nReward:", state.reward)
         print("Done:", state.done)

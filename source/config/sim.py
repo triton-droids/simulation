@@ -25,7 +25,9 @@ class MJXConfig:
         frame_stack: int = 15
         c_frame_stack: int = 15
         num_single_obs: int = 52
-        num_single_privileged_obs: int = 88
+        # 52 policy values plus 60 clean/privileged values. Keep this explicit:
+        # the default task is intentionally still a 12-actuator regression target.
+        num_single_privileged_obs: int = 112
 
     @dataclass
     class ActionConfig:

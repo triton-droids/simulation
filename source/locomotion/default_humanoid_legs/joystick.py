@@ -264,27 +264,8 @@ class Joystick(DefaultHumanoidEnv):
 
     def step(self, state: State, action: jax.Array) -> State:
         """ Performs a step in the environment"""
-        
-        
-        state.info["rng"], push1_rng, push2_rng = jax.random.split(
-            state.info["rng"], 3
-        )
-        push_theta = jax.random.uniform(push1_rng, maxval=2 * jp.pi)
-        push_magnitude = jax.random.uniform(
-            push2_rng,
-            minval=self.push_magnitude_range[0],
-            maxval=self.push_magnitude_range[1],
-        )
-        push = jp.array([jp.cos(push_theta), jp.sin(push_theta)])
-        push *= (
-            jp.mod(state.info["push_step"] + 1, state.info["push_interval_steps"])
-            == 0
-        )
-        push *= self.add_push
-        qvel = state.pipeline_state.qd
-        qvel = qvel.at[:2].set(push * push_magnitude + qvel[:2])
-        state.tree_replace({"pipeline_state.qd": qvel})
 
+        state, push = self._apply_scheduled_push(state)
 
         motor_targets = self.default_pose + action * self.cfg.action.action_scale
         pipeline_state = self.pipeline_step(state.pipeline_state, motor_targets)
@@ -298,20 +279,20 @@ class Joystick(DefaultHumanoidEnv):
         state.info["first_contact"] = ((state.info["feet_air_time"] > 0.0) * contact_filt).astype(jp.float32)
         state.info["feet_air_time"] += self.dt
         #check these values
-        p_f = pipeline_state.x.pos[self.feet_link_ids] 
+        p_f = pipeline_state.x.pos[self.feet_link_ids]
         p_fz = p_f[...,-1]
         state.info["swing_peak"] = jp.maximum(state.info["swing_peak"], p_fz)
 
         state.info["feet_air_time"] *= ~contact
-        state.info["last_contact"] = contact.astype(jp.float32)  
+        state.info["last_contact"] = contact.astype(jp.float32)
         state.info["swing_peak"] *= ~contact
-        
+
         obs = self._get_obs(
             pipeline_state,
             state.info,
             state.obs['state'],
             state.obs['privileged_state'],
-        )        
+        )
 
         done = self.get_termination(pipeline_state)
         state.info["done"] = done
@@ -348,6 +329,33 @@ class Joystick(DefaultHumanoidEnv):
             reward = reward,
             done = done.astype(jp.float32),
         )
+
+    def _apply_scheduled_push(self, state: State) -> tuple[State, jax.Array]:
+        """Apply one scheduled planar velocity perturbation immutably.
+
+        This helper exists so the regression suite can verify the perturbation
+        independently of the following physics step.
+        """
+
+        state.info["rng"], push1_rng, push2_rng = jax.random.split(
+            state.info["rng"], 3
+        )
+        push_theta = jax.random.uniform(push1_rng, maxval=2 * jp.pi)
+        push_magnitude = jax.random.uniform(
+            push2_rng,
+            minval=self.push_magnitude_range[0],
+            maxval=self.push_magnitude_range[1],
+        )
+        push = jp.array([jp.cos(push_theta), jp.sin(push_theta)])
+        push *= (
+            jp.mod(state.info["push_step"] + 1, state.info["push_interval_steps"])
+            == 0
+        )
+        push *= self.add_push
+        qvel = state.pipeline_state.qd
+        qvel = qvel.at[:2].set(push * push_magnitude + qvel[:2])
+        pipeline_state = state.pipeline_state.replace(qd=qvel)
+        return state.replace(pipeline_state=pipeline_state), push
     
     def get_termination(self, pipeline_state: base.State) -> jax.Array:
         """Returns a boolean array indicating whether the termination condition is met."""
