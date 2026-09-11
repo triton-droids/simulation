@@ -126,6 +126,43 @@ def test_action_rate_uses_clipped_actions_not_raw_policy_outputs() -> None:
     assert float(cost) == 2.0
 
 
+def test_evaluation_network_reuses_training_observation_normalization() -> None:
+    calls = []
+
+    def factory(observation_size, action_size, **kwargs):
+        calls.append((observation_size, action_size, kwargs))
+        return "network"
+
+    network = evaluate_g1._make_evaluation_network(
+        factory,
+        {"state": 103, "privileged_state": 216},
+        29,
+        normalize_observations=True,
+    )
+
+    assert network == "network"
+    assert calls[0][0] == {"state": 103, "privileged_state": 216}
+    assert calls[0][1] == 29
+    assert (
+        calls[0][2]["preprocess_observations_fn"]
+        is evaluate_g1.running_statistics.normalize
+    )
+
+
+def test_evaluation_network_leaves_preprocessing_disabled_when_training_did() -> None:
+    captured = {}
+
+    def factory(_observation_size, _action_size, **kwargs):
+        captured.update(kwargs)
+        return "network"
+
+    evaluate_g1._make_evaluation_network(
+        factory, 103, 29, normalize_observations=False
+    )
+
+    assert "preprocess_observations_fn" not in captured
+
+
 def test_held_command_is_used_for_reward_and_restored_after_resampling() -> None:
     class ResamplingEnvironment:
         @staticmethod

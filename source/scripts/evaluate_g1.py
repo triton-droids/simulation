@@ -31,6 +31,7 @@ os.environ.setdefault(
 os.environ.setdefault("MUJOCO_GL", "glfw" if sys.platform == "win32" else "egl")
 
 from brax.io import model
+from brax.training.acme import running_statistics
 from brax.training.agents.ppo import networks as ppo_networks
 import jax
 import jax.numpy as jp
@@ -459,6 +460,27 @@ def _build_rollout(
     return jax.jit(rollout)
 
 
+def _make_evaluation_network(
+    network_factory: Any,
+    observation_size: Any,
+    action_size: int,
+    *,
+    normalize_observations: bool,
+) -> Any:
+    """Reconstruct a PPO network with the training-time preprocessing.
+
+    Brax stores running observation statistics alongside the policy weights,
+    but those statistics are only applied when the network is constructed with
+    ``running_statistics.normalize``.  Omitting that callback silently loads a
+    valid checkpoint whose actions no longer match training-time inference.
+    """
+
+    kwargs: dict[str, Any] = {}
+    if normalize_observations:
+        kwargs["preprocess_observations_fn"] = running_statistics.normalize
+    return network_factory(observation_size, action_size, **kwargs)
+
+
 def _masked_mean(value: np.ndarray, valid: np.ndarray) -> float:
     return float(np.asarray(value)[valid].mean())
 
@@ -780,7 +802,12 @@ def main() -> None:
         policy_obs_key="state",
         value_obs_key="privileged_state",
     )
-    ppo_network = factory(env.observation_size, env.action_size)
+    ppo_network = _make_evaluation_network(
+        factory,
+        env.observation_size,
+        env.action_size,
+        normalize_observations=bool(cfg.agent.normalize_observations),
+    )
     rollout = _build_rollout(env, ppo_network, args.steps)
     video_rollout = (
         _build_rollout(env, ppo_network, args.steps, capture_pipeline=True)
