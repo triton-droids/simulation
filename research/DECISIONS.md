@@ -340,9 +340,10 @@ into tracked source. Keep the native `unitree_g1` implementation and every
 failed checkpoint intact.
 
 Apply only narrow correctness adaptations around the authoritative task:
-functional `info`/`metrics` dictionaries; normalized-action clipping; full
-finite-state termination; synchronized returned command, prior-action, phase,
-and critic air-time slices; and an optional nominal-reset diagnostic mode. The
+functional `info`/`metrics` dictionaries; normalized-action clipping;
+qpos/qvel finite termination; synchronized returned command, prior-action,
+phase, and critic air-time slices; coherent full-state auto-reset metadata; and
+an optional nominal-reset diagnostic mode. The
 reward for a transition remains the upstream reward computed before next-state
 history changes. Resolve and record both upstream revisions independently.
 

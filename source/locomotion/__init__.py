@@ -3,11 +3,15 @@
 
 from source.locomotion.default_humanoid_legs.joystick import Joystick
 from source.locomotion.unitree_g1.joystick import Joystick as UnitreeG1Joystick
+from source.locomotion.unitree_g1.playground_joystick import (
+    Joystick as UnitreeG1PlaygroundJoystick,
+)
 import functools
 
 _envs = {
     "default_humanoid_legs": Joystick,
     "unitree_g1": UnitreeG1Joystick,
+    "unitree_g1_playground": UnitreeG1PlaygroundJoystick,
 
 }
 

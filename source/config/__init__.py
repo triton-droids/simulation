@@ -2,7 +2,11 @@
 
 from hydra.core.config_store import ConfigStore
 from source.config.config import Config
-from source.config.envs import HumanoidLegsEnv, UnitreeG1Env
+from source.config.envs import (
+    HumanoidLegsEnv,
+    UnitreeG1Env,
+    UnitreeG1PlaygroundEnv,
+)
 from source.config.agents import (
     G1PPOConfig,
     G1PPOCorrectiveConfig,
@@ -12,6 +16,7 @@ from source.config.agents import (
 from source.config.robots import DefaultHumanoidLegsRobot, UnitreeG1Robot
 from source.config.sim import MJXConfig
 from source.config.g1 import G1MJXConfig
+from source.config.g1_playground import G1PlaygroundMJXConfig
 
 cs = ConfigStore.instance()
 cs.store(name="config", node=Config)
@@ -19,6 +24,9 @@ cs.store(name="config", node=Config)
 # env group
 cs.store(group="env", name="default_humanoid_legs", node=HumanoidLegsEnv)
 cs.store(group="env", name="unitree_g1", node=UnitreeG1Env)
+cs.store(
+    group="env", name="unitree_g1_playground", node=UnitreeG1PlaygroundEnv
+)
 
 # agent group
 cs.store(group="agent", name="ppo", node=PPOConfig)
@@ -33,6 +41,7 @@ cs.store(group="robot", name="unitree_g1", node=UnitreeG1Robot)
 # sim group
 cs.store(group="sim", name="mjx", node=MJXConfig)
 cs.store(group="sim", name="unitree_g1", node=G1MJXConfig)
+cs.store(group="sim", name="unitree_g1_playground", node=G1PlaygroundMJXConfig)
 
 def get_config(config_name: str):
     """Fetch a registered Hydra config by name.

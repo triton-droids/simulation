@@ -161,10 +161,12 @@ def _gpu_record() -> list[str]:
 def _runtime_manifest() -> dict[str, object]:
     packages = (
         "brax",
+        "etils",
         "flax",
         "hydra-core",
         "jax",
         "jaxlib",
+        "ml-collections",
         "mujoco",
         "omegaconf",
         "orbax-checkpoint",
@@ -315,6 +317,13 @@ def main(cfg: DictConfig):
         with open(logdir.parent / Path(robot.name + ".xml"), "w") as f:
             f.write(robot.xml)
 
+    if hasattr(env, "source_record"):
+        with open(logdir.parent / "environment_source.json", "w") as f:
+            json.dump(env.source_record, f, indent=4)
+    if hasattr(env, "effective_config"):
+        with open(logdir.parent / "environment_effective_config.json", "w") as f:
+            json.dump(env.effective_config, f, indent=4)
+
     manifest_path = Path(logdir.parent) / "run_manifest.json"
     run_manifest = _runtime_manifest()
     with manifest_path.open("w", encoding="utf-8") as f:
@@ -393,6 +402,7 @@ def main(cfg: DictConfig):
         randomization_fn=domain_randomize_fn,
         policy_params_fn=policy_params_fn,
         restore_checkpoint_path=checkpoint_path,
+        wrap_env_fn=getattr(env, "brax_training_wrapper", None),
     )
 
 

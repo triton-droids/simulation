@@ -1,0 +1,273 @@
+"""Tests for the pinned authoritative Playground G1 adapter."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, replace
+import functools
+import json
+
+from hydra import compose, initialize
+import jax
+import jax.numpy as jp
+from omegaconf import OmegaConf
+
+import source.config  # noqa: F401 - register structured Hydra configs.
+from source.config.g1_playground import G1PlaygroundMJXConfig
+from source.locomotion import get_env_class
+from source.locomotion.unitree_g1.playground_joystick import (
+    Joystick,
+    synchronize_transition_observation,
+)
+from source.locomotion.unitree_g1.playground_source import (
+    PLAYGROUND_COMMIT,
+    REQUIRED_PATHS,
+    load_playground_g1_modules,
+    resolve_playground_source,
+)
+from source.robots.unitree_g1 import UnitreeG1Model
+
+
+def test_playground_config_matches_pinned_g1_defaults_and_round_trips() -> None:
+    cfg = G1PlaygroundMJXConfig()
+
+    assert cfg.commands.lin_vel_x == (-1.0, 1.0)
+    assert cfg.commands.lin_vel_y == (-0.5, 0.5)
+    assert cfg.commands.ang_vel_yaw == (-1.0, 1.0)
+    assert cfg.reward_scales.tracking_lin_vel == 1.0
+    assert cfg.reward_scales.tracking_ang_vel == 0.75
+    assert cfg.reward_scales.alive == 0.0
+    assert cfg.reward_scales.contact_force == -0.01
+    assert cfg.push.add_push is True
+    assert cfg.playground.implementation == "jax"
+
+    structured = OmegaConf.structured(cfg)
+    restored = OmegaConf.create(json.loads(json.dumps(OmegaConf.to_container(structured))))
+    assert OmegaConf.to_container(restored) == OmegaConf.to_container(structured)
+
+
+def test_hydra_registers_playground_adapter_separately_from_native() -> None:
+    with initialize(version_base=None, config_path=None):
+        cfg = compose(
+            config_name="config",
+            overrides=[
+                "env=unitree_g1_playground",
+                "robot=unitree_g1",
+                "sim=unitree_g1_playground",
+            ],
+        )
+
+    assert cfg.env.name == "unitree_g1_playground"
+    assert cfg.robot.name == "unitree_g1"
+    assert get_env_class(cfg.env.name) is Joystick
+
+
+def test_playground_source_resolves_exact_pin_without_duplicate_assets() -> None:
+    source = resolve_playground_source(fetch=False)
+
+    assert source.pinned is True
+    assert source.revision == PLAYGROUND_COMMIT
+    assert all((source.root / path).is_file() for path in REQUIRED_PATHS)
+    assert not (source.root / "mujoco_menagerie" / "unitree_g1").exists()
+
+
+def test_transition_observation_uses_returned_command_action_phase_and_air_time() -> None:
+    observation = {
+        "state": jp.zeros(103),
+        "privileged_state": jp.zeros(216),
+    }
+    info = {
+        "command": jp.array([0.2, -0.3, 0.4]),
+        "last_act": jp.linspace(-1.0, 1.0, 29),
+        "phase": jp.array([0.25, -0.75]),
+        "feet_air_time": jp.array([0.0, 0.42]),
+    }
+
+    synced = synchronize_transition_observation(observation, info)
+
+    for value in synced.values():
+        assert jp.allclose(value[9:12], info["command"])
+        assert jp.allclose(value[70:99], info["last_act"])
+        assert jp.allclose(
+            value[99:103],
+            jp.concatenate([jp.cos(info["phase"]), jp.sin(info["phase"])]),
+        )
+    assert jp.allclose(synced["privileged_state"][-2:], info["feet_air_time"])
+
+
+@dataclass(frozen=True)
+class _FakeData:
+    qpos: jp.ndarray
+    qvel: jp.ndarray
+
+
+@dataclass(frozen=True)
+class _FakeState:
+    data: _FakeData
+    obs: dict[str, jp.ndarray]
+    reward: jp.ndarray
+    done: jp.ndarray
+    metrics: dict[str, jp.ndarray]
+    info: dict[str, jp.ndarray]
+
+    def replace(self, **updates):
+        return replace(self, **updates)
+
+
+class _MutatingUpstream:
+    def step(self, state, action):
+        state.info["command"] = jp.array([0.4, 0.1, -0.2])
+        state.info["last_act"] = action
+        state.info["phase"] = jp.array([0.4, -0.4])
+        state.info["feet_air_time"] = jp.array([0.0, 0.3])
+        return state.replace(obs={"state": jp.zeros(103), "privileged_state": jp.zeros(216)})
+
+
+def test_adapter_step_is_functional_clips_action_and_repairs_upstream_staleness() -> None:
+    adapter = Joystick.__new__(Joystick)
+    adapter._env = _MutatingUpstream()
+    original_info = {
+        "command": jp.zeros(3),
+        "last_act": jp.zeros(29),
+        "phase": jp.array([0.0, jp.pi]),
+        "feet_air_time": jp.zeros(2),
+    }
+    state = _FakeState(
+        data=_FakeData(jp.zeros(36), jp.zeros(35)),
+        obs={"state": jp.zeros(103), "privileged_state": jp.zeros(216)},
+        reward=jp.zeros(()),
+        done=jp.zeros(()),
+        metrics={"kept": jp.ones(())},
+        info=original_info,
+    )
+
+    next_state = adapter.step(state, jp.full(29, 2.0))
+
+    assert jp.all(original_info["last_act"] == 0.0)
+    assert jp.all(next_state.info["last_act"] == 1.0)
+    assert jp.all(next_state.obs["state"][70:99] == 1.0)
+    assert jp.allclose(next_state.obs["state"][9:12], next_state.info["command"])
+    assert next_state.metrics is not state.metrics
+
+
+def test_adapter_constructs_official_feet_only_model_from_existing_assets() -> None:
+    cfg = OmegaConf.structured(G1PlaygroundMJXConfig())
+    cfg.playground.fetch_source = False
+    cfg.reset.randomize = False
+    cfg.noise.add_noise = False
+    robot = UnitreeG1Model(fetch=False)
+
+    env = Joystick("unitree_g1", robot, "flat", cfg)
+
+    assert (env.nq, env.nv, env.nu) == (36, 35, 29)
+    assert (env.mj_model.ngeom, env.mj_model.npair, env.mj_model.nsensor) == (72, 5, 29)
+    assert env.source_record["revision"] == PLAYGROUND_COMMIT
+    assert env.source_record["model"]["revision"] == robot.resolution.revision
+    assert env.mj_model.opt.integrator == 0  # mujoco.mjtIntegrator.mjINT_EULER
+    assert isinstance(env.brax_training_wrapper, functools.partial)
+    assert env.brax_training_wrapper.keywords["full_reset"] is True
+
+
+def test_playground_training_auto_reset_restores_matching_history() -> None:
+    source = resolve_playground_source(fetch=False)
+    mjx_env_module, wrapper_module, _ = load_playground_g1_modules(source)
+
+    class ForcedDoneEnvironment:
+        action_size = 29
+
+        @property
+        def observation_size(self):
+            return {"state": 103, "privileged_state": 216}
+
+        @property
+        def unwrapped(self):
+            return self
+
+        @staticmethod
+        def _observation(info):
+            return synchronize_transition_observation(
+                {"state": jp.zeros(103), "privileged_state": jp.zeros(216)},
+                info,
+            )
+
+        def reset(self, rng):
+            token = jax.random.uniform(rng, ())
+            info = {
+                "command": jp.array([token, -token, token / 2]),
+                "last_act": jp.zeros(29),
+                "phase": jp.array([token, token + jp.pi]),
+                "feet_air_time": jp.zeros(2),
+            }
+            return mjx_env_module.State(
+                jp.array([token]),
+                self._observation(info),
+                jp.zeros(()),
+                jp.zeros(()),
+                {},
+                info,
+            )
+
+        def step(self, state, action):
+            del action
+            info = dict(state.info)
+            info.update(
+                command=jp.full(3, 9.0),
+                last_act=jp.ones(29),
+                phase=jp.ones(2),
+                feet_air_time=jp.ones(2),
+            )
+            return state.replace(
+                data=jp.array([9.0]),
+                obs=self._observation(info),
+                done=jp.ones(()),
+                info=info,
+            )
+
+    wrapped = wrapper_module.wrap_for_brax_training(
+        ForcedDoneEnvironment(),
+        episode_length=10,
+        action_repeat=1,
+        full_reset=True,
+    )
+    reset_keys = jax.random.split(jax.random.PRNGKey(0), 2)
+    state = jax.jit(wrapped.reset)(reset_keys)
+    next_state = jax.jit(wrapped.step)(state, jp.zeros((2, 29)))
+
+    assert jp.all(next_state.done == 1)
+    assert jp.all(next_state.data[:, 0] != 9.0)
+    assert jp.allclose(next_state.obs["state"][:, 9:12], next_state.info["command"])
+    assert jp.allclose(next_state.obs["state"][:, 70:99], next_state.info["last_act"])
+    expected_phase = jp.concatenate(
+        [jp.cos(next_state.info["phase"]), jp.sin(next_state.info["phase"])], axis=-1
+    )
+    assert jp.allclose(next_state.obs["state"][:, 99:103], expected_phase)
+
+
+def test_adapter_jitted_reset_step_and_resampling_invariants() -> None:
+    cfg = OmegaConf.structured(G1PlaygroundMJXConfig())
+    cfg.playground.fetch_source = False
+    cfg.reset.randomize = False
+    cfg.noise.add_noise = False
+    cfg.push.add_push = False
+    env = Joystick("unitree_g1", UnitreeG1Model(fetch=False), "flat", cfg)
+    reset = jax.jit(env.reset)
+    step = jax.jit(env.step)
+
+    state = reset(jax.random.PRNGKey(1707))
+    next_state = step(state, jp.full(env.action_size, 0.01))
+    jax.block_until_ready(next_state.obs["state"])
+
+    assert jp.isfinite(next_state.data.qpos).all()
+    assert jp.allclose(state.info["last_act"], jp.zeros(env.action_size))
+    assert jp.allclose(next_state.info["last_act"], 0.01)
+    assert jp.allclose(next_state.obs["state"][70:99], next_state.info["last_act"])
+    assert jp.allclose(next_state.obs["state"][9:12], next_state.info["command"])
+    assert jp.allclose(state.info["motor_targets"], state.data.ctrl)
+
+    boundary_info = dict(state.info)
+    boundary_info["step"] = jp.asarray(500, dtype=jp.int32)
+    boundary_state = state.replace(info=boundary_info)
+    resampled = step(boundary_state, jp.zeros(env.action_size))
+    jax.block_until_ready(resampled.obs["state"])
+
+    assert int(resampled.info["step"]) == 0
+    assert jp.allclose(resampled.obs["state"][9:12], resampled.info["command"])

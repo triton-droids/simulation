@@ -20,3 +20,11 @@ class UnitreeG1Env:
 
     name: str = "unitree_g1"
     terrain: str = "flat"
+
+
+@dataclass
+class UnitreeG1PlaygroundEnv:
+    """Pinned authoritative Playground G1 commanded-velocity selector."""
+
+    name: str = "unitree_g1_playground"
+    terrain: str = "flat"
