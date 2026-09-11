@@ -24,6 +24,10 @@ retained under `results/gate4_corrective/` and remain ignored by Git.
 | C02 fixed-command/video diagnosis | checkpoint 286,720 versus checkpoint 0 and standing; eight commands; nominal reset seed 2000; 200-step (`4 s`) request; videos enabled | 24 episodes | 322.44 s | All controllers fell. Trained/untrained/standing duration was `1.535/1.440/1.440 s`, linear-vector RMSE `0.9074/0.9224/0.9265`, and yaw RMSE `0.3727/0.2905/0.1704`. The trained policy spent `95.8%` in double support and only `2.1%` in single support, with `2.4%` non-foot-ground contact. Video frames show no step: it remains planted, leans, and collapses sideways. C02 is retained as a finite but failed native diagnostic. |
 | C03 pinned-Playground PPO integration | `03794010c6d994e5439c203febc16bae8497bfdf`; exact pinned Playground G1 adapter; coherent full reset; nominal reset; no observation noise/push/domain randomization; `ppo_g1_smoke`; clean checkout | seed 0; 1,024 requested/actual steps | 505.64 s recorded training wall time | Both callbacks and `run_end` were emitted, source/effective configs and the complete runtime manifest were written, and checkpoints 0 and 1,024 restore. Return changed `-0.6917 -> -2.4834`, length `64.0 -> 63.75`, and KL was `3.2936`; as predeclared, this is successful infrastructure evidence and negative/non-comparable learning evidence. The long first compile is retained as a practical cost of the JAX authoritative graph plus coherent full resets. |
 | C03 held-command restore | checkpoint 1,024 versus checkpoint 0 and standing; eight commands; nominal reset seed 2000; 32 steps (`0.64 s`) | 24 episodes | 131.71 s recorded evaluation wall time | Both checkpoints executed through the adapter evaluator and all values were finite. All episodes completed this deliberately short horizon. Trained/untrained/standing linear-vector RMSE was `0.2986/0.2985/0.2897`; yaw RMSE was `0.4430/0.4404/0.1688`; every controller remained in double support with zero foot-contact transitions. This proves restoration, command enforcement, and instrumentation only—not locomotion. |
+| C04 authoritative full-command diagnostic | `16bb816181247628788fb59c797a94f4f15226f3`; exact pinned Playground G1 JAX task/rewards; coherent full reset; nominal reset; no noise/push/domain randomization; full official command ranges; `ppo_g1_corrective`; clean checkout | seed 0; 262,144 requested, 286,720 actual | 655.77 s | Optimizer KL stabilized from `2.219` at 71,680 to `0.0390/0.0380/0.0384`, and return rose late from `-2.5898` to `-1.7536`. However, final evaluation length regressed from `68.91` to `61.75` steps and the termination term remained `-100` at every callback. C04 fails its predeclared length and behavior gates and will not be scaled unchanged. |
+| C04 fixed-command/video diagnosis | checkpoint 286,720 versus checkpoint 0 and standing; eight commands; nominal reset seed 2000; 200-step (`4 s`) request; videos enabled | 24 episodes | 233.10 s | All controllers fell in `1.38–1.42 s`. Trained/untrained/standing linear-vector RMSE was `1.1380/1.0765/1.0908`; yaw RMSE was `0.3513/0.2846/0.1740`; trained double/single/flight support was `87.0%/7.4%/5.6%`. Frame review shows trained and controls remain planted/cross-legged, lean sideways, and collapse; the measured transitions are fall artifacts, not gait. |
+| C05a shipped-policy oracle implementation failure | Exact Playground-shipped `g1_policy.onnx`; first local CPU evaluator attempt | eight commands; intended 500 steps | 57.6 s external wall time | The diagnostic incorrectly treated the torso frame-z-axis sensor as projected gravity, inverted the termination test, and stopped every rollout after one step. No policy conclusion is drawn. The failed directory is preserved; C05b is a distinct corrected run. |
+| C05b exact shipped ONNX oracle | same clean commit; exact Playground ONNX blob SHA-256 `db2eb258494c1297c43d2b9ffa94cdbde97654c2a44cbab0b40fd4b990752a5b`; ONNX Runtime `1.22.1`; MuJoCo CPU; corrected `upvector_torso` termination | eight fixed commands; 500 steps (`10 s`) each | 66.37 s recorded wall time | All eight rollouts completed 10 s, finite and upright, with minimum pelvis height `0.692–0.715 m`, `74.2–83.0%` single support, and roughly 30–48 transitions per foot. For command `vx=0.5`, mean `vx=0.580`; yaw commands `+/-0.5` produced mean `+0.487/-0.382 rad/s`. Lateral and combined tracking are imperfect, but the video visibly shows a stable alternating gait. This falsifies a broken-model/dynamics hypothesis and identifies insufficient/difficult from-scratch learning as the current problem. |
 
 C02 failed its predeclared scale-up rule, so the native profile will not be
 scaled unchanged. C03 passed its infrastructure-only gate but did not produce
@@ -34,13 +38,22 @@ profile. It uses nominal reset and disables observation noise, pushes, and
 domain randomization to isolate whether the authoritative task can develop an
 initial balance/gait signal on the available GPU.
 
-C04 may scale only if all state/observation/training values remain finite, KL
-is below `0.2` by step 143,360 and does not later exceed `1.0`, final training
-evaluation length improves at least 25% over checkpoint 0 and reaches at least
-100 control steps, and a fixed-command rollout shows sign-correct forward,
-lateral, and yaw response plus genuine alternating support. Planted leaning,
-hopping, flight, crouching, or curated-contact blind spots do not satisfy this
-rule even if reward rises.
+C04 met its optimizer-stability condition but failed every behavioral scale-up
+condition, so it is not being extended unchanged. C05b proves that the exact
+model/observation/action loop supports a robust policy and that the shipped
+policy uses the same 103-to-29 interface; the upstream tuned PPO budget is
+200 million steps, versus C04's 0.287 million.
+
+C06 is predeclared as a staged gait-acquisition diagnostic rather than a full
+command repeat: 5,000,000 requested (`5,007,360` expected actual) steps, seed 0,
+500-step episodes, nominal/noiseless/no-push reset, and commands restricted to
+forward `vx in [0.2, 0.6]` with `vy=yaw=0` (plus upstream's 10% zero command).
+It retains the authoritative dynamics, reward scales, action semantics, and
+PPO networks/optimizer. A warm-start omnidirectional stage is allowed only if
+C06 is finite, final KL is below `0.2`, fixed `vx=0.5` survival reaches at least
+400/500 steps, forward RMSE beats both checkpoint 0 and standing by at least
+20%, pelvis height remains above `0.6 m`, both feet transition, single support
+is between 35% and 95%, and video shows an alternating gait rather than a fall.
 
 C02 quantitative evidence and videos are under
 `results/gate4_corrective/C02_nominal_noisefree_seed0_262144/evaluation/checkpoint_286720_nominal_seed2000_200/`.
@@ -48,6 +61,10 @@ The three `*_combined_seed2000.mp4` files decode successfully; review montages
 at frames 0/10/20/35 are retained in its `frame_montages/` subdirectory.
 C03 training and restore evidence is under
 `results/gate4_corrective/C03_playground_ppo_integration_seed0_1024/`.
+C04 evidence is under
+`results/gate4_corrective/C04_playground_nominal_seed0_262144/`; C05a and C05b
+are under their respective `results/gate4_corrective/C05*onnx_oracle/`
+directories. The representative oracle video is `onnx_combined.mp4` in C05b.
 
 ## Principal reproduction commands
 

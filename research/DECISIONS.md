@@ -381,6 +381,32 @@ improve over either control, and all controllers remained in double support.
 This is sufficient training/evaluation plumbing evidence but not a reason to
 skip the bounded learning diagnostic or to claim gait behavior.
 
+## D-029 -- Use the shipped policy as an oracle, then stage gait acquisition
+
+**Decision:** Do not infer a dynamics/reward defect from a 0.287-million-step
+run when the pinned upstream profile trains for 200 million steps. Before using
+more PPO compute, execute the exact `experimental/sim2sim/onnx/g1_policy.onnx`
+blob from the same Playground commit against the adapter's compiled model and
+fixed command suite. Use it only as a behavioral oracle, not as a claimed local
+training seed or final policy.
+
+Because the oracle succeeds while C04 fails, change the next experiment rather
+than scaling C04 unchanged: C06 first learns a bounded forward gait with
+`vx=[0.2, 0.6]`, zero lateral/yaw commands, nominal reset, and a five-million-
+step budget. It retains the authoritative reward/dynamics and full PPO network.
+Only a quantitatively and visually verified alternating forward gait can be
+warm-started into an omnidirectional command stage.
+
+**Evidence:** C04 remained finite and KL stabilized near `0.038`, but its final
+episode length regressed to `61.75` steps and all fixed-command policies fell in
+about `1.4 s`; reward growth was a false proxy for locomotion. C05b's exact
+shipped policy completed all eight 500-step CPU-MuJoCo rollouts with no fall,
+minimum pelvis height above `0.692 m`, and 74–83% single support. Forward and
+yaw response were sign-correct, and video inspection confirms alternating
+steps. A diff between the Playground-expected and repository-pinned Menagerie
+G1 XML shows only formatting/statistic changes in the included dynamics files,
+so a hidden joint/gain/contact revision mismatch is not a supported cause.
+
 ## Gate status
 
 - Gate 0: **passed 2026-09-08**. Clean install, dependency check, local logger tests, secret-pattern scan, and both loader modes passed; revisions/licenses are recorded in `research/SOURCE_LEDGER.md`.
