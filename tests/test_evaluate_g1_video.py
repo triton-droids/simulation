@@ -1,4 +1,5 @@
 import os
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from pathlib import Path
 import sys
@@ -12,6 +13,16 @@ if sys.platform == "win32":
     os.environ["MUJOCO_GL"] = "glfw"
 
 from source.scripts import evaluate_g1
+
+
+@dataclass(frozen=True)
+class _CommandState:
+    info: dict[str, jp.ndarray]
+    obs: dict[str, jp.ndarray]
+    reward: jp.ndarray
+
+    def replace(self, **updates):
+        return replace(self, **updates)
 
 
 def test_evaluation_timestamp_is_explicit_utc() -> None:
@@ -113,6 +124,63 @@ def test_action_rate_uses_clipped_actions_not_raw_policy_outputs() -> None:
     cost = evaluate_g1._applied_action_rate(applied, jp.zeros(2))
 
     assert float(cost) == 2.0
+
+
+def test_held_command_is_used_for_reward_and_restored_after_resampling() -> None:
+    class ResamplingEnvironment:
+        @staticmethod
+        def step(state, _action):
+            seen_command = state.info["command"]
+            info = dict(state.info)
+            info["command"] = jp.full(3, 9.0)
+            obs = {
+                name: value.at[9:12].set(info["command"])
+                for name, value in state.obs.items()
+            }
+            return state.replace(info=info, obs=obs, reward=seen_command[0])
+
+    state = _CommandState(
+        info={"command": jp.zeros(3)},
+        obs={"state": jp.zeros(103), "privileged_state": jp.zeros(216)},
+        reward=jp.zeros(()),
+    )
+    held = jp.array([0.4, -0.2, 0.3])
+
+    next_state = evaluate_g1._step_with_held_command(
+        ResamplingEnvironment(), state, jp.zeros(1), held
+    )
+
+    assert float(next_state.reward) == float(held[0])
+    np.testing.assert_allclose(next_state.info["command"], held)
+    np.testing.assert_allclose(next_state.obs["state"][9:12], held)
+    np.testing.assert_allclose(next_state.obs["privileged_state"][9:12], held)
+
+
+def test_playground_backend_maps_state_and_bounds_without_native_aliases() -> None:
+    data = SimpleNamespace(qpos=jp.arange(4.0), qvel=jp.arange(3.0))
+    state = SimpleNamespace(data=data)
+    environment = SimpleNamespace(
+        playground_source=object(),
+        mj_model=SimpleNamespace(
+            actuator_ctrlrange=np.array([[-1.0, 2.0], [-3.0, 4.0]])
+        ),
+        _env=SimpleNamespace(
+            _soft_lowers=jp.array([-0.5, -0.25]),
+            _soft_uppers=jp.array([0.5, 0.25]),
+        ),
+    )
+
+    assert evaluate_g1._state_data(environment, state) is data
+    np.testing.assert_allclose(evaluate_g1._qpos(environment, data), data.qpos)
+    np.testing.assert_allclose(evaluate_g1._qvel(environment, data), data.qvel)
+    lower, upper = evaluate_g1._control_bounds(environment)
+    np.testing.assert_allclose(lower, [-1.0, -3.0])
+    np.testing.assert_allclose(upper, [2.0, 4.0])
+    soft_lower, soft_upper = evaluate_g1._soft_joint_bounds(environment)
+    np.testing.assert_allclose(soft_lower, [-0.5, -0.25])
+    np.testing.assert_allclose(soft_upper, [0.5, 0.25])
+    instrumentation = evaluate_g1._instrumentation_metadata(environment)
+    assert instrumentation["nonfoot_ground_contact_available"] is False
 
 
 def test_contact_breakdown_separates_nonfoot_ground_and_self_collision() -> None:

@@ -149,6 +149,122 @@ def _replace_command(state: Any, command: jax.Array) -> Any:
     return state.replace(info=info, obs=observations)
 
 
+def _step_with_held_command(
+    env: Any, state: Any, action: jax.Array, command: jax.Array
+) -> Any:
+    """Take one transition while preventing environment command resampling.
+
+    Playground samples a replacement command after its 501st transition.  A
+    held-out evaluation must not silently become an evaluation of that sampled
+    command, so install the scheduled command on both sides of every step.
+    Installing it before the step also guarantees that transition rewards use
+    the held command.
+    """
+
+    state = _replace_command(state, command)
+    next_state = env.step(state, action)
+    return _replace_command(next_state, command)
+
+
+def _is_playground_environment(env: Any) -> bool:
+    """Return whether ``env`` is the pinned Playground adapter."""
+
+    return "playground_source" in getattr(env, "__dict__", {})
+
+
+def _state_data(env: Any, state: Any) -> Any:
+    """Return the simulator data carried by either environment State type."""
+
+    return state.data if _is_playground_environment(env) else state.pipeline_state
+
+
+def _qpos(env: Any, data: Any) -> jax.Array:
+    return data.qpos if _is_playground_environment(env) else data.q
+
+
+def _qvel(env: Any, data: Any) -> jax.Array:
+    return data.qvel if _is_playground_environment(env) else data.qd
+
+
+def _control_bounds(env: Any) -> tuple[jax.Array, jax.Array]:
+    if _is_playground_environment(env):
+        bounds = jp.asarray(env.mj_model.actuator_ctrlrange)
+        return bounds[:, 0], bounds[:, 1]
+    return env.ctrl_lower, env.ctrl_upper
+
+
+def _soft_joint_bounds(env: Any) -> tuple[jax.Array, jax.Array]:
+    if _is_playground_environment(env):
+        return env._env._soft_lowers, env._env._soft_uppers
+    return env.soft_joint_lower, env.soft_joint_upper
+
+
+def _foot_global_linvel(env: Any, data: Any) -> jax.Array:
+    if _is_playground_environment(env):
+        return data.sensordata[env._env._foot_linvel_sensor_adr]
+    return env.get_foot_global_linvel(data)
+
+
+def _sensor_active(env: Any, data: Any, sensor_id: int) -> jax.Array:
+    address = env.mj_model.sensor_adr[sensor_id]
+    return data.sensordata[address] > 0
+
+
+def _contact_diagnostics(
+    env: Any, data: Any
+) -> tuple[jax.Array, jax.Array, jax.Array, jax.Array, jax.Array]:
+    """Return support, illegal, collision, non-foot-floor and self contacts."""
+
+    if not _is_playground_environment(env):
+        contact, undesired, collision = env.contact_state(data)
+        nonfoot_ground, self_collision = _contact_breakdown(env, data)
+        return contact, undesired, collision, nonfoot_ground, self_collision
+
+    upstream = env._env
+    contact = env._contact(data)
+    illegal = _sensor_active(
+        env, data, upstream._right_foot_left_foot_found_sensor
+    )
+    illegal |= _sensor_active(
+        env, data, upstream._left_foot_right_shin_found_sensor
+    )
+    illegal |= _sensor_active(
+        env, data, upstream._right_foot_left_shin_found_sensor
+    )
+    # The authoritative feet-only scene exposes curated hand--thigh collision
+    # sensors but not an exhaustive non-foot-floor collision classifier.
+    self_collision = upstream._cost_collision(data)
+    nonfoot_ground = jp.array(False)
+    return contact, illegal, self_collision, nonfoot_ground, self_collision
+
+
+def _instrumentation_metadata(env: Any) -> dict[str, Any]:
+    """Describe backend-specific coverage without changing episode columns."""
+
+    if _is_playground_environment(env):
+        return {
+            "environment_backend": "mujoco_playground_g1_joystick_adapter",
+            "contact_support": "left/right foot-floor found sensors",
+            "illegal_contact": "cross-foot and cross-foot/shin found sensors",
+            "self_collision": "same-side hand/thigh found sensors",
+            "nonfoot_ground_contact_available": False,
+            "collision_coverage_limitation": (
+                "The pinned authoritative feet-only scene provides curated "
+                "collision sensors, not exhaustive robot/self/floor collision "
+                "coverage; nonfoot_ground_contact_rate is therefore unavailable "
+                "and emitted as zero."
+            ),
+        }
+    return {
+        "environment_backend": "native_brax_g1",
+        "contact_support": "raw MJX geom contacts",
+        "illegal_contact": "verified cross-foot and cross-foot/shin geom pairs",
+        "self_collision": "verified same-side hand/thigh geom pairs",
+        "nonfoot_ground_contact_available": True,
+        "collision_coverage_limitation": None,
+    }
+
+
 def _action_diagnostics(
     env: Any, action: jax.Array
 ) -> tuple[jax.Array, jax.Array, dict[str, jax.Array]]:
@@ -160,6 +276,7 @@ def _action_diagnostics(
     """
 
     applied_action, motor_targets = env.action_to_targets(action)
+    ctrl_lower, ctrl_upper = _control_bounds(env)
     diagnostics = {
         "action_clipping_fraction": jp.mean(
             (jp.abs(action - applied_action) > 1.0e-6).astype(jp.float32)
@@ -169,9 +286,9 @@ def _action_diagnostics(
         ),
         "target_saturation_fraction": jp.mean(
             (
-                jp.isclose(motor_targets, env.ctrl_lower, rtol=0.0, atol=1.0e-6)
+                jp.isclose(motor_targets, ctrl_lower, rtol=0.0, atol=1.0e-6)
                 | jp.isclose(
-                    motor_targets, env.ctrl_upper, rtol=0.0, atol=1.0e-6
+                    motor_targets, ctrl_upper, rtol=0.0, atol=1.0e-6
                 )
             ).astype(jp.float32)
         ),
@@ -222,7 +339,7 @@ def _build_rollout(
     def rollout(params: Any, use_policy: jax.Array, seed: jax.Array, command: jax.Array):
         reset_key, policy_key = jax.random.split(jax.random.PRNGKey(seed))
         state = _replace_command(env.reset(reset_key), command)
-        initial_pipeline_state = state.pipeline_state
+        initial_pipeline_state = _state_data(env, state)
         inference = make_policy(params, deterministic=True)
 
         def one_step(carry, _):
@@ -233,6 +350,10 @@ def _build_rollout(
                 previous_applied_action,
                 previous_contact,
             ) = carry
+            # Reinstate the held/scheduled command before policy inference as
+            # well as before the reward-bearing transition.  This makes the
+            # invariant explicit even if a backend resampled on the prior step.
+            state = _replace_command(state, command)
             policy_key, action_key = jax.random.split(policy_key)
             policy_action, _ = inference(state.obs, action_key)
             action = jp.where(use_policy, policy_action, jp.zeros(env.action_size))
@@ -244,36 +365,37 @@ def _build_rollout(
                 current_state = current_state.replace(
                     info=dict(current_state.info), metrics=dict(current_state.metrics)
                 )
-                return env.step(current_state, action)
+                return _step_with_held_command(env, current_state, action, command)
 
             next_state = jax.lax.cond(active, active_step, lambda value: value, state)
             done = next_state.done > 0.0
             next_active = active & ~done
 
-            local_velocity = env.get_local_linvel(next_state.pipeline_state, "pelvis")
-            gyro = env.get_gyro(next_state.pipeline_state, "pelvis")
-            torso_up = env.get_gravity(next_state.pipeline_state, "torso")
-            contact, undesired, collision = env.contact_state(
-                next_state.pipeline_state
-            )
-            nonfoot_ground, self_collision = _contact_breakdown(
-                env, next_state.pipeline_state
+            data = _state_data(env, next_state)
+            qpos = _qpos(env, data)
+            qvel = _qvel(env, data)
+            local_velocity = env.get_local_linvel(data, "pelvis")
+            gyro = env.get_gyro(data, "pelvis")
+            torso_up = env.get_gravity(data, "torso")
+            (
+                contact,
+                undesired,
+                collision,
+                nonfoot_ground,
+                self_collision,
+            ) = _contact_diagnostics(
+                env, data
             )
             contact_transition = contact != previous_contact
-            foot_velocity = env.get_foot_global_linvel(next_state.pipeline_state)[
-                :, :2
-            ]
-            joint_position = next_state.pipeline_state.q[7:]
-            low = next_state.pipeline_state.q[2] < env.cfg.termination.min_pelvis_height
-            high = next_state.pipeline_state.q[2] > env.cfg.termination.max_pelvis_height
+            foot_velocity = _foot_global_linvel(env, data)[:, :2]
+            joint_position = qpos[7:]
+            soft_lower, soft_upper = _soft_joint_bounds(env)
+            low = qpos[2] < env.cfg.termination.min_pelvis_height
+            high = qpos[2] > env.cfg.termination.max_pelvis_height
             inverted = torso_up[2] < env.cfg.termination.min_torso_up_z
-            invalid = (
-                ~jp.isfinite(next_state.pipeline_state.q).all()
-                | ~jp.isfinite(next_state.pipeline_state.qd).all()
-            )
+            invalid = ~jp.isfinite(qpos).all() | ~jp.isfinite(qvel).all()
             limit_violation = jp.any(
-                (joint_position < env.soft_joint_lower)
-                | (joint_position > env.soft_joint_upper)
+                (joint_position < soft_lower) | (joint_position > soft_upper)
             )
             trace = {
                 "valid": active,
@@ -281,14 +403,11 @@ def _build_rollout(
                 "reward": next_state.reward,
                 "linear_error": local_velocity[:2] - command[:2],
                 "yaw_error": gyro[2] - command[2],
-                "pelvis_height": next_state.pipeline_state.q[2],
+                "pelvis_height": qpos[2],
                 "torso_up_z": torso_up[2],
-                "effort": jp.sum(jp.abs(next_state.pipeline_state.actuator_force)),
+                "effort": jp.sum(jp.abs(data.actuator_force)),
                 "power": jp.sum(
-                    jp.abs(
-                        next_state.pipeline_state.qd[6:]
-                        * next_state.pipeline_state.actuator_force
-                    )
+                    jp.abs(qvel[6:] * data.actuator_force)
                 ),
                 # Match the environment reward semantics: action rate is based
                 # on the normalized action actually applied after clipping.
@@ -297,7 +416,7 @@ def _build_rollout(
                 ),
                 **action_diagnostics,
                 "joint_acceleration": jp.sum(
-                    jp.square(next_state.pipeline_state.qacc[6:])
+                    jp.square(data.qacc[6:])
                 ),
                 "foot_slip": jp.sum(
                     jp.sum(jp.square(foot_velocity), axis=-1) * contact
@@ -318,7 +437,7 @@ def _build_rollout(
                 "cause_invalid": invalid,
             }
             if capture_pipeline:
-                trace["pipeline_state"] = next_state.pipeline_state
+                trace["pipeline_state"] = data
             return (
                 next_state,
                 next_active,
@@ -332,7 +451,7 @@ def _build_rollout(
             jp.array(True),
             policy_key,
             state.info["last_act"],
-            env.contact_state(state.pipeline_state)[0],
+            _contact_diagnostics(env, _state_data(env, state))[0],
         )
         _, trace = jax.lax.scan(one_step, initial_carry, xs=None, length=steps)
         return initial_pipeline_state, trace
@@ -558,9 +677,20 @@ def _write_video(
     global _MEDIAPY_FFMPEG_SOURCE
 
     stacked = trace["pipeline_state"]
-    states = [initial_pipeline_state]
+    frame_data = [initial_pipeline_state]
     for index in range(episode_steps):
-        states.append(jax.tree.map(lambda value: value[index], stacked))
+        frame_data.append(jax.tree.map(lambda value: value[index], stacked))
+    if _is_playground_environment(env):
+        # Playground's renderer accepts complete mjx_env.State objects even
+        # though it consumes only ``state.data``.  Rebuild that public state
+        # type from each captured frame rather than passing raw mjx.Data.
+        zero = jp.zeros(())
+        states = [
+            env._mjx_env_module.State(data, {}, zero, zero, {}, {})
+            for data in frame_data
+        ]
+    else:
+        states = frame_data
     frames = env.render(
         states[::render_every], height=480, width=640, camera="track"
     )
@@ -745,6 +875,7 @@ def main() -> None:
             "instantaneous_yaw_error_abs": 0.25,
             "episode_success_requires_full_horizon": True,
         },
+        "instrumentation": _instrumentation_metadata(env),
         "aggregate": _aggregate(rows),
         "videos": videos,
         "video_encoders": video_encoders,
