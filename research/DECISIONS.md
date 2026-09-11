@@ -358,6 +358,29 @@ Playground overlay consumes the already-pinned Menagerie asset directory; mesh
 files are byte-identical across Playground's expected Menagerie revision and
 the repository pin, as recorded in D-022.
 
+## D-028 -- Require coherent auto-reset and a bounded authoritative diagnostic
+
+**Decision:** Bind Playground's supported Brax wrapper with `full_reset=True`.
+Its default fast path restores cached simulator data and observations after a
+terminal transition but deliberately preserves the prior episode's mutable
+`info`; that makes the reset command, phase, action/contact history, and reward
+inputs disagree. A forced-terminal batched wrapper test now proves that data,
+observation slices, and returned history reset together.
+
+After the 1,024-step C03 adapter smoke passes checkpoint restoration, run C04
+for 262,144 requested (`286,720` actual) steps with the full corrective PPO
+network/optimizer, nominal reset, and noise/push/randomization disabled. Retain
+the official command ranges and reward/dynamics semantics. Apply the explicit
+finite/KL/length/tracking/gait scale-up rule recorded in `research/RESULTS.md`;
+C04 remains a diagnostic, not a Gate 4 PASS attempt.
+
+**Evidence:** C03 completed from clean commit `0379401`, wrote checkpoints 0
+and 1,024 plus exact dual-source/runtime provenance, and restored both policies
+through 24 held-command rollouts. Its final KL was `3.2936`, tracking did not
+improve over either control, and all controllers remained in double support.
+This is sufficient training/evaluation plumbing evidence but not a reason to
+skip the bounded learning diagnostic or to claim gait behavior.
+
 ## Gate status
 
 - Gate 0: **passed 2026-09-08**. Clean install, dependency check, local logger tests, secret-pattern scan, and both loader modes passed; revisions/licenses are recorded in `research/SOURCE_LEDGER.md`.

@@ -22,18 +22,32 @@ retained under `results/gate4_corrective/` and remain ignored by Git.
 | C01 fixed-command restore | checkpoint 1,024 versus its checkpoint-0 network and standing control; all eight command axes; nominal reset seed 2000; 64 steps (`1.28 s`) | 24 episodes | about 3.5 min external wall time | Both checkpoints restored and every value was finite. Trained/untrained/standing linear-vector RMSE was `0.5452/0.5476/0.6149`; yaw RMSE was `1.7945/1.9813/0.1697`; trained fall rate was `0.125` and success was `0`. This is the expected negative result for a tiny random policy and proves the evaluator path, not locomotion. |
 | C02 native corrected-learning diagnostic | `8a7fce5c0635a602d9b2f1af2b48bf49f0b7c475`; `ppo_g1_corrective`; nominal reset; no observation noise/push/domain randomization; 512 environments; clean checkout | seed 0; 262,144 requested, 286,720 actual | 805.62 s | Training-side return rose `0.3319 -> 0.9259`, final KL was `0.03973`, and length rose only `72.0 -> 75.41` steps; every evaluation episode still terminated. The fixed-command result below falsified the hypothesis that this corrected native configuration already had a plausible gait signal. |
 | C02 fixed-command/video diagnosis | checkpoint 286,720 versus checkpoint 0 and standing; eight commands; nominal reset seed 2000; 200-step (`4 s`) request; videos enabled | 24 episodes | 322.44 s | All controllers fell. Trained/untrained/standing duration was `1.535/1.440/1.440 s`, linear-vector RMSE `0.9074/0.9224/0.9265`, and yaw RMSE `0.3727/0.2905/0.1704`. The trained policy spent `95.8%` in double support and only `2.1%` in single support, with `2.4%` non-foot-ground contact. Video frames show no step: it remains planted, leans, and collapses sideways. C02 is retained as a finite but failed native diagnostic. |
+| C03 pinned-Playground PPO integration | `03794010c6d994e5439c203febc16bae8497bfdf`; exact pinned Playground G1 adapter; coherent full reset; nominal reset; no observation noise/push/domain randomization; `ppo_g1_smoke`; clean checkout | seed 0; 1,024 requested/actual steps | 505.64 s recorded training wall time | Both callbacks and `run_end` were emitted, source/effective configs and the complete runtime manifest were written, and checkpoints 0 and 1,024 restore. Return changed `-0.6917 -> -2.4834`, length `64.0 -> 63.75`, and KL was `3.2936`; as predeclared, this is successful infrastructure evidence and negative/non-comparable learning evidence. The long first compile is retained as a practical cost of the JAX authoritative graph plus coherent full resets. |
+| C03 held-command restore | checkpoint 1,024 versus checkpoint 0 and standing; eight commands; nominal reset seed 2000; 32 steps (`0.64 s`) | 24 episodes | 131.71 s recorded evaluation wall time | Both checkpoints executed through the adapter evaluator and all values were finite. All episodes completed this deliberately short horizon. Trained/untrained/standing linear-vector RMSE was `0.2986/0.2985/0.2897`; yaw RMSE was `0.4430/0.4404/0.1688`; every controller remained in double support with zero foot-contact transitions. This proves restoration, command enforcement, and instrumentation only—not locomotion. |
 
 C02 failed its predeclared scale-up rule, so the native profile will not be
-scaled unchanged. C03 is predeclared as a 1,024-step training/checkpoint smoke
-of the thin pinned Playground adapter; it is plumbing evidence only. If that
-passes, the next bounded learning diagnostic will use the authoritative
-feet-only scene, dynamics, reward scales, and Brax wrapper with the same
-observation-timing corrections tested before training.
+scaled unchanged. C03 passed its infrastructure-only gate but did not produce
+locomotion evidence. C04 is predeclared as a 262,144-requested-step
+(`286,720` actual under Brax rounding) seed-0 diagnostic using the authoritative
+feet-only scene, JAX dynamics, reward scales, full command ranges, and Brax PPO
+profile. It uses nominal reset and disables observation noise, pushes, and
+domain randomization to isolate whether the authoritative task can develop an
+initial balance/gait signal on the available GPU.
+
+C04 may scale only if all state/observation/training values remain finite, KL
+is below `0.2` by step 143,360 and does not later exceed `1.0`, final training
+evaluation length improves at least 25% over checkpoint 0 and reaches at least
+100 control steps, and a fixed-command rollout shows sign-correct forward,
+lateral, and yaw response plus genuine alternating support. Planted leaning,
+hopping, flight, crouching, or curated-contact blind spots do not satisfy this
+rule even if reward rises.
 
 C02 quantitative evidence and videos are under
 `results/gate4_corrective/C02_nominal_noisefree_seed0_262144/evaluation/checkpoint_286720_nominal_seed2000_200/`.
 The three `*_combined_seed2000.mp4` files decode successfully; review montages
 at frames 0/10/20/35 are retained in its `frame_montages/` subdirectory.
+C03 training and restore evidence is under
+`results/gate4_corrective/C03_playground_ppo_integration_seed0_1024/`.
 
 ## Principal reproduction commands
 
