@@ -30,7 +30,7 @@ def main():
     parser.add_argument("--checkpoint", type=int, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--steps", type=int, default=500)
-    parser.add_argument("--policy-label", choices=("C06", "C08", "C09"), default="C06")
+    parser.add_argument("--policy-label", choices=("C06", "C08", "C09", "C10"), default="C06")
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=False)
     start = time.perf_counter()
@@ -69,6 +69,7 @@ def main():
                 action = jp.asarray(session.run(None, {"obs": np.asarray(state.obs["state"])[None]})[0][0])
             state = step(state, action)
             sample = {"action": action, "qpos": state.data.qpos,
+                "foot_positions": state.data.site_xpos[env._feet_site_id],
                 "velocity": env.get_local_linvel(state.data, "pelvis"),
                 "contact": env._contact(state.data), "phase": state.info["phase"],
                 "reward": state.reward, "done": state.done, **state.metrics}
