@@ -1,5 +1,11 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+Current next experiment: C10 is predeclared after zero-training reward/contact
+diagnostics. It changes existing feet_phase weight 1 -> 3 from the local C09
+movement checkpoint for 1,003,520 forward-only steps. Check generated C10 run
+status before starting anything new. It must pass two development reset seeds
+and fixed-phase survival; no final baseline or broad-command success exists.
+
 Latest C09 result: full 500-step forward survival and RMSE .225252, but only
 25.4% single support and low-clearance shuffling. The frozen gait gate fails.
 No omnidirectional stage is authorized by this result. Preserve this useful

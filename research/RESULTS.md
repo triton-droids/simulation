@@ -1,5 +1,18 @@
 # G1 Build and Research Results
 
+## C10 zero-training shaping diagnostic (2026-09-16)
+
+The same-MJX comparison at fixed 1.5 Hz/reset 2000 exposed C09 fragility:
+457 steps before termination, whole-trace RMSE .783747 and 31.29% single
+support, versus oracle 500 steps, .174590 and 75%. C09's termination allows
+the pelvis to drop far below the gait gate height; full-trace minimum is
+-.617559. This is not equivalent to its nominal seed-3000 gate rollout.
+The first fixed 250 steps remain upright and show 25.6% single support.
+Increasing existing feet_phase weight 1 -> 3 on those saved traces raises
+oracle's reward advantage from 10.8% to 18.2%. The post-hoc diagnostic window
+and full negative trace are both disclosed in `C10_gait_shaping_diagnostic/`.
+This supports a bounded phase-weight pilot, not a claim of gait acquisition.
+
 ## C09 completed: movement acquired, gait gate still failed (2026-09-16)
 
 From clean `c321fc0`, C06 parameter warm-start plus tracking weight 3 ran

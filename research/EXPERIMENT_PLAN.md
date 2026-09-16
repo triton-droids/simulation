@@ -1,5 +1,41 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C10 predeclaration: foot-height timing (2026-09-16)
+
+C09 learned useful motion but failed the support gate (25.4% single support),
+and its fixed-1.5-Hz seed-2000 trace eventually falls. Do not extend unchanged.
+The zero-training comparison in `C10_gait_shaping_diagnostic/` uses identical
+physics, command .5, phase frequency and reset for C09 and the oracle. Over
+the first fixed 250 steps, C09 remains upright (min pelvis .738660) but has
+25.6% single support and phase reward .488307 versus oracle 74.8%/.690843.
+This five-second diagnostic window was selected after the full-trace failure
+was observed; it is not held-out evidence. Whole traces remain saved.
+
+**Hypothesis:** increasing existing feet_phase weight 1 -> 3 will encourage
+alternating foot clearance in the already moving policy. Counterfactual
+scoring of those fixed first-250-step traces changes total reward before dt
+from 3.074706/3.406496 (C09/oracle) to 4.051320/4.788183: walking's relative
+margin grows from 10.8% to 18.2%. This is arithmetic, not learned behavior.
+No new reward function, imitation or HOMIE behavior is introduced.
+
+**Frozen pilot:** warm-start local C09 final checkpoint 1003520; retain all
+C09 forward-only task/PPO settings and tracking weight 3, change only phase
+weight to 3; seed 0, exactly 1,003,520 additional steps, eight evaluations.
+Restore normalizer/actor/critic, reset optimizer/step/PRNG as before. Check
+checkpoint-0 inference parameter equality. Stop for nonfinite values or
+sustained post-initial KL >=.2. Evaluate final checkpoint first.
+
+**Gate:** command .5, nominal reset seeds 3000 and 3001, 500 requested steps
+each: >=400 survival, min pelvis >.6, linear RMSE <=.3, >=10 transitions each
+foot, 35-95% single support, visually alternating gait with no hopping, and
+finite outputs. Compare checkpoint-0 C09 (`initial`) and standing. This test
+targets gait quality while retaining tracking; it does not require a further
+20% RMSE reduction over already-moving C09. Prior C06 and genuine untrained
+controls remain separate evidence, not relabeled as C10 checkpoint 0.
+If either seed fails, no unchanged extension or broader commands. Passing
+these development tests still requires the fixed-1.5-Hz diagnostic to survive
+and new held-out command/reset checks before any final three-seed claim.
+
 ## C09 predeclaration (2026-09-16)
 
 C08 completed 2,007,040 steps and failed its final-checkpoint forward gate:
