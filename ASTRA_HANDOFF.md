@@ -1,5 +1,11 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+Latest C09 result: full 500-step forward survival and RMSE .225252, but only
+25.4% single support and low-clearance shuffling. The frozen gait gate fails.
+No omnidirectional stage is authorized by this result. Preserve this useful
+movement checkpoint and diagnose gait shaping with a same-MJX oracle trace
+comparison before any further PPO. See leading RESULTS for exact evidence.
+
 Latest status, 2026-09-16: C08 completed and failed its final forward test
 (71/500 steps, RMSE .598791, hopping then collapse). C07 is complete.
 C09 is predeclared in `research/EXPERIMENT_PLAN.md`: a bounded forward-only

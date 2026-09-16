@@ -1,5 +1,28 @@
 # G1 Build and Research Results
 
+## C09 completed: movement acquired, gait gate still failed (2026-09-16)
+
+From clean `c321fc0`, C06 parameter warm-start plus tracking weight 3 ran
+1,003,520 additional steps in 451.94 s. All 17 saved actor/normalizer leaves
+at checkpoint 0 exactly matched C06; initial mean survival was 500 steps.
+Final training survival 450.5625, return 27.291819, KL .078490; all interval
+KL values .077-.099. Optimizer and PRNG restarted as declared.
+
+Final fixed-forward seed-3000 diagnostic: 500/500 steps, linear RMSE
+.225252, minimum pelvis .741102, 25.4% single support, 74.6% double support,
+no flight and 54/62 foot transitions. Initial C06: 500 steps, RMSE .500030,
+zero transitions. Standing: 69 steps, RMSE .849567. All finite. C09 passes
+survival/height/error/transition-count thresholds but fails the frozen >=35%
+single-support threshold. Twelve-frame video inspection shows stiff legs and
+low foot clearance rather than a convincing alternating gait. Yaw RMSE is
+.427, another limitation even though C09's forward gate did not threshold it.
+Do not broaden commands or call Gate 4 passed.
+
+Artifacts under `results/gate4_corrective/`: `C09_C06_tracking3_seed0_1003520/`
+(including `restore_parity.json`) and `C09_forward_gate_seed3000/` (CSV,
+summary, three videos, trained montage). Next is a zero-training same-MJX
+reward/contact comparison with the oracle, before choosing gait shaping.
+
 ## C08 completed: forward gait gate failed (2026-09-16)
 
 Tracking weight 3, from scratch, clean training base `688eaa3`, exactly

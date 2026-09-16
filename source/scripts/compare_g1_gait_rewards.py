@@ -1,4 +1,4 @@
-"""Compare C06 stance and the exact ONNX oracle in the SAME MJX task.
+"""Compare a saved local policy and the exact ONNX oracle in the SAME MJX task.
 
 Diagnostic only: no policy fitting or imitation. Saves all per-step terms,
 actions, positions, contacts and velocities for a fixed forward command.
@@ -30,6 +30,7 @@ def main():
     parser.add_argument("--checkpoint", type=int, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--steps", type=int, default=500)
+    parser.add_argument("--policy-label", choices=("C06", "C08", "C09"), default="C06")
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=False)
     start = time.perf_counter()
@@ -55,14 +56,14 @@ def main():
     reset = jax.jit(env.reset)
     step = jax.jit(lambda state, action: ev._step_with_held_command(env, state, action, command))
     rows = {}
-    for controller in ("C06", "oracle"):
+    for controller in (args.policy_label, "oracle"):
         state = ev._replace_command(reset(jax.random.PRNGKey(2000)), command)
         info = dict(state.info)
         info["phase_dt"] = jp.asarray([2 * np.pi * 1.5 * env.dt])
         state = state.replace(info=info)
         trace = []
         for index in range(args.steps):
-            if controller == "C06":
+            if controller != "oracle":
                 action = policy(state.obs, jax.random.PRNGKey(index))[0]
             else:
                 action = jp.asarray(session.run(None, {"obs": np.asarray(state.obs["state"])[None]})[0][0])
@@ -91,6 +92,8 @@ def main():
         }
         print(controller, json.dumps(rows[controller]), flush=True)
     result = {"kind": "same_MJX_reward_diagnostic", "command": [0.5, 0, 0],
+        "run_dir": str(args.run_dir), "checkpoint": args.checkpoint,
+        "policy_label": args.policy_label,
         "phase_frequency_hz": 1.5, "seed": 2000, "results": rows,
         "oracle_sha256": oracle.EXPECTED_ONNX_SHA256, "git": ev._git_record(),
         "wall_time_seconds": time.perf_counter() - start}
