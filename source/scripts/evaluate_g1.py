@@ -74,6 +74,10 @@ def parse_args() -> argparse.Namespace:
         help="Trained checkpoint step; default is best logged evaluation reward.",
     )
     parser.add_argument("--untrained-checkpoint", type=int, default=0)
+    parser.add_argument(
+        "--reference-label", choices=("untrained", "initial"), default="untrained",
+        help="Use initial when checkpoint 0 contains warm-started parameters.",
+    )
     parser.add_argument("--steps", type=int, default=500)
     parser.add_argument(
         "--commands", nargs="+", choices=[name for name, _ in COMMANDS],
@@ -835,7 +839,7 @@ def main() -> None:
     )
     controllers = (
         ("trained", trained_params, True),
-        ("untrained", untrained_params, True),
+        (args.reference_label, untrained_params, True),
         ("standing", untrained_params, False),
     )
 
@@ -904,6 +908,7 @@ def main() -> None:
         "run_dir": str(run_dir),
         "trained_checkpoint": checkpoint,
         "untrained_checkpoint": args.untrained_checkpoint,
+        "reference_controller_label": args.reference_label,
         "steps_per_episode": args.steps,
         "control_dt_seconds": env.dt,
         "reset_seeds": seeds,

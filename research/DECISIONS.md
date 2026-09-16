@@ -1,5 +1,19 @@
 # Decisions and Gate Log
 
+## D-034 -- Reject C08 and isolate forward gait acquisition from balance
+
+C08's final checkpoint fails the frozen gait gate (71 steps, .598791 linear
+RMSE, 8.45% single support, hopping/collapse video). Training reward gains and
+fall-related contact transitions do not count as gait. Preserve the complete
+run and controls; do not scale it unchanged. C09 changes initialization to
+the locally trained C06 balance checkpoint, stays forward-only, and has a
+separate 1,003,520-step budget and unchanged behavioral gate. It tests staged
+learning, not omnidirectional warm-start or oracle imitation. All restored
+normalizer/policy/value parameters and reset optimizer/PRNG semantics must be
+recorded. Its checkpoint-0 control is `initial`, not `untrained`; the evaluator
+now supports that explicit label while preserving the default frozen grid
+and untrained-control behavior. See the C09 predeclaration before execution.
+
 ## D-033 -- Preserve transition bookkeeping across Playground full reset
 
 The C07 successor audit on 2026-09-15 reproduced a concrete wrapper bug with

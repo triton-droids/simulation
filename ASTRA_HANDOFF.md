@@ -1,5 +1,12 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+Latest status, 2026-09-16: C08 completed and failed its final forward test
+(71/500 steps, RMSE .598791, hopping then collapse). C07 is complete.
+C09 is predeclared in `research/EXPERIMENT_PLAN.md`: a bounded forward-only
+parameter warm-start from locally trained C06 balance under tracking weight 3.
+Inspect generated C09 artifacts for execution status. No broader-command or
+final three-seed success is established. The dated updates below are history.
+
 Successor update, 2026-09-16: C07 is underway. See the new leading sections in
 `research/RESULTS.md` and `research/EXPERIMENT_PLAN.md`, and D-033. Action parity
 passes exactly; full autoreset was proved to erase Brax timeout and episode

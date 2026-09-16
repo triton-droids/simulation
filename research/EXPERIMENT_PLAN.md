@@ -1,5 +1,38 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C09 predeclaration (2026-09-16)
+
+C08 completed 2,007,040 steps and failed its final-checkpoint forward gate:
+71/500 steps, RMSE .598791, 8.45% single support, 9/1 foot transitions,
+minimum pelvis .381873 m. Video shows hopping and collapse. Do not extend
+C08 unchanged or broaden its commands.
+
+**Question:** does separating balance acquisition from gait acquisition make
+the tracking-weight-3 objective learnable? C07 already provides the cheap
+prerequisites: C06 balances for 500 steps, its saved inference is exact, and
+the same-MJX walking oracle has a 57.4% reward advantage after reweighting.
+C08 from scratch failed to retain balance. Test a forward-only parameter
+warm-start from local C06 checkpoint 5007360, not the shipped oracle and not
+an omnidirectional stage. This does not satisfy the final three-seed goal.
+
+**Frozen pilot:** C08 task/reward/PPO settings unchanged, seed 0, except
+initial normalizer/policy/value parameters come from C06 and the budget is
+1,003,520 additional steps, eight evaluations (14 batches per epoch).
+Optimizer, training step and PRNG restart: this is not an exact resume.
+Restoring the old value function despite reweighting is explicitly part of
+this diagnostic; monitor its adaptation. Before judging training, verify
+checkpoint 0 retains the source policy and initial evaluation retains balance.
+Stop for nonfinite output or sustained post-initial KL >=.2.
+
+**Gate:** final checkpoint first; fixed forward .5, nominal reset seed 3000,
+500 requested steps; finite, >=400 survival, pelvis >.6 m, linear RMSE <=.3
+and >=20% below initial C06 and standing controls, >=10 transitions per foot,
+35-95% single support and visually alternating gait. Reference checkpoint 0
+must be labeled `initial`, not `untrained`. C08's genuine untrained control
+remains separately available. No unchanged extension on failure. A successful
+pilot still requires a new command curriculum and matched independent final
+training seeds, with their own balance acquisition and fresh held-out data.
+
 ## Successor predeclaration: C08 (2026-09-16)
 
 C07 verified exact saved-action parity and exposed the D-033 autoreset bug.

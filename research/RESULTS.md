@@ -1,5 +1,28 @@
 # G1 Build and Research Results
 
+## C08 completed: forward gait gate failed (2026-09-16)
+
+Tracking weight 3, from scratch, clean training base `688eaa3`, exactly
+2,007,040 steps in 1,048.35 s. Final training length 94.6875, return 2.580198,
+KL .055301; first-update KL 1.144106, later values .038-.055. Normal run end.
+The final checkpoint was evaluated first, irrespective of the earlier
+training-return peak. Fixed forward .5, nominal seed 3000, 500 requested steps:
+
+| Controller | Steps | Linear RMSE | Min pelvis | Single support | L/R transitions |
+|---|---:|---:|---:|---:|---:|
+| Trained | 71 | .598791 | .381873 | 8.45% | 9/1 |
+| Untrained | 69 | .808679 | .102939 | 4.35% | 1/6 |
+| Standing | 69 | .849567 | .063025 | 10.14% | 2/9 |
+
+All finite. The trained policy modestly improves error against falling
+controls but fails absolute tracking, survival, height and gait requirements.
+Six-frame inspection shows hopping then collapse, not alternating walking.
+Artifacts: `results/gate4_corrective/C08_tracking3_seed0_2007040/`,
+`C08_forward_gate_seed3000/{episodes.csv,summary.json,trained_montage.png}`
+and three corresponding forward videos. Evaluation used highest matmul
+precision, matching training. Gate 4 remains unpassed. C09 is a distinct
+forward-only balance-to-gait initialization diagnostic; see its declaration.
+
 ## Successor C07 update (2026-09-16; zero new PPO steps)
 
 Gate 4 remains unpassed. Saved C06 inference exactly matches Brax training
