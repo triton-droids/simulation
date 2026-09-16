@@ -1,5 +1,39 @@
 # Gate 4 and Corrective Experiment Plan
 
+## Successor predeclaration: C08 (2026-09-16)
+
+C07 verified exact saved-action parity and exposed the D-033 autoreset bug.
+The same-MJX oracle walks, while C06 stance earns 87.4% of its reward at
+`vx=.5`. Before further PPO, finish C07 checkpoint recovery, full regressions,
+and a 1,024-step wrapper integration smoke. Preserve all artifacts.
+
+**Hypothesis:** on the corrected wrapper, increasing only linear tracking
+weight from 1 to 3 will help escape the low-speed static optimum. The cheapest
+test was counterfactual scoring of the saved same-MJX stance and oracle traces:
+the gait margin grows from 14.4% to 57.4%. This supports a bounded learning
+test but does not prove acquisition. The wrapper correction is a separate
+correctness change; a C06-versus-C08 comparison cannot isolate its causal
+contribution from reward reweighting.
+
+**Frozen pilot:** from-scratch seed 0, Playground adapter, C06 commands
+`vx=[.2,.6]`, `vy=yaw=0` with unchanged 10% zero, nominal/noiseless/no-push/no
+domain randomization; corrective PPO, 512 envs, 16 eval envs, 500-step episodes,
+20-step unroll, batch 32, 16 minibatches, four updates, LR `.0003`, entropy
+`.005`, discount `.97`, reward scale 1, 512/256/128 actor and critic. Only
+reward override: `sim.reward_scales.tracking_lin_vel=3.0`. Budget exactly
+2,007,040 steps (196 rollout batches), 15 evaluations (14 batches per epoch).
+No warm-start. Keep final and training-best checkpoints; assess the final
+checkpoint first, without selecting for a prettier rollout.
+
+**Go/no-go:** all finite; post-initial KL below `.2`; diagnostic forward
+`vx=.5`, nominal seed 3000, 500 requested steps: survive >=400, minimum pelvis
+>.6 m, linear RMSE <=.3 and >=20% below both controls, >=10 transitions each
+foot, single support 35-95%, and visually alternating support. Reject static
+stance, hopping, falling transitions or numerical reward-only improvement.
+Do not scale unchanged or broaden commands if this gate fails. Seed 3000 is
+development data, not final held-out evidence. Freeze entirely new command
+sequences/reset streams before any final matched three-seed campaign.
+
 Status: handoff freeze on 2026-09-15. No new training is running. Gate 4 has
 not passed, HOMIE Phases 5-7 remain out of scope, and the next authorized
 research action should be the zero-training-step C07 audit below. The original

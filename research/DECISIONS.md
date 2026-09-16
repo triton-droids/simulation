@@ -1,5 +1,30 @@
 # Decisions and Gate Log
 
+## D-033 -- Preserve transition bookkeeping across Playground full reset
+
+The C07 successor audit on 2026-09-15 reproduced a concrete wrapper bug with
+zero PPO steps. Pinned Playground's `BraxAutoResetWrapper(full_reset=True)`
+resets `truncation`, `episode_done`, and `episode_metrics` on done transitions,
+preserving only `steps`. A synthetic two-environment test failed separately
+for physical termination (`episode_done=0`) and timeout (`truncation=0`).
+Brax 0.14.2 PPO consumes these exact fields: its GAE uses `truncation`, and
+its metrics aggregator uses the other two. Thus timeouts were treated as
+physical terminals and training episode reports could disappear. The outer
+EvalWrapper's reward/length metrics remain independent and valid.
+
+A small local bridge now uses upstream's supported
+`AutoResetWrapper_preserve_info` hook to carry the four EpisodeWrapper fields
+through reset, while simulator/command/action/phase/contact history still
+resets coherently. Both forced-terminal cases pass after the change, including
+the following episode's accumulators. This changes future training semantics;
+it does not alter bare-environment checkpoint evaluation or establish that the
+bug caused C06's static stance. Preserve all previous experiments.
+
+Saved C06 checkpoint 5007360 additionally passed 64-observation inference
+parity: maximum training/evaluator action difference exactly 0; disabling
+normalization changed actions by up to 1.9926244. Artifact:
+`results/gate4_corrective/C07_audit/action_parity.json`.
+
 ## D-001 — Separate G1 environment rather than array-size generalization
 
 **Decision:** Add `source/locomotion/unitree_g1` and G1-specific metadata/configuration. Keep `source/locomotion/default_humanoid_legs` recognizable and separately tested.

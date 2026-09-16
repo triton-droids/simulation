@@ -14,6 +14,15 @@ This ledger distinguishes exact ports from adaptations and high-level inspiratio
 
 ## Model compatibility note
 
+C07 additionally inspected the pinned Playground `_src/wrapper.py`
+`BraxAutoResetWrapper.step` and installed Brax 0.14.2
+`envs/wrappers/training.py:EpisodeWrapper`, `ppo/train.py` and `ppo/losses.py`.
+`source/locomotion/unitree_g1/training_wrapper.py` is an original narrow bridge
+using Playground's preserve-info hook; it leaves upstream files unchanged and
+preserves Brax's terminal/truncation metadata. The action audit mirrors the
+installed trainer's normalized-network construction. Both upstream projects
+are Apache-2.0. See D-033 for the reproduced failures and validity limits.
+
 The ordinary Menagerie `scene.xml` is valid for MuJoCo viewing but fails the current MJX/Brax path because it contains an unsupported cylinder-mesh collision combination. The pinned `scene_mjx.xml` loads in both MuJoCo and `mjx.put_model`, so the pin does not need to change.
 
 ## Evidence-validity note

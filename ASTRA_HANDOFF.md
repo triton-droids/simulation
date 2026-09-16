@@ -1,5 +1,15 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+Successor update, 2026-09-16: C07 is underway. See the new leading sections in
+`research/RESULTS.md` and `research/EXPERIMENT_PLAN.md`, and D-033. Action parity
+passes exactly; full autoreset was proved to erase Brax timeout and episode
+metadata and now has a tested local preservation bridge. Correct C06
+three-seed/forward video confirms static stance. The oracle also walks in the
+exact MJX adapter, with 74.8% single support and forward RMSE .1731. C02 and
+C04 recovery confirm short falling rollouts. Full tests pass: 97 tests, 25
+warnings, 671.76 s. Historical recovery is underway; C08 is predeclared but not started.
+The freeze below is historical and must not override these successor findings.
+
 Freeze date: 2026-09-15 (America/Los_Angeles)
 
 Branch: `Robocup`

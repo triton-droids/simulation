@@ -1,5 +1,45 @@
 # G1 Build and Research Results
 
+## Successor C07 update (2026-09-16; zero new PPO steps)
+
+Gate 4 remains unpassed. Saved C06 inference exactly matches Brax training
+construction on 64 nontrivial inputs; an autoreset regression exposed and fixed
+lost timeout/episode bookkeeping (D-033). C06's corrected eight-command,
+three-reset-seed evaluation confirms static stance for stand/forward, with
+zero foot transitions across all six focal episodes. The same-MJX oracle
+comparison isolates reward/exploration as a plausible remaining bottleneck:
+the walking oracle earns only 14.4% more reward per step than C06 stance.
+
+| C07 diagnostic | Result | Artifact under `results/gate4_corrective/` |
+|---|---|---|
+| Saved C06 inference parity | max action difference `0`; identity preprocessing differs by `1.9926244` | `C07_audit/action_parity.json` |
+| C06, nominal seeds 2000/2001/2002, forward | 500/500 steps each; RMSE `.499923/.499994/.499635`; 0% single support; 0 transitions each foot | `C07_C06_normalized_three_seed/episodes.csv` |
+| C06 corrected forward video | inspected six frames across 10 s: stationary upright stance | `C07_C06_normalized_three_seed/trained_forward_seed2000.mp4` and `forward_montage.png` |
+| C04 normalized, nominal seed 2000 | all eight trained commands fall at 60-62 steps; mean linear RMSE `.754139`, yaw `.327019`; no hidden gait | `C07_C04_normalized/` |
+| C02 normalized, nominal seed 2000 | all eight trained commands fall at 72-83 steps; forward RMSE `.680555`; no sustained gait | `C07_C02_normalized/` |
+| C06 in same-MJX comparison | 500 steps; mean vx `.000573`; RMSE `.499670`; min pelvis `.756060`; 0% single support | `C07_same_mjx_reward_comparison/C06_trace.npz` |
+| Exact oracle in same MJX | 500 steps; mean vx `.547185`; RMSE `.173076`; min pelvis `.707041`; 74.8% single support; 30/32 foot transitions | `C07_same_mjx_reward_comparison/oracle_trace.npz` |
+
+The same-MJX comparison fixes phase frequency to 1.5 Hz, reset seed 2000,
+nominal pose and command `[.5,0,0]`. Both use the actual adapter's clipped
+actions and synchronized observations. Oracle maximum absolute action is
+`.985630`, so clipping does not explain the difference. It remains a shipped
+policy diagnostic, not a local training result. Weighted reward totals before
+dt are `1.450191` (stance) and `1.658568` (gait); stance still earns `.368905`
+linear tracking, `.739729` yaw tracking and `.466800` phase reward. Gait earns
+`.892206/.613743/.693651` respectively, but incurs more contact-force and
+movement costs. Reweighting linear tracking alone from 1 to 3 on these fixed
+traces gives `2.188001/3.442980` (57.4% oracle margin); this is counterfactual
+reward arithmetic, not evidence that PPO can acquire the gait.
+
+Focused evaluator/adapter regressions: 22 passed, one deliberately deselected
+real-MJX compile test in 115.66 s. The subsequent complete suite passed
+**97 tests, 25 warnings in 671.76 s**, including real MJX and all expanded reset
+cases, with no skipped/xfail/failed tests. Compileall and `git diff --check`
+also pass. C02 recovery is complete; historical-native recovery is underway.
+No new training has been launched at this update. The earlier dated freeze is
+retained verbatim as provenance.
+
 **Outcome at the 2026-09-15 handoff freeze:** Gates 0-3 passed. Gate 4 has
 **not passed**. The original three-seed Gate 4 training family completed, but
 commit `f642bc2` proved that earlier fixed-command evaluators loaded checkpoint

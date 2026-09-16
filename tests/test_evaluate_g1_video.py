@@ -15,6 +15,13 @@ if sys.platform == "win32":
 from source.scripts import evaluate_g1
 
 
+def test_video_command_selector(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["evaluate_g1", "--run-dir", "unused", "--video", "--video-command", "forward"])
+    assert evaluate_g1.parse_args().video_command == "forward"
+    monkeypatch.setattr(sys, "argv", ["evaluate_g1", "--run-dir", "unused"])
+    assert evaluate_g1.parse_args().video_command == "combined"
+
+
 @dataclass(frozen=True)
 class _CommandState:
     info: dict[str, jp.ndarray]

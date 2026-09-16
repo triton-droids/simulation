@@ -16,6 +16,7 @@ from source.locomotion.unitree_g1.playground_source import (
     load_playground_g1_modules,
     resolve_playground_source,
 )
+from source.locomotion.unitree_g1.training_wrapper import wrap_for_brax_training
 
 
 def synchronize_transition_observation(
@@ -115,7 +116,7 @@ class Joystick:
         # the restored reset observation.  Use its supported full-reset mode
         # so every training episode starts from one coherent state.
         self.brax_training_wrapper = functools.partial(
-            wrapper_module.wrap_for_brax_training, full_reset=True
+            wrap_for_brax_training, wrapper_module=wrapper_module, full_reset=True
         )
         self.effective_config = effective.to_dict()
         self.source_record = {
@@ -129,6 +130,7 @@ class Joystick:
                 "qpos/qvel finite termination",
                 "optional nominal reset for diagnostics",
                 "full-state auto-reset metadata synchronization",
+                "preserve Brax terminal and timeout bookkeeping through full reset",
             ],
         }
         self.nq = self._env.mj_model.nq

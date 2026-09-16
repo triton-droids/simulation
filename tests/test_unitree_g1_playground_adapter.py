@@ -9,6 +9,7 @@ import json
 from hydra import compose, initialize
 import jax
 import jax.numpy as jp
+import pytest
 from omegaconf import OmegaConf
 
 import source.config  # noqa: F401 - register structured Hydra configs.
@@ -25,6 +26,7 @@ from source.locomotion.unitree_g1.playground_source import (
     resolve_playground_source,
 )
 from source.robots.unitree_g1 import UnitreeG1Model
+from source.locomotion.unitree_g1.training_wrapper import wrap_for_brax_training
 
 
 def test_playground_config_matches_pinned_g1_defaults_and_round_trips() -> None:
@@ -167,7 +169,9 @@ def test_adapter_constructs_official_feet_only_model_from_existing_assets() -> N
     assert env.brax_training_wrapper.keywords["full_reset"] is True
 
 
-def test_playground_training_auto_reset_restores_matching_history() -> None:
+@pytest.mark.parametrize("physical_terminal", [True, False])
+@pytest.mark.parametrize("episode_length", [1, 3])
+def test_playground_training_auto_reset_restores_matching_history(physical_terminal, episode_length) -> None:
     source = resolve_playground_source(fetch=False)
     mjx_env_module, wrapper_module, _ = load_playground_g1_modules(source)
 
@@ -202,7 +206,7 @@ def test_playground_training_auto_reset_restores_matching_history() -> None:
                 self._observation(info),
                 jp.zeros(()),
                 jp.zeros(()),
-                {},
+                {"progress": jp.zeros(())},
                 info,
             )
 
@@ -218,18 +222,26 @@ def test_playground_training_auto_reset_restores_matching_history() -> None:
             return state.replace(
                 data=jp.array([9.0]),
                 obs=self._observation(info),
-                done=jp.ones(()),
+                done=jp.asarray(float(physical_terminal)),
+                reward=jp.asarray(2.0),
+                metrics={"progress": jp.asarray(3.0)},
                 info=info,
             )
 
-    wrapped = wrapper_module.wrap_for_brax_training(
+    wrapped = wrap_for_brax_training(
         ForcedDoneEnvironment(),
-        episode_length=10,
+        episode_length=episode_length,
         action_repeat=1,
         full_reset=True,
+        wrapper_module=wrapper_module,
     )
     reset_keys = jax.random.split(jax.random.PRNGKey(0), 2)
     state = jax.jit(wrapped.reset)(reset_keys)
+    expected_length = 1 if physical_terminal else episode_length
+    for elapsed in range(1, expected_length):
+        state = jax.jit(wrapped.step)(state, jp.zeros((2, 29)))
+        assert jp.all(state.done == 0)
+        assert jp.all(state.info["episode_metrics"]["sum_reward"] == 2 * elapsed)
     next_state = jax.jit(wrapped.step)(state, jp.zeros((2, 29)))
 
     assert jp.all(next_state.done == 1)
@@ -240,6 +252,15 @@ def test_playground_training_auto_reset_restores_matching_history() -> None:
         [jp.cos(next_state.info["phase"]), jp.sin(next_state.info["phase"])], axis=-1
     )
     assert jp.allclose(next_state.obs["state"][:, 99:103], expected_phase)
+    assert jp.all(next_state.info["steps"] == expected_length)
+    assert jp.all(next_state.info["truncation"] == float(not physical_terminal))
+    assert jp.all(next_state.info["episode_done"] == 1)
+    assert jp.all(next_state.info["episode_metrics"]["sum_reward"] == 2 * expected_length)
+    assert jp.all(next_state.info["episode_metrics"]["length"] == expected_length)
+    assert jp.all(next_state.info["episode_metrics"]["progress"] == 3 * expected_length)
+    following = jax.jit(wrapped.step)(next_state, jp.zeros((2, 29)))
+    assert jp.all(following.info["episode_metrics"]["sum_reward"] == 2)
+    assert jp.all(following.info["episode_metrics"]["length"] == 1)
 
 
 def test_adapter_jitted_reset_step_and_resampling_invariants() -> None:

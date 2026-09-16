@@ -82,6 +82,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--video", action="store_true")
+    parser.add_argument(
+        "--video-command", choices=[name for name, _ in COMMANDS], default="combined",
+        help="Command to render for each controller on the first reset seed.",
+    )
     parser.add_argument("--render-every", type=int, default=2)
     parser.add_argument(
         "--nominal-reset",
@@ -775,7 +779,7 @@ def main() -> None:
         if args.output_dir is not None
         else run_dir / "evaluation" / f"checkpoint_{checkpoint}"
     )
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=False)
 
     cfg = OmegaConf.load(run_dir / "resolved_config.json")
     cfg.robot.fetch_model = False
@@ -856,7 +860,7 @@ def main() -> None:
                     f"lin_rmse={row['linear_velocity_vector_rmse']:.3f} "
                     f"yaw_rmse={row['yaw_rate_rmse']:.3f}"
                 )
-                if args.video and command_name == "combined" and seed == seeds[0]:
+                if args.video and command_name == args.video_command and seed == seeds[0]:
                     assert video_rollout is not None
                     video_initial_state, video_trace = video_rollout(
                         params,
@@ -865,7 +869,7 @@ def main() -> None:
                         jp.asarray(command_values),
                     )
                     jax.block_until_ready(video_trace["reward"])
-                    video_path = output_dir / f"{controller}_combined_seed{seed}.mp4"
+                    video_path = output_dir / f"{controller}_{command_name}_seed{seed}.mp4"
                     encoder = _write_video(
                         env,
                         video_initial_state,
@@ -905,6 +909,7 @@ def main() -> None:
         "instrumentation": _instrumentation_metadata(env),
         "aggregate": _aggregate(rows),
         "videos": videos,
+        "video_command": args.video_command if args.video else None,
         "video_encoders": video_encoders,
         "model": robot.source_record,
         "git": _git_record(),
