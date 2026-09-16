@@ -84,8 +84,10 @@ and action repeat explicitly to Brax through a separately tested mapping.
 `normalize_observations=true` and `max_grad_norm=1.0`, but source inspection
 after repeated KL spikes (up to `9.2376`) showed that `train.py` omitted both
 arguments. Brax 0.14.2 therefore used its materially different defaults:
-normalization disabled and no gradient clipping. The invalidated runs are
-retained. A corrected 1,024-step CUDA smoke checkpointed, and a corrected
+normalization disabled and no gradient clipping. Those runs are invalid for the
+declared normalized profile but retained; their identity evaluator is faithful
+to the actual unintended policy function. A corrected 1,024-step CUDA smoke
+checkpointed, and a corrected
 491,520-step probe improved return `1.0062 -> 2.0245` and survival
 `51.25 -> 64.75` while post-warmup KL stayed near `0.0034`.
 
@@ -127,8 +129,8 @@ weights to `2.0/1.5`, restore Playground's standstill/pose weights, narrow the
 training commands to the fixed evaluation envelope, and probe at Playground's
 `1e-4` learning rate before any matched rerun.
 
-**Evidence:** The failed 10,485,760-step seed-0 checkpoint had 100% falls and
-yaw RMSE `1.971` on the fixed evaluation. Its logged alive contribution was
+**Evidence at the time:** The fixed evaluator reported 100% falls and yaw RMSE
+`1.971`; D-030 later invalidated that PPO inference. Its valid logged alive contribution was
 about 5.2 times the two trackers combined after timestep integration. This
 made increasing survival with command-insensitive high-rate motion more
 valuable than tracking. The corrective profile keeps every contract-required
@@ -137,8 +139,9 @@ regularizer signed and nonzero and is frozen in `research/EXPERIMENT_PLAN.md`.
 ## D-016 -- Bound compiled epoch size with evaluation cadence
 
 **Decision:** Use 21 evaluations for the 20,971,520-step matched family so
-each Brax epoch contains 16 transition batches, and preserve the interrupted
-five-evaluation attempt as a failed runtime experiment.
+each Brax epoch contains 16 transition batches. Preserve the five-evaluation
+attempt as a documented runtime failure; a freeze audit found no distinct run
+directory despite earlier prose saying one had been retained.
 
 **Evidence:** The five-evaluation full seed compiled 80 batches into one epoch
 and produced no step-0 callback after 25 minutes; the otherwise identical
@@ -165,13 +168,13 @@ and relabel its steps from zero, making it non-equivalent to uninterrupted seeds
 runtime result; the replacement is launched independently of the interactive
 tool handle so later status questions cannot terminate it.
 
-## D-018 -- Gate 4 fails the frozen three-seed decision rule
+## D-018 -- Historical Gate 4 failure decision (superseded by D-030)
 
-**Decision:** Record the authorized Gate 4 attempt as a failure and stop before
+**Decision at the time:** Record the authorized Gate 4 attempt as a failure and stop before
 HOMIE Phases 5-7. Do not promote a visually preferred checkpoint or weaken the
 predeclared rule after seeing reset seeds 2000-2002.
 
-**Evidence:** Across 216 fixed held-out episodes, trained linear-vector RMSE
+**Historical evidence:** Across 216 fixed held-out episodes, trained linear-vector RMSE
 was `0.9254` versus `0.9878` untrained and `0.9942` standing, and mean duration
 was `1.3742 s` versus `1.1364/1.1333 s`. However trained yaw RMSE was `1.0575`
 versus `0.4539/0.3238`, every controller had fall rate `1.0`, no rollout
@@ -179,14 +182,20 @@ survived the 500-step horizon, and zero of three trained policy seeds passed
 the matched rule. All values were finite. The exact aggregate is retained at
 `results/gate4/final_aggregate/summary.json`.
 
-## D-019 -- Preserve the discovered observation-timing defect
+**Superseding correction:** D-030 establishes that the trained PPO network in
+this evaluator omitted observation normalization. The raw files stay intact,
+but the trained-policy metrics above no longer support a faithful failure
+verdict. Gate 4 remains not passed because no valid three-seed held-out result
+exists—not because D-018's numbers remain accepted.
+
+## D-019 -- Preserve, then correct, the discovered observation-timing defect
 
 **Decision:** Do not change actor-observation timing underneath the completed
 checkpoint family. Add strict expected-failure tests for the correct invariants,
 document the defect as a Gate 4 limitation, and require a fix before any new
 baseline family.
 
-**Evidence:** `Joystick.step()` currently calls `_get_obs` before shifting
+**Evidence at discovery:** `Joystick.step()` called `_get_obs` before shifting
 `last_act`, advancing phase, and resampling the command. Thus the returned
 observation's "previous action" is one control step older than the just-applied
 action, and at a resampling boundary its command differs from the returned
@@ -194,6 +203,11 @@ action, and at a resampling boundary its command differs from the returned
 policy input and make the already-trained checkpoints incomparable. The frozen
 family already fails on yaw and survival, so no additional training is justified
 under the current semantics.
+
+**Completed follow-up:** Commit `4426499` fixed these invariants for a new,
+explicitly non-comparable corrective family and converted the strict timing
+checks into passing regressions. Historical checkpoints remain tied to the old
+semantics.
 
 ## D-020 -- Use a repository-local video encoder fallback
 
@@ -323,10 +337,9 @@ fixed-command rollout. Record exact commands and elapsed time in all future
 evaluation summaries as well as training manifests.
 
 **Evidence:** C01 completed its exact 1,024-step checkpoint path on CUDA from a
-clean commit, but its final KL was `3.3128` and its held-command policy had zero
-episode successes and yaw RMSE `1.7945`, far worse than standing (`0.1697`).
-Those values correctly reject C01 as learning evidence while establishing that
-checkpoint serialization and evaluation work before more compute is used.
+clean commit, but its final KL was `3.3128`. D-030 invalidates the old
+held-command tracking values. C01 remains checkpoint/provenance plumbing only,
+which was sufficient reason not to treat it as learning evidence.
 
 ## D-027 -- Escalate to a thin pinned Playground runtime adapter
 
@@ -348,10 +361,11 @@ reward for a transition remains the upstream reward computed before next-state
 history changes. Resolve and record both upstream revisions independently.
 
 **Evidence:** C02 was finite and its optimizer stabilized, but after 286,720
-steps all eight fixed-command rollouts still fell in about `1.54 s`, yaw RMSE
-regressed against both controls, single support was only `2.1%`, and the video
-showed planted feet followed by a sideways collapse. This fails D-026's gait
-and survival requirements. The adapter's pre-training tests load the official
+steps its valid training-side mean length improved only `72.0 -> 75.41` and
+termination remained present. D-030 later invalidated its fixed-command
+tracking/video evidence. The small signal plus the large documented dynamics
+differences in D-022 still supported a reversible authoritative adapter rather
+than another expensive native run. The adapter's pre-training tests load the official
 `36/35/29`, 72-geom, 5-pair, 29-sensor model; a jitted CUDA reset and step are
 finite and return observations consistent with next-state metadata. The
 Playground overlay consumes the already-pinned Menagerie asset directory; mesh
@@ -375,11 +389,11 @@ finite/KL/length/tracking/gait scale-up rule recorded in `research/RESULTS.md`;
 C04 remains a diagnostic, not a Gate 4 PASS attempt.
 
 **Evidence:** C03 completed from clean commit `0379401`, wrote checkpoints 0
-and 1,024 plus exact dual-source/runtime provenance, and restored both policies
-through 24 held-command rollouts. Its final KL was `3.2936`, tracking did not
-improve over either control, and all controllers remained in double support.
-This is sufficient training/evaluation plumbing evidence but not a reason to
-skip the bounded learning diagnostic or to claim gait behavior.
+and 1,024 plus exact dual-source/runtime provenance, and structurally restored
+both policies through 24 finite held-command rollouts. Its final training KL
+was `3.2936`. D-030 later invalidated the held-rollout behavior because
+normalized preprocessing was missing; the run remains sufficient checkpoint
+plumbing evidence but not gait evidence.
 
 ## D-029 -- Use the shipped policy as an oracle, then stage gait acquisition
 
@@ -397,9 +411,9 @@ step budget. It retains the authoritative reward/dynamics and full PPO network.
 Only a quantitatively and visually verified alternating forward gait can be
 warm-started into an omnidirectional command stage.
 
-**Evidence:** C04 remained finite and KL stabilized near `0.038`, but its final
-episode length regressed to `61.75` steps and all fixed-command policies fell in
-about `1.4 s`; reward growth was a false proxy for locomotion. C05b's exact
+**Evidence:** C04 remained finite and KL stabilized near `0.038`, but its valid
+training-side final episode length regressed to `61.75` steps. Its old
+fixed-command policy behavior was later invalidated by D-030. C05b's exact
 shipped policy completed all eight 500-step CPU-MuJoCo rollouts with no fall,
 minimum pelvis height above `0.692 m`, and 74–83% single support. Forward and
 yaw response were sign-correct, and video inspection confirms alternating
@@ -407,21 +421,88 @@ steps. A diff between the Playground-expected and repository-pinned Menagerie
 G1 XML shows only formatting/statistic changes in the included dynamics files,
 so a hidden joint/gain/contact revision mismatch is not a supported cause.
 
+## D-030 -- Invalidate pre-f642 evaluations of normalized PPO checkpoints
+
+**Decision:** Preserve all prior JSON, CSV, plots, and videos, but stop using
+pre-`f642bc2` fixed behavior from checkpoints trained with normalization enabled
+as scientific evidence. Gate 4 is now “not passed / held-out verdict
+invalidated,” not a verified PASS and not a faithful three-seed failure.
+Training-side Brax evaluation metrics and the independent C05b ONNX oracle
+remain valid.
+
+**Evidence:** `evaluate_g1.py` loaded the checkpoint tuple containing running
+observation statistics but constructed `make_ppo_networks` with its identity
+preprocessor. Brax training constructs the same network with
+`brax.training.acme.running_statistics.normalize` whenever
+`normalize_observations=true`. Commit
+`f642bc2fbdbc575dc3d4865cdd2fc72a941029e2` restores that callback and adds
+positive and negative regression tests. The historical normalized 216-episode
+family, corrected/capacity/reference-scaled native evaluations, clean-export
+smoke, C01-C04, and C06's first video evaluation used the wrong policy
+function. Standing traces are not normalized, but trained-versus-control
+claims from those summaries are invalid.
+
+The earlier pre-D-012 pilots are a distinct case. Because `train.py` had not
+yet forwarded the serialized flag, Brax actually trained them with its
+`normalize_observations=False` default. Their identity-preprocessed evaluator
+was faithful to that actual policy function, although the runs remain excluded
+as unintended, misconfigured profiles. This distinction is protected by the
+evaluator's enabled/disabled normalization tests.
+
+## D-031 -- C06 learned balance, not forward gait
+
+**Decision:** Mark C06 as a legitimate negative gait-acquisition result. Do not
+warm-start it into an omnidirectional stage and do not rerun the same
+configuration unchanged. Retain the final checkpoint because it is the first
+locally trained policy validly shown to hold an upright stance for 10 seconds.
+
+**Evidence:** C06 ran from clean commit `da70eda` for 5,007,360 actual steps
+with the exact adapter/rewards, `vx=[0.2,0.6]`, y/yaw zero, nominal reset, and
+the authoritative PPO optimizer/network. Training evaluation rose from length
+69/reward `-1.6033` to length 500/reward `15.8929`, with final KL `.0946`.
+After D-030, fixed `vx=0.5` evaluation on reset seed 2000 also survived 500/500
+and stayed above `.756 m`, but vector RMSE was `.4999 m/s`, double support was
+100%, single support 0%, and both feet made zero contact transitions. It
+therefore fails the predeclared transition, support, tracking-success, and
+visual-gait requirements even though it numerically beats controls that fall.
+The six out-of-distribution lateral/yaw/backward/combined commands terminate in
+3-116 steps. The corrected result is
+`results/gate4_corrective/C06_playground_forward_curriculum_seed0_5000000/evaluation/checkpoint_5007360_normalized_seed2000_500/`.
+
+## D-032 -- Freeze at C07 diagnostics before more PPO
+
+**Decision:** The first successor action is C07, a zero-training-step
+inference/invariant audit. It must (1) compare saved-checkpoint actions between
+Brax training-time and evaluator network construction, (2) extend autoreset
+coverage to the EpisodeWrapper bookkeeping keys, (3) run the corrected C06
+eight-command grid on seeds 2000-2002, add a tested video-command selector, and
+produce one corrected forward video while treating only stand/forward as
+in-distribution, and (4) correctly reevaluate C02 and C04.
+C06 used nominal reset, so those seeds are not randomized-pose robustness. The
+old full native family may be evaluated only in a temporary worktree at
+`27de436` (the closest recoverable historical-semantics snapshot, not a
+per-run-proven exact commit) while backporting D-030.
+
+**Reason:** This recovers information from already-spent compute and protects
+against a second invalid report. The current `full_reset=True` path is not a
+confirmed cause of C06—Brax's outer EvalWrapper preserves the done/step metrics
+used for training evaluation—but its dedicated regression currently asserts
+environment history rather than every EpisodeWrapper field. After C07,
+quantify the C06 static reward optimum against C05b before freezing one bounded
+seed-0 gait experiment. No three-seed or large-budget run is justified until
+alternating support is both measured and visible.
+
 ## Gate status
 
 - Gate 0: **passed 2026-09-08**. Clean install, dependency check, local logger tests, secret-pattern scan, and both loader modes passed; revisions/licenses are recorded in `research/SOURCE_LEDGER.md`.
 - Gate 1: **passed 2026-09-08**. Six default-environment regression tests pass in both the working and clean validation environments. The manual reset/step completes, and `results/phase1_default_baseline_zero_action.mp4` was rendered and visually inspected. The three pre-existing defects above were corrected narrowly; no G1 assumptions entered the old environment.
 - Gate 2: **passed 2026-09-08**. The viewer and training share one resolver at Menagerie commit `71f066ad0be9cd271f7ed58c030243ef157af9f4`; Hydra selects the isolated G1 config/environment; all 29 joint-actuator mappings and foot contacts are introspected and tested; the complete clean-environment suite reports 16 passed. Deterministic metadata was regenerated after separating floor-support and cross-contact foot geoms and is in ignored `results/gate2_g1_metadata.json` (SHA-256 `55ddfd2bd586ba7a73590d8701e971b5e0c6eb1a27703212665472dad94a532c`). No locomotion behavior or quality is claimed at this gate.
 - Gate 3: **passed 2026-09-08 (CPU smoke)**. The clean suite reports 24 passed, including 1,000 bounded control steps with finite state/observations. Reset is seeded; action and motor targets are clipped; termination covers torso orientation, pelvis height, undesired contact, and NaNs. The exact standing pose and contact mapping were visually/programmatically verified. Diagnostic videos are under ignored `results/gate3/`. Negative result: the untrained `0.02`-amplitude sinusoidal controller first terminates at step 69 and is visibly fallen by 1.6 seconds; this is pipeline evidence only.
-- Gate 4: **failed 2026-09-09**. Corrective matched seeds 0, 1, and 2 each
-  completed exactly 20,971,520 steps; the interrupted first seed-2 process is
-  retained and its exact from-scratch replacement completed normally. All 216
-  frozen held-out episodes were finite, and trained linear RMSE/duration beat
-  both controls, but trained yaw RMSE was worse, every controller fell, no
-  full-horizon rollout survived, and zero policy seeds passed individually.
-  The late audit also found the previous-action/command observation-timing
-  defect in D-019. A clean exported source tree independently passed its full
-  suite and produced a 1,024-step PPO checkpoint plus finite fixed-command
-  evaluation, satisfying pipeline reproducibility but not behavioral quality.
-  This is not a verified locomotion baseline.
+- Gate 4: **not passed; historical held-out verdict invalidated 2026-09-11 UTC
+  (2026-09-10 PDT)**.
+  Three 20,971,520-step native runs completed, but D-030 invalidates their PPO
+  held-out policy inference. C05b independently proves the model/interface can
+  walk. C06 validly proves a local policy can balance for 10 seconds, but it
+  remains stationary at `vx=0.5`, has zero foot transitions, and fails its gait
+  gate. No conventional three-axis, three-seed locomotion baseline exists.
 - Gates 5–7: out of current authorization.

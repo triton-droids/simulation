@@ -26,9 +26,11 @@ def test_export_skips_excluded_tree_before_file_stat(
     assert files == [included]
 
 
-def test_export_excludes_hydra_outputs(tmp_path: Path) -> None:
+def test_export_excludes_generated_output_directories(tmp_path: Path) -> None:
     (tmp_path / "outputs").mkdir()
     (tmp_path / "outputs" / "config.yaml").write_text("generated: true\n")
+    (tmp_path / "runs").mkdir()
+    (tmp_path / "runs" / "events.out.tfevents").write_text("generated\n")
     source = tmp_path / "README.md"
     source.write_text("project\n")
 

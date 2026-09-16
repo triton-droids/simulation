@@ -8,6 +8,7 @@ same upload artifact with one command and without needing git to be installed.
 from __future__ import annotations
 
 import argparse
+import os
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,6 +33,7 @@ EXCLUDED_DIR_NAMES = {
     "mujoco_menagerie",
     "outputs",
     "results",
+    "runs",
     "venv",
     "wandb",
 }
@@ -179,19 +181,25 @@ def iter_export_files(root: Path, output_path: Path) -> list[Path]:
     """
 
     included_files: list[Path] = []
-    for path in root.rglob("*"):
-        relative_path = path.relative_to(root)
-        # Check the lexical parent before statting.  Some local environments
-        # contain platform-specific or inaccessible links (for example a WSL
-        # venv's lib64 link viewed from Windows) inside excluded cache trees.
-        if has_excluded_parent(relative_path):
-            continue
-        try:
-            is_file = path.is_file()
-        except OSError:
-            continue
-        if is_file and should_include_file(path, root, output_path):
-            included_files.append(path)
+    for current_dir, dirnames, filenames in os.walk(root, topdown=True):
+        # Prune generated trees before walking them.  In particular, scanning
+        # the multi-gigabyte WSL venv is both slow and vulnerable to Windows
+        # stat errors on its platform-specific links.
+        dirnames[:] = sorted(
+            name for name in dirnames if name not in EXCLUDED_DIR_NAMES
+        )
+        directory = Path(current_dir)
+        for filename in sorted(filenames):
+            path = directory / filename
+            relative_path = path.relative_to(root)
+            if has_excluded_parent(relative_path):
+                continue
+            try:
+                is_file = path.is_file()
+            except OSError:
+                continue
+            if is_file and should_include_file(path, root, output_path):
+                included_files.append(path)
     return sorted(included_files)
 
 

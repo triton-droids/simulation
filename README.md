@@ -21,12 +21,21 @@ hidden local cache. MuJoCo should open and display the robot.
 
 ## Research status
 
-The separate G1 environment, deterministic MJX smoke path, local PPO workflow,
-and three-seed Gate 4 evaluation are implemented. The frozen Gate 4 family did
-**not** produce a verified locomotion baseline: yaw tracking was worse than both
-controls and every held-out rollout fell. See
-[`research/RESULTS.md`](research/RESULTS.md) for exact metrics, artifacts,
-limitations, and the recommendation to stop before HOMIE Phases 5-7.
+The separate native G1 environment, exact pinned MuJoCo Playground adapter,
+deterministic MJX smoke path, local PPO workflow, checkpointing, and fixed
+evaluation are implemented. Gate 4 has **not passed**. A late audit found that
+older fixed-command evaluations of checkpoints trained with normalization
+enabled omitted that preprocessing, so those trained-policy metrics/videos are
+invalid. The corrected C06 evaluation
+shows a locally trained policy balancing for 10 seconds but standing still at a
+`0.5 m/s` forward command (100% double support, zero foot transitions). In
+contrast, the exact shipped Playground ONNX policy produces a genuine stable
+alternating gait on the same model/interface.
+
+Fresh agents should begin with [`ASTRA_HANDOFF.md`](ASTRA_HANDOFF.md). It maps
+the local ignored artifacts, validity boundary, exact commands, C06 result, and
+the frozen zero-training-step C07 next action. HOMIE Phases 5-7 remain
+unstarted and unauthorized.
 
 ## PyCharm
 
@@ -110,6 +119,7 @@ scripts/load_unitree_g1.py  Press Run here to load Unitree G1
 source/scripts/smoke_g1.py  Deterministic G1 reset/step validation
 source/scripts/train.py     Local-first PPO training entry point
 source/scripts/evaluate_g1.py  Fixed-command G1 policy evaluation
+source/scripts/evaluate_playground_onnx.py  Exact shipped-policy gait oracle
 scripts/export_repo_zip.py  Create a clean upload zip
 source/                     Simulator and training internals
 research/                   Source ledger, decisions, experiment plan, results
@@ -172,8 +182,8 @@ code. Unitree G1 is integrated as the separate
 `source/locomotion/unitree_g1` task; the original 12-actuator
 `default_humanoid_legs` environment remains a regression baseline.
 
-Run the short, credential-free PPO integration profile from the repository
-root:
+Run the short, credential-free native PPO integration profile from the
+repository root:
 
 ```bash
 python source/scripts/train.py --logger local --seed 0 env=unitree_g1 robot=unitree_g1 sim=unitree_g1 agent=ppo_g1_smoke hydra.run.dir=results/g1_ppo_smoke hydra.job.chdir=true
@@ -186,6 +196,24 @@ final checkpoint on a fixed command/reset trace:
 ```bash
 python source/scripts/evaluate_g1.py --run-dir results/g1_ppo_smoke --checkpoint 1024 --steps 100 --seeds 2000 --output-dir results/g1_ppo_smoke/evaluation/checkpoint_1024
 ```
+
+The evaluator now reconstructs observation normalization exactly as Brax
+training does. Do not cite pre-`f642bc2` evaluations of normalization-enabled
+checkpoints as trained behavior. Early pre-D-012 pilots actually trained with
+normalization disabled, so their identity evaluations remain faithful only to
+those unintended profiles. Use `evaluate_g1.py --video` for scientific
+videos; the older generic `play.py`/training-video helper has not been audited
+for normalized checkpoint preprocessing.
+
+The exact Playground adapter is selected with:
+
+```bash
+python source/scripts/train.py --logger local --seed 0 env=unitree_g1_playground robot=unitree_g1 sim=unitree_g1_playground agent=ppo_g1_smoke hydra.run.dir=results/g1_playground_smoke hydra.job.chdir=true
+```
+
+This command may fetch the exact public Playground source pin on first use. See
+`ASTRA_HANDOFF.md` before running any non-smoke PPO budget; C06 must not be
+repeated unchanged.
 
 Native Windows JAX uses CPU on the validated host. Useful long PPO runs use the
 same commands from WSL2 with a CUDA-enabled JAX environment; the exact bounded

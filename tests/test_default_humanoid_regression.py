@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import jax
@@ -149,3 +150,18 @@ def test_scheduled_push_changes_planar_velocity(default_env, reset_state):
         atol=1e-6,
     )
     np.testing.assert_allclose(pushed.pipeline_state.qd[2:], before[2:])
+
+
+def test_manual_smoke_reads_pipeline_state_fields() -> None:
+    smoke_path = (
+        Path(__file__).resolve().parents[1]
+        / "source"
+        / "locomotion"
+        / "test_joystick.py"
+    )
+    source = smoke_path.read_text(encoding="utf-8")
+
+    assert "print(state.pipeline_state.q)" in source
+    assert "print(state.pipeline_state.qd)" in source
+    assert "print(state.q)" not in source
+    assert "print(state.qd)" not in source
