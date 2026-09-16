@@ -76,6 +76,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--untrained-checkpoint", type=int, default=0)
     parser.add_argument("--steps", type=int, default=500)
     parser.add_argument(
+        "--commands", nargs="+", choices=[name for name, _ in COMMANDS],
+        default=None, help="Diagnostic command subset; default is the full frozen grid.",
+    )
+    parser.add_argument(
         "--seeds",
         default="2000,2001,2002",
         help="Comma-separated reset seeds (default: frozen Gate 4 held-out set).",
@@ -98,7 +102,10 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Evaluation-only override for diagnosing the configured fall cutoff.",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.video and args.commands is not None and args.video_command not in args.commands:
+        parser.error("--video-command must belong to the selected --commands")
+    return args
 
 
 def _best_logged_checkpoint(run_dir: Path) -> int:
@@ -764,6 +771,8 @@ def main() -> None:
     started_at_utc = _utc_timestamp()
     started_monotonic = time.perf_counter()
     args = parse_args()
+    commands = tuple((name, value) for name, value in COMMANDS
+                     if args.commands is None or name in args.commands)
     if args.steps <= 0:
         raise ValueError("--steps must be positive")
     seeds = tuple(int(value) for value in args.seeds.split(",") if value.strip())
@@ -834,7 +843,7 @@ def main() -> None:
     videos: list[str] = []
     video_encoders: dict[str, str] = {}
     for controller, params, use_policy in controllers:
-        for command_name, command_values in COMMANDS:
+        for command_name, command_values in commands:
             for seed in seeds:
                 initial_state, device_trace = rollout(
                     params,
@@ -888,7 +897,8 @@ def main() -> None:
         writer.writerows(rows)
 
     result = {
-        "kind": "gate4_fixed_held_out_velocity_evaluation",
+        "kind": ("gate4_fixed_held_out_velocity_evaluation" if args.commands is None
+                 else "g1_diagnostic_command_subset"),
         "command": list(ORIGINAL_ARGV),
         "started_at_utc": started_at_utc,
         "run_dir": str(run_dir),
@@ -900,7 +910,7 @@ def main() -> None:
         "reset_randomized": bool(cfg.sim.reset.randomize),
         "minimum_pelvis_height": float(cfg.sim.termination.min_pelvis_height),
         "observation_noise": bool(cfg.sim.noise.add_noise),
-        "commands": {name: values for name, values in COMMANDS},
+        "commands": {name: values for name, values in commands},
         "thresholds": {
             "instantaneous_linear_error_norm": 0.25,
             "instantaneous_yaw_error_abs": 0.25,

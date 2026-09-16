@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import cv2
 import jax.numpy as jp
 import numpy as np
+import pytest
 
 if sys.platform == "win32":
     os.environ["MUJOCO_GL"] = "glfw"
@@ -20,6 +21,17 @@ def test_video_command_selector(monkeypatch):
     assert evaluate_g1.parse_args().video_command == "forward"
     monkeypatch.setattr(sys, "argv", ["evaluate_g1", "--run-dir", "unused"])
     assert evaluate_g1.parse_args().video_command == "combined"
+
+
+def test_diagnostic_command_subset_and_video_must_agree(monkeypatch):
+    base = ["evaluate_g1", "--run-dir", "unused", "--commands", "forward"]
+    monkeypatch.setattr(sys, "argv", base)
+    assert evaluate_g1.parse_args().commands == ["forward"]
+    monkeypatch.setattr(sys, "argv", base + ["--video", "--video-command", "forward"])
+    assert evaluate_g1.parse_args().video_command == "forward"
+    monkeypatch.setattr(sys, "argv", base + ["--video"])
+    with pytest.raises(SystemExit):
+        evaluate_g1.parse_args()
 
 
 @dataclass(frozen=True)
