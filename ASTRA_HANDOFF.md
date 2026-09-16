@@ -7,7 +7,12 @@ metadata and now has a tested local preservation bridge. Correct C06
 three-seed/forward video confirms static stance. The oracle also walks in the
 exact MJX adapter, with 74.8% single support and forward RMSE .1731. C02 and
 C04 recovery confirm short falling rollouts. Full tests pass: 97 tests, 25
-warnings, 671.76 s. Historical recovery is underway; C08 is predeclared but not started.
+warnings, 671.76 s. Historical recovery on reset seed 2000 is complete for all
+three old policy seeds: survival is better, but forward RMSE remains .498-.502.
+Audit/fix commit is `e2cbf41`; C08's 1,024-step smoke completed from that clean
+commit in 297.54 s, with restorable checkpoints and exact inference parity.
+The 2,007,040-step seed-0 linear-tracking-weight-3 pilot is now cleared to run
+under the predeclared C08 plan; check its generated directory for live status.
 The freeze below is historical and must not override these successor findings.
 
 Freeze date: 2026-09-15 (America/Los_Angeles)

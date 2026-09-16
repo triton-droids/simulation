@@ -40,6 +40,36 @@ also pass. C02 recovery is complete; historical-native recovery is underway.
 No new training has been launched at this update. The earlier dated freeze is
 retained verbatim as provenance.
 
+Historical recovery subsequently completed for all three training seeds on
+reset seed 2000, using isolated `.cache/C07_historical_native` at `27de436`
+with only observation normalization backported. The exact patch is saved in
+`C07_audit/historical_normalization.patch`. This is the closest recoverable
+snapshot, not proof of byte-identical historical dirty training source. These
+are exploratory recovery results, not a replacement final held-out campaign.
+
+| Native training seed | Mean duration (s) | Fall fraction | Mean linear RMSE | Mean yaw RMSE | Forward RMSE |
+|---|---:|---:|---:|---:|---:|
+| 0 | 9.0500 | .125 | .284160 | .298757 | .502259 |
+| 1 | 8.1325 | .250 | .312494 | .302764 | .498085 |
+| 2 | 6.9700 | .500 | .520929 | .385661 | .500871 |
+
+The normalization omission substantially understated survival. All three
+still fail forward tracking at command `.5`; aggregate RMSE gains against
+falling controls do not establish walking. Outputs are
+`C07_historical_seed{0,1,2}_normalized/` and
+`C07_audit/historical_recovery_summary.json`. The audit and fixes are committed
+as `e2cbf41`. C08's 1,024-step wrapper/checkpoint smoke starts from that clean
+commit; the bounded gait pilot remains gated on its completion.
+
+C08 smoke subsequently completed in 297.54 s from clean `e2cbf41`, writing
+checkpoints 0 and 1024 and a normal `run_end`. Return `-1.340551 -> -1.379093`
+is infrastructure-only evidence, not improvement. Reloading checkpoint 1024
+passed 64-input action parity with maximum difference 0 (identity inference
+differs by 1.964582). No source changes occurred during training; only research
+documentation changed before the separate reload audit. Artifacts:
+`C08_wrapper_smoke_seed0_1024/` and `C07_audit/C08_smoke.log`.
+All predeclared prerequisites for the bounded C08 gait pilot are satisfied.
+
 **Outcome at the 2026-09-15 handoff freeze:** Gates 0-3 passed. Gate 4 has
 **not passed**. The original three-seed Gate 4 training family completed, but
 commit `f642bc2` proved that earlier fixed-command evaluators loaded checkpoint
