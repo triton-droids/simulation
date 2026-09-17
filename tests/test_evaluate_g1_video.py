@@ -16,6 +16,15 @@ if sys.platform == "win32":
 from source.scripts import evaluate_g1
 
 
+def test_completed_air_intervals_exclude_trace_boundaries_and_stance():
+    # Initial and final air fragments are censored; the middle swing is 60 ms.
+    contact = np.array([False, False, True, False, False, False, True, False])
+    assert evaluate_g1._completed_air_intervals(contact, .02) == pytest.approx([.06])
+    assert evaluate_g1._completed_air_intervals(np.ones(8, dtype=bool), .02) == []
+    assert evaluate_g1._completed_air_intervals(np.zeros(8, dtype=bool), .02) == []
+    assert evaluate_g1._completed_air_intervals(np.array([True, False, True, False, False, True]), .02) == pytest.approx([.02, .04])
+
+
 def test_video_command_selector(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["evaluate_g1", "--run-dir", "unused", "--video", "--video-command", "forward"])
     assert evaluate_g1.parse_args().video_command == "forward"

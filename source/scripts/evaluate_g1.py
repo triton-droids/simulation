@@ -500,6 +500,19 @@ def _masked_mean(value: np.ndarray, valid: np.ndarray) -> float:
     return float(np.asarray(value)[valid].mean())
 
 
+def _completed_air_intervals(contact: np.ndarray, dt: float) -> list[float]:
+    """Air durations bounded by observed contact on both ends; omit cut intervals."""
+    edges = np.diff(np.asarray(contact, dtype=np.int8))
+    starts = np.flatnonzero(edges == -1) + 1
+    ends = np.flatnonzero(edges == 1) + 1
+    durations = []
+    for start in starts:
+        end_index = np.searchsorted(ends, start, side="right")
+        if end_index < len(ends):
+            durations.append(float((ends[end_index] - start) * dt))
+    return durations
+
+
 def _summarize_trace(
     trace: dict[str, np.ndarray],
     *,
@@ -521,6 +534,8 @@ def _summarize_trace(
     yaw_abs = np.abs(yaw_error)
     left_contact = np.asarray(trace["left_contact"])[valid].astype(bool)
     right_contact = np.asarray(trace["right_contact"])[valid].astype(bool)
+    left_air = _completed_air_intervals(left_contact, dt)
+    right_air = _completed_air_intervals(right_contact, dt)
     double_support = left_contact & right_contact
     left_only_support = left_contact & ~right_contact
     right_only_support = ~left_contact & right_contact
@@ -614,6 +629,10 @@ def _summarize_trace(
         ),
         "left_contact_duty": float(left_contact.mean()),
         "right_contact_duty": float(right_contact.mean()),
+        "left_median_completed_air_seconds": float(np.median(left_air)) if left_air else 0.0,
+        "right_median_completed_air_seconds": float(np.median(right_air)) if right_air else 0.0,
+        "left_completed_air_intervals": len(left_air),
+        "right_completed_air_intervals": len(right_air),
         "gait_contact_asymmetry": abs(
             float(left_contact.mean()) - float(right_contact.mean())
         ),

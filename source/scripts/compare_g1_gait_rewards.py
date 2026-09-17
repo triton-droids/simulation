@@ -24,13 +24,19 @@ from omegaconf import OmegaConf
 import onnxruntime as ort
 
 
+def _policy_label(value: str) -> str:
+    if not value.isidentifier() or value.lower() == "oracle":
+        raise argparse.ArgumentTypeError("Use an identifier other than oracle for the local policy")
+    return value
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-dir", type=Path, required=True)
     parser.add_argument("--checkpoint", type=int, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--steps", type=int, default=500)
-    parser.add_argument("--policy-label", choices=("C06", "C08", "C09", "C10"), default="C06")
+    parser.add_argument("--policy-label", type=_policy_label, default="C06")
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=False)
     start = time.perf_counter()
@@ -79,6 +85,7 @@ def main():
         arrays = {name: np.stack([item[name] for item in trace]) for name in trace[0]}
         np.savez_compressed(args.output_dir / f"{controller}_trace.npz", **arrays)
         contact = arrays["contact"]
+        air_intervals = [ev._completed_air_intervals(contact[:, foot], env.dt) for foot in range(2)]
         rows[controller] = {
             "steps": len(trace), "terminal": bool(arrays["done"][-1]),
             "mean_velocity": arrays["velocity"].mean(0).tolist(),
@@ -86,6 +93,8 @@ def main():
             "minimum_pelvis_height": float(arrays["qpos"][:, 2].min()),
             "single_support_fraction": float(np.mean(contact.sum(1) == 1)),
             "foot_transitions": np.sum(contact[1:] != contact[:-1], axis=0).tolist(),
+            "completed_air_intervals_seconds": air_intervals,
+            "median_completed_air_interval_seconds": [float(np.median(v)) if v else 0.0 for v in air_intervals],
             "raw_action_saturation_fraction": float(np.mean(np.abs(arrays["action"]) >= 1)),
             "max_abs_raw_action": float(np.max(np.abs(arrays["action"]))),
             "mean_reward": float(arrays["reward"].mean()),

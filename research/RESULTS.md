@@ -5,6 +5,11 @@ tests, three warnings, 162.16 s in WSL CUDA, including real MJX with contact
 weight 0 and 2. Log: `results/gate4_corrective/C07_audit/C11_tests.log`.
 Four local pure invariant tests also pass. The optional reward is tested
 before training; these results do not establish learned gait quality.
+The evaluator now records per-foot median completed air intervals, excludes
+boundary-censored swings, and incrementally persists episode JSONL before
+video rendering. Its complete 16-test module passes locally (6.68 s); an
+initial Windows temp-folder permission error was resolved with a fresh
+workspace test directory. Training source is frozen separately at `7c531b1`.
 
 ## C10 completed: numerical forward pass, gait-quality hold (2026-09-16)
 
