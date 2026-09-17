@@ -27,6 +27,8 @@ class G1PlaygroundMJXConfig(G1MJXConfig):
         feet_slip: float = -0.25
         feet_height: float = 0.0
         feet_phase: float = 1.0
+        # Local diagnostic extension; zero preserves upstream rewards exactly.
+        feet_contact_phase: float = 0.0
         alive: float = 0.0
         stand_still: float = -1.0
         termination: float = -100.0

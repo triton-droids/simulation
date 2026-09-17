@@ -1,5 +1,39 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C11 predeclaration: sustained phase-aligned support (2026-09-16)
+
+C10 passes its numerical forward checks on seeds 3000/3001 and fixed 1.5 Hz,
+but dense video and foot-height traces show irregular brief lifts: median
+air intervals .06 s versus oracle .20 s. This is a visual-quality hold, not a
+retroactive change to C10's numerical thresholds. Do not broaden commands yet.
+
+**Hypothesis and cheap test:** an optional local reward directly aligning
+contact with the existing gait phase will favor sustained alternating support.
+Raw reward is `mean(-(2*contact-1)*cos(pre_transition_phase))`, enabled only for
+single support and a nonzero command. Standing and flight get exactly zero;
+wrong-phase support is negative. This is an original conventional task
+extension, not exact upstream reward reproduction, imitation or HOMIE.
+On full saved matched 500-step C10/oracle traces, raw means are .157208/.525066.
+Weight 2 changes reward totals before dt from 4.538207/4.794796 to
+4.852622/5.844928, growing walking's margin from 5.7% to 20.5%. This is
+counterfactual arithmetic. Prerequisites: helper invariants, pre-transition
+phase/command and dt regression, and real MJX reset/step with weight 0 and 2.
+The disabled default leaves old saved configurations/rewards unchanged.
+
+**Frozen pilot:** from local C10 final checkpoint 1003520, all C10 settings
+unchanged except `sim.reward_scales.feet_contact_phase=2.0`; seed 0, forward
+commands only, 1,003,520 new steps, eight evaluations. Normalizer/actor/critic
+warm-start; optimizer/step/PRNG restart. Verify checkpoint-0 actor/normalizer
+equality. Stop for nonfinite values or sustained post-initial KL >=.2.
+
+**Gate:** final checkpoint first. Retain C10's numerical/visual forward gate
+on nominal seeds 3000/3001, plus 500-step fixed-1.5-Hz survival. To make the
+visual requirement reproducible prospectively, each foot's median completed
+air interval in that fixed-phase trace must be >=.12 s (excluding intervals
+cut by either trace boundary). Initial C10 and standing remain controls;
+record yaw drift explicitly. No unchanged extension or command broadening
+if the gate fails. These are development diagnostics, not final held-out tests.
+
 ## C10 predeclaration: foot-height timing (2026-09-16)
 
 C09 learned useful motion but failed the support gate (25.4% single support),

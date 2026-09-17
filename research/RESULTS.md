@@ -1,5 +1,41 @@
 # G1 Build and Research Results
 
+C11 prerequisites passed: 37 targeted adapter/evaluator/PPO-configuration
+tests, three warnings, 162.16 s in WSL CUDA, including real MJX with contact
+weight 0 and 2. Log: `results/gate4_corrective/C07_audit/C11_tests.log`.
+Four local pure invariant tests also pass. The optional reward is tested
+before training; these results do not establish learned gait quality.
+
+## C10 completed: numerical forward pass, gait-quality hold (2026-09-16)
+
+Clean training base `253f9bc`, 1,003,520 steps in 640.71 s. Exact 17-leaf
+actor/normalizer restore equality. Final training survival 500, return
+46.126392, KL .075201. Final checkpoint assessed first as declared.
+
+| Nominal reset seed | Steps | Linear RMSE | Min pelvis | Single support | L/R transitions | Yaw RMSE |
+|---|---:|---:|---:|---:|---:|---:|
+| 3000 | 500 | .183816 | .716093 | 38.2% | 58/49 | .471 |
+| 3001 | 500 | .133795 | .738901 | 35.6% | 54/56 | .299 |
+
+Initial C09 also survives both, but has RMSE .225252/.202612 and single support
+25.4%/28%. Standing falls at 69 steps (RMSE .849567). C10 passes the declared
+numerical criteria on both seeds. Fixed phase 1.5 Hz/reset 2000 also survives
+500, RMSE .133596, minimum pelvis .747606, single support 35.2%.
+
+Dense video and foot-position traces show brief irregular lifts rather than
+the oracle's sustained cycles. Pooled median air interval is .06 s versus
+oracle .20 s; foot-site p95 heights .0594/.0531 m versus .0998/.0927 m.
+Consecutive-contact foot-site XY speed averages .1243 versus .1034 m/s; this
+is a finite-difference site-motion proxy, not exact contact-point slip and
+does not alone establish sliding. Do not conflate numerical pass with a
+finished visual gait or satisfactory yaw tracking. Broader commands remain
+on hold. C11's prospective sustained-support diagnostic is separately frozen.
+
+Artifacts: `C10_phase3_seed0_1003520/`, `C10_forward_gate_seeds3000_3001/`
+(CSV, three videos, full/dense montages), and `C10_fixed_phase_gate/`
+(matched traces, `gait_quality.json/png`, counterfactual contact-phase scores),
+all under `results/gate4_corrective/`.
+
 ## C10 zero-training shaping diagnostic (2026-09-16)
 
 The same-MJX comparison at fixed 1.5 Hz/reset 2000 exposed C09 fragility:

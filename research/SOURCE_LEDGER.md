@@ -2,6 +2,13 @@
 
 This ledger distinguishes exact ports from adaptations and high-level inspiration. Local implementation must not be described as a reproduction of a source unless the exact source behavior is retained and verified.
 
+C11 adds an original, optional local `feet_contact_phase` diagnostic reward
+to the thin adapter. It aligns single-foot support with the existing phase,
+uses pre-transition phase/command and next-state contact, and gives zero to
+stance, flight and zero command. It is disabled by default, not copied from
+the pinned Playground reward and not a HOMIE feature. Enabled runs record
+its weight in effective configuration and source adaptations. See D-035.
+
 | Source | Revision / location used | Precise material consulted | Local use | License / attribution |
 |---|---|---|---|---|
 | MuJoCo Menagerie, Unitree G1 | Git commit `71f066ad0be9cd271f7ed58c030243ef157af9f4`; `unitree_g1/scene_mjx.xml`, `g1.xml`, `g1_mjx.xml` | Joint, qpos/dof and actuator order; ranges; position gains; `home`/`knees_bent` keyframes; sites, bodies, sensors, collision geoms and explicit pairs | **Exact model source** via resolver; metadata is introspected rather than copied into an asset tree | Unitree G1 directory is BSD-3-Clause, copyright Unitree Robotics. Assets remain in ignored cache and are not vendored. <https://github.com/google-deepmind/mujoco_menagerie/tree/71f066ad0be9cd271f7ed58c030243ef157af9f4/unitree_g1> |

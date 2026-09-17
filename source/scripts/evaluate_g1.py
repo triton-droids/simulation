@@ -867,6 +867,9 @@ def main() -> None:
                     requested_steps=args.steps,
                 )
                 rows.append(row)
+                # Preserve completed numeric evidence even if a later render fails.
+                with (output_dir / "episodes.jsonl").open("a", encoding="utf-8") as stream:
+                    stream.write(json.dumps(row) + "\n")
                 print(
                     f"{controller:9s} {command_name:10s} seed={seed} "
                     f"steps={row['episode_steps']:4d} "

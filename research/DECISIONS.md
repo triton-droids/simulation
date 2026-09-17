@@ -1,5 +1,20 @@
 # Decisions and Gate Log
 
+## D-035 -- Preserve C10's numerical pass; require convincing support timing
+
+C10 clears the frozen numerical forward checks on two reset seeds and the
+fixed-phase survival check. Its visual gait remains irregular, with median
+air intervals .06 s versus oracle .20 s. Retain that progress without calling
+Gate 4 passed or broadening commands. C11 is a bounded local contact-phase
+reward ablation, justified by saved-trace counterfactual scoring and tested
+invariants. This optional term is not upstream reproduction. It uses old
+phase/command with next-state contact, is disabled by default (including old
+configs), and adds a stable reset/step metric only when enabled. A first
+floating-point cancellation test exposed tiny double-support residuals; an
+explicit single-support mask now makes stance/flight credit exactly zero.
+The .12-second completed-air-interval requirement is prospective for C11,
+not a retroactive reclassification of C10's numerical gate.
+
 ## D-034 -- Reject C08 and isolate forward gait acquisition from balance
 
 C08's final checkpoint fails the frozen gait gate (71 steps, .598791 linear

@@ -17,6 +17,7 @@ from source.config.g1_playground import G1PlaygroundMJXConfig
 from source.locomotion import get_env_class
 from source.locomotion.unitree_g1.playground_joystick import (
     Joystick,
+    contact_phase_reward,
     synchronize_transition_observation,
 )
 from source.locomotion.unitree_g1.playground_source import (
@@ -39,6 +40,7 @@ def test_playground_config_matches_pinned_g1_defaults_and_round_trips() -> None:
     assert cfg.reward_scales.tracking_ang_vel == 0.75
     assert cfg.reward_scales.alive == 0.0
     assert cfg.reward_scales.contact_force == -0.01
+    assert cfg.reward_scales.feet_contact_phase == 0.0
     assert cfg.push.add_push is True
     assert cfg.playground.implementation == "jax"
 
@@ -122,6 +124,43 @@ class _MutatingUpstream:
         state.info["phase"] = jp.array([0.4, -0.4])
         state.info["feet_air_time"] = jp.array([0.0, 0.3])
         return state.replace(obs={"state": jp.zeros(103), "privileged_state": jp.zeros(216)})
+
+
+def test_contact_phase_rewards_alternation_not_stance_flight_or_wrong_phase() -> None:
+    phase = jp.array([0.0, jp.pi])
+    command = jp.array([0.5, 0.0, 0.0])
+    reward = jax.jit(contact_phase_reward)
+    assert float(reward(jp.array([False, True]), phase, command)) == pytest.approx(1.0)
+    assert float(reward(jp.array([True, False]), phase, command)) == pytest.approx(-1.0)
+    assert float(reward(jp.array([True, True]), phase, command)) == pytest.approx(0.0)
+    assert float(reward(jp.array([False, False]), phase, command)) == pytest.approx(0.0)
+    assert float(reward(jp.array([False, True]), phase, jp.zeros(3))) == pytest.approx(0.0)
+    assert float(reward(jp.array([True, False]), phase + jp.pi, command)) == pytest.approx(1.0)
+    phases = jp.stack([jp.linspace(-jp.pi, jp.pi, 101), jp.linspace(0, 2*jp.pi, 101)], axis=1)
+    both = jax.vmap(lambda p: reward(jp.array([True, True]), p, command))(phases)
+    assert jp.allclose(both, 0, atol=2e-7)
+
+
+def test_contact_phase_uses_old_phase_command_and_control_dt() -> None:
+    adapter = Joystick.__new__(Joystick)
+    adapter._env = _MutatingUpstream()
+    adapter._feet_contact_phase_scale = 2.0
+    adapter.dt = .02
+    adapter._contact = lambda _data: jp.array([False, True])
+    state = _FakeState(
+        data=_FakeData(jp.zeros(36), jp.zeros(35)),
+        obs={"state": jp.zeros(103), "privileged_state": jp.zeros(216)},
+        reward=jp.asarray(.5), done=jp.zeros(()),
+        metrics={"reward/feet_contact_phase": jp.zeros(())},
+        info={"command": jp.array([.5, 0, 0]), "last_act": jp.zeros(29),
+              "phase": jp.array([0., jp.pi]), "feet_air_time": jp.zeros(2)},
+    )
+    next_state = adapter.step(state, jp.zeros(29))
+    assert float(next_state.reward) == pytest.approx(.54)
+    assert float(next_state.metrics["reward/feet_contact_phase"]) == pytest.approx(2.)
+    assert float(state.reward) == pytest.approx(.5)
+    stopped = state.replace(info={**state.info, "command": jp.zeros(3)})
+    assert float(adapter.step(stopped, jp.zeros(29)).reward) == pytest.approx(.5)
 
 
 def test_adapter_step_is_functional_clips_action_and_repairs_upstream_staleness() -> None:
@@ -263,12 +302,14 @@ def test_playground_training_auto_reset_restores_matching_history(physical_termi
     assert jp.all(following.info["episode_metrics"]["length"] == 1)
 
 
-def test_adapter_jitted_reset_step_and_resampling_invariants() -> None:
+@pytest.mark.parametrize("contact_phase_scale", [0.0, 2.0])
+def test_adapter_jitted_reset_step_and_resampling_invariants(contact_phase_scale) -> None:
     cfg = OmegaConf.structured(G1PlaygroundMJXConfig())
     cfg.playground.fetch_source = False
     cfg.reset.randomize = False
     cfg.noise.add_noise = False
     cfg.push.add_push = False
+    cfg.reward_scales.feet_contact_phase = contact_phase_scale
     env = Joystick("unitree_g1", UnitreeG1Model(fetch=False), "flat", cfg)
     reset = jax.jit(env.reset)
     step = jax.jit(env.step)
@@ -283,6 +324,15 @@ def test_adapter_jitted_reset_step_and_resampling_invariants() -> None:
     assert jp.allclose(next_state.obs["state"][70:99], next_state.info["last_act"])
     assert jp.allclose(next_state.obs["state"][9:12], next_state.info["command"])
     assert jp.allclose(state.info["motor_targets"], state.data.ctrl)
+    assert ("reward/feet_contact_phase" in state.metrics) == (contact_phase_scale != 0)
+    if contact_phase_scale:
+        expected = contact_phase_scale * contact_phase_reward(
+            env._contact(next_state.data), state.info["phase"], state.info["command"]
+        )
+        assert jp.allclose(next_state.metrics["reward/feet_contact_phase"], expected)
+        assert jp.allclose(next_state.reward, env.dt * sum(
+            v for k, v in next_state.metrics.items() if k.startswith("reward/")
+        ), atol=1e-6)
 
     boundary_info = dict(state.info)
     boundary_info["step"] = jp.asarray(500, dtype=jp.int32)

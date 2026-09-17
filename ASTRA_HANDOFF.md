@@ -1,38 +1,23 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
-Current next experiment: C10 is predeclared after zero-training reward/contact
-diagnostics. It changes existing feet_phase weight 1 -> 3 from the local C09
-movement checkpoint for 1,003,520 forward-only steps. Check generated C10 run
-status before starting anything new. It must pass two development reset seeds
-and fixed-phase survival; no final baseline or broad-command success exists.
+Current status, 2026-09-16: C07 audit and checkpoint recovery are complete;
+autoreset metadata was fixed and normalized saved inference verified. C08
+from scratch failed (71 steps). C09, warm-started from local C06 balance,
+acquired movement but failed the support gate. C10 increased feet_phase to 3
+and now passes numerical forward checks on seeds 3000/3001 and fixed 1.5 Hz:
+500 steps each, RMSE .184/.134/.134, single support 38.2%/35.6%/35.2%.
+Its short irregular lifts (median air .06 s) and yaw drift are unresolved;
+do not call Gate 4 passed or broaden commands yet.
 
-Latest C09 result: full 500-step forward survival and RMSE .225252, but only
-25.4% single support and low-clearance shuffling. The frozen gait gate fails.
-No omnidirectional stage is authorized by this result. Preserve this useful
-movement checkpoint and diagnose gait shaping with a same-MJX oracle trace
-comparison before any further PPO. See leading RESULTS for exact evidence.
-
-Latest status, 2026-09-16: C08 completed and failed its final forward test
-(71/500 steps, RMSE .598791, hopping then collapse). C07 is complete.
-C09 is predeclared in `research/EXPERIMENT_PLAN.md`: a bounded forward-only
-parameter warm-start from locally trained C06 balance under tracking weight 3.
-Inspect generated C09 artifacts for execution status. No broader-command or
-final three-seed success is established. The dated updates below are history.
-
-Successor update, 2026-09-16: C07 is underway. See the new leading sections in
-`research/RESULTS.md` and `research/EXPERIMENT_PLAN.md`, and D-033. Action parity
-passes exactly; full autoreset was proved to erase Brax timeout and episode
-metadata and now has a tested local preservation bridge. Correct C06
-three-seed/forward video confirms static stance. The oracle also walks in the
-exact MJX adapter, with 74.8% single support and forward RMSE .1731. C02 and
-C04 recovery confirm short falling rollouts. Full tests pass: 97 tests, 25
-warnings, 671.76 s. Historical recovery on reset seed 2000 is complete for all
-three old policy seeds: survival is better, but forward RMSE remains .498-.502.
-Audit/fix commit is `e2cbf41`; C08's 1,024-step smoke completed from that clean
-commit in 297.54 s, with restorable checkpoints and exact inference parity.
-The 2,007,040-step seed-0 linear-tracking-weight-3 pilot is now cleared to run
-under the predeclared C08 plan; check its generated directory for live status.
-The freeze below is historical and must not override these successor findings.
+C11 is predeclared in `research/EXPERIMENT_PLAN.md` and D-035: an optional
+local phase-aligned contact reward, weight 2, disabled by default, from C10
+for 1,003,520 forward-only steps. Tests must pass first. Inspect generated
+C11 artifacts/processes before launching anything; never duplicate an active
+run. Final checkpoint first, two development reset seeds, fixed-phase
+survival and per-foot median completed air intervals >=.12 s. This is neither
+oracle imitation nor HOMIE. The three final policy seeds and genuinely new
+held-out command/reset evidence remain outstanding. No remote push occurred.
+The freeze below is historical; leading research sections hold current evidence.
 
 Freeze date: 2026-09-15 (America/Los_Angeles)
 

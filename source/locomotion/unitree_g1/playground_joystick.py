@@ -37,8 +37,24 @@ def synchronize_transition_observation(
     return {"state": state, "privileged_state": privileged}
 
 
+def contact_phase_reward(contact: jax.Array, phase: jax.Array, command: jax.Array) -> jax.Array:
+    """Reward support near phase pi and swing near phase zero.
+
+    Phase is the pre-transition phase, as in upstream's height reward.
+    Antipodal phases give both planted and both airborne feet zero net credit;
+    correct alternating support is positive, opposite support is negative.
+    Zero command disables this optional gait-acquisition signal.
+    """
+    signed_contact = 2.0 * contact.astype(phase.dtype) - 1.0
+    alignment = jp.mean(-signed_contact * jp.cos(phase))
+    single_support = jp.sum(contact) == 1
+    return alignment * single_support * (jp.linalg.norm(command) > 0.01)
+
+
 class Joystick:
     """Repository-facing wrapper around the exact pinned Playground G1 task."""
+
+    _feet_contact_phase_scale = 0.0
 
     def __init__(self, name: str, robot: Any, scene: str, cfg: Any, **_: Any):
         if name != "unitree_g1":
@@ -108,6 +124,8 @@ class Joystick:
         self.playground_source = source
         self.add_domain_rand = False
         self._reset_randomized = bool(cfg.reset.randomize)
+        # Old saved configs have no local shaping field and remain unchanged.
+        self._feet_contact_phase_scale = float(getattr(cfg.reward_scales, "feet_contact_phase", 0.0))
         self._mjx_env_module = mjx_env_module
         self._env = joystick_module.Joystick(task="flat_terrain", config=effective)
         # Playground's default fast auto-reset restores only data/observations
@@ -133,6 +151,13 @@ class Joystick:
                 "preserve Brax terminal and timeout bookkeeping through full reset",
             ],
         }
+        if self._feet_contact_phase_scale != 0.0:
+            self.effective_config["local_reward_scales"] = {
+                "feet_contact_phase": self._feet_contact_phase_scale,
+            }
+            self.source_record["adaptations"].append(
+                "optional local contact-phase reward using pre-transition phase and command"
+            )
         self.nq = self._env.mj_model.nq
         self.nv = self._env.mj_model.nv
         self.nu = self._env.mj_model.nu
@@ -189,6 +214,8 @@ class Joystick:
         else:
             obs = state.obs
         info["motor_targets"] = data.ctrl
+        if self._feet_contact_phase_scale != 0.0:
+            metrics["reward/feet_contact_phase"] = jp.zeros_like(state.reward)
         return state.replace(data=data, obs=obs, info=info, metrics=metrics)
 
     def step(self, state: Any, action: jax.Array):
@@ -199,11 +226,19 @@ class Joystick:
         next_state = self._env.step(functional_state, applied_action)
         info = dict(next_state.info)
         metrics = dict(next_state.metrics)
+        reward = next_state.reward
+        if self._feet_contact_phase_scale != 0.0:
+            weighted = self._feet_contact_phase_scale * contact_phase_reward(
+                self._contact(next_state.data), state.info["phase"], state.info["command"]
+            )
+            metrics["reward/feet_contact_phase"] = weighted
+            reward = reward + weighted * self.dt
         obs = synchronize_transition_observation(next_state.obs, info)
         invalid = ~jp.isfinite(next_state.data.qpos).all()
         invalid |= ~jp.isfinite(next_state.data.qvel).all()
         done = next_state.done.astype(bool) | invalid
         return next_state.replace(
+            reward=reward,
             obs=obs,
             done=done.astype(next_state.reward.dtype),
             info=info,
