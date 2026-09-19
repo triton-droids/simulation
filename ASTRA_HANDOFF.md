@@ -1,5 +1,12 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+Current update 2026-09-19: C11 passes its complete forward gait gate (both
+reset seeds, visual alternation, fixed phase and sustained air intervals).
+C12 is predeclared in EXPERIMENT_PLAN: first audit an explicit variance prior
+for unseen lateral/yaw inputs, then a bounded broader-command curriculum.
+Inspect active processes/generated C12 directories before launching. The
+earlier status below is history; full three-seed Gate 4 remains outstanding.
+
 Current status, 2026-09-16: C07 audit and checkpoint recovery are complete;
 autoreset metadata was fixed and normalized saved inference verified. C08
 from scratch failed (71 steps). C09, warm-started from local C06 balance,

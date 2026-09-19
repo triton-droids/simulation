@@ -1,5 +1,19 @@
 # Decisions and Gate Log
 
+## D-036 -- Verify forward gait, then normalize newly introduced commands
+
+C11 completes the declared forward-gait gate, including .26/.14 s completed
+air medians in the fixed-phase diagnostic. Broader commands are now eligible
+for a bounded curriculum. Existing forward-only normalizers have std 1e-6
+on lateral/yaw inputs; blindly introducing .1 commands produces normalized
+magnitude 100,000. The explicit prior preparation changes only these unused
+zero-mean channels and their Welford variance, preserving the policy/value
+function on the old vy=yaw=0 subspace. Six helper/checkpoint tests pass;
+actual-checkpoint inference parity and exact reload are required next.
+C12 also restores the original linear-to-angular tracking reward ratio while
+introducing the full command grid. Its conditional extension is frozen in
+advance; it is not a claimed isolated reward ablation or final held-out test.
+
 ## D-035 -- Preserve C10's numerical pass; require convincing support timing
 
 C10 clears the frozen numerical forward checks on two reset seeds and the

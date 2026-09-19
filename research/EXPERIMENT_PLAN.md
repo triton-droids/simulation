@@ -1,5 +1,46 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C12 predeclaration: broader commands after verified forward gait (2026-09-19)
+
+C11 passes both nominal forward seeds, dense visual alternation, and fixed
+1.5-Hz survival/air-duration checks. Broader commands may now be investigated.
+First explicitly prepare a separate checkpoint with lateral/yaw command std
+priors .16431676725154984/.27386127875258304: these are the standard deviations
+of symmetric uniform ranges +/-.3 and +/-.5 with 10% zero commands. Only
+previously constant-zero indices 10/11 in actor/critic normalizers change;
+means, counts, weights and other channels remain unchanged. Welford summed
+variance is updated consistently. Require exact old-subspace action parity
+on 64 inputs and full checkpoint round-trip equality before any training.
+The observed unprepared normalization of a .1 command is 100,000. This is a
+declared curriculum preparation, not an exact untouched warm-start.
+
+**Frozen stage:** seed 0 from prepared C11 final; vx=[-.3,.6], vy=[-.3,.3],
+yaw=[-.5,.5], unchanged 10% zero. Reward weights: tracking linear 3, angular
+2.25 (restores upstream 1:.75 ratio), feet_phase 3, feet_contact_phase 2;
+other C11 task/PPO settings unchanged, including nominal/noiseless/no-push
+reset, 512 envs, 16 eval envs, 500 steps. This is a task-curriculum transition,
+not a single-factor causal ablation. First budget 2,007,040 steps, eight evals.
+Normal parameter warm-start semantics: optimizer/step/PRNG restart.
+
+**Assessment:** final checkpoint first, full eight-command grid on nominal
+development reset seed 4000; use explicit --commands to label the output a
+diagnostic. Compare checkpoint-0 `initial` and standing. Provisional broader
+command success requires all eight >=400 steps and at least seven full 500;
+mean linear/yaw RMSE <=.25 each; forward/backward/left/right/combined linear
+RMSE <=.25 each; both pure turns yaw RMSE <=.25; stand linear/yaw <=.15.
+Forward must retain 35-95% single support and >=.12 s median completed air
+for each foot, and combined-command video must show alternating gait.
+
+**Predeclared extension:** if the full success rule is not met at 2,007,040,
+permit exactly 4,014,080 additional steps only if at least six commands
+survive 500, mean linear and yaw errors each improve >=20% against the initial
+policy, and the forward support/air-duration gate is retained. This second
+parameter-warm-start segment resets optimizer/PRNG explicitly; total cap is
+6,021,120 new steps. Assess its final checkpoint first. Otherwise stop this
+configuration and diagnose; no discretionary unchanged extension beyond the
+cap. No final success claim before independent final training seeds and new
+held-out command/reset data, including appropriate reset variation.
+
 ## C11 predeclaration: sustained phase-aligned support (2026-09-16)
 
 C10 passes its numerical forward checks on seeds 3000/3001 and fixed 1.5 Hz,

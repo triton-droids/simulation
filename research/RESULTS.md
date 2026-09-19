@@ -1,5 +1,32 @@
 # G1 Build and Research Results
 
+## C11 verified forward gait (completed/recovered 2026-09-19)
+
+Training from clean `7c531b1` completed 1,003,520 steps in 677.49 s; final
+mean survival 500, return 58.332001, KL .070638. Checkpoint-0 actor/normalizer
+matches C10 exactly. The first evaluator was interrupted during the pause
+after saving trained seed 3000 and its video. A fresh numeric recovery run
+preserved those files and exactly reproduced that episode.
+
+| Reset seed | Steps | Linear RMSE | Single support | L/R median completed air (s) |
+|---|---:|---:|---:|---:|
+| 3000 | 500 | .104055 | 66.4% | .28/.18 |
+| 3001 | 500 | .098 (rounded) | 68.4% | .28/.24 |
+
+Dense video shows clear alternating leg lifts. Fixed 1.5 Hz/reset 2000 also
+passes: 500 steps, linear RMSE .121543, minimum pelvis .730030 m, single
+support 65.8%, and median completed air .26/.14 s. Thus C11's declared
+forward-gait gate passes. Yaw remains imperfect (.314 rad/s RMSE on seed
+3000); broader commands and three final training seeds remain unverified.
+
+Artifacts: `C11_contact_phase2_seed0_1003520/`, partial
+`C11_forward_gate_seeds3000_3001/` with video and dense montage, complete
+`C11_forward_gate_recovery_20260919/`, and `C11_fixed_phase_gate/`, all under
+`results/gate4_corrective/`. A zero-training normalization audit finds lateral
+and yaw command std 1e-6; a .1 command would normalize to 100,000 without a
+prior. The opt-in prior helper passes six checkpoint/invariance tests and
+requires an actual-checkpoint parity audit before the C12 curriculum.
+
 C11 prerequisites passed: 37 targeted adapter/evaluator/PPO-configuration
 tests, three warnings, 162.16 s in WSL CUDA, including real MJX with contact
 weight 0 and 2. Log: `results/gate4_corrective/C07_audit/C11_tests.log`.
