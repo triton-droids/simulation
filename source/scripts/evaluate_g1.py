@@ -64,6 +64,20 @@ def _utc_timestamp() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _load_command_grid(path: Path) -> tuple[tuple[str, tuple[float, float, float]], ...]:
+    """Load explicitly frozen command values under the existing semantic labels."""
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    known = {name for name, _ in COMMANDS}
+    if not isinstance(raw, dict) or not raw or not set(raw).issubset(known):
+        raise ValueError("Command grid must be a nonempty object using known command labels")
+    for values in raw.values():
+        if (not isinstance(values, list) or len(values) != 3
+                or any(isinstance(v, bool) or not isinstance(v, (int, float)) for v in values)
+                or not np.isfinite(values).all()):
+            raise ValueError("Each command must contain three finite numeric values")
+    return tuple((name, tuple(float(v) for v in raw[name])) for name, _ in COMMANDS if name in raw)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-dir", type=Path, required=True)
@@ -79,9 +93,14 @@ def parse_args() -> argparse.Namespace:
         help="Use initial when checkpoint 0 contains warm-started parameters.",
     )
     parser.add_argument("--steps", type=int, default=500)
-    parser.add_argument(
+    command_group = parser.add_mutually_exclusive_group()
+    command_group.add_argument(
         "--commands", nargs="+", choices=[name for name, _ in COMMANDS],
         default=None, help="Diagnostic command subset; default is the full frozen grid.",
+    )
+    command_group.add_argument(
+        "--command-grid", type=Path, default=None,
+        help="JSON mapping of existing labels to explicitly frozen [vx, vy, yaw] values.",
     )
     parser.add_argument(
         "--seeds",
@@ -107,7 +126,15 @@ def parse_args() -> argparse.Namespace:
         help="Evaluation-only override for diagnosing the configured fall cutoff.",
     )
     args = parser.parse_args()
-    if args.video and args.commands is not None and args.video_command not in args.commands:
+    args.command_grid_entries = None
+    if args.command_grid is not None:
+        try:
+            args.command_grid_entries = _load_command_grid(args.command_grid)
+        except (OSError, ValueError, TypeError) as error:
+            parser.error(str(error))
+    selected_names = ([name for name, _ in args.command_grid_entries]
+                      if args.command_grid_entries is not None else args.commands)
+    if args.video and selected_names is not None and args.video_command not in selected_names:
         parser.error("--video-command must belong to the selected --commands")
     return args
 
@@ -794,7 +821,7 @@ def main() -> None:
     started_at_utc = _utc_timestamp()
     started_monotonic = time.perf_counter()
     args = parse_args()
-    commands = tuple((name, value) for name, value in COMMANDS
+    commands = args.command_grid_entries or tuple((name, value) for name, value in COMMANDS
                      if args.commands is None or name in args.commands)
     if args.steps <= 0:
         raise ValueError("--steps must be positive")
@@ -923,8 +950,10 @@ def main() -> None:
         writer.writerows(rows)
 
     result = {
-        "kind": ("gate4_fixed_held_out_velocity_evaluation" if args.commands is None
-                 else "g1_diagnostic_command_subset"),
+        "kind": ("g1_explicit_command_grid_evaluation" if args.command_grid is not None else
+                 "gate4_fixed_held_out_velocity_evaluation" if args.commands is None else
+                 "g1_diagnostic_command_subset"),
+        "command_grid_source": str(args.command_grid.resolve()) if args.command_grid else None,
         "command": list(ORIGINAL_ARGV),
         "started_at_utc": started_at_utc,
         "run_dir": str(run_dir),

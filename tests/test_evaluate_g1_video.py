@@ -1,4 +1,5 @@
 import os
+import json
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -23,6 +24,32 @@ def test_completed_air_intervals_exclude_trace_boundaries_and_stance():
     assert evaluate_g1._completed_air_intervals(np.ones(8, dtype=bool), .02) == []
     assert evaluate_g1._completed_air_intervals(np.zeros(8, dtype=bool), .02) == []
     assert evaluate_g1._completed_air_intervals(np.array([True, False, True, False, False, True]), .02) == pytest.approx([.02, .04])
+
+
+def test_explicit_command_grid_values_order_and_video_validation(tmp_path, monkeypatch):
+    path = tmp_path / "commands.json"
+    path.write_text(json.dumps({"left": [0, .25, 0], "forward": [.45, 0, 0]}))
+    base = ["evaluate_g1", "--run-dir", "unused", "--command-grid", str(path)]
+    monkeypatch.setattr(sys, "argv", base)
+    args = evaluate_g1.parse_args()
+    assert args.command_grid_entries == (("forward", (.45, 0., 0.)), ("left", (0., .25, 0.)))
+    monkeypatch.setattr(sys, "argv", base + ["--video", "--video-command", "forward"])
+    assert evaluate_g1.parse_args().video_command == "forward"
+    monkeypatch.setattr(sys, "argv", base + ["--video"])
+    with pytest.raises(SystemExit):
+        evaluate_g1.parse_args()
+    monkeypatch.setattr(sys, "argv", base + ["--commands", "forward"])
+    with pytest.raises(SystemExit):
+        evaluate_g1.parse_args()
+
+
+@pytest.mark.parametrize("raw", [{}, {"unknown": [0,0,0]}, {"forward": [1,2]},
+                                {"forward": [True,0,0]}, {"forward": [float("nan"),0,0]}])
+def test_explicit_command_grid_rejects_ambiguous_or_nonfinite_values(tmp_path, raw):
+    path = tmp_path / "bad.json"
+    path.write_text(json.dumps(raw))
+    with pytest.raises(ValueError):
+        evaluate_g1._load_command_grid(path)
 
 
 def test_video_command_selector(monkeypatch):
