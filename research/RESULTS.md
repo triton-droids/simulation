@@ -1,5 +1,22 @@
 # G1 Build and Research Results
 
+## C12 preparation and launch (2026-09-19)
+
+The first prior preparation passed inference comparison but failed at save
+because the script used an unavailable Orbax utility namespace. The writer
+now uses the same `flax.training.orbax_utils` helper as training; the failed
+log and empty output directory remain preserved. The separate v2 preparation
+passes 64-input old-subspace action parity and full-checkpoint round-trip,
+both with maximum difference zero; actor/critic weights are unchanged.
+Artifact: `results/gate4_corrective/C12_command_prior_v2/audit.json`.
+
+C12's bounded broader-command run starts from clean `fa3e112`, with exactly
+the frozen commands and reward weights. Its saved checkpoint-zero actor and
+normalizer exactly match the prepared checkpoint. Initial training-side
+mean survival is 479.8125 steps and return 57.594376. Inspect
+`results/gate4_corrective/C12_allcommands_seed0_2007040/` for live status;
+no broader-command success is claimed yet.
+
 ## C11 verified forward gait (completed/recovered 2026-09-19)
 
 Training from clean `7c531b1` completed 1,003,520 steps in 677.49 s; final
