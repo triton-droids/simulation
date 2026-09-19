@@ -16,6 +16,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from brax.io import model
 from brax.training.agents.ppo import checkpoint, networks
+from flax.training import orbax_utils
 import jax
 import jax.numpy as jp
 import numpy as np
@@ -61,7 +62,7 @@ def main():
     output.mkdir(parents=True, exist_ok=False)
     target = output / "checkpoint"
     ocp.PyTreeCheckpointer().save(str(target), prepared,
-        save_args=ocp.utils.save_args_from_target(prepared))
+        save_args=orbax_utils.save_args_from_target(prepared))
     model.save_params(target / "policy", inference_params_from_training_params(prepared))
     restored = checkpoint.load(target)
     original_leaves = jax.tree_util.tree_leaves(prepared)
