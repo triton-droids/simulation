@@ -39,6 +39,10 @@ def main():
     parser.add_argument("--policy-label", type=_policy_label, default="C06")
     parser.add_argument("--command", type=float, nargs=3, default=[0.5, 0.0, 0.0],
                         metavar=("VX", "VY", "YAW"))
+    parser.add_argument("--seed", type=int, default=2000)
+    parser.add_argument("--randomized-reset", action="store_true")
+    parser.add_argument("--evaluation-reset", action="store_true",
+                        help="Use evaluate_g1's split reset key and sampled gait frequency.")
     args = parser.parse_args()
     if not np.isfinite(args.command).all():
         parser.error("--command values must be finite")
@@ -47,7 +51,7 @@ def main():
     cfg = OmegaConf.load(args.run_dir / "resolved_config.json")
     cfg.robot.fetch_model = False
     cfg.sim.playground.fetch_source = False
-    cfg.sim.reset.randomize = False
+    cfg.sim.reset.randomize = args.randomized_reset
     cfg.sim.noise.add_noise = False
     cfg.sim.push.add_push = False
     env = ev.get_env_class(cfg.env.name)(cfg.robot.name, ev.make_robot(cfg.robot), cfg.env.terrain, cfg.sim)
@@ -66,11 +70,21 @@ def main():
     reset = jax.jit(env.reset)
     step = jax.jit(lambda state, action: ev._step_with_held_command(env, state, action, command))
     rows = {}
+    initial_states = {}
     for controller in (args.policy_label, "oracle"):
-        state = ev._replace_command(reset(jax.random.PRNGKey(2000)), command)
+        reset_key = jax.random.PRNGKey(args.seed)
+        if args.evaluation_reset:
+            reset_key = jax.random.split(reset_key)[0]
+        state = ev._replace_command(reset(reset_key), command)
         info = dict(state.info)
-        info["phase_dt"] = jp.asarray([2 * np.pi * 1.5 * env.dt])
+        if not args.evaluation_reset:
+            info["phase_dt"] = jp.asarray([2 * np.pi * 1.5 * env.dt])
         state = state.replace(info=info)
+        initial_states[controller] = {
+            "qpos": np.asarray(state.data.qpos).tolist(),
+            "qvel": np.asarray(state.data.qvel).tolist(),
+            "phase_dt": np.asarray(state.info["phase_dt"]).tolist(),
+        }
         trace = []
         for index in range(args.steps):
             if controller != "oracle":
@@ -112,7 +126,10 @@ def main():
     result = {"kind": "same_MJX_reward_diagnostic", "command": args.command,
         "run_dir": str(args.run_dir), "checkpoint": args.checkpoint,
         "policy_label": args.policy_label,
-        "phase_frequency_hz": 1.5, "seed": 2000, "results": rows,
+        "phase_frequency_hz": float(np.asarray(state.info["phase_dt"])[0] / (2 * np.pi * env.dt)),
+        "seed": args.seed, "reset_randomized": args.randomized_reset,
+        "evaluation_reset": args.evaluation_reset, "initial_states": initial_states,
+        "results": rows,
         "oracle_sha256": oracle.EXPECTED_ONNX_SHA256, "git": ev._git_record(),
         "wall_time_seconds": time.perf_counter() - start}
     (args.output_dir / "summary.json").write_text(json.dumps(result, indent=2) + "\n")

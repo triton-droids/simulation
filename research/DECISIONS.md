@@ -1,5 +1,15 @@
 # Decisions and Gate Log
 
+## D-038 -- Nominal commanded gait succeeds; validate reset recovery next
+
+C13 changes only yaw tracking weight and passes all nominal eight-command
+criteria, including video, sustained foot swings, full survival, and a
+51.60% mean yaw-error reduction. Randomized seed 5000 then produces four
+falls in eight commands. Preserve both findings. The next discriminating
+test is C13 versus the exact oracle from the same randomized state and
+sampled phase, before spending compute on recovery training. Final seed
+replication and fresh frozen held-out testing remain required.
+
 ## D-037 -- Stop C12 unchanged despite full survival
 
 C12 survives all eight development commands and retains sustained forward

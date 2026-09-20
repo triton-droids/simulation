@@ -1,5 +1,20 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+Latest 2026-09-20: C13 (`C13_yaw9_seed0_1003520`, clean `0831d4f`) passes its
+full nominal eight-command gate at final 1003520: all 500 steps, mean linear/
+yaw .153616/.130862, forward support 85.2%, air .32/.32 s, combined video
+shows real alternating gait and turning. However randomized development
+seed 5000 fails four of eight commands (107/111/119/95 steps), mean errors
+.630911/.455851. Do not claim robust Gate 4. Same-MJX oracle comparison from
+that exact randomized forward start is next, in
+`results/gate4_corrective/C13_randomized_oracle_seed5000/`. Inspect actual
+logs/processes before relaunching. That diagnostic is complete: identical
+initial states, oracle survives 500 while C13 falls at 112. C14 is now frozen
+in EXPERIMENT_PLAN: only enable randomized reset, 2,007,040 steps from C13,
+then nominal retention plus randomized seeds 5000/5001. Inspect C14 artifacts
+and live processes before any launch; do not duplicate a running experiment.
+Older entries below are history; preserve the failed and successful evidence.
+
 Latest assessment 2026-09-19: C12 completed 2,007,040 steps and survives all
 eight nominal development commands for 500 steps. Mean linear/yaw errors
 .140362/.270396; yaw improves only 12.91% versus initial, failing the frozen

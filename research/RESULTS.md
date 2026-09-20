@@ -1,5 +1,49 @@
 # G1 Build and Research Results
 
+## Randomized recovery diagnostic supports C14 (2026-09-20)
+
+`C13_randomized_oracle_seed5000/` records exactly equal initial qpos, qvel,
+and phase_dt for C13 and the oracle. The split reset key and sampled gait
+frequency match the evaluator protocol. C13 falls at 112 steps (111 in the
+scan-based evaluator; floating-point graph differences are not hidden).
+The oracle survives 500, linear RMSE .218454, yaw RMSE .381689, minimum
+pelvis .654218, single support 74.8%. This demonstrates recoverability,
+not oracle perfection on every metric. C14 tests only the previously absent
+randomized-reset training distribution; its budget, retention requirements,
+and conditional extension are frozen in EXPERIMENT_PLAN before training.
+
+## C13 passes nominal commands; randomized reset gap remains (2026-09-20)
+
+Final checkpoint 1003520 passes the complete frozen C13 development gate.
+All eight nominal seed-4000 commands survive 500 steps, with mean linear/yaw
+RMSE .153616/.130862. Initial C12 has .140362/.270396: yaw improves 51.60%,
+with a small translation tradeoff. Standing has 1.091086/.174654 and falls
+at 69 steps. Forward has 85.2% single support and .32/.32 s median completed
+air intervals. Dense combined-motion video shows upright alternating steps
+and clear turning. Artifacts: `C13_grid_seed4000/` under
+`results/gate4_corrective/`, including both controls and all three videos.
+
+| Nominal command | Linear RMSE | Yaw RMSE |
+|---|---:|---:|
+| stand | .084105 | .109015 |
+| forward | .175391 | .158643 |
+| backward | .207785 | .124199 |
+| left | .184701 | .155313 |
+| right | .212621 | .093865 |
+| turn_left | .122610 | .136489 |
+| turn_right | .128620 | .105786 |
+| combined | .113097 | .163588 |
+
+A subsequent explicitly developmental randomized-reset diagnostic on seed
+5000 exposes missing robustness. Stand/forward/turn-left/turn-right terminate
+at 107/111/119/95 steps; the other four survive 500. Mean linear/yaw RMSE
+.630911/.455851, mean duration 6.08 s, fall fraction .5. Initial C12 also
+falls on four commands, mean errors .784635/.758311 and duration 6.0025 s;
+standing falls on all commands at 39 steps. Full evidence is preserved in
+`C13_randomized_seed5000/`. This does not invalidate the nominal pass, but
+prevents a robust baseline claim. Compare oracle recovery from the same
+initial state before a bounded randomized-reset curriculum. No Gate 4 yet.
+
 ## C13 training completed; behavioral assessment pending (2026-09-19)
 
 Clean source `0831d4f`, 1,003,520 steps, 678.76 s wall time; final training

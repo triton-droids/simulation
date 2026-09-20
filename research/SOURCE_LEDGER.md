@@ -9,6 +9,15 @@ stance, flight and zero command. It is disabled by default, not copied from
 the pinned Playground reward and not a HOMIE feature. Enabled runs record
 its weight in effective configuration and source adaptations. See D-035.
 
+C12/C13 reward weights and explicit unused-command variance preparation
+are local curriculum choices, supported by saved matched-physics diagnostics.
+They are not upstream hyperparameter reproduction. The exact shipped ONNX
+policy is used only for comparison; its weights, actions and trajectories
+are never training targets. C13 reset recovery diagnosis uses upstream's
+unmodified randomized reset, with the evaluator's split PRNG key and sampled
+phase frequency recorded alongside identical initial qpos/qvel for both
+controllers.
+
 | Source | Revision / location used | Precise material consulted | Local use | License / attribution |
 |---|---|---|---|---|
 | MuJoCo Menagerie, Unitree G1 | Git commit `71f066ad0be9cd271f7ed58c030243ef157af9f4`; `unitree_g1/scene_mjx.xml`, `g1.xml`, `g1_mjx.xml` | Joint, qpos/dof and actuator order; ranges; position gains; `home`/`knees_bent` keyframes; sites, bodies, sensors, collision geoms and explicit pairs | **Exact model source** via resolver; metadata is introspected rather than copied into an asset tree | Unitree G1 directory is BSD-3-Clause, copyright Unitree Robotics. Assets remain in ignored cache and are not vendored. <https://github.com/google-deepmind/mujoco_menagerie/tree/71f066ad0be9cd271f7ed58c030243ef157af9f4/unitree_g1> |

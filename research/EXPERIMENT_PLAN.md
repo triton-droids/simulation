@@ -1,5 +1,43 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C14 predeclaration: recovery from randomized initial states (2026-09-20)
+
+C13 passes its complete nominal gate but falls on four of eight randomized
+seed-5000 commands. The cheapest matched reset diagnostic confirms that the
+exact oracle recovers for all 500 forward steps from identical initial
+qpos/qvel/phase_dt, while C13 falls at 112 (111 in the evaluator's scan graph;
+these are different compilations, not claimed trajectory identity). Oracle
+linear RMSE .218454, minimum pelvis .654218; C13 RMSE 1.211536 and pelvis
+below the plane. The randomized start is recoverable in this interface.
+
+**Hypothesis:** nominal-only acquisition omitted initial recovery states.
+**Frozen pilot:** from C13 final 1003520, change only sim.reset.randomize to
+true. Retain seed 0, full command ranges, noise/push/domain randomization off,
+linear/angular/phase/contact-phase weights 3/9/3/2, and corrective PPO.
+Exactly 2,007,040 additional steps, eight evaluations, 16 eval environments,
+500-step episodes. Restore actor/critic/normalizer; reset optimizer/step/PRNG.
+Require exact checkpoint-zero policy/normalizer equality and stop for
+nonfinite values or sustained post-initial KL >=.2.
+
+**Assessment:** final checkpoint first. Retain C13's absolute nominal
+seed-4000 thresholds (the C12 broader-command gate plus mean yaw <=.20),
+including combined video. C13's 20% improvement was against C12, not a demand
+for another 20% reduction against the already-passing C13. Also evaluate
+all eight commands on upstream
+randomized development reset seeds 5000 and 5001, matched initial and standing
+controls. Randomized success requires all 16 full 500-step finite episodes,
+mean linear/yaw RMSE <=.25 each, and each episode's linear/yaw RMSE <=.35.
+These randomized criteria are added prospectively, not substituted for the
+nominal gate. A new randomized combined video must show upright alternation.
+
+**Conditional extension:** only if nominal C13 criteria remain satisfied,
+at least 12/16 randomized episodes survive 500, and randomized mean linear
+and yaw errors each improve >=20% over the initial C13 control, allow one
+2,007,040-step parameter-warm-start extension with the same configuration
+(total C14 cap 4,014,080). Otherwise diagnose without unchanged extension.
+No Gate 4 claim until matched final training seeds and fresh frozen held-out
+command/reset evaluation are complete.
+
 ## C13 predeclaration: yaw reward after C12 under-turning (2026-09-19)
 
 C12 fails the broader-command gate and its unchanged-extension prerequisite.
