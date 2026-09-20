@@ -1,5 +1,22 @@
 # G1 Build and Research Results
 
+## C13 training completed; behavioral assessment pending (2026-09-19)
+
+Clean source `0831d4f`, 1,003,520 steps, 678.76 s wall time; final training
+survival 500, return 142.925140, KL .119197. No logged post-initial KL reaches
+.2. Checkpoint-zero actor/normalizer exactly matches all 17 C12 saved leaves
+(`C13_yaw9_seed0_1003520/restore_parity.json`). Final checkpoint 1003520 is
+being assessed first against the unchanged eight-command gate plus the
+stricter C13 mean-yaw criteria. Reward alone is not a pass.
+
+C12's full combined-motion video and dense 0.2-second montage show sustained
+alternating foot lifts and upright posture, consistent with its contact
+metrics. Artifacts: `C12_combined_video/` under `results/gate4_corrective/`.
+The evaluator now accepts mutually exclusive explicit nominal/randomized
+reset switches, retaining saved task configuration by default. Its existing
+22 tests pass (9.34 s, one deprecation warning). C13 evaluation remains
+nominal as frozen; randomized robustness has not yet been demonstrated.
+
 ## C12 turning diagnosis and C13 rationale (2026-09-19)
 
 Fixed-phase turn-left in the same MJX environment, command [0,0,.5], reset
