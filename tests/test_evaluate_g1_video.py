@@ -7,6 +7,7 @@ import sys
 from types import SimpleNamespace
 
 import cv2
+import jax
 import jax.numpy as jp
 import numpy as np
 import pytest
@@ -15,6 +16,24 @@ if sys.platform == "win32":
     os.environ["MUJOCO_GL"] = "glfw"
 
 from source.scripts import evaluate_g1
+
+
+@pytest.mark.parametrize("batch_size", [1, 2, 4, 8])
+def test_numeric_batches_preserve_episode_order_and_exclude_padding(batch_size):
+    def episode(params, use_policy, seed, command):
+        signal = seed + jp.sum(command) + jp.where(use_policy, params, 0.)
+        return jp.zeros(1), {"reward": jp.arange(3) + signal,
+                             "valid": jp.array([True, True, False])}
+    rollout = jax.jit(episode if batch_size == 1 else
+                      jax.vmap(episode, in_axes=(None, None, 0, 0)))
+    commands = [("forward", (.5, 0., 0.)), ("left", (0., .3, 0.))]
+    seeds = [11, 12, 13]
+    rows = list(evaluate_g1._numeric_episode_traces(
+        rollout, jp.asarray(2.), True, commands, seeds, batch_size))
+    assert len(rows) == 6
+    for row, (values, seed) in zip(rows, [(v, s) for _, v in commands for s in seeds]):
+        np.testing.assert_allclose(row["reward"], np.arange(3) + seed + sum(values) + 2.)
+        np.testing.assert_array_equal(row["valid"], [True, True, False])
 
 
 def test_completed_air_intervals_exclude_trace_boundaries_and_stance():

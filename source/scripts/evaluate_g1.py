@@ -93,6 +93,8 @@ def parse_args() -> argparse.Namespace:
         help="Use initial when checkpoint 0 contains warm-started parameters.",
     )
     parser.add_argument("--steps", type=int, default=500)
+    parser.add_argument("--batch-size", type=int, default=1,
+                        help="Independent numeric episodes per device batch (default: serial).")
     command_group = parser.add_mutually_exclusive_group()
     command_group.add_argument(
         "--commands", nargs="+", choices=[name for name, _ in COMMANDS],
@@ -131,6 +133,8 @@ def parse_args() -> argparse.Namespace:
         help="Evaluation-only override for diagnosing the configured fall cutoff.",
     )
     args = parser.parse_args()
+    if args.batch_size < 1:
+        parser.error("--batch-size must be positive")
     args.command_grid_entries = None
     if args.command_grid is not None:
         try:
@@ -380,7 +384,8 @@ def _contact_breakdown(env: Any, pipeline_state: Any) -> tuple[jax.Array, jax.Ar
 
 
 def _build_rollout(
-    env: Any, ppo_network: Any, steps: int, *, capture_pipeline: bool = False
+    env: Any, ppo_network: Any, steps: int, *, capture_pipeline: bool = False,
+    batch_size: int = 1,
 ):
     make_policy = ppo_networks.make_inference_fn(ppo_network)
 
@@ -504,7 +509,31 @@ def _build_rollout(
         _, trace = jax.lax.scan(one_step, initial_carry, xs=None, length=steps)
         return initial_pipeline_state, trace
 
+    if batch_size > 1:
+        return jax.jit(jax.vmap(rollout, in_axes=(None, None, 0, 0)))
     return jax.jit(rollout)
+
+
+def _numeric_episode_traces(rollout, params, use_policy, commands, seeds, batch_size):
+    """Yield host traces in command/seed order, excluding any padded episodes."""
+    episodes = [(values, seed) for _, values in commands for seed in seeds]
+    for start in range(0, len(episodes), batch_size):
+        chunk = episodes[start:start + batch_size]
+        if batch_size == 1:
+            values, seed = chunk[0]
+            _, trace = rollout(params, jp.asarray(use_policy),
+                               jp.asarray(seed, dtype=jp.int32), jp.asarray(values))
+            jax.block_until_ready(trace["reward"])
+            yield jax.tree.map(np.asarray, trace)
+        else:
+            padded = chunk + [chunk[-1]] * (batch_size - len(chunk))
+            _, trace = rollout(params, jp.asarray(use_policy),
+                               jp.asarray([v[1] for v in padded], dtype=jp.int32),
+                               jp.asarray([v[0] for v in padded]))
+            jax.block_until_ready(trace["reward"])
+            host = jax.tree.map(np.asarray, trace)
+            for index in range(len(chunk)):
+                yield jax.tree.map(lambda value: value[index], host)
 
 
 def _make_evaluation_network(
@@ -878,7 +907,7 @@ def main() -> None:
         env.action_size,
         normalize_observations=bool(cfg.agent.normalize_observations),
     )
-    rollout = _build_rollout(env, ppo_network, args.steps)
+    rollout = _build_rollout(env, ppo_network, args.steps, batch_size=args.batch_size)
     video_rollout = (
         _build_rollout(env, ppo_network, args.steps, capture_pipeline=True)
         if args.video
@@ -900,16 +929,12 @@ def main() -> None:
     videos: list[str] = []
     video_encoders: dict[str, str] = {}
     for controller, params, use_policy in controllers:
+        numeric_traces = _numeric_episode_traces(
+            rollout, params, use_policy, commands, seeds, args.batch_size
+        )
         for command_name, command_values in commands:
             for seed in seeds:
-                initial_state, device_trace = rollout(
-                    params,
-                    jp.asarray(use_policy),
-                    jp.asarray(seed, dtype=jp.int32),
-                    jp.asarray(command_values),
-                )
-                jax.block_until_ready(device_trace["reward"])
-                host_trace = jax.tree.map(np.asarray, device_trace)
+                host_trace = next(numeric_traces)
                 row = _summarize_trace(
                     host_trace,
                     controller=controller,
@@ -968,6 +993,7 @@ def main() -> None:
         "untrained_checkpoint": args.untrained_checkpoint,
         "reference_controller_label": args.reference_label,
         "steps_per_episode": args.steps,
+        "numeric_batch_size": args.batch_size,
         "control_dt_seconds": env.dt,
         "reset_seeds": seeds,
         "reset_randomized": bool(cfg.sim.reset.randomize),
