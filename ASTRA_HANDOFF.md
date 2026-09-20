@@ -1,5 +1,16 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+Immediate 2026-09-20: C14 completed normally at final 2007040, directory
+`results/gate4_corrective/C14_randomreset_seed0_2007040`, clean training
+`2a2b07b`, 942.87 s, final training survival 388.125 and KL .124018. Exact
+checkpoint-zero actor/normalizer restore verified. Final nominal assessment
+is running/written in `C14_nominal_seed4000/`, log in `C07_audit/`; inspect
+process/output before relaunch. Randomized 5000/5001 assessment still needed.
+An optional batching prototype failed real-physics parity despite passing
+unit tests; production evaluator stays serial. Preserve failed audit in
+`C14_batch_physics_audit/`. Do not select intermediate best 1146880 before
+the frozen final-checkpoint assessment. No C15 is yet declared or launched.
+
 Latest 2026-09-20: C13 (`C13_yaw9_seed0_1003520`, clean `0831d4f`) passes its
 full nominal eight-command gate at final 1003520: all 500 steps, mean linear/
 yaw .153616/.130862, forward support 85.2%, air .32/.32 s, combined video

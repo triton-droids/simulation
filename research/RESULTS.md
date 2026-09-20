@@ -1,5 +1,27 @@
 # G1 Build and Research Results
 
+## C14 training complete; batching optimization rejected (2026-09-20)
+
+C14 completed 2,007,040 steps from clean `2a2b07b` in 942.87 s. Initial
+randomized training-side mean survival was 285; final 388.125, return
+106.127953, KL .124018. Intermediate survival varied (peak logged 472.25),
+and the best-return checkpoint was 1146880. Assess final 2007040 first as
+declared, not that intermediate checkpoint. All 17 checkpoint-zero actor/
+normalizer leaves exactly match C13. Fixed nominal/randomized checks remain
+pending; training-side variation alone does not establish forgetting because
+the evaluator samples new initial states across callbacks.
+
+An optional vectorized evaluator prototype passed 26 unit tests, including
+ordering/padding invariants, but failed the prospective real-MJX parity
+audit. At 50 steps on C13, forward/turn-left maximum yaw differences were
+.118722/.156177 versus the .01 tolerance; turn-left reward difference was
+.047769. Termination masks agreed; at most one contact sample differed.
+This can arise from floating-point/contact sensitivity, but equivalence was
+not established. The production batching CLI and path were removed; retain
+serial numeric evaluation. Diagnostic helper/script, tests, and all audit
+evidence remain: `results/gate4_corrective/C14_batch_physics_audit/` and
+`source/scripts/audit_g1_batching.py`, clean audit commit `bb2f452`.
+
 ## Randomized recovery diagnostic supports C14 (2026-09-20)
 
 `C13_randomized_oracle_seed5000/` records exactly equal initial qpos, qvel,
