@@ -114,10 +114,15 @@ def parse_args() -> argparse.Namespace:
         help="Command to render for each controller on the first reset seed.",
     )
     parser.add_argument("--render-every", type=int, default=2)
-    parser.add_argument(
+    reset_group = parser.add_mutually_exclusive_group()
+    reset_group.add_argument(
         "--nominal-reset",
         action="store_true",
         help="Disable initial-state randomization (fixed seeds remain recorded).",
+    )
+    reset_group.add_argument(
+        "--randomized-reset", action="store_true",
+        help="Enable the configured task's initial-state randomization for robustness checks.",
     )
     parser.add_argument(
         "--min-pelvis-height",
@@ -850,6 +855,8 @@ def main() -> None:
     )
     if args.nominal_reset:
         cfg.sim.reset.randomize = False
+    elif args.randomized_reset:
+        cfg.sim.reset.randomize = True
     if args.min_pelvis_height is not None:
         if args.min_pelvis_height <= 0.0:
             raise ValueError("--min-pelvis-height must be positive")
