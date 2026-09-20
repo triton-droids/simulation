@@ -1,5 +1,26 @@
 # G1 Build and Research Results
 
+## C14 passes nominal retention and randomized recovery (2026-09-20)
+
+The final checkpoint 2007040 passes the full frozen development gate. All
+eight nominal seed-4000 episodes and all 16 randomized seed-5000/5001 episodes
+survive 500 steps, with finite metrics. Nominal mean linear/yaw RMSE is
+.159320/.105013; randomized means .207868/.140616. Randomized initial C13
+has .394935/.295736, mean duration 8.04 s, fall fraction .25; standing has
+1.124011/.669696, duration .93 s, fall fraction 1. C14's randomized linear/yaw
+improvements are 47.37%/52.45% over initial. Worst randomized linear/yaw
+RMSE .341152/.338696 remain below the frozen .35 per-episode cap. Minimum
+pelvis across randomized episodes is .678900 m.
+
+Nominal forward retains 86.6% single support and .34/.34 s median completed
+air. Dense nominal and randomized combined-command frames show upright
+alternating steps; randomized startup recovers and continues turning.
+Artifacts: `C14_nominal_seed4000/` and `C14_randomized_seeds5000_5001/` under
+`results/gate4_corrective/`, with full controls, videos, and montages.
+This is a successful single acquisition lineage, not final multi-seed Gate 4.
+C15 is predeclared to test a shorter fresh-acquisition recipe before final
+independent training seeds and new held-out command/reset data are frozen.
+
 ## C14 training complete; batching optimization rejected (2026-09-20)
 
 C14 completed 2,007,040 steps from clean `2a2b07b` in 942.87 s. Initial

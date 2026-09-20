@@ -1,5 +1,15 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+Latest 2026-09-20: C14 PASSES its full development gate: all 8 nominal and
+16 randomized episodes survive 500, mean errors nominal .159320/.105013 and
+randomized .207868/.140616; worst randomized errors .341152/.338696, minimum
+pelvis .678900. Nominal/randomized combined videos show real upright gait.
+Final multi-seed Gate 4 is still outstanding. C15 is now frozen in the
+leading EXPERIMENT_PLAN section: fresh seed 7, no restore, forward-only,
+rewards 3/9/3/2, nominal reset, 2,007,040 steps, to validate independent
+acquisition with a shorter recipe. Inspect live processes/artifacts before
+launching. Do not retrain C14 unchanged or claim final success prematurely.
+
 Immediate 2026-09-20: C14 completed normally at final 2007040, directory
 `results/gate4_corrective/C14_randomreset_seed0_2007040`, clean training
 `2a2b07b`, 942.87 s, final training survival 388.125 and KL .124018. Exact

@@ -1,5 +1,42 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C15 predeclaration: fresh acquisition with the established gait reward (2026-09-20)
+
+C14 passes all 24 nominal/randomized development episodes and visual gates.
+Its ancestor chain was learned locally from scratch, without imitation, but
+only one acquisition seed has succeeded so far. Final replication should
+test independent acquisition, not merely different rollouts of that policy.
+
+**Hypothesis:** the now-established phase/contact and tracking rewards can
+acquire forward gait directly, avoiding the historical balance/shaping search
+chain. This is a recipe-validation pilot, not a single-factor causal ablation.
+The reward preference diagnostics supporting these terms are preserved in
+C10/C11/C12. The cheapest learning test is a bounded fresh-initialization run.
+
+**Frozen pilot:** fresh actor/critic/normalizer, seed 7, no checkpoint restore;
+forward commands [.5,.5], lateral/yaw [0,0], upstream 10% zero commands;
+nominal/noiseless/no-push/no-domain-randomization task. Reward weights linear
+3, angular 9, feet_phase 3, contact-phase 2; other upstream terms unchanged.
+Corrective PPO unchanged: 512 environments, 16 eval environments, 500-step
+episodes, 2,007,040 steps, eight evaluations. Stop for nonfinite values or
+sustained post-initial KL >=.2; record the initial-normalization transient.
+
+**Assessment:** final checkpoint first, forward nominal reset seeds 3000/3001
+with genuinely untrained checkpoint-zero and standing controls. Both require
+>=400 steps, min pelvis >.6, linear RMSE <=.30, >=10 transitions each foot,
+35-95% single support, >=.12 s median completed air per foot, and visually
+alternating gait. Also require 500-step fixed-1.5-Hz seed-2000 survival and
+the same air-duration threshold. Record yaw error even though this is a
+forward-acquisition gate; broader-command yaw criteria remain mandatory later.
+
+**Conditional extension:** if the complete gate fails, permit exactly one
+2,007,040-step parameter-warm-start extension only if both nominal episodes
+survive 500, min pelvis >.6, linear RMSE <=.35, single support >=20%, and each
+foot has >=10 transitions. Total fresh-acquisition cap 4,014,080. Otherwise
+diagnose; no unchanged extension. No final family or held-out success claim
+from this developmental seed. Broader commands and randomized resets remain
+separate curriculum stages to validate before freezing the final recipe.
+
 ## C14 predeclaration: recovery from randomized initial states (2026-09-20)
 
 C13 passes its complete nominal gate but falls on four of eight randomized

@@ -1,5 +1,16 @@
 # Decisions and Gate Log
 
+## D-039 -- Validate independent acquisition before final replication
+
+C14 passes nominal and randomized development gates, including all 24 full
+episodes and upright alternating videos. This establishes one locally
+trained commanded-gait lineage with recovery. It does not establish
+independent acquisition across seeds. C15 tests the established reward
+recipe from fresh seed 7 with a bounded forward-only curriculum. Do not
+substitute repeated evaluations or common-parent fine-tuning seeds for
+independent final acquisition. Preserve C14 as the successful reference;
+no further unchanged C14 training is needed after its pass.
+
 ## D-038 -- Nominal commanded gait succeeds; validate reset recovery next
 
 C13 changes only yaw tracking weight and passes all nominal eight-command
