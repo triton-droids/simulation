@@ -1,5 +1,14 @@
 # Decisions and Gate Log
 
+## D-037 -- Stop C12 unchanged despite full survival
+
+C12 survives all eight development commands and retains sustained forward
+gait, but yaw improves only 12.91% versus its initial policy. This misses the
+frozen 20% extension prerequisite. Preserve the positive translation and
+survival result alongside failed turning/stand yaw. Diagnose same-physics
+turning against the oracle before changing reward or command curriculum;
+no unchanged 4,014,080-step extension is permitted.
+
 ## D-036 -- Verify forward gait, then normalize newly introduced commands
 
 C11 completes the declared forward-gait gate, including .26/.14 s completed

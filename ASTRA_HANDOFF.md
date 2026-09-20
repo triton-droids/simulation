@@ -1,5 +1,17 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+Latest assessment 2026-09-19: C12 completed 2,007,040 steps and survives all
+eight nominal development commands for 500 steps. Mean linear/yaw errors
+.140362/.270396; yaw improves only 12.91% versus initial, failing the frozen
+20% extension prerequisite. **Do not extend C12 unchanged.** C11's real
+forward gait is retained (C12 forward single support 84%, air .34/.32 s),
+but stand/turn yaw remain poor. Same-MJX turning diagnostic finds C12 mean
+yaw .206 for .5 commanded, versus oracle .551; current reward slightly
+favors C12. C13 changes only angular tracking weight 2.25 -> 9 after saved
+trace scoring reverses that preference. Its 1,003,520-step pilot is frozen
+in EXPERIMENT_PLAN. Three final seeds and Gate 4 remain pending.
+See the leading RESULTS and decision D-037; earlier updates below are history.
+
 Current update 2026-09-19: C11 passes its complete forward gait gate (both
 reset seeds, visual alternation, fixed phase and sustained air intervals).
 C12 is predeclared in EXPERIMENT_PLAN: first audit an explicit variance prior

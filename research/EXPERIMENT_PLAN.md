@@ -1,5 +1,30 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C13 predeclaration: yaw reward after C12 under-turning (2026-09-19)
+
+C12 fails the broader-command gate and its unchanged-extension prerequisite.
+The same-MJX, fixed-1.5-Hz, 500-step turn-left diagnostic (reset 2000,
+command [0,0,.5]) gives C12 mean yaw .205543, yaw std .183886, RMSE .347159;
+oracle mean .551168, std .228875, RMSE .234525. Both survive. Thus persistent
+under-turning, rather than greater oscillation than the oracle, dominates.
+Current summed mean reward before dt favors C12 7.290668 vs oracle 7.168455.
+Counterfactual angular weight 9 (from 2.25) gives 11.894755 vs 12.957972,
+an 8.94% oracle advantage. This is trace arithmetic, not a learned result.
+
+**Frozen pilot:** warm-start C12 final 2,007,040; change only angular tracking
+weight 2.25 -> 9.0. Same seed 0, full command ranges, nominal/noiseless/no-push
+task, linear 3, phase 3, contact-phase 2, corrected PPO settings. Exactly
+1,003,520 new steps, eight evaluations. Actor/critic/normalizer restored;
+optimizer/step/PRNG reset. Verify checkpoint-zero policy/normalizer equality.
+Stop for nonfinite values or sustained post-initial KL >=.2.
+
+**Assessment:** final checkpoint first, all eight commands, nominal seed
+4000, matched initial and standing controls. Require C12's original broader
+command gate unchanged, plus mean yaw <=.20 and at least 20% improvement
+over initial. Combined video must retain alternating gait. No unchanged
+extension is preauthorized for this pilot; diagnose any failure. This is
+development, not final held-out or multi-seed evidence.
+
 ## C12 predeclaration: broader commands after verified forward gait (2026-09-19)
 
 C11 passes both nominal forward seeds, dense visual alternation, and fixed

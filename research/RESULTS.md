@@ -1,5 +1,47 @@
 # G1 Build and Research Results
 
+## C12 turning diagnosis and C13 rationale (2026-09-19)
+
+Fixed-phase turn-left in the same MJX environment, command [0,0,.5], reset
+2000, 500 steps: both C12 and oracle survive. C12 mean yaw .205543 and std
+.183886 yield RMSE .347159; oracle mean .551168 and std .228875 yield .234525.
+The main excess error is under-turning. Summed mean reward before dt still
+favors C12 7.290668 vs 7.168455. Reweighting only angular tracking 2.25 -> 9
+on these saved traces reverses the ranking to 11.894755 vs 12.957972 (oracle
++8.94%). Artifacts: `results/gate4_corrective/C12_turn_diagnostic/`, including
+both full traces and `yaw_weight_counterfactual.json`. C13 is a bounded
+single-factor pilot, frozen in EXPERIMENT_PLAN; no training success inferred.
+
+## C12 full-command assessment: survival passes, yaw fails (2026-09-19)
+
+C12 completed normally at 2,007,040 steps (944.48 s wall time), final training
+survival 500, return 76.516464, KL .071242. The final checkpoint, assessed
+first on all eight nominal commands at reset seed 4000, survives all eight
+500-step episodes with finite metrics. Mean linear RMSE is .140362 versus
+initial .241257 (41.82% improvement), but yaw RMSE is .270396 versus initial
+.310485 (12.91% improvement). Standing controls have linear/yaw RMSE
+1.090840/.173969 and fall at 69 steps on every command.
+
+| Command | Linear RMSE | Yaw RMSE |
+|---|---:|---:|
+| stand | .110889 | .216696 |
+| forward | .123631 | .229476 |
+| backward | .173478 | .210292 |
+| left | .179932 | .187056 |
+| right | .188356 | .276369 |
+| turn_left | .092981 | .377552 |
+| turn_right | .144448 | .371975 |
+| combined | .109180 | .293751 |
+
+Full precision: `results/gate4_corrective/C12_grid_seed4000/episodes.csv`.
+Forward retains 84% single support and .34/.32 s median completed air
+intervals. Nevertheless stand yaw, pure turns, and mean yaw fail the frozen
+success rule. The predeclared unchanged extension is **not eligible** because
+yaw improvement is below 20%. Do not extend C12 unchanged or claim Gate 4.
+Next: zero-training same-MJX turning comparison with the shipped oracle,
+recording mean yaw, oscillation, and reward components before choosing a
+new bounded experiment.
+
 ## C12 preparation and launch (2026-09-19)
 
 The first prior preparation passed inference comparison but failed at save

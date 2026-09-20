@@ -1,7 +1,7 @@
 """Compare a saved local policy and the exact ONNX oracle in the SAME MJX task.
 
 Diagnostic only: no policy fitting or imitation. Saves all per-step terms,
-actions, positions, contacts and velocities for a fixed forward command.
+actions, positions, contacts and velocities for an explicitly fixed command.
 """
 from __future__ import annotations
 
@@ -37,7 +37,11 @@ def main():
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--steps", type=int, default=500)
     parser.add_argument("--policy-label", type=_policy_label, default="C06")
+    parser.add_argument("--command", type=float, nargs=3, default=[0.5, 0.0, 0.0],
+                        metavar=("VX", "VY", "YAW"))
     args = parser.parse_args()
+    if not np.isfinite(args.command).all():
+        parser.error("--command values must be finite")
     args.output_dir.mkdir(parents=True, exist_ok=False)
     start = time.perf_counter()
     cfg = OmegaConf.load(args.run_dir / "resolved_config.json")
@@ -58,7 +62,7 @@ def main():
     path = oracle._default_policy_path()
     assert oracle._sha256(path) == oracle.EXPECTED_ONNX_SHA256
     session = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
-    command = jp.array([0.5, 0.0, 0.0])
+    command = jp.array(args.command)
     reset = jax.jit(env.reset)
     step = jax.jit(lambda state, action: ev._step_with_held_command(env, state, action, command))
     rows = {}
@@ -77,6 +81,7 @@ def main():
             sample = {"action": action, "qpos": state.data.qpos,
                 "foot_positions": state.data.site_xpos[env._feet_site_id],
                 "velocity": env.get_local_linvel(state.data, "pelvis"),
+                "gyro": env.get_gyro(state.data, "pelvis"),
                 "contact": env._contact(state.data), "phase": state.info["phase"],
                 "reward": state.reward, "done": state.done, **state.metrics}
             trace.append(jax.tree.map(np.asarray, sample))
@@ -89,7 +94,10 @@ def main():
         rows[controller] = {
             "steps": len(trace), "terminal": bool(arrays["done"][-1]),
             "mean_velocity": arrays["velocity"].mean(0).tolist(),
-            "linear_rmse": float(np.sqrt(np.mean(np.sum((arrays["velocity"][:, :2] - [0.5, 0]) ** 2, axis=1)))),
+            "linear_rmse": float(np.sqrt(np.mean(np.sum((arrays["velocity"][:, :2] - np.asarray(args.command[:2])) ** 2, axis=1)))),
+            "mean_yaw_rate": float(arrays["gyro"][:, 2].mean()),
+            "yaw_rate_std": float(arrays["gyro"][:, 2].std()),
+            "yaw_rmse": float(np.sqrt(np.mean((arrays["gyro"][:, 2] - args.command[2]) ** 2))),
             "minimum_pelvis_height": float(arrays["qpos"][:, 2].min()),
             "single_support_fraction": float(np.mean(contact.sum(1) == 1)),
             "foot_transitions": np.sum(contact[1:] != contact[:-1], axis=0).tolist(),
@@ -101,7 +109,7 @@ def main():
             "mean_weighted_terms_before_dt": {k: float(v.mean()) for k, v in arrays.items() if k.startswith("reward/")},
         }
         print(controller, json.dumps(rows[controller]), flush=True)
-    result = {"kind": "same_MJX_reward_diagnostic", "command": [0.5, 0, 0],
+    result = {"kind": "same_MJX_reward_diagnostic", "command": args.command,
         "run_dir": str(args.run_dir), "checkpoint": args.checkpoint,
         "policy_label": args.policy_label,
         "phase_frequency_hz": 1.5, "seed": 2000, "results": rows,
