@@ -1,8 +1,8 @@
 # Unattended G1 experiments
 
-Active queue: `research/queues/c18_yaw.json`. Read
-`results/gate4_corrective/C18_queue/status.json`.
-C17 passes nominal and fixed-phase gait. C18 targets excessive yaw oscillation.
+Active queue: `research/queues/c18_fixed_phase.json`. Read
+`results/gate4_corrective/C18_fixed_phase_queue/status.json`.
+C18 passes nominal gait/yaw and video; check fixed-frequency retention next.
 Diagnostic-only jobs may use `review_artifact` instead of a CSV gate;
 they explicitly report numeric_gate_evaluated=false and require review.
 

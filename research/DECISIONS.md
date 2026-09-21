@@ -1,5 +1,9 @@
 # Decisions and Gate Log
 
+## D-046: Preserve corrected gait and verify fixed-frequency retention (2026-09-21)
+
+Changing angular tracking weight to9 cut matched yaw errors over71% while retaining real alternating gait and500-step survival. No further forward-only fine-tuning is warranted now. Complete the predeclared no-training fixed-phase check before broadening the command curriculum.
+
 ## D-045: Single-factor yaw correction before command broadening (2026-09-21)
 
 C17 completes the fixed-frequency gate. Measured yaw error is predominantly oscillatory, and counterfactual reward scoring favors the lower-yaw-error oracle when angular tracking is raised to9. C18 tests only that reward change on the existing balanced gait, with a1,003,520-step cap. No command broadening or extra randomization until this candidate is assessed.

@@ -1,5 +1,9 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C18 fixed-frequency retention check (2026-09-21)
+
+No training. Repeat the established same-MJX C18/oracle comparison at command[.5,0,0], direct nominal seed2000, fixed1.5Hz,500 steps. Require local500-step survival, finite traces, upright pelvis>.6m and completed median air>=.12s each foot; retain recorded linear/yaw metrics and compare to C17 fixedphase. Review before broader-command training. This is the follow-up already required by C18, not new held-out confirmation.
+
 ## C18 predeclaration: reduce yaw oscillation (2026-09-21)
 
 Hypothesis and cheapest falsifier: C17 remains upright and alternates under fixed1.5Hz, but yaw RMS .426 is worse than oracle .262. Fixed-trajectory reweighting already favors the steadier oracle at angular weight9 (+10.83% total reward versus C17). This supports one bounded single-factor fine-tune.

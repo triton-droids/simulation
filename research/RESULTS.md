@@ -1,5 +1,9 @@
 # G1 Build and Research Results
 
+## C18 passes nominal gait and yaw correction (2026-09-21)
+
+Both nominal seeds3000/3001 survive500. Linear vector RMSE .119834/.119680; yaw RMSE .114836/.121057 versus matched initial C17 .413516/.425125, reductions72.23%/71.52%. Both single support .834; completed air left.30s/right.34s; minimum pelvis across episodes .737073m. Restore audit confirms exact17-leaf actor/normalizer match. Dense video montage shows upright alternating foot lift and substantially straighter progression. All frozen numerical, relative-improvement and visual conditions pass. Fixed-frequency retention remains required before broader commands.
+
 ## C17 fixed-phase gait passes; yaw oscillation diagnosed (2026-09-21)
 
 Matched nominal seed-2000 direct reset, 1.5 Hz: C17 and oracle both survive500, all trace arrays finite, identical initial state. C17 linear RMSE .111687, yaw mean .092796, yaw SD .415840/RMSE .426068, min pelvis .740172, single support .772, foot transitions31/30, completed air .22/.28 s. Oracle linear .173311, yaw mean .041485, SD .259136/RMSE .262435, single support .75. Existing fixed-phase gait criterion passes. Main remaining forward-only issue is oscillatory yaw, not failure to alternate. Video was reviewed at previous nominal gate.
