@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "output_dir": "results/gate4_corrective/C19_diagnostic_queue",
+  "max_wall_seconds": 5400,
+  "jobs": [
+    {
+      "id": "C19_backward",
+      "hypothesis": "Distinguish task feasibility and reward preference on failed backward tracking with identical evaluator reset and matched oracle physics.",
+      "evidence": "C19 all8 survive500 with good yaw but backward/left/right/stand linear thresholds fail. No unchanged extension is permitted.",
+      "review_artifact": "results/gate4_corrective/C19_diagnostic_backward/summary.json",
+      "stages": [
+        {
+          "id": "compare",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/gate4_corrective/C19_commands_seed7_2007040",
+            "--checkpoint",
+            "2007040",
+            "--output-dir",
+            "results/gate4_corrective/C19_diagnostic_backward",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C19",
+            "--command",
+            "-0.3",
+            "0",
+            "0",
+            "--seed",
+            "4000",
+            "--evaluation-reset"
+          ],
+          "fresh_paths": [
+            "results/gate4_corrective/C19_diagnostic_backward"
+          ],
+          "required_paths": [
+            "results/gate4_corrective/C19_diagnostic_backward/summary.json",
+            "results/gate4_corrective/C19_diagnostic_backward/C19_trace.npz",
+            "results/gate4_corrective/C19_diagnostic_backward/oracle_trace.npz"
+          ],
+          "timeout_seconds": 1800
+        }
+      ]
+    },
+    {
+      "id": "C19_left",
+      "hypothesis": "Distinguish task feasibility and reward preference on failed left tracking with identical evaluator reset and matched oracle physics.",
+      "evidence": "C19 all8 survive500 with good yaw but backward/left/right/stand linear thresholds fail. No unchanged extension is permitted.",
+      "review_artifact": "results/gate4_corrective/C19_diagnostic_left/summary.json",
+      "stages": [
+        {
+          "id": "compare",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/gate4_corrective/C19_commands_seed7_2007040",
+            "--checkpoint",
+            "2007040",
+            "--output-dir",
+            "results/gate4_corrective/C19_diagnostic_left",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C19",
+            "--command",
+            "0",
+            "0.3",
+            "0",
+            "--seed",
+            "4000",
+            "--evaluation-reset"
+          ],
+          "fresh_paths": [
+            "results/gate4_corrective/C19_diagnostic_left"
+          ],
+          "required_paths": [
+            "results/gate4_corrective/C19_diagnostic_left/summary.json",
+            "results/gate4_corrective/C19_diagnostic_left/C19_trace.npz",
+            "results/gate4_corrective/C19_diagnostic_left/oracle_trace.npz"
+          ],
+          "timeout_seconds": 1800
+        }
+      ]
+    },
+    {
+      "id": "C19_stand",
+      "hypothesis": "Distinguish task feasibility and reward preference on failed stand tracking with identical evaluator reset and matched oracle physics.",
+      "evidence": "C19 all8 survive500 with good yaw but backward/left/right/stand linear thresholds fail. No unchanged extension is permitted.",
+      "review_artifact": "results/gate4_corrective/C19_diagnostic_stand/summary.json",
+      "stages": [
+        {
+          "id": "compare",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/gate4_corrective/C19_commands_seed7_2007040",
+            "--checkpoint",
+            "2007040",
+            "--output-dir",
+            "results/gate4_corrective/C19_diagnostic_stand",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C19",
+            "--command",
+            "0",
+            "0",
+            "0",
+            "--seed",
+            "4000",
+            "--evaluation-reset"
+          ],
+          "fresh_paths": [
+            "results/gate4_corrective/C19_diagnostic_stand"
+          ],
+          "required_paths": [
+            "results/gate4_corrective/C19_diagnostic_stand/summary.json",
+            "results/gate4_corrective/C19_diagnostic_stand/C19_trace.npz",
+            "results/gate4_corrective/C19_diagnostic_stand/oracle_trace.npz"
+          ],
+          "timeout_seconds": 1800
+        }
+      ]
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 # Unattended G1 experiments
 
-Active queue: `research/queues/c19_commands.json`. Read
-`results/gate4_corrective/C19_queue/status.json`.
-C18 passed fixed-frequency retention; C19 tests full commands after audited prior preparation.
+Active queue: `research/queues/c19_diagnostics.json`. Read
+`results/gate4_corrective/C19_diagnostic_queue/status.json`.
+C19 failed translation thresholds; three no-training matched-oracle diagnostics follow.
 Diagnostic-only jobs may use `review_artifact` instead of a CSV gate;
 they explicitly report numeric_gate_evaluated=false and require review.
 

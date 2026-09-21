@@ -1,5 +1,9 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+## Active C19 diagnostic queue (2026-09-21)
+
+C19 full-command gate FAILS linear thresholds backward.344,left.327,right.271,stand.179, despite all8x500, mean yaw.09346 and upright alternating combined video. Prior preparation and restore audits pass. Active research/queues/c19_diagnostics.json; status results/gate4_corrective/C19_diagnostic_queue/status.json. Three no-training evaluator-reset seed4000 comparisons: backward,left,stand, each500 local/oracle. Review means/reward terms and counterfactuals before selecting next bounded change. No unchanged C19 extension; final multiseed Gate4 remains outstanding.
+
 ## Active C19 command curriculum (2026-09-21)
 
 C18 fixedphase PASS:500, linear.115800,yaw.106697,pelvis.740393,single.824,air.26/.30s,finite. Active research/queues/c19_commands.json; status results/gate4_corrective/C19_queue/status.json. Queue first prepares/audits unseen-command variance priors, then trains2,007,040 from C18 with full vx/vy/yaw ranges, audits restore, evaluates8 commands/seed4000 and combined video. Retains yawweight9. No unchanged extension on failure; final independent multiseed/heldout Gate4 pending.

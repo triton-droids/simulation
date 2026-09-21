@@ -1,5 +1,9 @@
 # G1 Build and Research Results
 
+## C19 stable full-command rollout, translation gate fails (2026-09-21)
+
+All8 trained episodes survive500 finite; min pelvis .732092. Mean linear/yaw RMSE .216685/.093461 versus initial .226601/.233605 (initial mean survival448.75); standing survives69, errors1.090840/.173969. Failed linear thresholds: backward .344019,left .327469,right .270520 (cap.25),stand .178508 (cap.15). Forward .125758 and combined .205135 pass; pure-turn yaw .153242/.101322 pass. Forward single support .818,air .30/.32s. Combined video reviewed: upright alternating gait and turning. Preparation old-subspace/roundtrip differences exactly0; checkpoint0 restore exact17leaves. C19 does not pass its full gate; no unchanged extension.
+
 ## C18 fixed-frequency retention passes (2026-09-21)
 
 Direct nominal seed2000, fixed1.5Hz: C18 survives500, finite traces, linear RMSE .115800, yaw mean -.037765, SD .099790/RMSE .106697, min pelvis .740393, single support .824,31/30 contact transitions, completed air .26/.30s. Matched oracle also500, yaw RMSE .262435. Initial states exactly match. Combined with prior nominal video, this clears the declared prerequisite for broader commands; not final held-out or multi-seed success.

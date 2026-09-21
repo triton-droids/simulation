@@ -1,5 +1,9 @@
 # Decisions and Gate Log
 
+## D-048: Diagnose translational failures before more training (2026-09-21)
+
+C19 preserves gait, balance and yaw but fails backward/lateral/stand linear tracking. Mean linear error improves only about4.4% over initial while yaw improves about60%; this does not justify an unchanged extension. Diagnose representative failed commands with the matched oracle first; preserve current thresholds and failed evidence.
+
 ## D-047: Broaden commands with verified normalization preparation (2026-09-21)
 
 C18 clears forward nominal and fixed-frequency retention, with yaw error substantially reduced. Proceed to one bounded full-command transition. Retain yawweight9 rather than reintroducing the earlier low-yaw reward imbalance. Reuse explicit normalizer variance preparation and its pre-training parity audit to prevent previously unseen command dimensions being scaled by tiny std.

@@ -1,5 +1,9 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C19 failure diagnostics: backward, left, stand (2026-09-21)
+
+No training. Three independent sequential same-MJX comparisons of C19 final2007040 and the pinned oracle,500 steps each, nominal evaluator-style reset seed4000 (--evaluation-reset), commands[-.3,0,0],[0,.3,0],[0,0,0]. This matches the failed development tests including sampled phase frequency. Save traces/reward terms, verify initial-state parity and finite values, compare velocity means/errors and task feasibility. Inspect reward preference and counterfactual linear-weight changes before selecting any intervention. Left represents lateral failure; right remains mandatory in the subsequent unchanged eight-command gate. Do not infer oracle perfection or declare success from these diagnostic comparisons.
+
 ## C19 predeclaration: full command curriculum (2026-09-21)
 
 Hypothesis: the seed7 corrected gait can acquire backward/lateral/yaw/combined tracking. Cheapest prerequisite is the completed C18 fixed-phase/nominal gait assessment. Before training, use the existing audited command-variance preparation: std indices10/11 actor+critic .16431676725154984/.27386127875258304 for symmetric +/-.3,+/-.5 ranges with10%zero. It requires unused zero-mean channels, exact old-subspace action parity on64 inputs and exact full-checkpoint roundtrip; no actor/critic weights are fitted. Preparation failure stops before training.
