@@ -1,5 +1,9 @@
 # Decisions and Gate Log
 
+## D-049: Test one translation-priority change (2026-09-21)
+
+Matched diagnostics establish that C19 sacrifices backward/lateral tracking while securing better yaw reward. A bounded linear-weight18 test is justified by counterfactual preference; retain yaw9 and all other settings to isolate the change. The oracle itself misses some thresholds, so its reward advantage is motivation, not a lowered gate or training target.
+
 ## D-048: Diagnose translational failures before more training (2026-09-21)
 
 C19 preserves gait, balance and yaw but fails backward/lateral/stand linear tracking. Mean linear error improves only about4.4% over initial while yaw improves about60%; this does not justify an unchanged extension. Diagnose representative failed commands with the matched oracle first; preserve current thresholds and failed evidence.

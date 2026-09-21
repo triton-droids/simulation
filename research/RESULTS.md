@@ -1,5 +1,11 @@
 # G1 Build and Research Results
 
+## C19 translation diagnostic and reward tradeoff (2026-09-21)
+
+All six matched local/oracle trajectories survive500, all arrays finite, identical initial states per command. Backward: C19 vx+.031364 despite command-.3, linear error.345149 versus oracle vx-.082249/error.250963. Left: C19 vx.199582,vy.053897/error.326685 versus oracle vx.156445,vy.120594/error.289618. Stand: C19 vx.159300/error.179028 versus oracle vx.147637/error.203882. Oracle is not a passing target, particularly for standing; C16 previously demonstrated actual standing feasibility. C19 has substantially better yaw errors, explaining part of the total reward tradeoff.
+
+Fixed-trajectory linear-weight counterfactual saved in C19_diagnostic_queue/linear_weight_counterfactual.json. On candidate weights3,6,9,12,18, only18 reverses reward preference in both backward and left comparisons. At18, oracle-minus-C19 reward before dt is+2.001139 backward,+.053472 left; stand still favors C19 by.840442, consistent with its better standing tracking. The small left margin is weak evidence, not proof of learning success.
+
 ## C19 stable full-command rollout, translation gate fails (2026-09-21)
 
 All8 trained episodes survive500 finite; min pelvis .732092. Mean linear/yaw RMSE .216685/.093461 versus initial .226601/.233605 (initial mean survival448.75); standing survives69, errors1.090840/.173969. Failed linear thresholds: backward .344019,left .327469,right .270520 (cap.25),stand .178508 (cap.15). Forward .125758 and combined .205135 pass; pure-turn yaw .153242/.101322 pass. Forward single support .818,air .30/.32s. Combined video reviewed: upright alternating gait and turning. Preparation old-subspace/roundtrip differences exactly0; checkpoint0 restore exact17leaves. C19 does not pass its full gate; no unchanged extension.

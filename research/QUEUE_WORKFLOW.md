@@ -1,8 +1,8 @@
 # Unattended G1 experiments
 
-Active queue: `research/queues/c19_diagnostics.json`. Read
-`results/gate4_corrective/C19_diagnostic_queue/status.json`.
-C19 failed translation thresholds; three no-training matched-oracle diagnostics follow.
+Active queue: `research/queues/c20_linear.json`. Read
+`results/gate4_corrective/C20_queue/status.json`.
+C19 diagnostics support one bounded translation-weight correction.
 Diagnostic-only jobs may use `review_artifact` instead of a CSV gate;
 they explicitly report numeric_gate_evaluated=false and require review.
 

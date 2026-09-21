@@ -1,5 +1,13 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C20 predeclaration: increase translation priority (2026-09-21)
+
+Hypothesis: excessive yaw/phase priority permits forward-biased stepping rather than accurate commanded translation. Cheapest test completed: matched backward/left/stand oracle traces and counterfactual linear weights3,6,9,12,18. Weight18 is the smallest tested that favors the better directional tracking on both backward and left; oracle is imperfect and remains diagnostic only.
+
+Freeze seed7, C19 final2007040 parameter warm-start, exact actor/normalizer restore audit, optimizer/PRNG/step reset. Change ONLY linear tracking weight3->18. Retain yaw9/phase3/contact2, full command ranges, nominal/noiseless/no-push/no-domain-randomization, corrective PPO512/16/500 and8evals. Exactly1,003,520 steps; stop any nonfinite value or2 consecutive KL>=.2 after first positive callback143360. No additional normalization preparation.
+
+Retain the C19 eight-command nominal seed4000 gate exactly, final checkpoint first, matched initial/standing controls, combined video. All8x500, pelvis>.6, mean linear<=.25/yaw<=.20; translating commands linear<=.25; pure turns yaw<=.25; stand both<=.15; forward single support35-95% and completed air>=.12s each foot. Inspect alternating gait. No unchanged extension on failure. No randomization or final multiseed claims until commanded tracking passes.
+
 ## C19 failure diagnostics: backward, left, stand (2026-09-21)
 
 No training. Three independent sequential same-MJX comparisons of C19 final2007040 and the pinned oracle,500 steps each, nominal evaluator-style reset seed4000 (--evaluation-reset), commands[-.3,0,0],[0,.3,0],[0,0,0]. This matches the failed development tests including sampled phase frequency. Save traces/reward terms, verify initial-state parity and finite values, compare velocity means/errors and task feasibility. Inspect reward preference and counterfactual linear-weight changes before selecting any intervention. Left represents lateral failure; right remains mandatory in the subsequent unchanged eight-command gate. Do not infer oracle perfection or declare success from these diagnostic comparisons.

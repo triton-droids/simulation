@@ -1,5 +1,9 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+## Active C20 linear tracking correction (2026-09-21)
+
+C19 diagnostic traces all500 finite/matched: wrong-sign backward vx+.031, left dominated by forward vx.200. Oracle tracks directions better but also misses thresholds. Counterfactual candidate weights3,6,9,12,18 support18 (small left margin). Active research/queues/c20_linear.json; status results/gate4_corrective/C20_queue/status.json. Only linear weight3->18, C19 warm-start,1,003,520 steps; unchanged full eight-command gate and video. No unchanged extension; no reset-randomization or final multiseed claim yet.
+
 ## Active C19 diagnostic queue (2026-09-21)
 
 C19 full-command gate FAILS linear thresholds backward.344,left.327,right.271,stand.179, despite all8x500, mean yaw.09346 and upright alternating combined video. Prior preparation and restore audits pass. Active research/queues/c19_diagnostics.json; status results/gate4_corrective/C19_diagnostic_queue/status.json. Three no-training evaluator-reset seed4000 comparisons: backward,left,stand, each500 local/oracle. Review means/reward terms and counterfactuals before selecting next bounded change. No unchanged C19 extension; final multiseed Gate4 remains outstanding.
