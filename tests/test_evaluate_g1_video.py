@@ -451,3 +451,16 @@ def test_command_queues_use_actual_evaluator_cli(monkeypatch, filename, checkpoi
     assert args.seeds == "4000" and args.steps == 500
     assert args.nominal_reset and args.video_command == "combined"
     assert job["stages"][0]["id"] == first_stage
+
+
+def test_c20_randomized_queue_cli(monkeypatch):
+    path = Path(__file__).resolve().parents[1] / "research/queues/c20_randomized.json"
+    job = json.loads(path.read_text())["jobs"][0]
+    assert len(job["stages"]) == 1
+    monkeypatch.setattr(sys, "argv", job["stages"][0]["argv"])
+    args = evaluate_g1.parse_args()
+    assert args.commands == job["gate"]["commands"]
+    assert args.checkpoint == 1003520 and args.reference_label == "initial"
+    assert args.seeds == "5000,5001" and args.steps == 500
+    assert args.randomized_reset and not args.nominal_reset
+    assert args.video and args.video_command == "combined"

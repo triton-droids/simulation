@@ -1,8 +1,8 @@
 # Unattended G1 experiments
 
-Active queue: `research/queues/c20_linear.json`. Read
-`results/gate4_corrective/C20_queue/status.json`.
-C19 diagnostics support one bounded translation-weight correction.
+Active queue: `research/queues/c20_randomized.json`. Read
+`results/gate4_corrective/C20_randomized_queue/status.json`.
+C20 passed nominal full-command gait; assess randomized starts without training.
 Diagnostic-only jobs may use `review_artifact` instead of a CSV gate;
 they explicitly report numeric_gate_evaluated=false and require review.
 

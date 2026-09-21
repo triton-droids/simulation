@@ -1,5 +1,9 @@
 # Decisions and Gate Log
 
+## D-050: Check recovery before spending randomized training (2026-09-21)
+
+C20 corrects all failed translation conditions while retaining acceptable yaw and gait. Do not train the successful nominal configuration further without evidence. First test randomized initial states across16 matched development episodes to determine whether a recovery stage is necessary.
+
 ## D-049: Test one translation-priority change (2026-09-21)
 
 Matched diagnostics establish that C19 sacrifices backward/lateral tracking while securing better yaw reward. A bounded linear-weight18 test is justified by counterfactual preference; retain yaw9 and all other settings to isolate the change. The oracle itself misses some thresholds, so its reward advantage is motivation, not a lowered gate or training target.

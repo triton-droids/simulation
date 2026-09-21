@@ -1,5 +1,9 @@
 # G1 Build and Research Results
 
+## C20 full nominal command gate passes (2026-09-21)
+
+All8 trained episodes survive500 finite; minimum pelvis .727293m. Mean linear/yaw RMSE .097463/.126648 versus initial C19 .216666/.093615. Linear error improves about55%; yaw increases but remains within every frozen limit. Translating linear errors: forward.095501,backward.107185,left.124085,right.150726,combined.103606. Stand linear/yaw.046458/.086592; pure-turn yaw.139833/.120136. Forward single support.824,air.32/.32s. Dense combined video shows upright alternating gait during turning. Restore17leaves exact. This passes nominal development gates, not randomized recovery or final independent-family confirmation.
+
 ## C19 translation diagnostic and reward tradeoff (2026-09-21)
 
 All six matched local/oracle trajectories survive500, all arrays finite, identical initial states per command. Backward: C19 vx+.031364 despite command-.3, linear error.345149 versus oracle vx-.082249/error.250963. Left: C19 vx.199582,vy.053897/error.326685 versus oracle vx.156445,vy.120594/error.289618. Stand: C19 vx.159300/error.179028 versus oracle vx.147637/error.203882. Oracle is not a passing target, particularly for standing; C16 previously demonstrated actual standing feasibility. C19 has substantially better yaw errors, explaining part of the total reward tradeoff.

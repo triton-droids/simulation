@@ -1,5 +1,9 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C20 randomized-reset development check (2026-09-21)
+
+No training. Evaluate C20 final1003520 on all8 canonical commands and randomized reset seeds5000/5001,500 steps each; keep observation noise/push/domain randomization disabled. Compare initial C19 checkpoint0 and standing under matched conditions. Require all16 full500 finite with pelvis>.6m; mean linear/yaw RMSE<=.25 each, every episode<=.35 each, and combined seed5000 video visibly recovers into upright alternating gait. These are the previous C14 development recovery thresholds. Failure triggers diagnosis before recovery training; passing permits recipe planning, not final multiseed/heldout success. Preserve the passed nominal gate.
+
 ## C20 predeclaration: increase translation priority (2026-09-21)
 
 Hypothesis: excessive yaw/phase priority permits forward-biased stepping rather than accurate commanded translation. Cheapest test completed: matched backward/left/stand oracle traces and counterfactual linear weights3,6,9,12,18. Weight18 is the smallest tested that favors the better directional tracking on both backward and left; oracle is imperfect and remains diagnostic only.

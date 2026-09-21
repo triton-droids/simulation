@@ -1,5 +1,9 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+## Active C20 randomized-reset evaluation (2026-09-21)
+
+C20 nominal full-command/visual gate PASS: all8x500,mean linear/yaw.097463/.126648,minpelvis.727293,forwardair.32/.32s. Active research/queues/c20_randomized.json; status results/gate4_corrective/C20_randomized_queue/status.json. Evaluation only: all8commands x randomized seeds5000/5001, matched initial C19 and standing, combined video. Assess16x500, mean errors<=.25,worst<=.35,pelvis>.6 and visual recovery before deciding on recovery training. Final independent matched training seeds and fresh held-out assessment remain outstanding.
+
 ## Active C20 linear tracking correction (2026-09-21)
 
 C19 diagnostic traces all500 finite/matched: wrong-sign backward vx+.031, left dominated by forward vx.200. Oracle tracks directions better but also misses thresholds. Counterfactual candidate weights3,6,9,12,18 support18 (small left margin). Active research/queues/c20_linear.json; status results/gate4_corrective/C20_queue/status.json. Only linear weight3->18, C19 warm-start,1,003,520 steps; unchanged full eight-command gate and video. No unchanged extension; no reset-randomization or final multiseed claim yet.
