@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "output_dir": "results/gate4_corrective/C16_evaluation_recovery_queue",
+  "max_wall_seconds": 3600,
+  "jobs": [
+    {
+      "id": "C16",
+      "hypothesis": "Assess the already-trained C16 final checkpoint against the unchanged frozen balance gate; repair evaluation CLI only.",
+      "evidence": "C16_queue stopped after successful 3368960-step training: evaluator rejected comma-separated command labels before rollouts. Training final survival 500, KL .08903826. No new training authorized by this recovery queue.",
+      "stages": [
+        {
+          "id": "evaluate",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/gate4_corrective/C16_balance_seed7_3368960",
+            "--checkpoint",
+            "3368960",
+            "--steps",
+            "500",
+            "--seeds",
+            "3000,3001",
+            "--nominal-reset",
+            "--commands",
+            "stand",
+            "forward",
+            "--video",
+            "--video-command",
+            "forward",
+            "--output-dir",
+            "results/gate4_corrective/C16_balance_gate_recovery"
+          ],
+          "fresh_paths": [
+            "results/gate4_corrective/C16_balance_gate_recovery"
+          ],
+          "required_paths": [
+            "results/gate4_corrective/C16_balance_gate_recovery/summary.json",
+            "results/gate4_corrective/C16_balance_gate_recovery/episodes.csv",
+            "results/gate4_corrective/C16_balance_gate_recovery/trained_forward_seed3000.mp4"
+          ],
+          "timeout_seconds": 3600
+        }
+      ],
+      "episodes_csv": "results/gate4_corrective/C16_balance_gate_recovery/episodes.csv",
+      "gate": {
+        "horizon": 500,
+        "controllers": [
+          "trained",
+          "untrained",
+          "standing"
+        ],
+        "commands": [
+          "stand",
+          "forward"
+        ],
+        "seeds": [
+          3000,
+          3001
+        ],
+        "outcomes": {
+          "pass": [
+            {
+              "name": "all four survive",
+              "aggregate": "min",
+              "metric": "episode_steps",
+              "min": 500
+            },
+            {
+              "name": "upright height",
+              "aggregate": "min",
+              "metric": "minimum_pelvis_height",
+              "above": 0.6
+            },
+            {
+              "name": "stand linear error",
+              "where": {
+                "command_name": "stand"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.15
+            },
+            {
+              "name": "stand yaw error",
+              "where": {
+                "command_name": "stand"
+              },
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.15
+            }
+          ],
+          "extension_eligible": [
+            {
+              "name": "two upright complete episodes",
+              "aggregate": "count",
+              "at_least": {
+                "episode_steps": 500
+              },
+              "above": {
+                "minimum_pelvis_height": 0.6
+              },
+              "min": 2
+            },
+            {
+              "name": "mean survival",
+              "aggregate": "mean",
+              "metric": "episode_steps",
+              "min": 350
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

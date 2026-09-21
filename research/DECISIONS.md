@@ -1,5 +1,9 @@
 # Decisions and Gate Log
 
+## C16 evaluation recovery (2026-09-20)
+
+D-042: Recover C16 evaluation without retraining. Argparse isolated the CLI serialization bug: --commands requires separate stand and forward arguments. The corrected queue passed a test through the actual evaluator parser. Launch evaluation only with all scientific thresholds unchanged.
+
 ## D-041 -- Move routine orchestration out of model turns
 
 At the user's explicit request, run frozen local queues with no LLM calls for

@@ -1,5 +1,10 @@
 # Unattended G1 experiments
 
+Active queue: `research/queues/c16_evaluation_recovery.json`.
+Read `results/gate4_corrective/C16_evaluation_recovery_queue/status.json`.
+This evaluates the completed C16 checkpoint after correcting command-list
+arguments. The original failed queue/logs are preserved.
+
 The local runner uses Python's standard library and makes no model or network
 calls. One queue owns an OS file lock; jobs and their training/evaluation stages
 run sequentially on the single GPU. The first frozen queue is

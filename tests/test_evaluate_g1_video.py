@@ -411,3 +411,16 @@ def test_video_falls_back_to_opencv_when_ffmpeg_is_missing(
         assert int(capture.get(cv2.CAP_PROP_FRAME_COUNT)) == len(frames)
     finally:
         capture.release()
+
+
+def test_c16_recovery_queue_uses_actual_evaluator_cli(monkeypatch):
+    plan_path = Path(__file__).resolve().parents[1] / "research/queues/c16_evaluation_recovery.json"
+    job = json.loads(plan_path.read_text())["jobs"][0]
+    assert len(job["stages"]) == 1
+    monkeypatch.setattr(sys, "argv", job["stages"][0]["argv"])
+    args = evaluate_g1.parse_args()
+    assert args.commands == job["gate"]["commands"] == ["stand", "forward"]
+    assert args.checkpoint == 3368960
+    assert args.steps == job["gate"]["horizon"] == 500
+    assert args.seeds == "3000,3001"
+    assert args.nominal_reset and args.video and args.video_command == "forward"

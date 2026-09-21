@@ -1,5 +1,9 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+## C16 evaluation recovery (2026-09-20)
+
+Active replacement: research/queues/c16_evaluation_recovery.json; inspect results/gate4_corrective/C16_evaluation_recovery_queue/status.json. C16 completed 3,368,960 training steps but evaluation failed on comma-separated command labels. Recovery evaluates the saved final checkpoint only. Do not retrain; the original queue error is preserved.
+
 Automation change 2026-09-20: user explicitly requested token-efficient local
 orchestration and same-chat wakes. Read `research/QUEUE_WORKFLOW.md` and inspect
 `results/gate4_corrective/C16_queue/status.json` before doing further work.

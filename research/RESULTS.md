@@ -1,5 +1,13 @@
 # G1 Build and Research Results
 
+## C16 evaluation recovery (2026-09-20)
+
+C16 trained from clean c94708d to final step 3,368,960; final training survival 500, reward 13.621555, KL .08903826. Evaluation exited 2 before rollouts because the queue passed comma-separated command labels. This is not a held-out balance or gait pass. The evaluation-only recovery queue uses the same checkpoint, seeds, horizon, controls and gates in fresh output directories; no retraining. Original failure logs are preserved.
+
+## C16 evaluation recovery (2026-09-20)
+
+C16 trained successfully from clean c94708d at final step 3,368,960; final training-side survival 500, reward 13.621555, KL .08903826. This is not a held-out balance or gait pass. Evaluation exited 2 before rollouts because the queue supplied `--commands stand,forward` instead of separate `stand forward` arguments. Preserve the failed queue/logs. The evaluation-only recovery queue uses the same checkpoint, seeds, horizon, controls and gates in fresh output directories; no retraining.
+
 ## C15 direct fresh acquisition fails; C16 balance stage frozen (2026-09-20)
 
 C15 ran from clean `cb4c604`, fresh seed 7 with no restore, for 2,007,040
