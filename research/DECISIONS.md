@@ -1,5 +1,9 @@
 # Decisions and Gate Log
 
+## D-047: Broaden commands with verified normalization preparation (2026-09-21)
+
+C18 clears forward nominal and fixed-frequency retention, with yaw error substantially reduced. Proceed to one bounded full-command transition. Retain yawweight9 rather than reintroducing the earlier low-yaw reward imbalance. Reuse explicit normalizer variance preparation and its pre-training parity audit to prevent previously unseen command dimensions being scaled by tiny std.
+
 ## D-046: Preserve corrected gait and verify fixed-frequency retention (2026-09-21)
 
 Changing angular tracking weight to9 cut matched yaw errors over71% while retaining real alternating gait and500-step survival. No further forward-only fine-tuning is warranted now. Complete the predeclared no-training fixed-phase check before broadening the command curriculum.

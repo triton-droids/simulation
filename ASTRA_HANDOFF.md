@@ -1,5 +1,9 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+## Active C19 command curriculum (2026-09-21)
+
+C18 fixedphase PASS:500, linear.115800,yaw.106697,pelvis.740393,single.824,air.26/.30s,finite. Active research/queues/c19_commands.json; status results/gate4_corrective/C19_queue/status.json. Queue first prepares/audits unseen-command variance priors, then trains2,007,040 from C18 with full vx/vy/yaw ranges, audits restore, evaluates8 commands/seed4000 and combined video. Retains yawweight9. No unchanged extension on failure; final independent multiseed/heldout Gate4 pending.
+
 ## Active C18 fixed-phase queue (2026-09-21)
 
 C18 nominal gait/yaw and video PASS: both500, linear~.120, yaw.115/.121 (71.5-72.2% improvement), single support.834, air.30/.34s. Restore audit exact17leaves. Active research/queues/c18_fixed_phase.json; status results/gate4_corrective/C18_fixed_phase_queue/status.json. This is a no-training fixed1.5Hz retention check before broader-command curriculum. Do not repeat C18 training. Independent final multi-seed/held-out Gate4 remains outstanding.

@@ -1,5 +1,9 @@
 # G1 Build and Research Results
 
+## C18 fixed-frequency retention passes (2026-09-21)
+
+Direct nominal seed2000, fixed1.5Hz: C18 survives500, finite traces, linear RMSE .115800, yaw mean -.037765, SD .099790/RMSE .106697, min pelvis .740393, single support .824,31/30 contact transitions, completed air .26/.30s. Matched oracle also500, yaw RMSE .262435. Initial states exactly match. Combined with prior nominal video, this clears the declared prerequisite for broader commands; not final held-out or multi-seed success.
+
 ## C18 passes nominal gait and yaw correction (2026-09-21)
 
 Both nominal seeds3000/3001 survive500. Linear vector RMSE .119834/.119680; yaw RMSE .114836/.121057 versus matched initial C17 .413516/.425125, reductions72.23%/71.52%. Both single support .834; completed air left.30s/right.34s; minimum pelvis across episodes .737073m. Restore audit confirms exact17-leaf actor/normalizer match. Dense video montage shows upright alternating foot lift and substantially straighter progression. All frozen numerical, relative-improvement and visual conditions pass. Fixed-frequency retention remains required before broader commands.

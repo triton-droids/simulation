@@ -437,3 +437,16 @@ def test_gait_queues_use_actual_evaluator_cli(monkeypatch, filename, checkpoint)
     assert args.checkpoint == checkpoint and args.reference_label == "initial"
     assert args.seeds == "3000,3001" and args.steps == 500
     assert args.nominal_reset and args.video
+
+
+def test_c19_queue_uses_actual_evaluator_cli(monkeypatch):
+    path = Path(__file__).resolve().parents[1] / "research/queues/c19_commands.json"
+    job = json.loads(path.read_text())["jobs"][0]
+    stage = next(s for s in job["stages"] if s["id"] == "evaluate")
+    monkeypatch.setattr(sys, "argv", stage["argv"])
+    args = evaluate_g1.parse_args()
+    assert args.commands == job["gate"]["commands"] == [name for name, _ in evaluate_g1.COMMANDS]
+    assert args.checkpoint == 2007040 and args.reference_label == "initial"
+    assert args.seeds == "4000" and args.steps == 500
+    assert args.nominal_reset and args.video_command == "combined"
+    assert job["stages"][0]["id"] == "prepare"

@@ -1,8 +1,8 @@
 # Unattended G1 experiments
 
-Active queue: `research/queues/c18_fixed_phase.json`. Read
-`results/gate4_corrective/C18_fixed_phase_queue/status.json`.
-C18 passes nominal gait/yaw and video; check fixed-frequency retention next.
+Active queue: `research/queues/c19_commands.json`. Read
+`results/gate4_corrective/C19_queue/status.json`.
+C18 passed fixed-frequency retention; C19 tests full commands after audited prior preparation.
 Diagnostic-only jobs may use `review_artifact` instead of a CSV gate;
 they explicitly report numeric_gate_evaluated=false and require review.
 

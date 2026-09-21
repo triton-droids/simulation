@@ -1,5 +1,13 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C19 predeclaration: full command curriculum (2026-09-21)
+
+Hypothesis: the seed7 corrected gait can acquire backward/lateral/yaw/combined tracking. Cheapest prerequisite is the completed C18 fixed-phase/nominal gait assessment. Before training, use the existing audited command-variance preparation: std indices10/11 actor+critic .16431676725154984/.27386127875258304 for symmetric +/-.3,+/-.5 ranges with10%zero. It requires unused zero-mean channels, exact old-subspace action parity on64 inputs and exact full-checkpoint roundtrip; no actor/critic weights are fitted. Preparation failure stops before training.
+
+Freeze seed7 from prepared C18 final1003520; normalizer/actor/critic warm-start, optimizer/PRNG/step restart. Command ranges vx[-.3,.6],vy[-.3,.3],yaw[-.5,.5],10%zero. Retain reward weights linear3/yaw9/phase3/contact2 and nominal/noiseless/no-push/no-domain-randomization. Corrective PPO512 train/16eval,500steps,8evals,exactly2,007,040 new steps. Stop nonfinite or2 consecutive KL>=.2 after first positive callback286720. Audit checkpoint0 inference equals prepared parent.
+
+Final checkpoint first, all8 canonical commands, nominal development seed4000, initial prepared C18 and standing controls. Require all8 survive500 finite, pelvis>.6m; mean linear<=.25 and yaw<=.20; each translating command linear<=.25; pure turns yaw<=.25; stand linear/yaw<=.15. Forward single support35-95%, median completed air>=.12s per foot; combined video must show upright alternating gait. No unchanged extension on failure: diagnose. No reset-randomization or final-family launch until this gate passes. Independent final seeds and new held-out evaluation remain required.
+
 ## C18 fixed-frequency retention check (2026-09-21)
 
 No training. Repeat the established same-MJX C18/oracle comparison at command[.5,0,0], direct nominal seed2000, fixed1.5Hz,500 steps. Require local500-step survival, finite traces, upright pelvis>.6m and completed median air>=.12s each foot; retain recorded linear/yaw metrics and compare to C17 fixedphase. Review before broader-command training. This is the follow-up already required by C18, not new held-out confirmation.
