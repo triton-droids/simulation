@@ -1,5 +1,9 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+## Active C21 recovery queue (2026-09-21)
+
+C20 random gate FAILS backward5000 at87; other15x500 and per-episode errors<.35. Existing C14 matches task/robot/reset ranges and survives this case, so no duplicate oracle needed. Active research/queues/c21_recovery.json; status results/gate4_corrective/C21_queue/status.json. C21 warm-startsC20, only reset.randomize=true,1,003,520 steps; then nominal8 and randomized16 gates plus videos. Both must pass; no unchanged extension. Final independent recipe/held-out confirmation still pending.
+
 ## Active C20 randomized-reset evaluation (2026-09-21)
 
 C20 nominal full-command/visual gate PASS: all8x500,mean linear/yaw.097463/.126648,minpelvis.727293,forwardair.32/.32s. Active research/queues/c20_randomized.json; status results/gate4_corrective/C20_randomized_queue/status.json. Evaluation only: all8commands x randomized seeds5000/5001, matched initial C19 and standing, combined video. Assess16x500, mean errors<=.25,worst<=.35,pelvis>.6 and visual recovery before deciding on recovery training. Final independent matched training seeds and fresh held-out assessment remain outstanding.

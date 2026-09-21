@@ -1,5 +1,13 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C21 predeclaration: randomized recovery and nominal retention (2026-09-21)
+
+Hypothesis: nominal-only training leaves a recoverable backward-start weakness. Completed cheap test: C20 fails1/16 randomized starts, while preserved C14 succeeds on the identical backward seed5000 under matching task/robot settings.
+
+Freeze seed7 from C20 final1003520; change only sim.reset.randomize false->true. Keep all reward weights18/9/3/2, full command ranges, disabled observation noise/push/domain randomization and corrective PPO512/16/500. Exactly1,003,520 new steps,8evals; standard parameter warm-start resets optimizer/step/PRNG. Audit exact17-leaf initial inference equality. Stop nonfinite or2 consecutive KL>=.2 after first positive callback143360.
+
+Assess final checkpoint first with two unchanged gates: nominal all8commands/seed4000, and randomized all8commands/seeds5000,5001. Initial C20 and standing controls; combined videos for both regimes. Nominal gate exactlyC20; random requires16x500 finite,pelvis>.6,mean linear/yaw<=.25,worst<=.35. Both numeric gates plus upright alternating/recovery video must pass. No unchanged extension on failure; diagnose. Only after both pass may a fixed independent final-seed recipe and new held-out evaluation be frozen.
+
 ## C20 randomized-reset development check (2026-09-21)
 
 No training. Evaluate C20 final1003520 on all8 canonical commands and randomized reset seeds5000/5001,500 steps each; keep observation noise/push/domain randomization disabled. Compare initial C19 checkpoint0 and standing under matched conditions. Require all16 full500 finite with pelvis>.6m; mean linear/yaw RMSE<=.25 each, every episode<=.35 each, and combined seed5000 video visibly recovers into upright alternating gait. These are the previous C14 development recovery thresholds. Failure triggers diagnosis before recovery training; passing permits recipe planning, not final multiseed/heldout success. Preserve the passed nominal gate.

@@ -1,8 +1,8 @@
 # Unattended G1 experiments
 
-Active queue: `research/queues/c20_randomized.json`. Read
-`results/gate4_corrective/C20_randomized_queue/status.json`.
-C20 passed nominal full-command gait; assess randomized starts without training.
+Active queue: `research/queues/c21_recovery.json`. Read
+`results/gate4_corrective/C21_queue/status.json`.
+C21 targets the isolated randomized-start failure and must retain both gate sets.
 Diagnostic-only jobs may use `review_artifact` instead of a CSV gate;
 they explicitly report numeric_gate_evaluated=false and require review.
 

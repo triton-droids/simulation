@@ -1,5 +1,11 @@
 # G1 Build and Research Results
 
+## C20 randomized starts:15/16 survive; isolated backward failure (2026-09-21)
+
+All16 metrics finite. Fifteen episodes survive500; backward seed5000 falls at87 with linear/yaw RMSE1.512504/1.322609 and min pelvis-.405980. Overall mean linear/yaw .225769/.231984 hides that failure; full recovery gate fails. All other episodes satisfy per-episode .35 error caps. Combined seed5000 video reviewed: perturbed initial pose recovers into upright alternating gait.
+
+Cheapest feasibility check reuses preserved C14 backward5000:500 steps, pelvis.702715,linear.283192,yaw.125503. Compared resolved sim/robot configs: only reset.randomize (C14true/C20false) and linear reward3/18 differ; evaluation explicitly enables random resets for C20. Reset ranges, commands, physics and robot settings match. This supports recovery training without repeating an oracle diagnostic.
+
 ## C20 full nominal command gate passes (2026-09-21)
 
 All8 trained episodes survive500 finite; minimum pelvis .727293m. Mean linear/yaw RMSE .097463/.126648 versus initial C19 .216666/.093615. Linear error improves about55%; yaw increases but remains within every frozen limit. Translating linear errors: forward.095501,backward.107185,left.124085,right.150726,combined.103606. Stand linear/yaw.046458/.086592; pure-turn yaw.139833/.120136. Forward single support.824,air.32/.32s. Dense combined video shows upright alternating gait during turning. Restore17leaves exact. This passes nominal development gates, not randomized recovery or final independent-family confirmation.

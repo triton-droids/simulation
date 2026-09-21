@@ -1,5 +1,9 @@
 # Decisions and Gate Log
 
+## D-051: One bounded recovery stage using existing feasibility evidence (2026-09-21)
+
+C20 generalizes to15/16 randomized episodes but fails one backward case. Existing matched C14 evidence establishes recoverability; do not spend another oracle run to rediscover that. C21 changes only training reset randomization and evaluates nominal retention plus randomized recovery. Mean errors alone are insufficient; preserve the per-episode survival/error caps.
+
 ## D-050: Check recovery before spending randomized training (2026-09-21)
 
 C20 corrects all failed translation conditions while retaining acceptable yaw and gait. Do not train the successful nominal configuration further without evidence. First test randomized initial states across16 matched development episodes to determine whether a recovery stage is necessary.
