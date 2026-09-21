@@ -1,5 +1,9 @@
 # Decisions and Gate Log
 
+## D-052: Diagnose backward regression; retain C20 as reference (2026-09-21)
+
+Enabling random resets for1,003,520 steps harmed backward retention instead of fixing recovery. All other nominal/randomized commands survive, restore is exact and KL remains moderate. Do not extend C21 unchanged or replace the stronger C20 reference. Compare parent/successor trajectories and matched video before selecting a targeted intervention.
+
 ## D-051: One bounded recovery stage using existing feasibility evidence (2026-09-21)
 
 C20 generalizes to15/16 randomized episodes but fails one backward case. Existing matched C14 evidence establishes recoverability; do not spend another oracle run to rediscover that. C21 changes only training reset randomization and evaluates nominal retention plus randomized recovery. Mean errors alone are insufficient; preserve the per-episode survival/error caps.

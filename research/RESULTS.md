@@ -1,5 +1,9 @@
 # G1 Build and Research Results
 
+## C21 recovery stage fails backward retention (2026-09-21)
+
+C21 nominal backward falls141 steps,linear/yaw .824176/.509750. Random backward seed5000 falls204 steps/errors.733682/.352441;seed5001 falls117/errors.770489/.214126. Other21/24 episodes survive500. Nominal mean linear/yaw .192398/.190192; randomized .201991/.179126 hide these failures. Exact17-leaf restore passes. Training survival varies230.125 initially to374.875 final, with intermediate427.9375; post-first KL .084159-.093798. No gross KL divergence. Both frozen gates FAIL, no unchanged extension. C20 remains the stronger nominal policy; failure videos and matched pre-fall trajectories are queued for diagnosis.
+
 ## C20 randomized starts:15/16 survive; isolated backward failure (2026-09-21)
 
 All16 metrics finite. Fifteen episodes survive500; backward seed5000 falls at87 with linear/yaw RMSE1.512504/1.322609 and min pelvis-.405980. Overall mean linear/yaw .225769/.231984 hides that failure; full recovery gate fails. All other episodes satisfy per-episode .35 error caps. Combined seed5000 video reviewed: perturbed initial pose recovers into upright alternating gait.

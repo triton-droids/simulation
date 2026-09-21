@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "output_dir": "results/gate4_corrective/C21_backward_diagnostic_queue",
+  "max_wall_seconds": 5400,
+  "jobs": [
+    {
+      "id": "backward_regression",
+      "hypothesis": "Determine how C21 loses backward stability relative to its exact C20 parent under the same nominal state, including pre-fall motion and contact/reward traces.",
+      "evidence": "C21 backward fails141 nominal and204/117 randomized steps; other21 of24 episodes survive500. Restore parity exact17leaves and later KL .084-.094 do not indicate restore or gross PPO divergence.",
+      "review_artifact": "results/gate4_corrective/C21_backward_regression_trace/summary.json",
+      "stages": [
+        {
+          "id": "C20_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/gate4_corrective/C20_linear18_seed7_1003520",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/gate4_corrective/C20_backward_regression_trace",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C20",
+            "--command",
+            "-0.3",
+            "0",
+            "0",
+            "--seed",
+            "4000",
+            "--evaluation-reset"
+          ],
+          "fresh_paths": [
+            "results/gate4_corrective/C20_backward_regression_trace"
+          ],
+          "required_paths": [
+            "results/gate4_corrective/C20_backward_regression_trace/summary.json",
+            "results/gate4_corrective/C20_backward_regression_trace/C20_trace.npz",
+            "results/gate4_corrective/C20_backward_regression_trace/oracle_trace.npz"
+          ],
+          "timeout_seconds": 1800
+        },
+        {
+          "id": "C21_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/gate4_corrective/C21_randomreset_seed7_1003520",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/gate4_corrective/C21_backward_regression_trace",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C21",
+            "--command",
+            "-0.3",
+            "0",
+            "0",
+            "--seed",
+            "4000",
+            "--evaluation-reset"
+          ],
+          "fresh_paths": [
+            "results/gate4_corrective/C21_backward_regression_trace"
+          ],
+          "required_paths": [
+            "results/gate4_corrective/C21_backward_regression_trace/summary.json",
+            "results/gate4_corrective/C21_backward_regression_trace/C21_trace.npz",
+            "results/gate4_corrective/C21_backward_regression_trace/oracle_trace.npz"
+          ],
+          "timeout_seconds": 1800
+        },
+        {
+          "id": "backward_video",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/gate4_corrective/C21_randomreset_seed7_1003520",
+            "--checkpoint",
+            "1003520",
+            "--reference-label",
+            "initial",
+            "--steps",
+            "500",
+            "--seeds",
+            "4000",
+            "--nominal-reset",
+            "--commands",
+            "backward",
+            "--video",
+            "--video-command",
+            "backward",
+            "--output-dir",
+            "results/gate4_corrective/C21_backward_regression_video"
+          ],
+          "fresh_paths": [
+            "results/gate4_corrective/C21_backward_regression_video"
+          ],
+          "required_paths": [
+            "results/gate4_corrective/C21_backward_regression_video/summary.json",
+            "results/gate4_corrective/C21_backward_regression_video/trained_backward_seed4000.mp4",
+            "results/gate4_corrective/C21_backward_regression_video/initial_backward_seed4000.mp4"
+          ],
+          "timeout_seconds": 1800
+        }
+      ]
+    }
+  ]
+}

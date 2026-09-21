@@ -1,5 +1,9 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C21 backward regression diagnostic (2026-09-21)
+
+No training. Compare C20 final1003520 and C21 final1003520 separately against the same pinned oracle at backward command[-.3,0,0], nominal evaluator-style seed4000,500 steps. Save complete traces; verify identical initial states across comparisons, account for termination and inspect a shared pre-fall window rather than conflating long survivor averages with a falling episode. Generate matched C21/initial-C20/standing backward videos at nominal seed4000. Inspect pelvis/orientation, feet/contact/action/velocity and reward terms to distinguish gait instability from tracking preference or state mismatch. No new reward/learning-rate/reset change is frozen until evidence is reviewed.
+
 ## C21 predeclaration: randomized recovery and nominal retention (2026-09-21)
 
 Hypothesis: nominal-only training leaves a recoverable backward-start weakness. Completed cheap test: C20 fails1/16 randomized starts, while preserved C14 succeeds on the identical backward seed5000 under matching task/robot settings.

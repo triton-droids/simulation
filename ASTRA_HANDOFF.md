@@ -1,5 +1,9 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+## Active C21 backward regression diagnostic (2026-09-21)
+
+C21 FAILS both gates: backward falls141 nominal and204/117 random; other21/24 survive500. Restore17leaves exact, no high-KL failure. Preserve C20 as stronger reference. Active research/queues/c21_backward_diagnostic.json; status results/gate4_corrective/C21_backward_diagnostic_queue/status.json. No training: C20/C21 same nominal backward seed4000 traces vs oracle, plus C21/initial-C20 videos. Verify same initial states and inspect shared pre-fall window; then choose targeted change. No unchanged C21 extension or final-family claim.
+
 ## Active C21 recovery queue (2026-09-21)
 
 C20 random gate FAILS backward5000 at87; other15x500 and per-episode errors<.35. Existing C14 matches task/robot/reset ranges and survives this case, so no duplicate oracle needed. Active research/queues/c21_recovery.json; status results/gate4_corrective/C21_queue/status.json. C21 warm-startsC20, only reset.randomize=true,1,003,520 steps; then nominal8 and randomized16 gates plus videos. Both must pass; no unchanged extension. Final independent recipe/held-out confirmation still pending.

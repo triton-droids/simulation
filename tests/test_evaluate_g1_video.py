@@ -479,3 +479,13 @@ def test_c21_evaluation_clis(monkeypatch):
         assert args.seeds == seeds and args.randomized_reset == randomized
         assert args.nominal_reset != randomized
         assert args.video and args.video_command == "combined"
+
+
+def test_c21_backward_diagnostic_video_cli(monkeypatch):
+    path = Path(__file__).resolve().parents[1] / "research/queues/c21_backward_diagnostic.json"
+    stage = json.loads(path.read_text())["jobs"][0]["stages"][-1]
+    monkeypatch.setattr(sys, "argv", stage["argv"])
+    args = evaluate_g1.parse_args()
+    assert args.commands == ["backward"] and args.video_command == "backward"
+    assert args.nominal_reset and args.seeds == "4000"
+    assert args.checkpoint == 1003520 and args.reference_label == "initial"
