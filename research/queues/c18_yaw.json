@@ -1,0 +1,193 @@
+{
+  "version": 1,
+  "output_dir": "results/gate4_corrective/C18_queue",
+  "max_wall_seconds": 10800,
+  "jobs": [
+    {
+      "id": "C18",
+      "hypothesis": "Increasing only angular tracking weight .75 to 9 suppresses yaw oscillation while retaining the independently acquired gait.",
+      "evidence": "C17 fixed-phase gait survives500 with .22/.28s air. Yaw RMSE .426 vs oracle .262. Frozen-trajectory reweighting changes oracle reward advantage from -5.58% to +10.83%; earlier C13 also improved yaw under weight9.",
+      "stages": [
+        {
+          "id": "train",
+          "argv": [
+            "source/scripts/train.py",
+            "--logger",
+            "local",
+            "--seed",
+            "7",
+            "--resume",
+            "--checkpoint",
+            "{root}/results/gate4_corrective/C17_gait_seed7_2007040/logs/checkpoints/2007040",
+            "env=unitree_g1_playground",
+            "robot=unitree_g1",
+            "sim=unitree_g1_playground",
+            "agent=ppo_g1_corrective",
+            "robot.fetch_model=false",
+            "sim.playground.fetch_source=false",
+            "sim.reset.randomize=false",
+            "sim.noise.add_noise=false",
+            "sim.push.add_push=false",
+            "sim.domain_rand.add_domain_rand=false",
+            "sim.commands.lin_vel_x=[0.5,0.5]",
+            "sim.commands.lin_vel_y=[0.0,0.0]",
+            "sim.commands.ang_vel_yaw=[0.0,0.0]",
+            "sim.reward_scales.tracking_lin_vel=3.0",
+            "sim.reward_scales.tracking_ang_vel=9.0",
+            "sim.reward_scales.feet_phase=3.0",
+            "sim.reward_scales.feet_contact_phase=2.0",
+            "agent.num_timesteps=1003520",
+            "agent.num_evals=8",
+            "agent.num_eval_envs=16",
+            "agent.episode_length=500",
+            "hydra.run.dir={root}/results/gate4_corrective/C18_yaw9_seed7_1003520",
+            "hydra.job.chdir=true"
+          ],
+          "fresh_paths": [
+            "results/gate4_corrective/C18_yaw9_seed7_1003520"
+          ],
+          "required_paths": [
+            "results/gate4_corrective/C18_yaw9_seed7_1003520/run_manifest.json",
+            "results/gate4_corrective/C18_yaw9_seed7_1003520/logs/checkpoints/0/policy",
+            "results/gate4_corrective/C18_yaw9_seed7_1003520/logs/checkpoints/1003520/policy"
+          ],
+          "timeout_seconds": 7200,
+          "monitor": {
+            "path": "results/gate4_corrective/C18_yaw9_seed7_1003520/logs/metrics.jsonl",
+            "ignore_kl_through_step": 143360,
+            "consecutive_kl_limit": 2,
+            "kl_limit": 0.2,
+            "final_step": 1003520
+          }
+        },
+        {
+          "id": "restore_audit",
+          "argv": [
+            "-c",
+            "from brax.io import model;import jax,numpy as np,json;from pathlib import Path;a=model.load_params(Path('results/gate4_corrective/C17_gait_seed7_2007040/logs/checkpoints/2007040/policy'));b=model.load_params(Path('results/gate4_corrective/C18_yaw9_seed7_1003520/logs/checkpoints/0/policy'));la,ta=jax.tree_util.tree_flatten(a);lb,tb=jax.tree_util.tree_flatten(b);ok=ta==tb and len(la)==len(lb) and all(np.array_equal(np.asarray(x),np.asarray(y)) for x,y in zip(la,lb));f=open('results/gate4_corrective/C18_yaw9_seed7_1003520/restore_parity.json','x');json.dump(dict(exact_actor_normalizer_match=ok,leaves=len(la)),f);f.close();assert ok,'Warm-start parity failed'"
+          ],
+          "fresh_paths": [
+            "results/gate4_corrective/C18_yaw9_seed7_1003520/restore_parity.json"
+          ],
+          "required_paths": [
+            "results/gate4_corrective/C18_yaw9_seed7_1003520/restore_parity.json"
+          ],
+          "timeout_seconds": 600
+        },
+        {
+          "id": "evaluate",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/gate4_corrective/C18_yaw9_seed7_1003520",
+            "--checkpoint",
+            "1003520",
+            "--reference-label",
+            "initial",
+            "--steps",
+            "500",
+            "--seeds",
+            "3000,3001",
+            "--nominal-reset",
+            "--commands",
+            "forward",
+            "--video",
+            "--video-command",
+            "forward",
+            "--output-dir",
+            "results/gate4_corrective/C18_forward_gate"
+          ],
+          "fresh_paths": [
+            "results/gate4_corrective/C18_forward_gate"
+          ],
+          "required_paths": [
+            "results/gate4_corrective/C18_forward_gate/summary.json",
+            "results/gate4_corrective/C18_forward_gate/episodes.csv",
+            "results/gate4_corrective/C18_forward_gate/trained_forward_seed3000.mp4"
+          ],
+          "timeout_seconds": 3600
+        }
+      ],
+      "episodes_csv": "results/gate4_corrective/C18_forward_gate/episodes.csv",
+      "gate": {
+        "horizon": 500,
+        "controllers": [
+          "trained",
+          "initial",
+          "standing"
+        ],
+        "commands": [
+          "forward"
+        ],
+        "seeds": [
+          3000,
+          3001
+        ],
+        "outcomes": {
+          "pass": [
+            {
+              "name": "episode_steps minimum",
+              "aggregate": "min",
+              "metric": "episode_steps",
+              "min": 400
+            },
+            {
+              "name": "linear_velocity_vector_rmse maximum",
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.3
+            },
+            {
+              "name": "left_contact_transition_count minimum",
+              "aggregate": "min",
+              "metric": "left_contact_transition_count",
+              "min": 10
+            },
+            {
+              "name": "right_contact_transition_count minimum",
+              "aggregate": "min",
+              "metric": "right_contact_transition_count",
+              "min": 10
+            },
+            {
+              "name": "single_support_fraction minimum",
+              "aggregate": "min",
+              "metric": "single_support_fraction",
+              "min": 0.35
+            },
+            {
+              "name": "single_support_fraction maximum",
+              "aggregate": "max",
+              "metric": "single_support_fraction",
+              "max": 0.95
+            },
+            {
+              "name": "left_median_completed_air_seconds minimum",
+              "aggregate": "min",
+              "metric": "left_median_completed_air_seconds",
+              "min": 0.12
+            },
+            {
+              "name": "right_median_completed_air_seconds minimum",
+              "aggregate": "min",
+              "metric": "right_median_completed_air_seconds",
+              "min": 0.12
+            },
+            {
+              "name": "upright height",
+              "aggregate": "min",
+              "metric": "minimum_pelvis_height",
+              "above": 0.6
+            },
+            {
+              "name": "yaw error maximum",
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.2
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

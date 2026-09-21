@@ -1,5 +1,11 @@
 # G1 Build and Research Results
 
+## C17 fixed-phase gait passes; yaw oscillation diagnosed (2026-09-21)
+
+Matched nominal seed-2000 direct reset, 1.5 Hz: C17 and oracle both survive500, all trace arrays finite, identical initial state. C17 linear RMSE .111687, yaw mean .092796, yaw SD .415840/RMSE .426068, min pelvis .740172, single support .772, foot transitions31/30, completed air .22/.28 s. Oracle linear .173311, yaw mean .041485, SD .259136/RMSE .262435, single support .75. Existing fixed-phase gait criterion passes. Main remaining forward-only issue is oscillatory yaw, not failure to alternate. Video was reviewed at previous nominal gate.
+
+Counterfactual saved in C17_fixed_phase_gate/yaw_weight_counterfactual.json: changing yaw weight .75->9 on these fixed trajectories changes total reward before dt C17/oracle from6.190505/5.844928 to11.309735/12.534172; oracle relative advantage changes -5.58% to+10.83%. This is arithmetic supporting a learning test, not evidence of improved trained behavior.
+
 ## C17 nominal forward gait passes; yaw drift remains (2026-09-21)
 
 Both nominal reset seeds survive 500. Linear vector RMSE .124965/.134731, yaw RMSE .413516/.425125; single support .786/.790; median completed air left .28/.28 s, right .32/.34 s. Minimum pelvis across episodes .722099 m. Initial C16 linear RMSE ~.5005, single support zero; standing falls at 69. Restore audit confirms exact 17-leaf actor/normalizer equality. Dense montage shows alternating foot lift and upright progression, with substantial unintended turning. Forward-acquisition gate passes; commanded-yaw/final Gate 4 do not. Run the already-required fixed-1.5-Hz diagnostic before selecting the next training intervention.

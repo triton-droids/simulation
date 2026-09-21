@@ -1,5 +1,9 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+## Active C18 yaw correction queue (2026-09-21)
+
+C17 fixedphase PASS: both local/oracle500, local linear.111687, air.22/.28s, pelvis.740172, all finite. Yaw remains oscillatory (SD.415840, RMSE.426068); oracleRMSE.262435. Weight9 counterfactual favors oracle+10.83%. Active research/queues/c18_yaw.json and results/gate4_corrective/C18_queue/status.json: warm-startC17, only yawweight.75->9,1,003,520 steps. Review numeric gait/yaw gate, matched initial >=20% yaw improvement, video and then fixedphase before broadening. Final independent multiseed Gate4 still pending.
+
 ## Active C17 fixed-phase diagnostic (2026-09-21)
 
 C17 nominal gait gate and visual review PASS, exact 17-leaf restore. Both 500 steps, linear .125/.135, single support ~.79, completed air >=.28 s. However zero-yaw RMSE .414/.425 and video turning require correction. Active queue research/queues/c17_fixed_phase.json; status results/gate4_corrective/C17_fixed_phase_queue/status.json. It performs no training, only required 1.5-Hz seed-2000 matched oracle comparison. Review summary and traces before choosing intervention; independent final multi-seed/full-command Gate 4 is still outstanding.

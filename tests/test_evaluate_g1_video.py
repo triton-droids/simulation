@@ -426,13 +426,14 @@ def test_c16_recovery_queue_uses_actual_evaluator_cli(monkeypatch):
     assert args.nominal_reset and args.video and args.video_command == "forward"
 
 
-def test_c17_queue_uses_actual_evaluator_cli(monkeypatch):
-    path = Path(__file__).resolve().parents[1] / "research/queues/c17_gait.json"
+@pytest.mark.parametrize("filename,checkpoint", [("c17_gait.json",2007040), ("c18_yaw.json",1003520)])
+def test_gait_queues_use_actual_evaluator_cli(monkeypatch, filename, checkpoint):
+    path = Path(__file__).resolve().parents[1] / "research/queues" / filename
     job = json.loads(path.read_text())["jobs"][0]
     stage = next(s for s in job["stages"] if s["id"] == "evaluate")
     monkeypatch.setattr(sys, "argv", stage["argv"])
     args = evaluate_g1.parse_args()
     assert args.commands == job["gate"]["commands"] == ["forward"]
-    assert args.checkpoint == 2007040 and args.reference_label == "initial"
+    assert args.checkpoint == checkpoint and args.reference_label == "initial"
     assert args.seeds == "3000,3001" and args.steps == 500
     assert args.nominal_reset and args.video

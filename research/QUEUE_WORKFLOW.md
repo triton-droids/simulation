@@ -1,18 +1,10 @@
 # Unattended G1 experiments
 
-Active queue: `research/queues/c17_fixed_phase.json`. Read
-`results/gate4_corrective/C17_fixed_phase_queue/status.json`.
-Diagnostic-only jobs use `review_artifact` instead of a CSV gate and explicitly
-report `numeric_gate_evaluated: false`; completion always requires review.
-
-Active queue: `research/queues/c17_gait.json`. Read
-`results/gate4_corrective/C17_queue/status.json`.
-C16 balance passed and was visually reviewed; C17 now tests gait shaping.
-
-Active queue: `research/queues/c16_evaluation_recovery.json`.
-Read `results/gate4_corrective/C16_evaluation_recovery_queue/status.json`.
-This evaluates the completed C16 checkpoint after correcting command-list
-arguments. The original failed queue/logs are preserved.
+Active queue: `research/queues/c18_yaw.json`. Read
+`results/gate4_corrective/C18_queue/status.json`.
+C17 passes nominal and fixed-phase gait. C18 targets excessive yaw oscillation.
+Diagnostic-only jobs may use `review_artifact` instead of a CSV gate;
+they explicitly report numeric_gate_evaluated=false and require review.
 
 The local runner uses Python's standard library and makes no model or network
 calls. One queue owns an OS file lock; jobs and their training/evaluation stages

@@ -1,5 +1,13 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C18 predeclaration: reduce yaw oscillation (2026-09-21)
+
+Hypothesis and cheapest falsifier: C17 remains upright and alternates under fixed1.5Hz, but yaw RMS .426 is worse than oracle .262. Fixed-trajectory reweighting already favors the steadier oracle at angular weight9 (+10.83% total reward versus C17). This supports one bounded single-factor fine-tune.
+
+Freeze seed7, restore C17 final2007040 normalizer/actor/critic, reset optimizer/PRNG/step. Change only angular tracking .75->9; retain forward-only vx.5, nominal/noiseless/no-push/no-domain-randomization and other C17 rewards/PPO. Exactly1,003,520 steps,8 evaluations,512 train/16eval environments,500-step episodes. Stop any nonfinite metric or two consecutive KL>=.2 after first positive callback143360. Audit17-leaf inference restore equality.
+
+Final checkpoint first, initial C17/standing controls, forward nominal seeds3000/3001. Retain all C17 numerical/visual gait criteria plus yaw RMSE<=.20 each, and >=20% improvement versus each matched initial policy episode. The absolute cap is stricter given observed C17 errors .414/.425; independently check the relative condition on completion. Inspect retained alternating gait. No unchanged extension on failure. Before broadening commands, a passing candidate still requires fixed1.5Hz seed2000 full500 stability and completed air>=.12s each foot. Final independent multi-seed and held-out criteria unchanged.
+
 ## C17 fixed-frequency diagnostic (2026-09-21)
 
 No training. Compare C17 final 2007040 and the pinned ONNX oracle in the same MJX task: forward command [.5,0,0], direct nominal reset seed 2000, fixed 1.5 Hz, 500 steps. Save full trajectories and reward terms. Existing fixed-phase requirement: local policy survives 500, remains upright/finite, completed median air >=.12 s each foot. Inspect zero-yaw mean/RMSE and compare reward terms against oracle to inform yaw correction. Do not broaden commands or claim full commanded locomotion from a forward-only pass. This is a diagnostic-only queue with explicit needs_review status, not an automatic numeric success.

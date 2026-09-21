@@ -1,5 +1,9 @@
 # Decisions and Gate Log
 
+## D-045: Single-factor yaw correction before command broadening (2026-09-21)
+
+C17 completes the fixed-frequency gate. Measured yaw error is predominantly oscillatory, and counterfactual reward scoring favors the lower-yaw-error oracle when angular tracking is raised to9. C18 tests only that reward change on the existing balanced gait, with a1,003,520-step cap. No command broadening or extra randomization until this candidate is assessed.
+
 ## D-044: Diagnose yaw drift after successful independent gait acquisition (2026-09-21)
 
 C16-to-C17 now acquires real forward alternating gait on fresh seed-7 lineage. Preserve this success and its limitation: zero-yaw error ~.42 rad/s. Run the predeclared fixed-phase oracle comparison, then use measured traces to choose a justified yaw correction. No blind extension or broader-command training yet.
