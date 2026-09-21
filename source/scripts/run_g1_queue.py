@@ -23,6 +23,20 @@ import time
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def git_output(root, *args):
+    # Match train.py/evaluate_g1.py's semantic Windows/WSL provenance checks.
+    return subprocess.check_output(['git', '-c', 'core.autocrlf=true', *args],
+                                   cwd=root, text=True).strip()
+
+
+def source_is_clean(root):
+    # Content comparison avoids status's CRLF-only stat-cache false positives.
+    diff = subprocess.run(['git', '-c', 'core.autocrlf=true', 'diff', '--quiet', 'HEAD'], cwd=root)
+    if diff.returncode not in (0, 1):
+        raise RuntimeError('Git content comparison failed')
+    return diff.returncode == 0 and not git_output(root, 'ls-files', '--others', '--exclude-standard')
+
+
 def utc():
     return datetime.now(timezone.utc).isoformat()
 
@@ -210,8 +224,8 @@ def main():
     lock_path.parent.mkdir(exist_ok=True)
     with lock_path.open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
-        if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True).strip():
+        revision = git_output(ROOT, 'rev-parse', 'HEAD')
+        if not source_is_clean(ROOT):
             raise RuntimeError('Commit source/plan before queue launch for reproducible provenance')
         output = local_path(ROOT, plan['output_dir'])
         output.mkdir(parents=True, exist_ok=False)
@@ -229,7 +243,7 @@ def main():
                 current = {'id': job['id'], 'status': 'running'}
                 state['jobs'].append(current)
                 for stage in job['stages']:
-                    if subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip() != revision or subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True).strip():
+                    if git_output(ROOT, 'rev-parse', 'HEAD') != revision or not source_is_clean(ROOT):
                         raise RuntimeError('Source changed during frozen queue; stopping before next stage')
                     execute_stage(ROOT, stage, job_output, current, publish, deadline)
                 current['assessment'] = assess_gate(local_path(ROOT, job['episodes_csv']), job['gate'])

@@ -6,6 +6,11 @@ run sequentially on the single GPU. The first frozen queue is
 `research/queues/c16_balance.json`. Its compact state is
 `results/gate4_corrective/C16_queue/status.json`.
 The hourly same-task heartbeat is `g1-experiment-batch-review` (active).
+Initial launcher preflight exposed WSL's default CRLF mismatch. The runner now
+uses `git -c core.autocrlf=true diff --quiet HEAD` plus an untracked-file check;
+this also avoids stat-cache-only dirty reports from `git status`.
+an end-to-end CRLF fixture guards against recurrence. No training occurred in
+that failed preflight. Its launcher log is preserved; launch uses a new log.
 
 ## Run a frozen queue
 

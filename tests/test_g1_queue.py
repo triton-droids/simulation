@@ -8,7 +8,7 @@ import tempfile
 import time
 import unittest
 
-from source.scripts.run_g1_queue import assess_gate, execute_stage, local_path, metrics_health, validate_plan
+from source.scripts.run_g1_queue import assess_gate, execute_stage, local_path, metrics_health, source_is_clean, validate_plan
 
 
 class QueueTests(unittest.TestCase):
@@ -112,6 +112,7 @@ class QueueTests(unittest.TestCase):
         runner.parent.mkdir(parents=True)
         runner.write_text((project/'source/scripts/run_g1_queue.py').read_text())
         (self.root/'.gitignore').write_text('results/\n__pycache__/\n')
+        (self.root/'crlf_fixture.txt').write_bytes(b'unchanged content\n')
         plan=json.loads((project/'research/queues/c16_balance.json').read_text())
         plan['output_dir']='results/queue'
         job=plan['jobs'][0]
@@ -124,7 +125,9 @@ class QueueTests(unittest.TestCase):
             fresh_paths=['results/eval'],required_paths=['results/eval/episodes.csv'],timeout_seconds=30)]
         p=self.root/'plan.json';p.write_text(json.dumps(plan))
         for args in (['init','-q'],['add','.'],['-c','user.name=Queue Test','-c','user.email=test@example.invalid','commit','-qm','fixture']):
-            subprocess.run(['git']+args,cwd=self.root,check=True,capture_output=True)
+            subprocess.run(['git','-c','core.autocrlf=true']+args,cwd=self.root,check=True,capture_output=True)
+        # Windows checkout line endings are not a semantic source change.
+        (self.root/'crlf_fixture.txt').write_bytes(b'unchanged content\r\n')
         command=[sys.executable,str(runner),'--plan',str(p)]
         first=subprocess.run(command,cwd=self.root,capture_output=True,text=True,timeout=45)
         self.assertEqual(first.returncode,0,first.stderr)
@@ -137,6 +140,9 @@ class QueueTests(unittest.TestCase):
         second=subprocess.run(command,cwd=self.root,capture_output=True,text=True,timeout=10)
         self.assertNotEqual(second.returncode,0)
         self.assertEqual(status_path.read_bytes(),before)
+        self.assertTrue(source_is_clean(self.root))
+        (self.root/'crlf_fixture.txt').write_text('actually changed\n')
+        self.assertFalse(source_is_clean(self.root))
 
 
 if __name__=='__main__':
