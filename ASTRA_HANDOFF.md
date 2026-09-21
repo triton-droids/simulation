@@ -1,5 +1,24 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+Automation change 2026-09-20: user explicitly requested token-efficient local
+orchestration and same-chat wakes. Read `research/QUEUE_WORKFLOW.md` and inspect
+`results/gate4_corrective/C16_queue/status.json` before doing further work.
+The runner/plan are being committed for launch. Do not duplicate an existing
+queue or manually poll an active job. C15 evaluation is complete: trained
+seeds 3000/3001 fall at 113/107 steps; video reviewed and fails upright gait.
+C16 remains a balance-only prerequisite, not final success. A scheduled wake
+should review terminal evidence and then autonomously freeze the next batch.
+
+Immediate 2026-09-20: C15 fresh seed 7 completed 2,007,040 steps from clean
+`cb4c604`, final training survival 108.8125. Final forward reset 3000 falls
+at 113 steps, RMSE 1.513; both its gait and extension conditions fail.
+`C15_forward_gate/` is completing controls/video; inspect before relaunch.
+C16 is now frozen in EXPERIMENT_PLAN: fresh seed 7, original upstream rewards
+1/.75/1/contact0, forward-only nominal task, 3,368,960 steps for balance
+acquisition under the corrected wrapper. Inspect C16 artifacts/processes
+before launching. C14 remains the successful robust-gait reference; final
+independent acquisition and multi-seed Gate 4 remain outstanding.
+
 Latest 2026-09-20: C14 PASSES its full development gate: all 8 nominal and
 16 randomized episodes survive 500, mean errors nominal .159320/.105013 and
 randomized .207868/.140616; worst randomized errors .341152/.338696, minimum

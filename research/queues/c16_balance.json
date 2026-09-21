@@ -1,0 +1,164 @@
+{
+  "version": 1,
+  "output_dir": "results/gate4_corrective/C16_queue",
+  "max_wall_seconds": 10800,
+  "jobs": [
+    {
+      "id": "C16",
+      "hypothesis": "Fresh balance acquisition with original upstream rewards before gait shaping, using corrected reset wrapper.",
+      "evidence": "research/EXPERIMENT_PLAN.md C16; C15 completed forward episodes fail at 113/107 steps; C06 attained balance by 3338240 steps. C15 video reviewed before launch.",
+      "stages": [
+        {
+          "id": "train",
+          "argv": [
+            "source/scripts/train.py",
+            "--logger",
+            "local",
+            "--seed",
+            "7",
+            "env=unitree_g1_playground",
+            "robot=unitree_g1",
+            "sim=unitree_g1_playground",
+            "agent=ppo_g1_corrective",
+            "robot.fetch_model=false",
+            "sim.playground.fetch_source=false",
+            "sim.reset.randomize=false",
+            "sim.noise.add_noise=false",
+            "sim.push.add_push=false",
+            "sim.domain_rand.add_domain_rand=false",
+            "sim.commands.lin_vel_x=[0.5,0.5]",
+            "sim.commands.lin_vel_y=[0.0,0.0]",
+            "sim.commands.ang_vel_yaw=[0.0,0.0]",
+            "sim.reward_scales.tracking_lin_vel=1.0",
+            "sim.reward_scales.tracking_ang_vel=0.75",
+            "sim.reward_scales.feet_phase=1.0",
+            "sim.reward_scales.feet_contact_phase=0.0",
+            "agent.num_timesteps=3368960",
+            "agent.num_evals=8",
+            "agent.num_eval_envs=16",
+            "agent.episode_length=500",
+            "hydra.run.dir={root}/results/gate4_corrective/C16_balance_seed7_3368960",
+            "hydra.job.chdir=true"
+          ],
+          "fresh_paths": [
+            "results/gate4_corrective/C16_balance_seed7_3368960"
+          ],
+          "required_paths": [
+            "results/gate4_corrective/C16_balance_seed7_3368960/run_manifest.json",
+            "results/gate4_corrective/C16_balance_seed7_3368960/logs/checkpoints/0/policy",
+            "results/gate4_corrective/C16_balance_seed7_3368960/logs/checkpoints/3368960/policy"
+          ],
+          "timeout_seconds": 7200,
+          "monitor": {
+            "path": "results/gate4_corrective/C16_balance_seed7_3368960/logs/metrics.jsonl",
+            "ignore_kl_through_step": 481280,
+            "consecutive_kl_limit": 2,
+            "kl_limit": 0.2,
+            "final_step": 3368960
+          }
+        },
+        {
+          "id": "evaluate",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/gate4_corrective/C16_balance_seed7_3368960",
+            "--checkpoint",
+            "3368960",
+            "--steps",
+            "500",
+            "--seeds",
+            "3000,3001",
+            "--nominal-reset",
+            "--commands",
+            "stand,forward",
+            "--video",
+            "--video-command",
+            "forward",
+            "--output-dir",
+            "results/gate4_corrective/C16_balance_gate"
+          ],
+          "fresh_paths": [
+            "results/gate4_corrective/C16_balance_gate"
+          ],
+          "required_paths": [
+            "results/gate4_corrective/C16_balance_gate/summary.json",
+            "results/gate4_corrective/C16_balance_gate/episodes.csv",
+            "results/gate4_corrective/C16_balance_gate/trained_forward_seed3000.mp4"
+          ],
+          "timeout_seconds": 3600
+        }
+      ],
+      "episodes_csv": "results/gate4_corrective/C16_balance_gate/episodes.csv",
+      "gate": {
+        "horizon": 500,
+        "controllers": [
+          "trained",
+          "untrained",
+          "standing"
+        ],
+        "commands": [
+          "stand",
+          "forward"
+        ],
+        "seeds": [
+          3000,
+          3001
+        ],
+        "outcomes": {
+          "pass": [
+            {
+              "name": "all four survive",
+              "aggregate": "min",
+              "metric": "episode_steps",
+              "min": 500
+            },
+            {
+              "name": "upright height",
+              "aggregate": "min",
+              "metric": "minimum_pelvis_height",
+              "above": 0.6
+            },
+            {
+              "name": "stand linear error",
+              "where": {
+                "command_name": "stand"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.15
+            },
+            {
+              "name": "stand yaw error",
+              "where": {
+                "command_name": "stand"
+              },
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.15
+            }
+          ],
+          "extension_eligible": [
+            {
+              "name": "two upright complete episodes",
+              "aggregate": "count",
+              "at_least": {
+                "episode_steps": 500
+              },
+              "above": {
+                "minimum_pelvis_height": 0.6
+              },
+              "min": 2
+            },
+            {
+              "name": "mean survival",
+              "aggregate": "mean",
+              "metric": "episode_steps",
+              "min": 350
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

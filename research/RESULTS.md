@@ -1,5 +1,27 @@
 # G1 Build and Research Results
 
+## C15 direct fresh acquisition fails; C16 balance stage frozen (2026-09-20)
+
+C15 ran from clean `cb4c604`, fresh seed 7 with no restore, for 2,007,040
+steps in 1023.80 s (trainer wall time). Checkpoint zero has normalizer count
+zero and zero means; the fresh-initialization audit is saved with the run.
+Initial survival was 70; final training-side survival 108.8125, return
+14.156712, KL .060773. First-update KL .719571 settled to .041739 at the
+second callback; no sustained later KL >=.2 occurred. Final checkpoint
+2007040, assessed first, falls at 113 steps on reset 3000 with linear RMSE
+1.513 and yaw RMSE .365. This already fails both the gait gate and extension
+prerequisite. Reset 3001 also falls at 107 steps, linear RMSE 1.547577 and
+yaw RMSE .633306. Complete controls/video are saved in `C15_forward_gate/`.
+The reviewed 0-2 s montage shows loss of balance and falling backward;
+minimum pelvis is negative in both trained episodes. No upright gait claim.
+No unchanged C15 extension and no gait-acquisition success claim.
+
+C06's preserved learning curve reached 500-step balance by 3,338,240 steps
+using original upstream rewards. C16 therefore tests a distinct fresh-seed
+balance stage with those weights and the corrected current wrapper; its
+budget and stage-only balance criteria are frozen before launch. This does
+not weaken the final gait/command/randomization/multi-seed requirements.
+
 ## C14 passes nominal retention and randomized recovery (2026-09-20)
 
 The final checkpoint 2007040 passes the full frozen development gate. All

@@ -1,5 +1,26 @@
 # Decisions and Gate Log
 
+## D-041 -- Move routine orchestration out of model turns
+
+At the user's explicit request, run frozen local queues with no LLM calls for
+training, monitoring, evaluation or gate scoring. Use a coarse same-task wake
+for errors and completed evidence. Do not spend active turns polling logs.
+The first queue executes the already-declared C16 pilot; it does not authorize
+a blind massive sweep or weaken behavior review. Multiple predeclared jobs
+are supported sequentially. Exact commands, budgets, gate results, errors and
+negative evidence persist. See QUEUE_WORKFLOW.md. C16's sustained later KL rule
+is concretely two successive reported KL values >=.2 after the first update.
+
+## D-040 -- Restore balance-first acquisition after the direct recipe fails
+
+C15 does not acquire gait within its frozen budget and cannot extend under
+its declared rule. Preserve the failed fresh seed, controls, and video.
+The C06 learning curve and subsequent successful shaping stages support a
+separate balance curriculum under original reward weights. C16 uses fresh
+seed 7 and the corrected wrapper, with a bounded budget near the measured
+C06 acquisition point. Its permitted static balance is a prerequisite, not
+the requested locomotion result or a lowered final success criterion.
+
 ## D-039 -- Validate independent acquisition before final replication
 
 C14 passes nominal and randomized development gates, including all 24 full

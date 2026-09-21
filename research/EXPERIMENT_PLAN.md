@@ -1,5 +1,39 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C16 predeclaration: independent balance-first curriculum (2026-09-20)
+
+C15's final policy fails its first forward gate episode at 113 steps,
+linear RMSE 1.513; its unchanged-extension prerequisite is already false.
+The successful historical C06 acquisition reached training-side survival
+231.31 at 1,669,120 steps and 500 at 3,338,240 under upstream rewards, before
+gait shaping was introduced. Together with successful C09-C14 warm starts,
+this supports restoring a distinct balance-acquisition stage. This uses the
+corrected current reset wrapper, not a reproduction of C06's old wrapper bug.
+
+**Frozen balance pilot:** fresh seed 7, no restore; same nominal forward-only
+task and corrective PPO as C15, but original upstream reward scales:
+linear 1, angular .75, feet_phase 1, contact-phase 0, all other terms unchanged.
+Exactly 3,368,960 steps (329 complete transition batches), eight evaluations,
+512 environments, 16 eval environments, 500-step episodes. This budget is
+near the observed C06 balance-acquisition point. Record initial-normalization
+KL transient; stop for nonfinite values or sustained later KL >=.2.
+
+**Assessment:** final checkpoint first, stand and forward commands on nominal
+development reset seeds 3000/3001, matched untrained checkpoint-zero and
+standing controls. All four trained episodes must survive 500, remain finite,
+and keep pelvis above .6 m. Zero-command linear/yaw RMSE must each be <=.15.
+Inspect video for upright support rather than a low-height exploit. Static
+balance is permitted only as this curriculum prerequisite, never a gait or
+Gate-4 pass. Later gait, full-command, randomized-reset and independent
+final-family criteria remain unchanged.
+
+**Conditional extension:** if complete balance gate fails, permit exactly
+one 1,648,640-step parameter-warm-start extension only if at least two of
+four episodes survive 500 with min pelvis >.6, mean duration >=350 steps,
+and all metrics are finite. Total balance cap 5,017,600, near historical C06's
+full budget. Otherwise diagnose without an unchanged extension. After a pass,
+test a separate bounded gait-shaping stage before any broader commands.
+
 ## C15 predeclaration: fresh acquisition with the established gait reward (2026-09-20)
 
 C14 passes all 24 nominal/randomized development episodes and visual gates.
