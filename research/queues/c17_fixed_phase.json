@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "output_dir": "results/gate4_corrective/C17_fixed_phase_queue",
+  "max_wall_seconds": 3600,
+  "jobs": [
+    {
+      "id": "C17_fixed_phase",
+      "hypothesis": "C17 alternating gait persists at fixed 1.5 Hz; matched oracle traces distinguish gait stability from zero-yaw drift.",
+      "evidence": "C17 nominal seeds 3000/3001 pass gait metrics and video; yaw RMSE .413516/.425125 requires diagnosis. C17 predeclaration requires fixed-frequency follow-up before broadening.",
+      "review_artifact": "results/gate4_corrective/C17_fixed_phase_gate/summary.json",
+      "stages": [
+        {
+          "id": "compare",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/gate4_corrective/C17_gait_seed7_2007040",
+            "--checkpoint",
+            "2007040",
+            "--output-dir",
+            "results/gate4_corrective/C17_fixed_phase_gate",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C17",
+            "--command",
+            "0.5",
+            "0",
+            "0",
+            "--seed",
+            "2000"
+          ],
+          "fresh_paths": [
+            "results/gate4_corrective/C17_fixed_phase_gate"
+          ],
+          "required_paths": [
+            "results/gate4_corrective/C17_fixed_phase_gate/summary.json",
+            "results/gate4_corrective/C17_fixed_phase_gate/C17_trace.npz",
+            "results/gate4_corrective/C17_fixed_phase_gate/oracle_trace.npz"
+          ],
+          "timeout_seconds": 3600
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,9 @@
 # G1 Build and Research Results
 
+## C17 nominal forward gait passes; yaw drift remains (2026-09-21)
+
+Both nominal reset seeds survive 500. Linear vector RMSE .124965/.134731, yaw RMSE .413516/.425125; single support .786/.790; median completed air left .28/.28 s, right .32/.34 s. Minimum pelvis across episodes .722099 m. Initial C16 linear RMSE ~.5005, single support zero; standing falls at 69. Restore audit confirms exact 17-leaf actor/normalizer equality. Dense montage shows alternating foot lift and upright progression, with substantial unintended turning. Forward-acquisition gate passes; commanded-yaw/final Gate 4 do not. Run the already-required fixed-1.5-Hz diagnostic before selecting the next training intervention.
+
 ## C16 passes balance only (2026-09-21)
 
 All four stand/forward episodes on seeds 3000/3001 survive 500, finite; minimum pelvis .753890 m. Worst stand linear/yaw errors .015086/.025732. Forward errors .500447/.500504, single support zero and completed foot air zero. Reviewed video montage shows upright static support. This is a balance-prerequisite pass, not walking. No unchanged C16 extension is warranted.

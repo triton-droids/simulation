@@ -188,6 +188,10 @@ def validate_plan(plan, root):
     for job in plan['jobs']:
         if not job['hypothesis'] or not job['evidence']:
             raise ValueError('Each job needs a hypothesis and prior diagnostic evidence')
+        if ('review_artifact' in job) == ('episodes_csv' in job):
+            raise ValueError('Job needs exactly one assessment source')
+        if 'review_artifact' in job:
+            local_path(root, job['review_artifact'])
         ids.append(job['id'])
         stage_ids = []
         for stage in job['stages']:
@@ -246,8 +250,14 @@ def main():
                     if git_output(ROOT, 'rev-parse', 'HEAD') != revision or not source_is_clean(ROOT):
                         raise RuntimeError('Source changed during frozen queue; stopping before next stage')
                     execute_stage(ROOT, stage, job_output, current, publish, deadline)
-                current['assessment'] = assess_gate(local_path(ROOT, job['episodes_csv']), job['gate'])
-                current['status'] = 'needs_visual_review' if current['assessment']['outcomes']['pass']['passed'] else 'numeric_gate_failed'
+                if 'review_artifact' in job:
+                    artifact = local_path(ROOT, job['review_artifact'])
+                    json.loads(artifact.read_text(encoding='utf-8'))
+                    current['assessment'] = {'review_artifact': job['review_artifact'], 'numeric_gate_evaluated': False}
+                    current['status'] = 'needs_review'
+                else:
+                    current['assessment'] = assess_gate(local_path(ROOT, job['episodes_csv']), job['gate'])
+                    current['status'] = 'needs_visual_review' if current['assessment']['outcomes']['pass']['passed'] else 'numeric_gate_failed'
                 publish()
             state['status'] = 'needs_review'
         except BaseException as error:

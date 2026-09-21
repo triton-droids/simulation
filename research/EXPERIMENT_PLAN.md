@@ -1,5 +1,9 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C17 fixed-frequency diagnostic (2026-09-21)
+
+No training. Compare C17 final 2007040 and the pinned ONNX oracle in the same MJX task: forward command [.5,0,0], direct nominal reset seed 2000, fixed 1.5 Hz, 500 steps. Save full trajectories and reward terms. Existing fixed-phase requirement: local policy survives 500, remains upright/finite, completed median air >=.12 s each foot. Inspect zero-yaw mean/RMSE and compare reward terms against oracle to inform yaw correction. Do not broaden commands or claim full commanded locomotion from a forward-only pass. This is a diagnostic-only queue with explicit needs_review status, not an automatic numeric success.
+
 ## C17 predeclaration: forward gait from C16 balance (2026-09-21)
 
 Hypothesis: stable balance initialization enables established gait rewards to acquire alternating forward steps. Cheapest prerequisites: completed C16 metrics/video confirm balance, while prior C09-C11 matched oracle diagnostics support increased tracking, phase and contact rewards; no new long diagnostic training is needed.

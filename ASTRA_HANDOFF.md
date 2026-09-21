@@ -1,5 +1,9 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+## Active C17 fixed-phase diagnostic (2026-09-21)
+
+C17 nominal gait gate and visual review PASS, exact 17-leaf restore. Both 500 steps, linear .125/.135, single support ~.79, completed air >=.28 s. However zero-yaw RMSE .414/.425 and video turning require correction. Active queue research/queues/c17_fixed_phase.json; status results/gate4_corrective/C17_fixed_phase_queue/status.json. It performs no training, only required 1.5-Hz seed-2000 matched oracle comparison. Review summary and traces before choosing intervention; independent final multi-seed/full-command Gate 4 is still outstanding.
+
 ## Active C17 gait queue (2026-09-21)
 
 C16 PASSES balance but is static (all four 500, pelvis >=.753890; forward RMSE ~.5005, single support zero). Video reviewed. Active next queue research/queues/c17_gait.json; inspect results/gate4_corrective/C17_queue/status.json. C17 restores C16 final, trains 2,007,040 with established gait rewards, audits actor/normalizer restore and evaluates forward gait. Numeric pass still needs video and fixed-phase diagnostic before command broadening; no unchanged extension on failure.

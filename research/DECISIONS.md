@@ -1,5 +1,9 @@
 # Decisions and Gate Log
 
+## D-044: Diagnose yaw drift after successful independent gait acquisition (2026-09-21)
+
+C16-to-C17 now acquires real forward alternating gait on fresh seed-7 lineage. Preserve this success and its limitation: zero-yaw error ~.42 rad/s. Run the predeclared fixed-phase oracle comparison, then use measured traces to choose a justified yaw correction. No blind extension or broader-command training yet.
+
 ## D-043: Shape gait from independently acquired balance (2026-09-21)
 
 C16 reproduces balance acquisition with the corrected wrapper and fresh seed 7. Advance to bounded C17 gait shaping; retain the prior quantitative and visual gait requirements. Use established linear/phase/contact weights 3/3/2 together, yaw weight stays .75. This curriculum feasibility test does not isolate causal contributions of each term; the earlier reward-preference diagnostics supply that motivation.

@@ -1,5 +1,10 @@
 # Unattended G1 experiments
 
+Active queue: `research/queues/c17_fixed_phase.json`. Read
+`results/gate4_corrective/C17_fixed_phase_queue/status.json`.
+Diagnostic-only jobs use `review_artifact` instead of a CSV gate and explicitly
+report `numeric_gate_evaluated: false`; completion always requires review.
+
 Active queue: `research/queues/c17_gait.json`. Read
 `results/gate4_corrective/C17_queue/status.json`.
 C16 balance passed and was visually reviewed; C17 now tests gait shaping.

@@ -123,6 +123,10 @@ class QueueTests(unittest.TestCase):
             f"rows={self.rows()!r};w=csv.DictWriter(f,fieldnames=rows[0].keys());"
             "w.writeheader();w.writerows(rows);f.close()"],
             fresh_paths=['results/eval'],required_paths=['results/eval/episodes.csv'],timeout_seconds=30)]
+        plan['jobs'].append(dict(id='diagnostic', hypothesis='fixture', evidence='fixture',
+            review_artifact='results/diagnostic.json', stages=[dict(id='diagnostic',
+            argv=['-c', "from pathlib import Path;Path('results/diagnostic.json').write_text('{}')"],
+            fresh_paths=['results/diagnostic.json'], required_paths=['results/diagnostic.json'], timeout_seconds=30)]))
         p=self.root/'plan.json';p.write_text(json.dumps(plan))
         for args in (['init','-q'],['add','.'],['-c','user.name=Queue Test','-c','user.email=test@example.invalid','commit','-qm','fixture']):
             subprocess.run(['git','-c','core.autocrlf=true']+args,cwd=self.root,check=True,capture_output=True)
@@ -137,6 +141,8 @@ class QueueTests(unittest.TestCase):
         self.assertEqual(status['status'],'needs_review')
         self.assertEqual(status['jobs'][0]['status'],'needs_visual_review')
         self.assertTrue(status['plan_sha256'])
+        self.assertEqual(status['jobs'][1]['status'], 'needs_review')
+        self.assertFalse(status['jobs'][1]['assessment']['numeric_gate_evaluated'])
         second=subprocess.run(command,cwd=self.root,capture_output=True,text=True,timeout=10)
         self.assertNotEqual(second.returncode,0)
         self.assertEqual(status_path.read_bytes(),before)
