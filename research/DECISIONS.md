@@ -1,5 +1,9 @@
 # Decisions and Gate Log
 
+## D-043: Shape gait from independently acquired balance (2026-09-21)
+
+C16 reproduces balance acquisition with the corrected wrapper and fresh seed 7. Advance to bounded C17 gait shaping; retain the prior quantitative and visual gait requirements. Use established linear/phase/contact weights 3/3/2 together, yaw weight stays .75. This curriculum feasibility test does not isolate causal contributions of each term; the earlier reward-preference diagnostics supply that motivation.
+
 ## C16 evaluation recovery (2026-09-20)
 
 D-042: Recover C16 evaluation without retraining. Argparse isolated the CLI serialization bug: --commands requires separate stand and forward arguments. The corrected queue passed a test through the actual evaluator parser. Launch evaluation only with all scientific thresholds unchanged.

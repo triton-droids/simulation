@@ -1,5 +1,9 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+## Active C17 gait queue (2026-09-21)
+
+C16 PASSES balance but is static (all four 500, pelvis >=.753890; forward RMSE ~.5005, single support zero). Video reviewed. Active next queue research/queues/c17_gait.json; inspect results/gate4_corrective/C17_queue/status.json. C17 restores C16 final, trains 2,007,040 with established gait rewards, audits actor/normalizer restore and evaluates forward gait. Numeric pass still needs video and fixed-phase diagnostic before command broadening; no unchanged extension on failure.
+
 ## C16 evaluation recovery (2026-09-20)
 
 Active replacement: research/queues/c16_evaluation_recovery.json; inspect results/gate4_corrective/C16_evaluation_recovery_queue/status.json. C16 completed 3,368,960 training steps but evaluation failed on comma-separated command labels. Recovery evaluates the saved final checkpoint only. Do not retrain; the original queue error is preserved.

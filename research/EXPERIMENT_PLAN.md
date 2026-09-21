@@ -1,5 +1,13 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C17 predeclaration: forward gait from C16 balance (2026-09-21)
+
+Hypothesis: stable balance initialization enables established gait rewards to acquire alternating forward steps. Cheapest prerequisites: completed C16 metrics/video confirm balance, while prior C09-C11 matched oracle diagnostics support increased tracking, phase and contact rewards; no new long diagnostic training is needed.
+
+Freeze seed 7, parameter warm-start from C16 final 3368960, optimizer/PRNG/step reset. Forward-only fixed vx .5, nominal/noiseless/no-push/no-domain-randomization and corrective PPO unchanged. Linear 1->3, phase 1->3, contact-phase 0->2; yaw remains .75. Exactly 2,007,040 additional steps, eight evaluations, 512 train/16 eval environments, 500-step episodes. Two consecutive KL >=.2 after first positive callback 286720 or any nonfinite value stops the queue. Audit checkpoint-zero actor/normalizer exact parity against C16.
+
+Final checkpoint first, initial C16 and standing controls, forward .5 at nominal reset seeds 3000/3001. Each episode: >=400 steps, minimum pelvis >.6 m, linear vector RMSE <=.30, >=10 transitions per foot, single support 35-95%, median completed air >=.12 s each foot, all finite. Inspect the video for alternating gait without hopping. Report yaw drift. No unchanged extension on failure; diagnose. A numeric/visual pass must additionally pass the existing fixed-1.5-Hz seed-2000 full-500-step diagnostic before command broadening. That cheap follow-up is contingent on gait acquisition. No final multi-seed success claim from this pilot.
+
 ## C16 predeclaration: independent balance-first curriculum (2026-09-20)
 
 C15's final policy fails its first forward gate episode at 113 steps,

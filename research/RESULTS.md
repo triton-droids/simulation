@@ -1,5 +1,9 @@
 # G1 Build and Research Results
 
+## C16 passes balance only (2026-09-21)
+
+All four stand/forward episodes on seeds 3000/3001 survive 500, finite; minimum pelvis .753890 m. Worst stand linear/yaw errors .015086/.025732. Forward errors .500447/.500504, single support zero and completed foot air zero. Reviewed video montage shows upright static support. This is a balance-prerequisite pass, not walking. No unchanged C16 extension is warranted.
+
 ## C16 evaluation recovery (2026-09-20)
 
 C16 trained from clean c94708d to final step 3,368,960; final training survival 500, reward 13.621555, KL .08903826. Evaluation exited 2 before rollouts because the queue passed comma-separated command labels. This is not a held-out balance or gait pass. The evaluation-only recovery queue uses the same checkpoint, seeds, horizon, controls and gates in fresh output directories; no retraining. Original failure logs are preserved.

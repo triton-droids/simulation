@@ -1,5 +1,9 @@
 # Unattended G1 experiments
 
+Active queue: `research/queues/c17_gait.json`. Read
+`results/gate4_corrective/C17_queue/status.json`.
+C16 balance passed and was visually reviewed; C17 now tests gait shaping.
+
 Active queue: `research/queues/c16_evaluation_recovery.json`.
 Read `results/gate4_corrective/C16_evaluation_recovery_queue/status.json`.
 This evaluates the completed C16 checkpoint after correcting command-list
