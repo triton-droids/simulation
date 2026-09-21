@@ -25,13 +25,13 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def git_output(root, *args):
     # Match train.py/evaluate_g1.py's semantic Windows/WSL provenance checks.
-    return subprocess.check_output(['git', '-c', 'core.autocrlf=true', *args],
+    return subprocess.check_output(['git', '--no-optional-locks', '-c', 'core.autocrlf=true', *args],
                                    cwd=root, text=True).strip()
 
 
 def source_is_clean(root):
     # Content comparison avoids status's CRLF-only stat-cache false positives.
-    diff = subprocess.run(['git', '-c', 'core.autocrlf=true', 'diff', '--quiet', 'HEAD'], cwd=root)
+    diff = subprocess.run(['git', '--no-optional-locks', '-c', 'core.autocrlf=true', 'diff', '--quiet', 'HEAD'], cwd=root)
     if diff.returncode not in (0, 1):
         raise RuntimeError('Git content comparison failed')
     return diff.returncode == 0 and not git_output(root, 'ls-files', '--others', '--exclude-standard')
@@ -144,7 +144,7 @@ def execute_stage(root, stage, output, state, publish, deadline, poll_seconds=10
     state.update(stage=stage['id'], stage_started_at=utc(), last_training_step=None)
     publish()
     started = time.monotonic()
-    env = dict(os.environ, JAX_DEFAULT_MATMUL_PRECISION='highest', PYTHONUNBUFFERED='1')
+    env = dict(os.environ, JAX_DEFAULT_MATMUL_PRECISION='highest', PYTHONUNBUFFERED='1', GIT_OPTIONAL_LOCKS='0')
     with (output / f'{stage["id"]}.log').open('x', encoding='utf-8') as log:
         process = subprocess.Popen(argv, cwd=root, env=env, stdout=log, stderr=subprocess.STDOUT,
                                    start_new_session=True)
