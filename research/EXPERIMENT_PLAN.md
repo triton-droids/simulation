@@ -1,5 +1,13 @@
 # Gate 4 and Corrective Experiment Plan
 
+## C22 predeclaration: bounded learning-rate comparison (2026-09-21)
+
+Hypothesis: smaller updates during reset adaptation preserve backward stability better than C21. Cheapest prerequisites completed: identical-state parent/successor video and first100-step trace show a lower-reward stability regression with no action saturation, restore mismatch or gross KL failure. No reward change is justified by these traces.
+
+Two independent candidate branches from the SAME C20 final1003520, seed7, randomized resets true, all C21 task/reward/PPO settings unchanged except learning rate:1e-4 and3e-5 versus failed C21 baseline3e-4. Each exactly1,003,520 steps,8evals,512/16/500; fresh optimizer/step/PRNG. Total new training cap2,007,040. Run sequentially, audit17-leaf initial inference parity for each. Same nonfinite and post-first two-consecutive-KL>=.2 stop rule. No unchanged extension.
+
+Each final checkpoint must pass BOTH unchanged nominal8-command seed4000 and randomized16-command seeds5000/5001 gates, plus both combined videos. Queue completes all four assessment jobs before model comparison; no winner chosen solely by reward or intermediate checkpoint. Among candidates passing all gates and visuals, prefer lower sum of randomized mean linear+yaw errors; exact tie prefers lower learning rate. If neither passes, diagnose rather than extend. Candidates share an ancestor and seed and DO NOT count as independent final training seeds.
+
 ## C21 backward regression diagnostic (2026-09-21)
 
 No training. Compare C20 final1003520 and C21 final1003520 separately against the same pinned oracle at backward command[-.3,0,0], nominal evaluator-style seed4000,500 steps. Save complete traces; verify identical initial states across comparisons, account for termination and inspect a shared pre-fall window rather than conflating long survivor averages with a falling episode. Generate matched C21/initial-C20/standing backward videos at nominal seed4000. Inspect pelvis/orientation, feet/contact/action/velocity and reward terms to distinguish gait instability from tracking preference or state mismatch. No new reward/learning-rate/reset change is frozen until evidence is reviewed.

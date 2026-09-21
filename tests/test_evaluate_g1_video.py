@@ -489,3 +489,21 @@ def test_c21_backward_diagnostic_video_cli(monkeypatch):
     assert args.commands == ["backward"] and args.video_command == "backward"
     assert args.nominal_reset and args.seeds == "4000"
     assert args.checkpoint == 1003520 and args.reference_label == "initial"
+
+
+def test_c22_candidate_queue_clis(monkeypatch):
+    path = Path(__file__).resolve().parents[1] / "research/queues/c22_learning_rates.json"
+    jobs = json.loads(path.read_text())["jobs"]
+    assert len(jobs) == 4
+    for i, job in enumerate(jobs):
+        stage = next(s for s in job["stages"] if s["id"] == "evaluate")
+        monkeypatch.setattr(sys, "argv", stage["argv"])
+        args = evaluate_g1.parse_args()
+        assert args.commands == job["gate"]["commands"]
+        assert args.checkpoint == 1003520 and args.reference_label == "initial"
+        assert args.randomized_reset == bool(i % 2)
+        assert args.seeds == ("5000,5001" if i % 2 else "4000")
+        if i % 2 == 0:
+            argv = job["stages"][0]["argv"]
+            assert ("agent.learning_rate=0.0001" if i == 0 else "agent.learning_rate=0.00003") in argv
+            assert argv[argv.index("--checkpoint")+1].endswith("C20_linear18_seed7_1003520/logs/checkpoints/1003520")

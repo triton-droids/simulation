@@ -1,5 +1,9 @@
 # Decisions and Gate Log
 
+## D-053: Compare conservative reset-adaptation updates (2026-09-21)
+
+C21 degraded backward behavior despite lower reward in a matched pre-fall window. Use the existing local queue for a bounded two-candidate learning-rate comparison from C20:1e-4 and3e-5, equal1,003,520-step budgets and unchanged gates. This separates update-size adaptation from new reward design and avoids a blind sweep.
+
 ## D-052: Diagnose backward regression; retain C20 as reference (2026-09-21)
 
 Enabling random resets for1,003,520 steps harmed backward retention instead of fixing recovery. All other nominal/randomized commands survive, restore is exact and KL remains moderate. Do not extend C21 unchanged or replace the stronger C20 reference. Compare parent/successor trajectories and matched video before selecting a targeted intervention.

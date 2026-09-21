@@ -1,8 +1,8 @@
 # Unattended G1 experiments
 
-Active queue: `research/queues/c21_backward_diagnostic.json`. Read
-`results/gate4_corrective/C21_backward_diagnostic_queue/status.json`.
-C21 regressed backward stability; compare trajectories/video without training.
+Active queue: `research/queues/c22_learning_rates.json`. Read
+`results/gate4_corrective/C22_queue/status.json`.
+Two smaller-learning-rate recovery candidates; review all four assessment jobs together.
 Diagnostic-only jobs may use `review_artifact` instead of a CSV gate;
 they explicitly report numeric_gate_evaluated=false and require review.
 

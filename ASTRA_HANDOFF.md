@@ -1,5 +1,9 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+## Active C22 two-candidate learning-rate queue (2026-09-21)
+
+C21 matched backward video confirms falling/short right-foot air; initial states matchC20, first100 reward lower26.06765 vs27.37686, finite/no saturation. Active research/queues/c22_learning_rates.json; status results/gate4_corrective/C22_queue/status.json. Two independent branches from sameC20 parent/seed7, randomresettrue, ONLY lr1e-4 or3e-5 instead3e-4;1,003,520steps each, nominal+random gates per candidate. Review all four jobs and videos. Select only joint passes by lowest randomized meanlinear+meanyaw (tie lowerlr). Not independent final training seeds. No unchanged extension.
+
 ## Active C21 backward regression diagnostic (2026-09-21)
 
 C21 FAILS both gates: backward falls141 nominal and204/117 random; other21/24 survive500. Restore17leaves exact, no high-KL failure. Preserve C20 as stronger reference. Active research/queues/c21_backward_diagnostic.json; status results/gate4_corrective/C21_backward_diagnostic_queue/status.json. No training: C20/C21 same nominal backward seed4000 traces vs oracle, plus C21/initial-C20 videos. Verify same initial states and inspect shared pre-fall window; then choose targeted change. No unchanged C21 extension or final-family claim.

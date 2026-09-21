@@ -1,5 +1,11 @@
 # G1 Build and Research Results
 
+## C21 backward regression: stability loss, not reward preference (2026-09-21)
+
+Matched evaluator-reset seed4000 initial states are exactly equal. C20 survives500 with backward vx-.253643,linear RMSE.106874,pelvis>=.744296,single support.772,air.32/.28s. C21 comparison falls142 (versus141 in evaluator, small compilation-path discrepancy),linear.832059,minpelvis-.102243,air.30/.04s. All arrays finite and neither policy saturates actions.
+
+Shared first100 steps before failure: C20/C21 minpelvis.750694/.692139, angular-xy penalty-.085927/-.239068, orientation penalty-.036012/-.108320. Reward before dt27.376858/26.067652; C21 is worse even before the fall. Matched videos show C20 stable while C21 leans/falls backward and loses regular support. This supports testing conservative updates to preserve learned behavior; it does not prove a learning-rate cause.
+
 ## C21 recovery stage fails backward retention (2026-09-21)
 
 C21 nominal backward falls141 steps,linear/yaw .824176/.509750. Random backward seed5000 falls204 steps/errors.733682/.352441;seed5001 falls117/errors.770489/.214126. Other21/24 episodes survive500. Nominal mean linear/yaw .192398/.190192; randomized .201991/.179126 hide these failures. Exact17-leaf restore passes. Training survival varies230.125 initially to374.875 final, with intermediate427.9375; post-first KL .084159-.093798. No gross KL divergence. Both frozen gates FAIL, no unchanged extension. C20 remains the stronger nominal policy; failure videos and matched pre-fall trajectories are queued for diagnosis.
