@@ -44,3 +44,17 @@ Checkpoint repair: complete Orbax directory transaction in Linux /tmp, write
 policy there, then copy the complete tree into a fresh output checkpoint path.
 This avoids the failing Windows-mounted directory rename. Never overwrite
 existing evidence; incomplete copies fail the stage and remain for diagnosis.
+
+## C01 outcome and D02 freeze
+C01 nominal passes24/24, mean linear/yaw RMSE .06890/.09415. Randomized
+survival7/24, mean steps203, linear/yaw RMSE .86408/.41165; F1 recovery
+had8/24 and219.21 mean steps. Additional training does not improve survival.
+Reviewed randomized combined6000 video frames show backward tipping/fall.
+All eight commands fail at reset6002; forward fails32 steps. Do not extend
+this unchanged training again without new evidence.
+D02 compares C01 and C22lr1e4 seed7 on forward .45, randomized reset6002,
+using the evaluator reset key and sampled gait frequency. Existing trace
+script records initial state, policy/oracle actions, rewards and contacts.
+Budget four trajectories total (two policies and matched oracle runs),500
+steps each, no training,90-minute queue cap. Exact commands in post_f1_d02.json.
+Use matched traces to localize failure before changing reward/reset curriculum.

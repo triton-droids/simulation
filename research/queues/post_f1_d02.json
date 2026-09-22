@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_d02/queue",
+  "max_wall_seconds": 5400,
+  "jobs": [
+    {
+      "id": "C01",
+      "hypothesis": "Matched failure-reset traces distinguish policy-specific recovery failure from a difficult reset shared with the successful development baseline.",
+      "evidence": "C01 nominal24/24 passes but randomized7/24 survives; all commands fail at reset6002. C01 forward6002 falls at32 steps. More identical recovery training did not improve survival.",
+      "review_artifact": "results/post_f1_d02/C01_trace/summary.json",
+      "stages": [
+        {
+          "id": "C01_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c01/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_d02/C01_trace",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C01",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6002",
+            "--randomized-reset",
+            "--evaluation-reset"
+          ],
+          "fresh_paths": [
+            "results/post_f1_d02/C01_trace"
+          ],
+          "required_paths": [
+            "results/post_f1_d02/C01_trace/summary.json",
+            "results/post_f1_d02/C01_trace/C01_trace.npz",
+            "results/post_f1_d02/C01_trace/oracle_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "C22",
+      "hypothesis": "Matched failure-reset traces distinguish policy-specific recovery failure from a difficult reset shared with the successful development baseline.",
+      "evidence": "C01 nominal24/24 passes but randomized7/24 survives; all commands fail at reset6002. C01 forward6002 falls at32 steps. More identical recovery training did not improve survival.",
+      "review_artifact": "results/post_f1_d02/C22_trace/summary.json",
+      "stages": [
+        {
+          "id": "C22_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/gate4_corrective/C22_lr1e4_seed7_1003520",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_d02/C22_trace",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C22",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6002",
+            "--randomized-reset",
+            "--evaluation-reset"
+          ],
+          "fresh_paths": [
+            "results/post_f1_d02/C22_trace"
+          ],
+          "required_paths": [
+            "results/post_f1_d02/C22_trace/summary.json",
+            "results/post_f1_d02/C22_trace/C22_trace.npz",
+            "results/post_f1_d02/C22_trace/oracle_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    }
+  ]
+}
