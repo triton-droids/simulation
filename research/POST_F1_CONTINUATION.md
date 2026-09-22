@@ -73,3 +73,15 @@ Budget144 assessment episodes,5-hour queue cap, fresh destinations. Accept
 only joint nominal/randomized gate and visual pass; otherwise inspect survival
 and posture changes before choosing another bounded experiment. No final
 three-seed claim uses these development seeds or commands.
+
+## C02 outcome and C03 freeze
+C02 nominal24/24 passes; randomized13/24 survives, mean steps304.875,
+linear/yaw RMSE .64810/.27178. All reset6002 commands still fail.
+Sampled combined6000 video shows upright alternating leg poses throughout,
+previous C01 same episode fell; no overall robustness pass.
+C03 adds matched -2 control and -8 orientation candidates to existing -4 C02.
+Both start exactly C01 final checkpoint, seed11,1003520 steps each,lr1e-4,
+identical other settings. This distinguishes extra training from reward change.
+Total2,007,040 training steps and288 assessment episodes;10-hour queue cap.
+Joint existing nominal/randomized numeric and visual criteria required; never
+choose by reward alone. No training-budget extension or changed final gates.
