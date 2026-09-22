@@ -31,3 +31,9 @@ a failure does not authorize another tuning campaign. Execution faults may
 be repaired without repeating completed training; preserve all evidence.
 
 Keep the machine and WSL running, and Codex open for scheduled follow-up.
+
+Recovery: seed 11 completed all six training stages. The untrained audit failed
+converting Brax UInt64 to float. Recovery checks every integer count leaf for
+zero on CPU, avoiding unnecessary GPU allocation. The original queue and
+logs remain preserved; final_f1_recovery.json skips only completed seed 11
+stages. Training budgets, seeds, checkpoints and evaluation gates are unchanged.

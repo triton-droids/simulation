@@ -1,7 +1,7 @@
 # Unattended G1 experiments
 
-Active queue: `research/queues/final_f1.json`. Read only
-`results/final_f1/queue/status.json` first. Frozen study details:
+Active queue: `research/queues/final_f1_recovery.json`. Read only
+`results/final_f1/recovery_queue/status.json` first. Frozen study details:
 `research/FINAL_F1.md`. Three independent seeds, one unattended batch,
 no automatic tuning or seed replacement. Four-hour same-task reviews.
 Diagnostic-only jobs may use `review_artifact` instead of a CSV gate;
