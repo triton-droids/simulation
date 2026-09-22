@@ -507,3 +507,18 @@ def test_c22_candidate_queue_clis(monkeypatch):
             argv = job["stages"][0]["argv"]
             assert ("agent.learning_rate=0.0001" if i == 0 else "agent.learning_rate=0.00003") in argv
             assert argv[argv.index("--checkpoint")+1].endswith("C20_linear18_seed7_1003520/logs/checkpoints/1003520")
+
+
+def test_final_f1_external_untrained_control_cli(monkeypatch):
+    root = Path(__file__).resolve().parents[1]
+    plan = json.loads((root / "research/queues/final_f1.json").read_text())
+    for job in plan["jobs"][:-1]:
+        stage = next(s for s in job["stages"] if s["id"].startswith("evaluate_"))
+        monkeypatch.setattr(sys, "argv", stage["argv"])
+        args = evaluate_g1.parse_args()
+        seed = job["id"].split("_")[0]
+        assert args.reference_run_dir == Path("results/final_f1") / seed / "balance"
+        assert args.reference_label == "untrained" and args.untrained_checkpoint == 0
+        assert args.seeds == "6000,6001,6002"
+        assert args.command_grid_entries is not None and len(args.command_grid_entries) == 8
+        assert args.randomized_reset == job["id"].endswith("randomized")
