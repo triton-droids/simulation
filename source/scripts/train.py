@@ -36,6 +36,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from source.scripts import cli_args
+from source.utils.checkpoint_staging import save_staged_checkpoint
 import jax
 from source.utils.jax_compat import install_brax_pmap_compatibility
 
@@ -358,9 +359,11 @@ def main(cfg: DictConfig):
         orbax_checkpointer = ocp.PyTreeCheckpointer()
         save_args = orbax_utils.save_args_from_target(params)
         path = os.path.abspath(os.path.join(ckpt_path, f"{current_step}"))        
-        orbax_checkpointer.save(path, params, force=True, save_args=save_args)
-        policy_path = os.path.join(path, "policy")
-        model.save_params(policy_path, inference_params_from_training_params(params))
+        def write_checkpoint(staged):
+            orbax_checkpointer.save(str(staged), params, save_args=save_args)
+            model.save_params(str(staged / "policy"), inference_params_from_training_params(params))
+
+        save_staged_checkpoint(path, write_checkpoint)
 
 
     domain_randomize_fn = None

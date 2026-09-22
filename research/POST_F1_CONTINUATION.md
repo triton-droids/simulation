@@ -26,3 +26,21 @@ All three must pass; failures return to development, never disappear.
 Hourly model wakes read only compact status while healthy. No active waiting,
 no full logs except relevant errors, no hardware or remote pushes. Notify only
 meaningful findings, errors requiring attention, and verified final success.
+
+## D01 outcome and C01 freeze
+D01: pre-recovery randomized survival 3/24, mean steps118.67, linear RMSE1.2685.
+Final F1 recovery: 8/24, mean steps219.21, linear RMSE0.9311. Recovery improves
+this weak parent; the failure predates recovery. Sampled combined-video frames
+are upright with changing leg poses in both; this successful episode does not
+represent the failing majority and does not establish a gait pass.
+C01 tests one additional 1,003,520-step parameter warm-start from seed11 final
+recovery, same seed11, lr1e-4, weights, randomized resets and full commands.
+Optimizer/step/PRNG restart is explicit, not an exact training continuation.
+Both nominal and randomized development suites retain all gates and controls.
+Budget one training stage and 144 assessment episodes; five-hour queue cap.
+No automatic extension: assess survival/tracking changes before further work.
+
+Checkpoint repair: complete Orbax directory transaction in Linux /tmp, write
+policy there, then copy the complete tree into a fresh output checkpoint path.
+This avoids the failing Windows-mounted directory rename. Never overwrite
+existing evidence; incomplete copies fail the stage and remain for diagnosis.
