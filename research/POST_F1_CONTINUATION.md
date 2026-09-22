@@ -58,3 +58,18 @@ script records initial state, policy/oracle actions, rewards and contacts.
 Budget four trajectories total (two policies and matched oracle runs),500
 steps each, no training,90-minute queue cap. Exact commands in post_f1_d02.json.
 Use matched traces to localize failure before changing reward/reset curriculum.
+
+## D02 outcome and C02 freeze
+At identical randomized forward reset6002, C01 terminates32 steps, C22 at69,
+while the reference survives500. C01 has no completed left-foot air interval;
+C22 has short/shuffling intervals. Both drift opposite commanded forward
+motion. Orientation penalties are -.525/-.575 vs reference -.032; actions
+are not saturated. This is a shared learned recovery weakness, not an
+impossible reset. Correlation does not prove orientation reward is causal.
+C02 tests only orientation scale -4 vs existing -2 from the C01 checkpoint,
+seed11, lr1e-4,1,003,520 steps with unchanged randomized resets and all other
+weights. Exact warm-start audit and nominal/randomized tests run automatically.
+Budget144 assessment episodes,5-hour queue cap, fresh destinations. Accept
+only joint nominal/randomized gate and visual pass; otherwise inspect survival
+and posture changes before choosing another bounded experiment. No final
+three-seed claim uses these development seeds or commands.
