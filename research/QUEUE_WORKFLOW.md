@@ -1,9 +1,9 @@
 # Unattended G1 experiments
 
-Active queue: `research/queues/final_f1_recovery.json`. Read only
-`results/final_f1/recovery_queue/status.json` first. Frozen study details:
-`research/FINAL_F1.md`. Three independent seeds, one unattended batch,
-no automatic tuning or seed replacement. Four-hour same-task reviews.
+Active queue: `research/queues/post_f1_d01.json`. Read only
+`results/post_f1_d01/queue/status.json` first. Current authorization:
+`research/POST_F1_CONTINUATION.md`. Hourly minimal checks; continue bounded
+research until one frozen recipe passes three fresh independent seeds.
 Diagnostic-only jobs may use `review_artifact` instead of a CSV gate;
 they explicitly report numeric_gate_evaluated=false and require review.
 
@@ -12,7 +12,7 @@ calls. One queue owns an OS file lock; jobs and their training/evaluation stages
 run sequentially on the single GPU. The first frozen queue is
 `research/queues/c16_balance.json`. Its compact state is
 `results/gate4_corrective/C16_queue/status.json`.
-The four-hour same-task heartbeat is `g1-experiment-batch-review` (active).
+The hourly same-task heartbeat is `g1-experiment-batch-review` (active).
 Initial launcher preflight exposed WSL's default CRLF mismatch. The runner now
 uses `git -c core.autocrlf=true diff --quiet HEAD` plus an untracked-file check;
 this also avoids stat-cache-only dirty reports from `git status`.
@@ -71,13 +71,10 @@ cause, preserve failed artifacts, and use new destinations for any justified
 replacement. Never rerun training simply to recover an evaluation failure;
 evaluate its completed checkpoint in a new evaluation directory.
 
-On needs_review, read `results/final_f1/report/summary.json` and review the
-trained videos for all three seeds in both regimes. Record the final pass/fail
-verdict. Success requires every seed's numeric/control gates and real upright
-alternating gait. No automatic additional research, tuning, seed replacement,
-or training extension after this study. Notify on success, failure, or required
-user action; remain quiet while healthy work continues. Pause this schedule
-after the final study verdict or when the user asks to stop.
+On needs_review, follow research/POST_F1_CONTINUATION.md. Review compact
+numeric results and relevant gait videos, then freeze and launch the cheapest
+justified next batch. Retain failures. Update the scheduled status path.
+Pause only on validated three-seed success or user stop; report genuine blockers.
 
 For C16 specifically, first inspect all four stand/forward episodes and the
 trained forward video. The declared extension remains capped at 1,648,640 steps

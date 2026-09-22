@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_d01/queue",
+  "max_wall_seconds": 10800,
+  "jobs": [
+    {
+      "id": "seed11_before_recovery",
+      "hypothesis": "Compare identical randomized rollouts before and after recovery training to distinguish recovery regression from an already fragile parent.",
+      "evidence": "F1 seed11 final recovery survived 8/24 randomized episodes; pre-recovery checkpoint has not been assessed on this grid. This grid is now development data.",
+      "stages": [
+        {
+          "id": "evaluate_randomized",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/final_f1/seed11/linear",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/final_f1/seed11/balance",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002",
+            "--command-grid",
+            "research/queues/final_f1_commands.json",
+            "--randomized-reset",
+            "--video",
+            "--video-command",
+            "combined",
+            "--output-dir",
+            "results/post_f1_d01/linear_randomized"
+          ],
+          "fresh_paths": [
+            "results/post_f1_d01/linear_randomized"
+          ],
+          "required_paths": [
+            "results/post_f1_d01/linear_randomized/summary.json",
+            "results/post_f1_d01/linear_randomized/episodes.csv",
+            "results/post_f1_d01/linear_randomized/trained_combined_seed6000.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ],
+      "episodes_csv": "results/post_f1_d01/linear_randomized/episodes.csv",
+      "gate": {
+        "horizon": 500,
+        "controllers": [
+          "trained",
+          "untrained",
+          "standing"
+        ],
+        "commands": [
+          "stand",
+          "forward",
+          "backward",
+          "left",
+          "right",
+          "turn_left",
+          "turn_right",
+          "combined"
+        ],
+        "seeds": [
+          6000,
+          6001,
+          6002
+        ],
+        "outcomes": {
+          "pass": [
+            {
+              "name": "all16 survive500",
+              "aggregate": "min",
+              "metric": "episode_steps",
+              "min": 500
+            },
+            {
+              "name": "upright pelvis",
+              "aggregate": "min",
+              "metric": "minimum_pelvis_height",
+              "above": 0.6
+            },
+            {
+              "name": "mean linear_velocity_vector_rmse",
+              "aggregate": "mean",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "worst linear_velocity_vector_rmse",
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.35
+            },
+            {
+              "name": "mean yaw_rate_rmse",
+              "aggregate": "mean",
+              "metric": "yaw_rate_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "worst yaw_rate_rmse",
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.35
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
