@@ -249,3 +249,14 @@ phase3/contact2,full commands/resets,500-step horizon,pushes off,1003520 steps.
 C09 control is matched parent/seed/budget at gamma.97. No seed selection.
 Evaluate original full nominal/randomized grids and controls,144 episodes,
 five-hour cap; preserve KL safeguards. Compare all gates and videos, not reward.
+
+## C10 outcome and C11 bounded continuation
+C10 nominal24/24 passes; randomized16/24 survives,mean352.46,linear/yaw
+RMSE .49246/.25864. All eight failures share reset6002 (31-71 steps); do not
+omit it. Sampled combined6000 frames upright with alternating support poses.
+C09 matched control14/24,mean320.38. This gain supports ONE bounded additional
+1003520-step warm-start from C10,seed11,gamma.995,lr1e-4,all other settings
+unchanged. Optimizer/PRNG restart remains explicit, not exact training resume.
+Budget144 original test episodes,5-hour cap,all original gates/videos intact.
+If improvement stalls or regresses, do not extend unchanged automatically.
+No independent final seed success is claimed by this development result.

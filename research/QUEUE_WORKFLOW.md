@@ -1,7 +1,7 @@
 # Unattended G1 experiments
 
-Active queue: `research/queues/post_f1_c10.json`. Read only
-`results/post_f1_c10/queue/status.json` first. Current authorization:
+Active queue: `research/queues/post_f1_c11.json`. Read only
+`results/post_f1_c11/queue/status.json` first. Current authorization:
 `research/POST_F1_CONTINUATION.md`. Hourly minimal checks; continue bounded
 research until one frozen recipe passes three fresh independent seeds.
 Diagnostic-only jobs may use `review_artifact` instead of a CSV gate;
