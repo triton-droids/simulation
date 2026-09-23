@@ -260,3 +260,17 @@ unchanged. Optimizer/PRNG restart remains explicit, not exact training resume.
 Budget144 original test episodes,5-hour cap,all original gates/videos intact.
 If improvement stalls or regresses, do not extend unchanged automatically.
 No independent final seed success is claimed by this development result.
+
+## C11 outcome and C12 freeze
+C11 nominal passes24/24,randomized15/24,mean330.67,linear/yaw RMSE
+.40830/.27025. Survival regressed vs C10 16/24; no unchanged extension.
+Sampled combined6000 frames upright with alternating support,not overall pass.
+C12 compares unroll20 control vs80 from SAME C10 checkpoint,seed11,gamma.995,
+lr1e-4,all other settings unchanged. Equal1,146,880 steps each fits both PPO
+step quanta (batch32*minibatches16*unroll,7 evaluation epochs). Final checkpoint
+1146880; parent remains1003520. Ignore KL through first positive163840-step
+callback; existing sustained .2 threshold stays. Longer unroll may improve
+credit across~65-step failures, though GAE/critic quality still matter.
+Total2,293,760 steps,288 original evaluation episodes,10-hour cap. Preserve
+all gates; record possible memory/runtime changes rather than silently reducing
+batch size. No final seed or robustness claims from development comparisons.
