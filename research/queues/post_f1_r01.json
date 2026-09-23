@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_r01/queue",
+  "max_wall_seconds": 18000,
+  "jobs": [
+    {
+      "id": "randomized_foundation",
+      "hypothesis": "Learning initial balance under randomized starts from initialization may avoid the nominal-only foundation recovery weakness.",
+      "evidence": "C09 late-stage tuning remains14/24 at best; early original balance training used nominal resets. R01 preserves original seed11 foundation recipe except randomized resets, no warm start.",
+      "review_artifact": "results/post_f1_r01/randomized/summary.json",
+      "stages": [
+        {
+          "id": "balance_train",
+          "argv": [
+            "source/scripts/train.py",
+            "--logger",
+            "local",
+            "--seed",
+            "11",
+            "env=unitree_g1_playground",
+            "robot=unitree_g1",
+            "sim=unitree_g1_playground",
+            "agent=ppo_g1_corrective",
+            "robot.fetch_model=false",
+            "sim.playground.fetch_source=false",
+            "sim.reset.randomize=true",
+            "sim.noise.add_noise=false",
+            "sim.push.add_push=false",
+            "sim.domain_rand.add_domain_rand=false",
+            "sim.commands.lin_vel_x=[0.5,0.5]",
+            "sim.commands.lin_vel_y=[0.0,0.0]",
+            "sim.commands.ang_vel_yaw=[0.0,0.0]",
+            "sim.reward_scales.tracking_lin_vel=1.0",
+            "sim.reward_scales.tracking_ang_vel=0.75",
+            "sim.reward_scales.feet_phase=1.0",
+            "sim.reward_scales.feet_contact_phase=0.0",
+            "agent.num_timesteps=3368960",
+            "agent.num_evals=8",
+            "agent.num_eval_envs=16",
+            "agent.episode_length=500",
+            "hydra.run.dir={root}/results/post_f1_r01/train",
+            "hydra.job.chdir=true"
+          ],
+          "fresh_paths": [
+            "results/post_f1_r01/train"
+          ],
+          "required_paths": [
+            "results/post_f1_r01/train/run_manifest.json",
+            "results/post_f1_r01/train/logs/checkpoints/0/policy",
+            "results/post_f1_r01/train/logs/checkpoints/3368960/policy"
+          ],
+          "timeout_seconds": 7200,
+          "monitor": {
+            "path": "results/post_f1_r01/train/logs/metrics.jsonl",
+            "ignore_kl_through_step": 481280,
+            "consecutive_kl_limit": 2,
+            "kl_limit": 0.2,
+            "final_step": 3368960
+          }
+        },
+        {
+          "id": "evaluate_nominal",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_r01/train",
+            "--checkpoint",
+            "3368960",
+            "--reference-run-dir",
+            "results/post_f1_r01/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002",
+            "--command-grid",
+            "research/queues/post_f1_r01_commands.json",
+            "--nominal-reset",
+            "--video",
+            "--video-command",
+            "forward",
+            "--output-dir",
+            "results/post_f1_r01/nominal"
+          ],
+          "fresh_paths": [
+            "results/post_f1_r01/nominal"
+          ],
+          "required_paths": [
+            "results/post_f1_r01/nominal/summary.json",
+            "results/post_f1_r01/nominal/episodes.csv",
+            "results/post_f1_r01/nominal/trained_forward_seed6000.mp4"
+          ],
+          "timeout_seconds": 7200
+        },
+        {
+          "id": "evaluate_randomized",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_r01/train",
+            "--checkpoint",
+            "3368960",
+            "--reference-run-dir",
+            "results/post_f1_r01/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002",
+            "--command-grid",
+            "research/queues/post_f1_r01_commands.json",
+            "--randomized-reset",
+            "--video",
+            "--video-command",
+            "forward",
+            "--output-dir",
+            "results/post_f1_r01/randomized"
+          ],
+          "fresh_paths": [
+            "results/post_f1_r01/randomized"
+          ],
+          "required_paths": [
+            "results/post_f1_r01/randomized/summary.json",
+            "results/post_f1_r01/randomized/episodes.csv",
+            "results/post_f1_r01/randomized/trained_forward_seed6000.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ]
+    }
+  ]
+}

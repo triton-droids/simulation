@@ -221,3 +221,18 @@ Total2,007,040 training steps,288 assessment episodes,10-hour cap. Keep finite
 and sustained-KL safeguards. Judge original joint gates and videos, not reward.
 If no clear improvement, do not extend this local sweep; reassess the training
 recipe rather than repeatedly perturb this checkpoint.
+
+## C09 outcome and R01 foundation freeze
+C09 control1e-4 survives14/24 randomized,mean320.375; faster3e-4 survives8/24,
+mean207.958. Both nominal gates pass; sampled combined6000 frames upright.
+One additional survivor is insufficient to justify more local checkpoint sweeps.
+R01 returns to the foundation: train FROM SCRATCH seed11,3,368,960 steps,
+original F1 balance recipe (linear1,yaw.75,feet_phase1,contact_phase0,forward.5).
+Only reset.randomize changes false->true; no development checkpoint warm start.
+This remains development seed11, not an independent final validation seed.
+Evaluate stand/forward.5,reset6000-6002,500 steps,nominal and randomized,
+with true initialization and standing controls:36 episodes plus forward videos.
+Five-hour cap. This is a foundation diagnostic, NOT a relaxed final walking gate.
+Require full survival/upright finite behavior to advance foundation; inspect
+tracking and contact traces for next gait stage. Preserve original full-command,
+independent-three-seed final criteria. Compare to original F1 balance evidence.
