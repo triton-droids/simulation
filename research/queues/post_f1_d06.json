@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_d06/queue",
+  "max_wall_seconds": 3600,
+  "jobs": [
+    {
+      "id": "observation_scaling",
+      "hypothesis": "Inherited normalization may magnify perturbations at difficult starts; audit before more optimization changes.",
+      "evidence": "Multiple bounded recovery variants failed to improve C02; zero initial horizontal velocity resolves the selected failure. Need distinguish input scaling from recovery dynamics.",
+      "review_artifact": "results/post_f1_d06/audit/summary.json",
+      "stages": [
+        {
+          "id": "audit",
+          "argv": [
+            "source/scripts/audit_g1_recovery_observations.py",
+            "--run-dir",
+            "results/post_f1_c02/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_d06/audit"
+          ],
+          "fresh_paths": [
+            "results/post_f1_d06/audit"
+          ],
+          "required_paths": [
+            "results/post_f1_d06/audit/summary.json"
+          ],
+          "timeout_seconds": 3000
+        }
+      ]
+    }
+  ]
+}

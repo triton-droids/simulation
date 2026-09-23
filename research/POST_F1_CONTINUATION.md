@@ -184,3 +184,13 @@ Evaluate all original eight commands,500 steps,nominal and full randomized
 resets with true untrained and standing controls,144 episodes,5-hour cap.
 Do not treat stationary recovery alone as success; require original gait and
 tracking gates. Review recovery gains and retention before any next stage.
+
+## C07 outcome and D06 freeze
+C07 nominal22/24,randomized8/24; mean randomized steps211.29 and linear/yaw
+RMSE .83056/.35968. Stand randomized6001/6002 fail48/62 steps. Reject this
+curriculum; representative combined6000 frames remain upright but are not a pass.
+D06 audits C02 actor observation mean/std and standardized input deviations
+for nominal/randomized resets6000-6002 at forward.45. Six resets,zero training,
+zero rollouts,one-hour cap. Report count leaves and largest standardized channels.
+This is a read-only scaling diagnostic, not proof of causal normalization error.
+Do not adjust scales or reset normalizer until evidence supports a specific issue.
