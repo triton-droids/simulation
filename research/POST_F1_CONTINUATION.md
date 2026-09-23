@@ -236,3 +236,16 @@ Five-hour cap. This is a foundation diagnostic, NOT a relaxed final walking gate
 Require full survival/upright finite behavior to advance foundation; inspect
 tracking and contact traces for next gait stage. Preserve original full-command,
 independent-three-seed final criteria. Compare to original F1 balance evidence.
+
+## R01 outcome and C10 freeze
+R01 randomized0/6 survives; nominal forward3/3 survives but high linear errors
+.459-.470 and static-looking sampled poses. Nominal stand0/3. Randomized
+forward video shows backward fall. Foundation gate fails; do not proceed to
+gait stages or count this as evidence of robust walking.
+C10 returns to C02 checkpoint with one temporal-credit change: discounting
+.97->.995. At65 steps weights are .138 vs .722; this motivates, but does not
+prove, improved anticipatory recovery. Same seed11,lr1e-4,orientation-4,
+phase3/contact2,full commands/resets,500-step horizon,pushes off,1003520 steps.
+C09 control is matched parent/seed/budget at gamma.97. No seed selection.
+Evaluate original full nominal/randomized grids and controls,144 episodes,
+five-hour cap; preserve KL safeguards. Compare all gates and videos, not reward.
