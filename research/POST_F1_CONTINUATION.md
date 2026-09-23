@@ -274,3 +274,15 @@ credit across~65-step failures, though GAE/critic quality still matter.
 Total2,293,760 steps,288 original evaluation episodes,10-hour cap. Preserve
 all gates; record possible memory/runtime changes rather than silently reducing
 batch size. No final seed or robustness claims from development comparisons.
+
+## C12 outcome and C13 freeze
+C12 unroll20 control16/24,mean351.67,linearRMSE .44025; unroll80 14/24,
+mean323.33,linearRMSE .54822. Both nominal pass; sampled combined6000
+frames upright. All reset6002 cases fail. Reject longer-unroll extension.
+C13 returns to C10 checkpoint,seed11,1003520 steps,unroll20,gamma.995,
+lr1e-4,all other settings unchanged. Only termination scale changes-100 to-500.
+Upstream step directly sums reward terms*dt without positive clipping, so
+this changes fall cost (dt.02: -2 to-10). Hypothesis: stronger survival pressure
+outweighs immediate tracking gains during recovery. Risk: static/cautious gait.
+Compare to C11 matched parent/budget; retain full original tracking/gait and
+survival gates,144 evaluations,5-hour cap. No reward-only success or blind extension.
