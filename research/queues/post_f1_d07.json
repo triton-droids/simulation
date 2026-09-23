@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_d07/queue",
+  "max_wall_seconds": 9000,
+  "jobs": [
+    {
+      "id": "recovery_generalization",
+      "hypothesis": "Measure breadth of initial-state recovery failure outside the repeatedly reused three-reset development grid.",
+      "evidence": "C13 stronger termination remains16/24; multiple tweaks retain same failure cluster. C10 is a frozen development reference; audit12 new reset seeds without tuning or omitting failures.",
+      "review_artifact": "results/post_f1_d07/forward_resets/summary.json",
+      "stages": [
+        {
+          "id": "evaluate_randomized",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_c10/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/final_f1/seed11/balance",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6010,6011,6012,6013,6014,6015,6016,6017,6018,6019,6020,6021",
+            "--command-grid",
+            "research/queues/post_f1_d07_commands.json",
+            "--randomized-reset",
+            "--video",
+            "--video-command",
+            "forward",
+            "--output-dir",
+            "results/post_f1_d07/forward_resets"
+          ],
+          "fresh_paths": [
+            "results/post_f1_d07/forward_resets"
+          ],
+          "required_paths": [
+            "results/post_f1_d07/forward_resets/summary.json",
+            "results/post_f1_d07/forward_resets/episodes.csv",
+            "results/post_f1_d07/forward_resets/trained_forward_seed6010.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ]
+    }
+  ]
+}

@@ -286,3 +286,14 @@ this changes fall cost (dt.02: -2 to-10). Hypothesis: stronger survival pressure
 outweighs immediate tracking gains during recovery. Risk: static/cautious gait.
 Compare to C11 matched parent/budget; retain full original tracking/gait and
 survival gates,144 evaluations,5-hour cap. No reward-only success or blind extension.
+
+## C13 outcome and D07 freeze
+C13 nominal passes24/24; randomized16/24,mean350.04,linear/yaw RMSE
+.38565/.30137. Same survival as C10, worse yaw average. Sampled combined6000
+frames upright; no robust pass. Do not increase terminal penalty again blindly.
+D07 audits the frozen C10 development policy,forward.45,randomized reset
+seeds6010-6021 (12),500 steps,with untrained/standing references:36 episodes.
+These are additional development resets, not fresh final validation. No training,
+2.5-hour cap. Retain every result and forward6010 videos. Purpose: determine
+breadth of failures before more narrow tuning on reset6002. No seed selection,
+no changes to final full-grid or independent-training-seed requirements.
