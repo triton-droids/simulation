@@ -171,3 +171,16 @@ changes .1-.5 to .5-1.0. This is a bounded threshold hypothesis; larger pushes
 may impair nominal gait. Evaluate original nominal/randomized500-step suites
 with pushes disabled as before,144 episodes,5-hour cap. Require all original
 gates and video; no automatic unchanged extension. Compare with C04 and C02.
+
+## C06 outcome and C07 freeze
+C06 nominal passes24/24; randomized12/24 survives,mean steps288.08,
+linear/yaw RMSE .67099/.29125. Reviewed combined6000 frames show backward
+fall. No stronger-push or unchanged extension is warranted.
+C07 starts C02 checkpoint,seed11,lr1e-4,orientation-4,1003520 steps,
+500-step horizon,full randomized resets,pushes off. Only training command
+ranges become zero in all three axes: practice braking/stabilizing with
+existing gait-phase shaping retained. Risk: forgetting commanded locomotion.
+Evaluate all original eight commands,500 steps,nominal and full randomized
+resets with true untrained and standing controls,144 episodes,5-hour cap.
+Do not treat stationary recovery alone as success; require original gait and
+tracking gates. Review recovery gains and retention before any next stage.
