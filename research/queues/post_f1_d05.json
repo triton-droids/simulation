@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_d05/queue",
+  "max_wall_seconds": 5400,
+  "jobs": [
+    {
+      "id": "no_horizontal",
+      "hypothesis": "Separate horizontal from vertical initial velocity sensitivity while retaining other sampled state components.",
+      "evidence": "D04 zero linear velocity survives500, zero angular velocity fails65. D03 zero all velocity survives500. Identify whether horizontal recovery or initial vertical disturbance dominates before training.",
+      "review_artifact": "results/post_f1_d05/no_horizontal/summary.json",
+      "stages": [
+        {
+          "id": "C02_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c02/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_d05/no_horizontal",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C02",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6002",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "no_horizontal"
+          ],
+          "fresh_paths": [
+            "results/post_f1_d05/no_horizontal"
+          ],
+          "required_paths": [
+            "results/post_f1_d05/no_horizontal/summary.json",
+            "results/post_f1_d05/no_horizontal/C02_trace.npz",
+            "results/post_f1_d05/no_horizontal/oracle_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "no_vertical",
+      "hypothesis": "Separate horizontal from vertical initial velocity sensitivity while retaining other sampled state components.",
+      "evidence": "D04 zero linear velocity survives500, zero angular velocity fails65. D03 zero all velocity survives500. Identify whether horizontal recovery or initial vertical disturbance dominates before training.",
+      "review_artifact": "results/post_f1_d05/no_vertical/summary.json",
+      "stages": [
+        {
+          "id": "C02_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c02/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_d05/no_vertical",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C02",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6002",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "no_vertical"
+          ],
+          "fresh_paths": [
+            "results/post_f1_d05/no_vertical"
+          ],
+          "required_paths": [
+            "results/post_f1_d05/no_vertical/summary.json",
+            "results/post_f1_d05/no_vertical/C02_trace.npz",
+            "results/post_f1_d05/no_vertical/oracle_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    }
+  ]
+}

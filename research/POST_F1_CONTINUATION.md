@@ -151,3 +151,12 @@ zero linear velocities only vs zero angular velocities only. Each starts from
 one shared sampled state with assertions on modified/unmodified coordinates.
 Four trajectories including oracle controls,500 steps maximum each,zero
 training,90-minute cap. Diagnostic only; no final evaluation gate changes.
+
+## D04 result and D05 freeze
+Removing linear velocity gives500 steps,linear/yaw RMSE .06910/.07504;
+removing angular velocity still fails65,linear RMSE1.5241. Initial-state
+assertions passed. This isolates linear velocity sensitivity at reset6002,
+not general robustness. D05 removes horizontal velocity vs vertical velocity
+separately on C02,forward.45,reset6002. Four trajectories including oracle,
+500 steps maximum each,zero training,90-minute cap. Verify preserved initial
+coordinates; no altered-reset diagnostic can count as final validation.

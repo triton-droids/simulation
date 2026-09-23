@@ -43,7 +43,7 @@ def main():
     parser.add_argument("--randomized-reset", action="store_true")
     parser.add_argument("--evaluation-reset", action="store_true",
                         help="Use evaluate_g1's split reset key and sampled gait frequency.")
-    parser.add_argument("--reset-ablation", choices=("full", "no_velocity", "no_linear", "no_angular", "nominal_joints"), default="full",
+    parser.add_argument("--reset-ablation", choices=("full", "no_velocity", "no_linear", "no_angular", "no_horizontal", "no_vertical", "nominal_joints"), default="full",
                         help="Diagnostic only: remove one reset perturbation; never a final validation gate.")
     args = parser.parse_args()
     if not np.isfinite(args.command).all():
@@ -84,6 +84,10 @@ def main():
             qvel = qvel.at[:3].set(0)
         elif args.reset_ablation == "no_angular":
             qvel = qvel.at[3:6].set(0)
+        elif args.reset_ablation == "no_horizontal":
+            qvel = qvel.at[:2].set(0)
+        elif args.reset_ablation == "no_vertical":
+            qvel = qvel.at[2:3].set(0)
         else:
             qpos = qpos.at[7:].set(env._env._init_q[7:])
         data = env._mjx_env_module.make_data(
@@ -112,8 +116,8 @@ def main():
             np.testing.assert_allclose(np.asarray(state.data.qpos), np.asarray(original.data.qpos), rtol=0, atol=1e-6)
             assert np.all(np.asarray(state.data.qvel) == 0)
             assert not np.array_equal(np.asarray(state.data.qvel), np.asarray(original.data.qvel))
-        elif args.reset_ablation in ("no_linear", "no_angular"):
-            removed = slice(0, 3) if args.reset_ablation == "no_linear" else slice(3, 6)
+        elif args.reset_ablation in ("no_linear", "no_angular", "no_horizontal", "no_vertical"):
+            removed = {"no_linear": slice(0, 3), "no_angular": slice(3, 6), "no_horizontal": slice(0, 2), "no_vertical": slice(2, 3)}[args.reset_ablation]
             retained = [i for i in range(env.nv) if i not in range(removed.start, removed.stop)]
             np.testing.assert_allclose(np.asarray(state.data.qpos), np.asarray(original.data.qpos), rtol=0, atol=1e-6)
             assert np.all(np.asarray(state.data.qvel)[removed] == 0)
