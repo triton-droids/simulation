@@ -141,3 +141,13 @@ experience. This may sacrifice sustained gait, so final evaluation stays500
 steps with identical original gates, controls and videos. Budget144 assessment
 episodes,5-hour cap. Accept only full original tests; training reward and
 100-step training survival cannot establish success. No blind extension.
+
+## C05 outcome and D04 freeze
+C05 nominal gates pass24/24; randomized12/24 survives, mean steps290.08,
+linear/yaw RMSE .71153/.28472. C02 remains13/24; do not extend short-horizon
+training. Sampled combined6000 video is upright with alternating leg poses;
+failed episodes still reject robustness. D04 uses C02 reset6002 forward.45,
+zero linear velocities only vs zero angular velocities only. Each starts from
+one shared sampled state with assertions on modified/unmodified coordinates.
+Four trajectories including oracle controls,500 steps maximum each,zero
+training,90-minute cap. Diagnostic only; no final evaluation gate changes.

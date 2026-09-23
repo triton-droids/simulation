@@ -43,7 +43,7 @@ def main():
     parser.add_argument("--randomized-reset", action="store_true")
     parser.add_argument("--evaluation-reset", action="store_true",
                         help="Use evaluate_g1's split reset key and sampled gait frequency.")
-    parser.add_argument("--reset-ablation", choices=("full", "no_velocity", "nominal_joints"), default="full",
+    parser.add_argument("--reset-ablation", choices=("full", "no_velocity", "no_linear", "no_angular", "nominal_joints"), default="full",
                         help="Diagnostic only: remove one reset perturbation; never a final validation gate.")
     args = parser.parse_args()
     if not np.isfinite(args.command).all():
@@ -80,6 +80,10 @@ def main():
         qpos, qvel = state.data.qpos, state.data.qvel
         if args.reset_ablation == "no_velocity":
             qvel = jp.zeros_like(qvel)
+        elif args.reset_ablation == "no_linear":
+            qvel = qvel.at[:3].set(0)
+        elif args.reset_ablation == "no_angular":
+            qvel = qvel.at[3:6].set(0)
         else:
             qpos = qpos.at[7:].set(env._env._init_q[7:])
         data = env._mjx_env_module.make_data(
@@ -108,6 +112,13 @@ def main():
             np.testing.assert_allclose(np.asarray(state.data.qpos), np.asarray(original.data.qpos), rtol=0, atol=1e-6)
             assert np.all(np.asarray(state.data.qvel) == 0)
             assert not np.array_equal(np.asarray(state.data.qvel), np.asarray(original.data.qvel))
+        elif args.reset_ablation in ("no_linear", "no_angular"):
+            removed = slice(0, 3) if args.reset_ablation == "no_linear" else slice(3, 6)
+            retained = [i for i in range(env.nv) if i not in range(removed.start, removed.stop)]
+            np.testing.assert_allclose(np.asarray(state.data.qpos), np.asarray(original.data.qpos), rtol=0, atol=1e-6)
+            assert np.all(np.asarray(state.data.qvel)[removed] == 0)
+            assert not np.array_equal(np.asarray(state.data.qvel)[removed], np.asarray(original.data.qvel)[removed])
+            np.testing.assert_allclose(np.asarray(state.data.qvel)[retained], np.asarray(original.data.qvel)[retained], rtol=0, atol=1e-6)
         elif args.reset_ablation == "nominal_joints":
             np.testing.assert_allclose(np.asarray(state.data.qpos[:7]), np.asarray(original.data.qpos[:7]), rtol=0, atol=1e-6)
             np.testing.assert_allclose(np.asarray(state.data.qvel), np.asarray(original.data.qvel), rtol=0, atol=1e-6)

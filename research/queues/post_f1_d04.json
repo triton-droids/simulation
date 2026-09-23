@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_d04/queue",
+  "max_wall_seconds": 5400,
+  "jobs": [
+    {
+      "id": "no_linear",
+      "hypothesis": "Separate initial linear from angular velocity sensitivity before choosing further recovery training.",
+      "evidence": "C02 fails full reset65 steps but zero all velocity survives500. Push and short-horizon training fail to improve overall survival. Ablate one velocity group and verify untouched coordinates.",
+      "review_artifact": "results/post_f1_d04/no_linear/summary.json",
+      "stages": [
+        {
+          "id": "C02_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c02/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_d04/no_linear",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C02",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6002",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "no_linear"
+          ],
+          "fresh_paths": [
+            "results/post_f1_d04/no_linear"
+          ],
+          "required_paths": [
+            "results/post_f1_d04/no_linear/summary.json",
+            "results/post_f1_d04/no_linear/C02_trace.npz",
+            "results/post_f1_d04/no_linear/oracle_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "no_angular",
+      "hypothesis": "Separate initial linear from angular velocity sensitivity before choosing further recovery training.",
+      "evidence": "C02 fails full reset65 steps but zero all velocity survives500. Push and short-horizon training fail to improve overall survival. Ablate one velocity group and verify untouched coordinates.",
+      "review_artifact": "results/post_f1_d04/no_angular/summary.json",
+      "stages": [
+        {
+          "id": "C02_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c02/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_d04/no_angular",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C02",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6002",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "no_angular"
+          ],
+          "fresh_paths": [
+            "results/post_f1_d04/no_angular"
+          ],
+          "required_paths": [
+            "results/post_f1_d04/no_angular/summary.json",
+            "results/post_f1_d04/no_angular/C02_trace.npz",
+            "results/post_f1_d04/no_angular/oracle_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    }
+  ]
+}
