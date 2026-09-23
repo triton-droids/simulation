@@ -51,6 +51,8 @@ def main():
     args.output_dir.mkdir(parents=True, exist_ok=False)
     start = time.perf_counter()
     cfg = OmegaConf.load(args.run_dir / "resolved_config.json")
+    if "recovery_reset_candidates" in cfg.sim.playground:
+        cfg.sim.playground.recovery_reset_candidates = 1
     cfg.robot.fetch_model = False
     cfg.sim.playground.fetch_source = False
     cfg.sim.reset.randomize = args.randomized_reset

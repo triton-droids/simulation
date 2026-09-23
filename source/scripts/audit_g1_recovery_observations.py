@@ -15,6 +15,7 @@ def main():
  p.add_argument("--seeds",default="6000,6001,6002")
  a=p.parse_args();a.output_dir.mkdir(parents=True,exist_ok=False)
  cfg=OmegaConf.load(a.run_dir/'resolved_config.json');cfg.robot.fetch_model=False;cfg.sim.playground.fetch_source=False;cfg.sim.noise.add_noise=False;cfg.sim.push.add_push=False;cfg.sim.domain_rand.add_domain_rand=False
+ if 'recovery_reset_candidates' in cfg.sim.playground: cfg.sim.playground.recovery_reset_candidates=1
  params=model.load_params(a.run_dir/'logs/checkpoints'/str(a.checkpoint)/'policy');stats=params[0]
  mean=np.asarray(stats.mean['state']);std=np.asarray(stats.std['state']);rows=[]
  for randomized in [False,True]:

@@ -308,3 +308,23 @@ D08 audits initial world velocities,actor local-velocity inputs and qpos at all
 Thirty resets,zero rollouts/training,one-hour cap. Match with existing outcomes
 without selecting away failures; inspect whether6002/6014 share a general
 initial-state pattern before any targeted training distribution change.
+
+## D08 outcome and C14 freeze
+D08 initial-state audit: failed forward resets6002/6014 have local velocity
+[-.334,.464,-.124]/[-.548,-.285,-.257]. Successful6010 has[-.554,.029,.342].
+Backward-plus-lateral motion is a small-sample hypothesis, not a causal finding.
+C14 changes only training reset sampling from matched C11 recipe: half ordinary
+upstream resets, half highest max(-local_vx,0)*abs(local_vy) of four complete
+upstream draws. No handcrafted state, reset-ID selection or evaluation change.
+Default candidate count1 preserves original reset; evaluation/diagnostic entry
+points force1. Nominal reset also uses1. Whole states retain consistent info/obs.
+Parent C10 checkpoint1003520; development training seed11; budget1003520 steps,
+lr1e-4,gamma.995,orientation-4,termination-100,original command range and horizon.
+Commands frozen in research/queues/post_f1_c14.json. Same original144 evaluation
+rows plus all36 D07 forward rows6010-6021; five-hour queue cap. Compare matched
+C11 and C10; retain all failures and original gates, check gait videos. Training
+sampler tests cover default parity, valid whole-state selection, ordinary mix,
+score monotonicity and bounds. Actual G1 JIT reset smoke is required before launch.
+No independent three-seed pass claimed. Any promising result needs frozen recipe,
+three predetermined fresh training seeds and fresh held-out tests/control/video gates.
+Validation: two sampler unit tests passed; actual four-candidate G1 reset compiled on CudaDevice0 and returned finite observations (results/c14_reset_smoke.log). Python syntax and diff checks passed.

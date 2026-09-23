@@ -873,6 +873,8 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=False)
 
     cfg = OmegaConf.load(run_dir / "resolved_config.json")
+    if "recovery_reset_candidates" in cfg.sim.playground:
+        cfg.sim.playground.recovery_reset_candidates = 1
     cfg.robot.fetch_model = False
     cfg.sim.noise.add_noise = False
     cfg.sim.push.add_push = False
@@ -1001,6 +1003,7 @@ def main() -> None:
         "control_dt_seconds": env.dt,
         "reset_seeds": seeds,
         "reset_randomized": bool(cfg.sim.reset.randomize),
+        "recovery_reset_candidates": int(getattr(cfg.sim.playground, "recovery_reset_candidates", 1)),
         "minimum_pelvis_height": float(cfg.sim.termination.min_pelvis_height),
         "observation_noise": bool(cfg.sim.noise.add_noise),
         "commands": {name: values for name, values in commands},

@@ -17,6 +17,7 @@ from source.locomotion.unitree_g1.playground_source import (
     resolve_playground_source,
 )
 from source.locomotion.unitree_g1.training_wrapper import wrap_for_brax_training
+from source.locomotion.unitree_g1.recovery_reset import sample_recovery_reset, backward_lateral_score
 
 
 def synchronize_transition_observation(
@@ -124,6 +125,9 @@ class Joystick:
         self.playground_source = source
         self.add_domain_rand = False
         self._reset_randomized = bool(cfg.reset.randomize)
+        self._recovery_reset_candidates = int(getattr(cfg.playground, "recovery_reset_candidates", 1))
+        if not 1 <= self._recovery_reset_candidates <= 8:
+            raise ValueError("Reset candidates must be between 1 and 8")
         # Old saved configs have no local shaping field and remain unchanged.
         self._feet_contact_phase_scale = float(getattr(cfg.reward_scales, "feet_contact_phase", 0.0))
         self._mjx_env_module = mjx_env_module
@@ -187,7 +191,10 @@ class Joystick:
         return applied, jp.clip(targets, ranges[:, 0], ranges[:, 1])
 
     def reset(self, rng: jax.Array):
-        state = self._env.reset(rng)
+        state = sample_recovery_reset(
+            self._env.reset,
+            lambda s: backward_lateral_score(self._env.get_local_linvel(s.data, "pelvis")),
+            rng, self._recovery_reset_candidates if self._reset_randomized else 1)
         info = dict(state.info)
         metrics = dict(state.metrics)
         data = state.data

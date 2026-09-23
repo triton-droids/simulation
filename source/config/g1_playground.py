@@ -55,6 +55,7 @@ class G1PlaygroundMJXConfig(G1MJXConfig):
         cache_root: Optional[str] = None
         fetch_source: bool = True
         implementation: str = "jax"
+        recovery_reset_candidates: int = 1
 
     reward_scales: RewardScales = field(default_factory=RewardScales)
     commands: CommandsConfig = field(default_factory=CommandsConfig)
