@@ -160,3 +160,14 @@ not general robustness. D05 removes horizontal velocity vs vertical velocity
 separately on C02,forward.45,reset6002. Four trajectories including oracle,
 500 steps maximum each,zero training,90-minute cap. Verify preserved initial
 coordinates; no altered-reset diagnostic can count as final validation.
+
+## D05 outcome and C06 freeze
+Zero horizontal velocity:500 steps,linear/yaw RMSE .06817/.07327. Zero
+vertical velocity:64 steps,linear RMSE1.62164. Horizontal reset speed .602m/s
+exceeds C04 push cap .5m/s. These single-reset traces guide development only.
+C06 repeats C04 from the SAME C02 parent,seed11,1003520 steps,lr1e-4,
+orientation-4,500-step training horizon,push interval1-3s. Only magnitude
+changes .1-.5 to .5-1.0. This is a bounded threshold hypothesis; larger pushes
+may impair nominal gait. Evaluate original nominal/randomized500-step suites
+with pushes disabled as before,144 episodes,5-hour cap. Require all original
+gates and video; no automatic unchanged extension. Compare with C04 and C02.
