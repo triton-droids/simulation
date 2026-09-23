@@ -194,3 +194,16 @@ for nominal/randomized resets6000-6002 at forward.45. Six resets,zero training,
 zero rollouts,one-hour cap. Report count leaves and largest standardized channels.
 This is a read-only scaling diagnostic, not proof of causal normalization error.
 Do not adjust scales or reset normalizer until evidence supports a specific issue.
+
+## D06 result and C08 freeze
+D06 max initial standardized actor deviation:nominal1.408,randomized1.997,
+1.608,2.364 at seeds6000-6002; no channels above10. Normalizer count12400640.
+This does not support a gross initial observation scaling fault. Do not reset
+normalizer based on this audit; later trajectory scaling remains unaudited.
+C08 starts C02,seed11,lr1e-4,orientation-4,1003520 steps,full commands and
+randomized resets,500-step horizon,pushes disabled. Remove both clock-phase
+shaping terms (feet_phase3->0,feet_contact_phase2->0) as one functional ablation.
+Hypothesis: permit corrective foot placement unconstrained by gait phase.
+Risk: shuffling/static or asymmetric gait. Retain original support/airtime,
+tracking,height,survival and visual gates; no reward-based success claim.
+Budget144 assessment episodes,5-hour cap. No automatic unchanged extension.
