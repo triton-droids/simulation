@@ -105,3 +105,12 @@ D03-fixed changes actual sampled qpos/qvel only in the diagnostic script,
 recomputes MJX data/contacts/observations, and asserts intended component changed
 and unrelated qpos/qvel components did not. Full-reset baseline is unchanged.
 Repeat six trajectories in fresh paths; no training or final evaluator changes.
+
+D03-fixed full baseline completed; no_velocity stopped on exact qpos equality
+against a separately compiled reset. Recovery samples the original once and
+passes that state into the ablation, avoiding separately fused random draws.
+Unmodified components allow only 1e-6 absolute numerical difference (zero
+relative tolerance); removed components still require actual change and the
+specified zero velocity/nominal joints. This is diagnostic numerical matching,
+not a relaxation of final gait gates. One-step integration checks cover both
+ablations before repeating only unfinished traces in fresh recovery paths.

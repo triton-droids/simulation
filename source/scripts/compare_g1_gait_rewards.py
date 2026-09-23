@@ -73,8 +73,7 @@ def main():
     assert oracle._sha256(path) == oracle.EXPECTED_ONNX_SHA256
     session = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
     command = jp.array(args.command)
-    def diagnostic_reset(key):
-        state = env.reset(key)
+    def diagnostic_reset(state):
         if args.reset_ablation == "full":
             return state
         from mujoco import mjx
@@ -103,15 +102,15 @@ def main():
         reset_key = jax.random.PRNGKey(args.seed)
         if args.evaluation_reset:
             reset_key = jax.random.split(reset_key)[0]
-        state = ev._replace_command(reset(reset_key), command)
         original = unmodified_reset(reset_key)
+        state = ev._replace_command(reset(original), command)
         if args.reset_ablation == "no_velocity":
-            assert np.array_equal(np.asarray(state.data.qpos), np.asarray(original.data.qpos))
+            np.testing.assert_allclose(np.asarray(state.data.qpos), np.asarray(original.data.qpos), rtol=0, atol=1e-6)
             assert np.all(np.asarray(state.data.qvel) == 0)
             assert not np.array_equal(np.asarray(state.data.qvel), np.asarray(original.data.qvel))
         elif args.reset_ablation == "nominal_joints":
-            assert np.array_equal(np.asarray(state.data.qpos[:7]), np.asarray(original.data.qpos[:7]))
-            assert np.array_equal(np.asarray(state.data.qvel), np.asarray(original.data.qvel))
+            np.testing.assert_allclose(np.asarray(state.data.qpos[:7]), np.asarray(original.data.qpos[:7]), rtol=0, atol=1e-6)
+            np.testing.assert_allclose(np.asarray(state.data.qvel), np.asarray(original.data.qvel), rtol=0, atol=1e-6)
             assert np.array_equal(np.asarray(state.data.qpos[7:]), np.asarray(env._env._init_q[7:]))
             assert not np.array_equal(np.asarray(state.data.qpos[7:]), np.asarray(original.data.qpos[7:]))
         info = dict(state.info)

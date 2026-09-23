@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_d03_recovery/queue",
+  "max_wall_seconds": 7200,
+  "jobs": [
+    {
+      "id": "no_velocity",
+      "hypothesis": "Remove one initial perturbation at a time to distinguish joint-pose sensitivity from initial-velocity sensitivity at failing reset6002.",
+      "evidence": "Matched orientation study: -2 survives10/24, -4 13/24, -8 9/24; none recover reset6002 reliably. Stop orientation search and localize reset failure.",
+      "review_artifact": "results/post_f1_d03_recovery/no_velocity/summary.json",
+      "stages": [
+        {
+          "id": "C02_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c02/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_d03_recovery/no_velocity",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C02",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6002",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "no_velocity"
+          ],
+          "fresh_paths": [
+            "results/post_f1_d03_recovery/no_velocity"
+          ],
+          "required_paths": [
+            "results/post_f1_d03_recovery/no_velocity/summary.json",
+            "results/post_f1_d03_recovery/no_velocity/C02_trace.npz",
+            "results/post_f1_d03_recovery/no_velocity/oracle_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "nominal_joints",
+      "hypothesis": "Remove one initial perturbation at a time to distinguish joint-pose sensitivity from initial-velocity sensitivity at failing reset6002.",
+      "evidence": "Matched orientation study: -2 survives10/24, -4 13/24, -8 9/24; none recover reset6002 reliably. Stop orientation search and localize reset failure.",
+      "review_artifact": "results/post_f1_d03_recovery/nominal_joints/summary.json",
+      "stages": [
+        {
+          "id": "C02_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c02/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_d03_recovery/nominal_joints",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C02",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6002",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "nominal_joints"
+          ],
+          "fresh_paths": [
+            "results/post_f1_d03_recovery/nominal_joints"
+          ],
+          "required_paths": [
+            "results/post_f1_d03_recovery/nominal_joints/summary.json",
+            "results/post_f1_d03_recovery/nominal_joints/C02_trace.npz",
+            "results/post_f1_d03_recovery/nominal_joints/oracle_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    }
+  ]
+}
