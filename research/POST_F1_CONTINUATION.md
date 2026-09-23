@@ -97,3 +97,11 @@ Record effective reset config and initial state for attribution. Compare shared
 initial qpos/qvel components before interpreting results. Existing oracle runs
 provide matched references. Six trajectories total, zero training,2-hour cap.
 These altered-reset results are diagnostic only and cannot satisfy any final gate.
+
+D03 invalid ablation: all three initial states and rollouts were identical.
+Playground adapter only reads reset.randomize; native reset scale fields are
+ignored. Preserve evidence, draw no component-sensitivity conclusion.
+D03-fixed changes actual sampled qpos/qvel only in the diagnostic script,
+recomputes MJX data/contacts/observations, and asserts intended component changed
+and unrelated qpos/qvel components did not. Full-reset baseline is unchanged.
+Repeat six trajectories in fresh paths; no training or final evaluator changes.

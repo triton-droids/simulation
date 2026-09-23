@@ -73,7 +73,29 @@ def main():
     assert oracle._sha256(path) == oracle.EXPECTED_ONNX_SHA256
     session = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
     command = jp.array(args.command)
-    reset = jax.jit(env.reset)
+    def diagnostic_reset(key):
+        state = env.reset(key)
+        if args.reset_ablation == "full":
+            return state
+        from mujoco import mjx
+        qpos, qvel = state.data.qpos, state.data.qvel
+        if args.reset_ablation == "no_velocity":
+            qvel = jp.zeros_like(qvel)
+        else:
+            qpos = qpos.at[7:].set(env._env._init_q[7:])
+        data = env._mjx_env_module.make_data(
+            env._env.mj_model, qpos=qpos, qvel=qvel, ctrl=qpos[7:],
+            impl=env._env.mjx_model.impl.value,
+            naconmax=env._env._config.naconmax, njmax=env._env._config.njmax)
+        data = mjx.forward(env._env.mjx_model, data)
+        contact = env._contact(data)
+        info = dict(state.info)
+        info.update(last_contact=contact, feet_air_time=jp.zeros(2),
+                    swing_peak=jp.zeros(2), motor_targets=data.ctrl)
+        obs = env._env._get_obs(data, info, contact)
+        return state.replace(data=data, obs=obs, info=info)
+    reset = jax.jit(diagnostic_reset)
+    unmodified_reset = jax.jit(env.reset)
     step = jax.jit(lambda state, action: ev._step_with_held_command(env, state, action, command))
     rows = {}
     initial_states = {}
@@ -82,6 +104,16 @@ def main():
         if args.evaluation_reset:
             reset_key = jax.random.split(reset_key)[0]
         state = ev._replace_command(reset(reset_key), command)
+        original = unmodified_reset(reset_key)
+        if args.reset_ablation == "no_velocity":
+            assert np.array_equal(np.asarray(state.data.qpos), np.asarray(original.data.qpos))
+            assert np.all(np.asarray(state.data.qvel) == 0)
+            assert not np.array_equal(np.asarray(state.data.qvel), np.asarray(original.data.qvel))
+        elif args.reset_ablation == "nominal_joints":
+            assert np.array_equal(np.asarray(state.data.qpos[:7]), np.asarray(original.data.qpos[:7]))
+            assert np.array_equal(np.asarray(state.data.qvel), np.asarray(original.data.qvel))
+            assert np.array_equal(np.asarray(state.data.qpos[7:]), np.asarray(env._env._init_q[7:]))
+            assert not np.array_equal(np.asarray(state.data.qpos[7:]), np.asarray(original.data.qpos[7:]))
         info = dict(state.info)
         if not args.evaluation_reset:
             info["phase_dt"] = jp.asarray([2 * np.pi * 1.5 * env.dt])
