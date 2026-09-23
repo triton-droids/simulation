@@ -114,3 +114,17 @@ relative tolerance); removed components still require actual change and the
 specified zero velocity/nominal joints. This is diagnostic numerical matching,
 not a relaxation of final gait gates. One-step integration checks cover both
 ablations before repeating only unfinished traces in fresh recovery paths.
+
+## Corrected D03 result and C04 freeze
+C02 full reset6002 forward:65 steps. Zero initial velocity:500 steps,
+linear/yaw RMSE .06962/.07197. Nominal joints with original velocity:80 steps.
+Assertions verified removed component changed and other initial coordinates
+matched within1e-6. This localizes sensitivity to initial velocity for this
+one reset; it is not broad success. Trace evidence is numeric, not a gait pass.
+C04 warm-starts C02,seed11,lr1e-4,orientation-4,1003520 steps. Enable existing
+Playground pushes with interval1-3s,magnitude .1-.5; otherwise unchanged.
+Hypothesis: repeated small velocity disturbances teach recovery more frequently
+than episode-start perturbations alone. Full randomized resets remain in training.
+Evaluations explicitly disable pushes as before and retain all original gates,
+commands, initial velocities, references and videos. Budget144 test episodes,
+five-hour cap. Compare to C02; no blind extension if robustness fails to improve.
