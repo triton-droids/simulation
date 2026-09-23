@@ -43,6 +43,8 @@ def main():
     parser.add_argument("--randomized-reset", action="store_true")
     parser.add_argument("--evaluation-reset", action="store_true",
                         help="Use evaluate_g1's split reset key and sampled gait frequency.")
+    parser.add_argument("--reset-ablation", choices=("full", "no_velocity", "nominal_joints"), default="full",
+                        help="Diagnostic only: remove one reset perturbation; never a final validation gate.")
     args = parser.parse_args()
     if not np.isfinite(args.command).all():
         parser.error("--command values must be finite")
@@ -52,6 +54,10 @@ def main():
     cfg.robot.fetch_model = False
     cfg.sim.playground.fetch_source = False
     cfg.sim.reset.randomize = args.randomized_reset
+    if args.reset_ablation == "no_velocity":
+        cfg.sim.reset.base_velocity_range = 0.0
+    elif args.reset_ablation == "nominal_joints":
+        cfg.sim.reset.joint_scale_range = [1.0, 1.0]
     cfg.sim.noise.add_noise = False
     cfg.sim.push.add_push = False
     env = ev.get_env_class(cfg.env.name)(cfg.robot.name, ev.make_robot(cfg.robot), cfg.env.terrain, cfg.sim)
@@ -129,6 +135,8 @@ def main():
         "phase_frequency_hz": float(np.asarray(state.info["phase_dt"])[0] / (2 * np.pi * env.dt)),
         "seed": args.seed, "reset_randomized": args.randomized_reset,
         "evaluation_reset": args.evaluation_reset, "initial_states": initial_states,
+        "reset_ablation": args.reset_ablation,
+        "reset_config": OmegaConf.to_container(cfg.sim.reset, resolve=True),
         "results": rows,
         "oracle_sha256": oracle.EXPECTED_ONNX_SHA256, "git": ev._git_record(),
         "wall_time_seconds": time.perf_counter() - start}

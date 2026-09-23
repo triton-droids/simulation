@@ -85,3 +85,15 @@ identical other settings. This distinguishes extra training from reward change.
 Total2,007,040 training steps and288 assessment episodes;10-hour queue cap.
 Joint existing nominal/randomized numeric and visual criteria required; never
 choose by reward alone. No training-budget extension or changed final gates.
+
+## C03 outcome and D03 freeze
+Matched orientation penalties -2/-4/-8 survive10/13/9 of24 randomized episodes;
+all nominal gates pass. -4 remains a development candidate, not a final pass.
+Sampled combined6000 videos show both C03 policies upright with alternating
+leg poses; they do not resolve other failed episodes. No stronger-weight search.
+D03 uses C02 checkpoint on forward .45, reset6002,500 steps: full reset,
+zero initial base velocity, or nominal joint scales, changing only one component.
+Record effective reset config and initial state for attribution. Compare shared
+initial qpos/qvel components before interpreting results. Existing oracle runs
+provide matched references. Six trajectories total, zero training,2-hour cap.
+These altered-reset results are diagnostic only and cannot satisfy any final gate.
