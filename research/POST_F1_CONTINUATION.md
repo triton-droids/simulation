@@ -297,3 +297,14 @@ These are additional development resets, not fresh final validation. No training
 2.5-hour cap. Retain every result and forward6010 videos. Purpose: determine
 breadth of failures before more narrow tuning on reset6002. No seed selection,
 no changes to final full-grid or independent-training-seed requirements.
+
+## D07 result and D08 freeze
+Frozen C10 survives11/12 additional forward resets6010-6021;6014 fails54
+steps. Surviving linear RMSE .070-.198. Sampled forward6010 frames show
+upright changing support legs. This narrower failure pattern does not satisfy
+robustness and does not replace final three independent training seeds.
+D08 audits initial world velocities,actor local-velocity inputs and qpos at all
+15 development resets6000-6002/6010-6021,nominal+randomized,using C10.
+Thirty resets,zero rollouts/training,one-hour cap. Match with existing outcomes
+without selecting away failures; inspect whether6002/6014 share a general
+initial-state pattern before any targeted training distribution change.

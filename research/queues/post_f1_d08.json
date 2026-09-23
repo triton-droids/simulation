@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_d08/queue",
+  "max_wall_seconds": 3600,
+  "jobs": [
+    {
+      "id": "reset_failure_features",
+      "hypothesis": "Determine whether known failures share an initial velocity/pose pattern distinct from successful resets before defining a general recovery curriculum.",
+      "evidence": "D07 frozen C10 survives11/12 new forward resets;6014 fails54 steps.6002 also fails. Audit all successes and failures; no cherry-picking or final seed substitution.",
+      "review_artifact": "results/post_f1_d08/audit/summary.json",
+      "stages": [
+        {
+          "id": "audit",
+          "argv": [
+            "source/scripts/audit_g1_recovery_observations.py",
+            "--run-dir",
+            "results/post_f1_c10/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_d08/audit",
+            "--seeds",
+            "6000,6001,6002,6010,6011,6012,6013,6014,6015,6016,6017,6018,6019,6020,6021"
+          ],
+          "fresh_paths": [
+            "results/post_f1_d08/audit"
+          ],
+          "required_paths": [
+            "results/post_f1_d08/audit/summary.json"
+          ],
+          "timeout_seconds": 3000
+        }
+      ]
+    }
+  ]
+}
