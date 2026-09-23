@@ -1,0 +1,761 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_c09/queue",
+  "max_wall_seconds": 36000,
+  "jobs": [
+    {
+      "id": "control_nominal",
+      "hypothesis": "Matched learning-rate comparison tests whether conservative optimization limits recovery adaptation at the C02 checkpoint.",
+      "evidence": "C02 remains13/24 randomized; bounded push, horizon, command and phase variants regressed. Compare identical parent/seed/budget at lr1e-4 and3e-4, preserving KL stop.",
+      "stages": [
+        {
+          "id": "recovery_train",
+          "argv": [
+            "source/scripts/train.py",
+            "--logger",
+            "local",
+            "--seed",
+            "11",
+            "--resume",
+            "--checkpoint",
+            "{root}/results/post_f1_c02/train/logs/checkpoints/1003520",
+            "env=unitree_g1_playground",
+            "robot=unitree_g1",
+            "sim=unitree_g1_playground",
+            "agent=ppo_g1_corrective",
+            "robot.fetch_model=false",
+            "sim.playground.fetch_source=false",
+            "sim.reset.randomize=true",
+            "sim.noise.add_noise=false",
+            "sim.push.add_push=false",
+            "sim.domain_rand.add_domain_rand=false",
+            "sim.commands.lin_vel_x=[-0.3,0.6]",
+            "sim.commands.lin_vel_y=[-0.3,0.3]",
+            "sim.commands.ang_vel_yaw=[-0.5,0.5]",
+            "sim.reward_scales.tracking_lin_vel=18.0",
+            "sim.reward_scales.tracking_ang_vel=9.0",
+            "sim.reward_scales.feet_phase=3.0",
+            "sim.reward_scales.feet_contact_phase=2.0",
+            "agent.num_timesteps=1003520",
+            "agent.num_evals=8",
+            "agent.num_eval_envs=16",
+            "agent.episode_length=500",
+            "hydra.run.dir={root}/results/post_f1_c09/control/train",
+            "hydra.job.chdir=true",
+            "agent.learning_rate=0.0001",
+            "sim.reward_scales.orientation=-4.0"
+          ],
+          "fresh_paths": [
+            "results/post_f1_c09/control/train"
+          ],
+          "required_paths": [
+            "results/post_f1_c09/control/train/run_manifest.json",
+            "results/post_f1_c09/control/train/logs/checkpoints/0/policy",
+            "results/post_f1_c09/control/train/logs/checkpoints/1003520/policy"
+          ],
+          "timeout_seconds": 7200,
+          "monitor": {
+            "path": "results/post_f1_c09/control/train/logs/metrics.jsonl",
+            "ignore_kl_through_step": 143360,
+            "consecutive_kl_limit": 2,
+            "kl_limit": 0.2,
+            "final_step": 1003520
+          }
+        },
+        {
+          "id": "recovery_restore_audit",
+          "argv": [
+            "-c",
+            "import os;os.environ['JAX_PLATFORMS']='cpu';from brax.io import model;import jax,numpy as np,json;from pathlib import Path;a=model.load_params(Path('results/post_f1_c02/train/logs/checkpoints/1003520/policy'));b=model.load_params(Path('results/post_f1_c09/control/train/logs/checkpoints/0/policy'));la,ta=jax.tree_util.tree_flatten(a);lb,tb=jax.tree_util.tree_flatten(b);ok=ta==tb and len(la)==len(lb) and all(np.array_equal(np.asarray(x),np.asarray(y)) for x,y in zip(la,lb));f=open('results/post_f1_c09/control/train/restore_parity.json','x');json.dump(dict(exact_actor_normalizer_match=ok,leaves=len(la)),f);f.close();assert ok,'Warm-start parity failed'"
+          ],
+          "fresh_paths": [
+            "results/post_f1_c09/control/train/restore_parity.json"
+          ],
+          "required_paths": [
+            "results/post_f1_c09/control/train/restore_parity.json"
+          ],
+          "timeout_seconds": 600
+        },
+        {
+          "id": "evaluate_nominal",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_c09/control/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/final_f1/seed11/balance",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002",
+            "--command-grid",
+            "research/queues/final_f1_commands.json",
+            "--nominal-reset",
+            "--video",
+            "--video-command",
+            "combined",
+            "--output-dir",
+            "results/post_f1_c09/control/nominal"
+          ],
+          "fresh_paths": [
+            "results/post_f1_c09/control/nominal"
+          ],
+          "required_paths": [
+            "results/post_f1_c09/control/nominal/summary.json",
+            "results/post_f1_c09/control/nominal/episodes.csv",
+            "results/post_f1_c09/control/nominal/trained_combined_seed6000.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ],
+      "episodes_csv": "results/post_f1_c09/control/nominal/episodes.csv",
+      "gate": {
+        "horizon": 500,
+        "controllers": [
+          "trained",
+          "untrained",
+          "standing"
+        ],
+        "commands": [
+          "stand",
+          "forward",
+          "backward",
+          "left",
+          "right",
+          "turn_left",
+          "turn_right",
+          "combined"
+        ],
+        "seeds": [
+          6000,
+          6001,
+          6002
+        ],
+        "outcomes": {
+          "pass": [
+            {
+              "name": "all episodes survive500",
+              "aggregate": "min",
+              "metric": "episode_steps",
+              "min": 500
+            },
+            {
+              "name": "upright pelvis",
+              "aggregate": "min",
+              "metric": "minimum_pelvis_height",
+              "above": 0.6
+            },
+            {
+              "name": "mean linear error",
+              "aggregate": "mean",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "mean yaw error",
+              "aggregate": "mean",
+              "metric": "yaw_rate_rmse",
+              "max": 0.2
+            },
+            {
+              "name": "forward linear",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "backward linear",
+              "where": {
+                "command_name": "backward"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "left linear",
+              "where": {
+                "command_name": "left"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "right linear",
+              "where": {
+                "command_name": "right"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "combined linear",
+              "where": {
+                "command_name": "combined"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "turn_left yaw",
+              "where": {
+                "command_name": "turn_left"
+              },
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "turn_right yaw",
+              "where": {
+                "command_name": "turn_right"
+              },
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "stand linear_velocity_vector_rmse",
+              "where": {
+                "command_name": "stand"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.15
+            },
+            {
+              "name": "stand yaw_rate_rmse",
+              "where": {
+                "command_name": "stand"
+              },
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.15
+            },
+            {
+              "name": "forward single_support_fraction",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "min",
+              "metric": "single_support_fraction",
+              "min": 0.35,
+              "max": 0.95
+            },
+            {
+              "name": "forward left_median_completed_air_seconds",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "min",
+              "metric": "left_median_completed_air_seconds",
+              "min": 0.12
+            },
+            {
+              "name": "forward right_median_completed_air_seconds",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "min",
+              "metric": "right_median_completed_air_seconds",
+              "min": 0.12
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "control_randomized",
+      "hypothesis": "Matched learning-rate comparison tests whether conservative optimization limits recovery adaptation at the C02 checkpoint.",
+      "evidence": "C02 remains13/24 randomized; bounded push, horizon, command and phase variants regressed. Compare identical parent/seed/budget at lr1e-4 and3e-4, preserving KL stop.",
+      "stages": [
+        {
+          "id": "evaluate_randomized",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_c09/control/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/final_f1/seed11/balance",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002",
+            "--command-grid",
+            "research/queues/final_f1_commands.json",
+            "--randomized-reset",
+            "--video",
+            "--video-command",
+            "combined",
+            "--output-dir",
+            "results/post_f1_c09/control/randomized"
+          ],
+          "fresh_paths": [
+            "results/post_f1_c09/control/randomized"
+          ],
+          "required_paths": [
+            "results/post_f1_c09/control/randomized/summary.json",
+            "results/post_f1_c09/control/randomized/episodes.csv",
+            "results/post_f1_c09/control/randomized/trained_combined_seed6000.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ],
+      "episodes_csv": "results/post_f1_c09/control/randomized/episodes.csv",
+      "gate": {
+        "horizon": 500,
+        "controllers": [
+          "trained",
+          "untrained",
+          "standing"
+        ],
+        "commands": [
+          "stand",
+          "forward",
+          "backward",
+          "left",
+          "right",
+          "turn_left",
+          "turn_right",
+          "combined"
+        ],
+        "seeds": [
+          6000,
+          6001,
+          6002
+        ],
+        "outcomes": {
+          "pass": [
+            {
+              "name": "all16 survive500",
+              "aggregate": "min",
+              "metric": "episode_steps",
+              "min": 500
+            },
+            {
+              "name": "upright pelvis",
+              "aggregate": "min",
+              "metric": "minimum_pelvis_height",
+              "above": 0.6
+            },
+            {
+              "name": "mean linear_velocity_vector_rmse",
+              "aggregate": "mean",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "worst linear_velocity_vector_rmse",
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.35
+            },
+            {
+              "name": "mean yaw_rate_rmse",
+              "aggregate": "mean",
+              "metric": "yaw_rate_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "worst yaw_rate_rmse",
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.35
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "faster_nominal",
+      "hypothesis": "Matched learning-rate comparison tests whether conservative optimization limits recovery adaptation at the C02 checkpoint.",
+      "evidence": "C02 remains13/24 randomized; bounded push, horizon, command and phase variants regressed. Compare identical parent/seed/budget at lr1e-4 and3e-4, preserving KL stop.",
+      "stages": [
+        {
+          "id": "recovery_train",
+          "argv": [
+            "source/scripts/train.py",
+            "--logger",
+            "local",
+            "--seed",
+            "11",
+            "--resume",
+            "--checkpoint",
+            "{root}/results/post_f1_c02/train/logs/checkpoints/1003520",
+            "env=unitree_g1_playground",
+            "robot=unitree_g1",
+            "sim=unitree_g1_playground",
+            "agent=ppo_g1_corrective",
+            "robot.fetch_model=false",
+            "sim.playground.fetch_source=false",
+            "sim.reset.randomize=true",
+            "sim.noise.add_noise=false",
+            "sim.push.add_push=false",
+            "sim.domain_rand.add_domain_rand=false",
+            "sim.commands.lin_vel_x=[-0.3,0.6]",
+            "sim.commands.lin_vel_y=[-0.3,0.3]",
+            "sim.commands.ang_vel_yaw=[-0.5,0.5]",
+            "sim.reward_scales.tracking_lin_vel=18.0",
+            "sim.reward_scales.tracking_ang_vel=9.0",
+            "sim.reward_scales.feet_phase=3.0",
+            "sim.reward_scales.feet_contact_phase=2.0",
+            "agent.num_timesteps=1003520",
+            "agent.num_evals=8",
+            "agent.num_eval_envs=16",
+            "agent.episode_length=500",
+            "hydra.run.dir={root}/results/post_f1_c09/faster/train",
+            "hydra.job.chdir=true",
+            "agent.learning_rate=0.0003",
+            "sim.reward_scales.orientation=-4.0"
+          ],
+          "fresh_paths": [
+            "results/post_f1_c09/faster/train"
+          ],
+          "required_paths": [
+            "results/post_f1_c09/faster/train/run_manifest.json",
+            "results/post_f1_c09/faster/train/logs/checkpoints/0/policy",
+            "results/post_f1_c09/faster/train/logs/checkpoints/1003520/policy"
+          ],
+          "timeout_seconds": 7200,
+          "monitor": {
+            "path": "results/post_f1_c09/faster/train/logs/metrics.jsonl",
+            "ignore_kl_through_step": 143360,
+            "consecutive_kl_limit": 2,
+            "kl_limit": 0.2,
+            "final_step": 1003520
+          }
+        },
+        {
+          "id": "recovery_restore_audit",
+          "argv": [
+            "-c",
+            "import os;os.environ['JAX_PLATFORMS']='cpu';from brax.io import model;import jax,numpy as np,json;from pathlib import Path;a=model.load_params(Path('results/post_f1_c02/train/logs/checkpoints/1003520/policy'));b=model.load_params(Path('results/post_f1_c09/faster/train/logs/checkpoints/0/policy'));la,ta=jax.tree_util.tree_flatten(a);lb,tb=jax.tree_util.tree_flatten(b);ok=ta==tb and len(la)==len(lb) and all(np.array_equal(np.asarray(x),np.asarray(y)) for x,y in zip(la,lb));f=open('results/post_f1_c09/faster/train/restore_parity.json','x');json.dump(dict(exact_actor_normalizer_match=ok,leaves=len(la)),f);f.close();assert ok,'Warm-start parity failed'"
+          ],
+          "fresh_paths": [
+            "results/post_f1_c09/faster/train/restore_parity.json"
+          ],
+          "required_paths": [
+            "results/post_f1_c09/faster/train/restore_parity.json"
+          ],
+          "timeout_seconds": 600
+        },
+        {
+          "id": "evaluate_nominal",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_c09/faster/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/final_f1/seed11/balance",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002",
+            "--command-grid",
+            "research/queues/final_f1_commands.json",
+            "--nominal-reset",
+            "--video",
+            "--video-command",
+            "combined",
+            "--output-dir",
+            "results/post_f1_c09/faster/nominal"
+          ],
+          "fresh_paths": [
+            "results/post_f1_c09/faster/nominal"
+          ],
+          "required_paths": [
+            "results/post_f1_c09/faster/nominal/summary.json",
+            "results/post_f1_c09/faster/nominal/episodes.csv",
+            "results/post_f1_c09/faster/nominal/trained_combined_seed6000.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ],
+      "episodes_csv": "results/post_f1_c09/faster/nominal/episodes.csv",
+      "gate": {
+        "horizon": 500,
+        "controllers": [
+          "trained",
+          "untrained",
+          "standing"
+        ],
+        "commands": [
+          "stand",
+          "forward",
+          "backward",
+          "left",
+          "right",
+          "turn_left",
+          "turn_right",
+          "combined"
+        ],
+        "seeds": [
+          6000,
+          6001,
+          6002
+        ],
+        "outcomes": {
+          "pass": [
+            {
+              "name": "all episodes survive500",
+              "aggregate": "min",
+              "metric": "episode_steps",
+              "min": 500
+            },
+            {
+              "name": "upright pelvis",
+              "aggregate": "min",
+              "metric": "minimum_pelvis_height",
+              "above": 0.6
+            },
+            {
+              "name": "mean linear error",
+              "aggregate": "mean",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "mean yaw error",
+              "aggregate": "mean",
+              "metric": "yaw_rate_rmse",
+              "max": 0.2
+            },
+            {
+              "name": "forward linear",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "backward linear",
+              "where": {
+                "command_name": "backward"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "left linear",
+              "where": {
+                "command_name": "left"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "right linear",
+              "where": {
+                "command_name": "right"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "combined linear",
+              "where": {
+                "command_name": "combined"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "turn_left yaw",
+              "where": {
+                "command_name": "turn_left"
+              },
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "turn_right yaw",
+              "where": {
+                "command_name": "turn_right"
+              },
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "stand linear_velocity_vector_rmse",
+              "where": {
+                "command_name": "stand"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.15
+            },
+            {
+              "name": "stand yaw_rate_rmse",
+              "where": {
+                "command_name": "stand"
+              },
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.15
+            },
+            {
+              "name": "forward single_support_fraction",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "min",
+              "metric": "single_support_fraction",
+              "min": 0.35,
+              "max": 0.95
+            },
+            {
+              "name": "forward left_median_completed_air_seconds",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "min",
+              "metric": "left_median_completed_air_seconds",
+              "min": 0.12
+            },
+            {
+              "name": "forward right_median_completed_air_seconds",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "min",
+              "metric": "right_median_completed_air_seconds",
+              "min": 0.12
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "faster_randomized",
+      "hypothesis": "Matched learning-rate comparison tests whether conservative optimization limits recovery adaptation at the C02 checkpoint.",
+      "evidence": "C02 remains13/24 randomized; bounded push, horizon, command and phase variants regressed. Compare identical parent/seed/budget at lr1e-4 and3e-4, preserving KL stop.",
+      "stages": [
+        {
+          "id": "evaluate_randomized",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_c09/faster/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/final_f1/seed11/balance",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002",
+            "--command-grid",
+            "research/queues/final_f1_commands.json",
+            "--randomized-reset",
+            "--video",
+            "--video-command",
+            "combined",
+            "--output-dir",
+            "results/post_f1_c09/faster/randomized"
+          ],
+          "fresh_paths": [
+            "results/post_f1_c09/faster/randomized"
+          ],
+          "required_paths": [
+            "results/post_f1_c09/faster/randomized/summary.json",
+            "results/post_f1_c09/faster/randomized/episodes.csv",
+            "results/post_f1_c09/faster/randomized/trained_combined_seed6000.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ],
+      "episodes_csv": "results/post_f1_c09/faster/randomized/episodes.csv",
+      "gate": {
+        "horizon": 500,
+        "controllers": [
+          "trained",
+          "untrained",
+          "standing"
+        ],
+        "commands": [
+          "stand",
+          "forward",
+          "backward",
+          "left",
+          "right",
+          "turn_left",
+          "turn_right",
+          "combined"
+        ],
+        "seeds": [
+          6000,
+          6001,
+          6002
+        ],
+        "outcomes": {
+          "pass": [
+            {
+              "name": "all16 survive500",
+              "aggregate": "min",
+              "metric": "episode_steps",
+              "min": 500
+            },
+            {
+              "name": "upright pelvis",
+              "aggregate": "min",
+              "metric": "minimum_pelvis_height",
+              "above": 0.6
+            },
+            {
+              "name": "mean linear_velocity_vector_rmse",
+              "aggregate": "mean",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "worst linear_velocity_vector_rmse",
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.35
+            },
+            {
+              "name": "mean yaw_rate_rmse",
+              "aggregate": "mean",
+              "metric": "yaw_rate_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "worst yaw_rate_rmse",
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.35
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -207,3 +207,17 @@ Hypothesis: permit corrective foot placement unconstrained by gait phase.
 Risk: shuffling/static or asymmetric gait. Retain original support/airtime,
 tracking,height,survival and visual gates; no reward-based success claim.
 Budget144 assessment episodes,5-hour cap. No automatic unchanged extension.
+
+## C08 outcome and C09 freeze
+C08 nominal passes24/24; randomized11/24,mean steps268.29,linear/yaw
+RMSE .79719/.31791. Sampled combined6000 remains upright with alternating
+leg poses but failures elsewhere reject robustness. Restore phase shaping.
+C09 compares lr1e-4 control versus3e-4 from the identical C02 checkpoint,
+seed11,1003520 steps EACH,orientation-4,feet_phase3,contact_phase2,full
+commands/randomized resets,500-step horizon,pushes off. The unchanged branch
+is a matched control, not an indefinite extension. Earlier C21 seed7 regression
+at3e-4 cautions against assuming a gain; current parent and seed differ.
+Total2,007,040 training steps,288 assessment episodes,10-hour cap. Keep finite
+and sustained-KL safeguards. Judge original joint gates and videos, not reward.
+If no clear improvement, do not extend this local sweep; reassess the training
+recipe rather than repeatedly perturb this checkpoint.
