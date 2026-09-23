@@ -128,3 +128,16 @@ than episode-start perturbations alone. Full randomized resets remain in trainin
 Evaluations explicitly disable pushes as before and retain all original gates,
 commands, initial velocities, references and videos. Budget144 test episodes,
 five-hour cap. Compare to C02; no blind extension if robustness fails to improve.
+
+## C04 outcome and C05 freeze
+C04 nominal gates pass24/24; randomized11/24 survives, mean steps272.58,
+linear/yaw RMSE .64508/.29431. C02 parent survives13/24; no robustness gain.
+Sampled combined6000 video remains upright with changing support legs, but
+other episodes fail. Do not extend push training on this evidence.
+C05 starts the C02 checkpoint (not C04),seed11,lr1e-4,orientation-4,
+1003520 steps, unchanged full randomized resets and pushes disabled.
+Only training episode horizon changes500 to100 to increase startup recovery
+experience. This may sacrifice sustained gait, so final evaluation stays500
+steps with identical original gates, controls and videos. Budget144 assessment
+episodes,5-hour cap. Accept only full original tests; training reward and
+100-step training survival cannot establish success. No blind extension.
