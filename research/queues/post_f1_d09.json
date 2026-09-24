@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_d09/queue",
+  "max_wall_seconds": 5400,
+  "jobs": [
+    {
+      "id": "reset6002",
+      "hypothesis": "Compare failed recovery trajectories with the diagnostic reference to locate balance loss, contact timing and action saturation before more training.",
+      "evidence": "C14 focused reset training retains16/24 and11/12 survival; same6002/6014 failures. No justified unchanged extension.",
+      "review_artifact": "results/post_f1_d09/reset6002/summary.json",
+      "stages": [
+        {
+          "id": "C14_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c14/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_d09/reset6002",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C14",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6002",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "full"
+          ],
+          "fresh_paths": [
+            "results/post_f1_d09/reset6002"
+          ],
+          "required_paths": [
+            "results/post_f1_d09/reset6002/summary.json",
+            "results/post_f1_d09/reset6002/C14_trace.npz",
+            "results/post_f1_d09/reset6002/oracle_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "reset6014",
+      "hypothesis": "Compare failed recovery trajectories with the diagnostic reference to locate balance loss, contact timing and action saturation before more training.",
+      "evidence": "C14 focused reset training retains16/24 and11/12 survival; same6002/6014 failures. No justified unchanged extension.",
+      "review_artifact": "results/post_f1_d09/reset6014/summary.json",
+      "stages": [
+        {
+          "id": "C14_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c14/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_d09/reset6014",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C14",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6014",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "full"
+          ],
+          "fresh_paths": [
+            "results/post_f1_d09/reset6014"
+          ],
+          "required_paths": [
+            "results/post_f1_d09/reset6014/summary.json",
+            "results/post_f1_d09/reset6014/C14_trace.npz",
+            "results/post_f1_d09/reset6014/oracle_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    }
+  ]
+}

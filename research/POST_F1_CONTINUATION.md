@@ -328,3 +328,18 @@ score monotonicity and bounds. Actual G1 JIT reset smoke is required before laun
 No independent three-seed pass claimed. Any promising result needs frozen recipe,
 three predetermined fresh training seeds and fresh held-out tests/control/video gates.
 Validation: two sampler unit tests passed; actual four-candidate G1 reset compiled on CudaDevice0 and returned finite observations (results/c14_reset_smoke.log). Python syntax and diff checks passed.
+
+## C14 outcome and D09 freeze
+C14 nominal passes24/24. Randomized16/24,mean350.125 steps,linear/yaw
+RMSE .38560/.29522; all eight6002 cases fail31-62 steps. Additional forward
+resets11/12 survive;6014 fails73. No survival improvement over C10; reject
+unchanged extension. Sampled nominal combined6000 and randomized forward6010
+video frames show upright stepping; these samples do not establish final gait pass.
+D09 freezes C14 policy at1003520, original randomized resets6002 and6014,
+forward.45,500 steps each, plus diagnostic oracle at identical starts. Full
+unaltered resets; no training or fitting to oracle. Four trajectories,90-minute
+queue cap, commands research/queues/post_f1_d09.json. Inspect action saturation,
+contact/attitude timing and tracking before selecting another training change.
+Existing diagnostic implementation reused unchanged; JSON/path checks performed.
+Diagnostic results cannot count as numeric gate success or replace any failed
+reset. All original full-grid/control/video and fresh-three-seed gates remain.
