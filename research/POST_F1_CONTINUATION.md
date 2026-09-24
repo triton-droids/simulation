@@ -440,3 +440,9 @@ yaw3 loses recovery and is rejected. B03 matched command-only phase-reward
 mask versus unchanged mask targets observed stepping at zero command.
 See audit document and frozen queue for exact budget/decision. No full pass
 or independent seed claim. Preserve random recovery and all original gates.
+
+## B03 reviewed; B04 stand-pose comparison
+Both random screens pass; phase gating improves yaw but nominal stand .156/.167
+still fails .15. B04 matched existing stand penalty-3 vs-1 from same B03phase
+parent,one1003520-step run each,all gates unchanged. See audit/queue for exact
+budget and prospective rejection. No full or three-seed pass yet.

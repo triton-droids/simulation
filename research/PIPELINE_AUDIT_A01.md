@@ -239,3 +239,24 @@ If standing improves with any recovery loss,reject; full validation and all3
 fresh independent training seeds/held-out grid still mandatory. Reference remains
 B01 true initialization checkpoint0. No winner selection from reward alone.
 B03 validation: real-MJX stand/moving reward and physics/termination parity passed; three adapter tests including exact nonzero phase subtraction passed. Queue validation and diff checks passed.
+
+## B03 review and B04 matched stand-pose test
+B03 both arms survive all16 screen episodes and pass random numeric screen.
+Command-only phase arm nominal worst stand linear/yaw .15602/.16691 versus
+control .15544/.17848; both exceed .15. Random mean yaw .18217 versus .19778.
+Nominal stand sampled video frames show continued stepping in both. Phase gating
+modestly improves yaw without measured recovery loss,not a full-gate pass.
+B04 compares existing stand_still weight-3 versus-1 from SAME B03phase_gate
+final1003520,seed11,1003520steps each,lr1e-4,gamma.97,yaw.75,phase gatingtrue.
+Only stand weight differs; normalized training argv equality asserted. Upstream
+stand_still is sum(abs(jointpos-defaultpose)) only when command norm<.01.
+It penalizes pose deviation,not velocity directly. Hypothesis: reduce residual
+zero-command stepping. Risk: impeding recovery during zero-command disturbances;
+reject any lost survival/random gate or moving gait/tracking regression.
+Original fixed48-row screens and conditional180 full evaluations each;8-hour
+cap,2,007,040 training steps total. Exact actor/normalizer restore audits; no
+new runner/physics code. B01checkpoint0 reference. Do not weaken .15 stand
+thresholds or call passing random screening final validation. If neither clears
+nominal standing,close this coefficient test and reassess mechanism; no blind
+weight escalation or automatic unchanged extension. Fresh independent3-seed
+validation required after any full development pass.
