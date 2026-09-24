@@ -426,3 +426,10 @@ sampling explanation. B01 is a bounded uninterrupted20,070,400-step original-
 reward randomized baseline feasibility probe,not a3-seed study or exact upstream
 replication. See PIPELINE_AUDIT_A01.md for evidence,all differences and rejection
 rule. Fixed checkpoint and original screening/full gates; no automatic extension.
+
+## B01 reviewed; B02 matched yaw correction
+B01 all8 random and8 nominal screen rows survive500,including difficult starts;
+random linear gates pass. Yaw gates fail,so no full validation pass. B02 compares
+weight3 yaw correction versus.75 continuation control from same B01 final,each
+1003520steps atlr1e-4,original fixed screens/full gates. See audit document for
+all frozen settings,budget and rejection rule. No checkpoint/seed cherry-picking.

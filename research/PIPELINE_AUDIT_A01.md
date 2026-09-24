@@ -191,3 +191,27 @@ fail/no recovery gain, do not extend unchanged; review learning curve and stop
 this baseline hypothesis or identify a specific justified redesign. A pass only
 permits full development evaluation and later fresh independent validation.
 This replaces short repeated fine-tuning with one bounded budget/recipe probe.
+
+## B01 recovery gain and B02 matched yaw correction
+B01 fixed-final checkpoint: nominal8/8 and randomized8/8 survive500; random
+height .7033,mean/worst linear .20560/.29515 pass. Both screens still reject:
+nominal mean yaw .26840,stand worst .30174; randomized mean yaw .28197.
+Sampled ordinary forward videos show upright alternating steps,not full visual
+validation. Full jobs correctly skipped. Recovery improved versus C10's4/8 on
+identical screen. Do not call this full command-grid or independent-seed success.
+Learning curve internal mean survival53->76->182->406->470->500->500->445;
+last decline retained, no checkpoint selection. Budget/recipe changes mean
+recovery cannot be attributed to training duration alone.
+B02 freezes two matched continuations from B01 final20070400,seed11,1003520
+steps each,lr1e-4 (both),gamma.97,original B01 command ranges/rewards except
+prospective yaw weight3 versus.75 control. Actual matched argv equivalence
+checked after output paths and yaw weight removal. Exact restore audits.
+48 screening rows each,full180 each only if both screens pass. Reference remains
+B01 checkpoint0 for both arms; original horizon500 and all thresholds unchanged.
+8-hour cap,2,007,040 new training steps total. No unchanged automatic extension.
+Select by all screen/full/control/gait evidence,not reward or yaw alone. If yaw
+improves at cost of recovery, reject; if neither clears gates, record remaining
+failure before another specific hypothesis. Three fresh training seeds and fresh
+held-out grid remain required after development; all B01/B02 are development.
+No runner/physics code changes. Plan validation,diff check and paired-command
+assertion required before commit/launch.
