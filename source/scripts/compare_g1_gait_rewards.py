@@ -15,6 +15,7 @@ import time
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from source.scripts import evaluate_g1 as ev
 from source.scripts import evaluate_playground_onnx as oracle
+from source.utils.g1_terminal_diagnostic import terminal_signals
 from brax.io import model
 from brax.training.agents.ppo import networks
 import jax
@@ -152,6 +153,9 @@ def main():
                 "gyro": env.get_gyro(state.data, "pelvis"),
                 "contact": env._contact(state.data), "phase": state.info["phase"],
                 "reward": state.reward, "done": state.done, **state.metrics}
+            signals = terminal_signals(env, state.data)
+            assert bool(state.done) == any(bool(v) for k, v in signals.items() if k.startswith("terminal/")), "Termination decomposition mismatch"
+            sample.update(signals)
             trace.append(jax.tree.map(np.asarray, sample))
             if bool(state.done):
                 break
@@ -161,6 +165,8 @@ def main():
         air_intervals = [ev._completed_air_intervals(contact[:, foot], env.dt) for foot in range(2)]
         rows[controller] = {
             "steps": len(trace), "terminal": bool(arrays["done"][-1]),
+            "terminal_causes": [k.removeprefix("terminal/") for k, v in arrays.items() if k.startswith("terminal/") and bool(v[-1])],
+            "first_trigger_step": {k.removeprefix("terminal/"): int(np.flatnonzero(v)[0])+1 if np.any(v) else None for k, v in arrays.items() if k.startswith("terminal/")},
             "mean_velocity": arrays["velocity"].mean(0).tolist(),
             "linear_rmse": float(np.sqrt(np.mean(np.sum((arrays["velocity"][:, :2] - np.asarray(args.command[:2])) ** 2, axis=1)))),
             "mean_yaw_rate": float(arrays["gyro"][:, 2].mean()),

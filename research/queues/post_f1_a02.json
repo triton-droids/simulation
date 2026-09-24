@@ -1,0 +1,136 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_a02/queue",
+  "max_wall_seconds": 5400,
+  "jobs": [
+    {
+      "id": "reset6000",
+      "hypothesis": "Decompose actual termination into contact, inversion and nonfinite causes, with exact done parity at each transition.",
+      "evidence": "A01 inference action difference0; nominal screen passes, random fails, full jobs skipped. D09 high-pelvis termination warrants identifying contact sensors before curriculum work.",
+      "review_artifact": "results/post_f1_a02/reset6000/summary.json",
+      "stages": [
+        {
+          "id": "C10_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c10/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a02/reset6000",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C10",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6000",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "full"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a02/reset6000"
+          ],
+          "required_paths": [
+            "results/post_f1_a02/reset6000/summary.json",
+            "results/post_f1_a02/reset6000/C10_trace.npz",
+            "results/post_f1_a02/reset6000/oracle_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "reset6002",
+      "hypothesis": "Decompose actual termination into contact, inversion and nonfinite causes, with exact done parity at each transition.",
+      "evidence": "A01 inference action difference0; nominal screen passes, random fails, full jobs skipped. D09 high-pelvis termination warrants identifying contact sensors before curriculum work.",
+      "review_artifact": "results/post_f1_a02/reset6002/summary.json",
+      "stages": [
+        {
+          "id": "C10_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c10/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a02/reset6002",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C10",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6002",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "full"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a02/reset6002"
+          ],
+          "required_paths": [
+            "results/post_f1_a02/reset6002/summary.json",
+            "results/post_f1_a02/reset6002/C10_trace.npz",
+            "results/post_f1_a02/reset6002/oracle_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "reset6014",
+      "hypothesis": "Decompose actual termination into contact, inversion and nonfinite causes, with exact done parity at each transition.",
+      "evidence": "A01 inference action difference0; nominal screen passes, random fails, full jobs skipped. D09 high-pelvis termination warrants identifying contact sensors before curriculum work.",
+      "review_artifact": "results/post_f1_a02/reset6014/summary.json",
+      "stages": [
+        {
+          "id": "C10_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c10/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a02/reset6014",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C10",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6014",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "full"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a02/reset6014"
+          ],
+          "required_paths": [
+            "results/post_f1_a02/reset6014/summary.json",
+            "results/post_f1_a02/reset6014/C10_trace.npz",
+            "results/post_f1_a02/reset6014/oracle_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    }
+  ]
+}

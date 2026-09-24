@@ -389,3 +389,11 @@ screens, labels screening as non-final, and fails closed on missing evidence.
 Six adapter bookkeeping/observation tests and16 Linux queue tests passed.
 Next wake must review A01 and continue the audit decision sequence before any
 training. This supersedes automatic local parameter-tweak continuation.
+
+## A01 reviewed; A02 terminal-cause audit
+Inference parity exact; real screening rejects random starts and skips all full
+jobs. A02 follows the predeclared zero-training diagnostic in PIPELINE_AUDIT_A01.md:
+C10/reference paired trajectories at6000/6002/6014,500 steps,90-minute cap.
+Read cause/attitude/contact evidence before deciding any training recipe.
+Diagnostic helper test and script syntax pass; actual done parity is asserted
+throughout the queued rollouts. Preserve failures and final validation criteria.
