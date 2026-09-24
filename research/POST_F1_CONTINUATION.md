@@ -360,3 +360,21 @@ plus36 additional forward rows,5-hour queue cap. Compare C11 matched control
 and C10; no unchanged extension if survival stalls. All gates and failure rows
 retained. No runner logic changed; JSON, parent/budget/reset/override checks and
 diff check required. No final success until frozen fresh-three-seed validation.
+
+## C15 outcome and C16 freeze
+C15 all24 nominal episodes survive, but stand yaw .17282 exceeds .15 gate.
+Randomized16/24,mean350.708,linear/yaw .41704/.24577; every6002 fails.
+Additional forward11/12;6014 fails53. Sampled nominal combined6000 and
+forward6010 frames show upright stepping. Damping did not fix recovery;
+reject extension. Repeated reward/reset variants now plateau on the same starts.
+C16 tests exploration rather than another reward coefficient: entropy_cost
+.005 to .02, from C10 checkpoint1003520, seed11,1003520 steps. Restore
+C11 ordinary resets and reward recipe, including ang_vel_xy-.15. Same lr1e-4,
+gamma.995,horizon500. Compare C11 matched parent/budget and C10 baseline.
+C15 final policy mean std .355, min .0315; this does NOT establish entropy
+collapse. Hypothesis is escaping persistent local behavior; risk is degraded
+precision/stability. No reward-only selection or automatic unchanged extension.
+Frozen commands research/queues/post_f1_c16.json, original144 evaluation rows
+plus36 additional forward rows,5-hour cap. Preserve all final criteria and
+fresh-three-seed requirements. No runner logic changed; validate JSON, single
+parameter change versus C11 training argv, parent/budget/fresh paths and diff.
