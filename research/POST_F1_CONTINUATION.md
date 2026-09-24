@@ -484,3 +484,8 @@ S01 trains a standing specialist from scratch for3,010,560steps to test a
 prerequisite for possible separate policy branches. Original48-row screen retains
 movement tests; specialist success alone is never a locomotion/full gate pass.
 See audit for bounded budget,old C07 distinction and decision rules.
+
+## S01 closed; A07 frozen
+Nominal feet stay planted but yaw fails; randomized standing0/4 survives. No
+specialist promotion/extension. A07 collects two unmodified saved-policy traces
+to assess temporal action/yaw motion and terminal causes before redesign.

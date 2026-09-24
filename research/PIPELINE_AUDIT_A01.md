@@ -462,3 +462,36 @@ claim. Final recipe must independently train every component for three fresh
 predetermined seeds and fresh held-out tests and pass all original numeric,
 control-superiority,standing,gait and visual gates. Nothing is waived.
 S01 verification: plan validation, fixed checkpoint/monitor/initialization assertions and output-video path checks passed; no runner/model logic changed.
+
+
+## S01 prerequisite fails; A07 frozen temporal-control diagnostic
+S01 all4 nominal stand rows survive500,height>=.75495,linear.02686-.02771,
+single-support fraction0, but yaw.18969-.20972 fails. All4 randomized stand rows
+terminate at34/24/44/41 (6000/6001/6002/6014),minheight.69081/.65808/.63081/.56666;
+linear.492-.726,yaw.413-.585. Forward rows also fail; full jobs skipped. Sampled
+nominal stand frames show planted feet,random forward frames show backwards fall.
+No specialist promotion or controller switch. Close3.01M probe, no unchanged
+extension. Internal evaluation mean lengths53,39,29,35,41,66,121,99 show incomplete
+recovery,not convergence or proof standing cannot be learned. Final checkpoint
+retained; do not pick earlier internal peak. S01 differs qualitatively from
+walking-in-place B07, yet yaw precision remains unresolved.
+Existing B07 A05 nominal last250 yaw spectrum(Hann,demeaned,50Hz) has54.8% power
+above5Hz; B04 A04 has44.6%. Action per-channel delta RMS .20093/.15943. These
+are correlations,not established causes. Need same trace for planted-foot S01.
+A07 freezes TWO zero-training unmodified deterministic S01 final3010560 stand
+trajectories: nominal6000/random6002,500steps cap,original resets and terminal
+rules. Existing compare script saves actions,gyro,positions,contacts,reward and
+terminal signals. No phase intervention,filter,oracle or completed training rerun.
+Plan research/queues/post_f1_a07.json;90-minute queue cap,40-minute stage caps.
+Review terminal causes,whole/first100/last250 errors; shortened traces are not
+settled windows. Compare settled nominal yaw mean/variance,single-support,action
+first-difference RMS,Hann spectral power above5Hz and dominant frequency against
+saved B07/B04 traces (no reruns). High-frequency action/body motion while feet
+remain planted motivates testing temporal actuator-target regularization with
+matched training/evaluation; it does not justify an inference-only filter.
+Prospective evidence rule: S01 nominal500steps,support fraction<.1,>50% demeaned
+yaw spectral power above5Hz and action delta RMS>.1 supports ONE bounded matched
+temporal-control experiment. If absent, do not add smoothing speculatively;
+use measured failure cause to select a different specific diagnostic/design.
+Randomized terminal evidence must inform recovery risks of any added latency.
+Original full gates and three fresh independent seeds/held-out tests unchanged.
