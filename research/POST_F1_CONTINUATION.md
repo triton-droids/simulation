@@ -343,3 +343,20 @@ contact/attitude timing and tracking before selecting another training change.
 Existing diagnostic implementation reused unchanged; JSON/path checks performed.
 Diagnostic results cannot count as numeric gate success or replace any failed
 reset. All original full-grid/control/video and fresh-three-seed gates remain.
+
+## D09 outcome and C15 freeze
+C14 forward6002/6014 terminates32/73 steps; reference survives500 each.
+No raw action saturation. First20-step roll/pitch gyro component RMS:
+C14 .7726/.8649 versus reference .4415/.6976. Orientation costs are also
+larger early; these comparisons suggest damping, not proof of causal mechanism.
+D09 produces numeric traces rather than new videos; C14 gait samples were
+reviewed previously. Reference trajectories remain diagnostic only, never labels.
+C15 changes ang_vel_xy penalty -.15 to-.75 from C10 parent1003520, with
+ordinary randomized training resets (candidate1). All other C11 matched settings
+remain: seed11,1003520 steps,lr1e-4,gamma.995,orientation-4,termination-100,
+500-step horizon. No yaw penalty change. Risk: suppressing useful recovery motion.
+Commands frozen in research/queues/post_f1_c15.json; original144 evaluation rows
+plus36 additional forward rows,5-hour queue cap. Compare C11 matched control
+and C10; no unchanged extension if survival stalls. All gates and failure rows
+retained. No runner logic changed; JSON, parent/budget/reset/override checks and
+diff check required. No final success until frozen fresh-three-seed validation.
