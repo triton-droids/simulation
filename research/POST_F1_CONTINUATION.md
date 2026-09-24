@@ -446,3 +446,9 @@ Both random screens pass; phase gating improves yaw but nominal stand .156/.167
 still fails .15. B04 matched existing stand penalty-3 vs-1 from same B03phase
 parent,one1003520-step run each,all gates unchanged. See audit/queue for exact
 budget and prospective rejection. No full or three-seed pass yet.
+
+## B04 closed; A04 standing diagnostic
+Stronger pose penalty worsened yaw; control still fails standing. No full pass.
+A04 freezes four zero-training stand trajectories (local/reference, nominal/random)
+to separate settling from persistent oscillation before another training hypothesis.
+See PIPELINE_AUDIT_A01.md for budget and decision rules; no gate changes.

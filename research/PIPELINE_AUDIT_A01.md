@@ -260,3 +260,29 @@ thresholds or call passing random screening final validation. If neither clears
 nominal standing,close this coefficient test and reassess mechanism; no blind
 weight escalation or automatic unchanged extension. Fresh independent3-seed
 validation required after any full development pass.
+
+
+## B04 rejected; A04 frozen standing mechanism diagnostic
+Both arms survive all16 screening episodes. Stand3 nominal worst stand linear/yaw
+.16223/.29223 and random mean/worst yaw .25906/.36578 fail. Control passes random
+screen but nominal stand .15420/.18109 fails. All full evaluations skipped.
+Sampled frames from both nominal stand and random forward videos show ongoing
+zero-command stepping and upright forward stepping. This is not final visual
+validation. Close this stand-pose coefficient hypothesis; no weight escalation.
+A04 uses zero training steps: fixed B04control final1003520, stand command0,0,0,
+seed6000 nominal and randomized original resets,500 steps each, deterministic.
+Compare each to the verified reference in the same MJX task (4 trajectories total).
+Plan: research/queues/post_f1_a04.json;90-minute queue cap;40-minute stage caps.
+No physics/reward/inference changes, no fitting to reference actions. Record mean
+velocity versus oscillatory variance, contacts/phase, action saturation and weighted
+reward terms. Compare first100 and last250 steps to distinguish initial settling
+from persistent motion; verify zero-command phase reward is actually zero.
+Decision: an observed parity/implementation defect requires its smallest verified
+repair; otherwise persistent stepping with phase reward zero motivates considering
+one matched mixed-command standing-exposure test (not coefficient escalation).
+If error is confined to initial settling, target recovery/transients instead. Do
+not launch either training hypothesis until traces support it and a budget is
+frozen. No claim that reference shares our training architecture. All original
+screen/full/standing/control/gait gates remain unchanged; diagnostic windows do
+not replace whole-episode scoring. Three fresh independent seeds/held-out grid
+still required after a full development pass. Retain all failures.

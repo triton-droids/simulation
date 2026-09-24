@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_a04/queue",
+  "max_wall_seconds": 5400,
+  "jobs": [
+    {
+      "id": "nominal",
+      "hypothesis": "Separate persistent zero-command oscillation from initial settling before further training.",
+      "evidence": "B04 stand-pose penalty escalation failed; both arms survive but continue stepping at zero command.",
+      "review_artifact": "results/post_f1_a04/nominal/summary.json",
+      "stages": [
+        {
+          "id": "stand_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_b04/control/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a04/nominal",
+            "--steps",
+            "500",
+            "--policy-label",
+            "B04control",
+            "--command",
+            "0",
+            "0",
+            "0",
+            "--seed",
+            "6000",
+            "--evaluation-reset"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a04/nominal"
+          ],
+          "required_paths": [
+            "results/post_f1_a04/nominal/summary.json",
+            "results/post_f1_a04/nominal/B04control_trace.npz",
+            "results/post_f1_a04/nominal/oracle_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "randomized",
+      "hypothesis": "Separate persistent zero-command oscillation from initial settling before further training.",
+      "evidence": "B04 stand-pose penalty escalation failed; both arms survive but continue stepping at zero command.",
+      "review_artifact": "results/post_f1_a04/randomized/summary.json",
+      "stages": [
+        {
+          "id": "stand_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_b04/control/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a04/randomized",
+            "--steps",
+            "500",
+            "--policy-label",
+            "B04control",
+            "--command",
+            "0",
+            "0",
+            "0",
+            "--seed",
+            "6000",
+            "--evaluation-reset",
+            "--randomized-reset"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a04/randomized"
+          ],
+          "required_paths": [
+            "results/post_f1_a04/randomized/summary.json",
+            "results/post_f1_a04/randomized/B04control_trace.npz",
+            "results/post_f1_a04/randomized/oracle_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    }
+  ]
+}
