@@ -452,3 +452,8 @@ Stronger pose penalty worsened yaw; control still fails standing. No full pass.
 A04 freezes four zero-training stand trajectories (local/reference, nominal/random)
 to separate settling from persistent oscillation before another training hypothesis.
 See PIPELINE_AUDIT_A01.md for budget and decision rules; no gate changes.
+
+## A04 reviewed; B05 frozen
+Persistent stepping remains despite zero phase reward; reference also fails stand precision.
+B05 matched30% versus10% standing command exposure,1,003,520steps per arm,
+same B04control parent. Original screens/full gates retained; see audit for rejection rule.

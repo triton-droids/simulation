@@ -286,3 +286,29 @@ frozen. No claim that reference shares our training architecture. All original
 screen/full/standing/control/gait gates remain unchanged; diagnostic windows do
 not replace whole-episode scoring. Three fresh independent seeds/held-out grid
 still required after a full development pass. Retain all failures.
+
+
+## A04 reviewed; B05 mixed standing exposure frozen
+All four diagnostic trajectories survive500. Local phase reward is exactly zero,
+no action saturation. Nominal first100/last250 linear RMSE .13695/.13517,
+yaw .20117/.14655; final mean lateral velocity-.06280, yaw mean.02132/std.14499,
+single support.828. Random final250 is similar (.13414/.14488, support.828).
+Persistent stepping/oscillation remains, while reset transients add error. Reference
+also keeps stepping and fails standing precision (nominal final linear/yaw
+.18990/.18762); it is not a standing target or label source. No newly found defect.
+Do not replace whole-episode gates with favorable settled windows.
+B05 compares30% zero commands versus original10%, same B04control final1003520,
+seed11,1003520steps each,lr1e-4,gamma.97,phase gatingtrue,stand penalty-1.
+Original moving command ranges, rewards, reset distribution unchanged. Uses pinned
+upstream sampler's fourth random key with larger Bernoulli threshold; preserves
+all retained moving samples and default10% behavior. Applies on reset and command
+resampling through the upstream method. Held-command evaluation remains unchanged.
+Hypothesis: more mixed standing exposure reduces persistent stepping without
+forgetting movement. This is not the old zero-command-only training pilot.
+Total2,007,040 new steps,8-hour queue cap,original48-row screens and conditional
+180 full evaluations per arm; true untrained reference B01checkpoint0. Restore
+parity mandatory. If neither clears nominal standing without recovery/moving
+regression, close this exposure hypothesis; no automatic unchanged extension or
+probability sweep. Both arms reviewed, never select reward alone. Full original
+control/gait gates and three fresh training seeds/held-out grid remain mandatory.
+B05 verification:16 adapter tests passed; additional real pinned upstream sampler test passed, confirming30% exposure and exact retained moving samples. Queue validation,paired argv assertion and diff checks passed.

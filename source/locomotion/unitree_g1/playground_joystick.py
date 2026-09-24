@@ -53,6 +53,13 @@ def contact_phase_reward(contact: jax.Array, phase: jax.Array, command: jax.Arra
     return alignment * single_support * (jp.linalg.norm(command) > 0.01)
 
 
+def standing_command_sampler(rng, *, original, probability):
+    """Increase upstream's zero-command probability using its same fourth key."""
+    command = original(rng)
+    zero_key = jax.random.split(rng, 4)[3]
+    return jp.where(jax.random.bernoulli(zero_key, p=probability), jp.zeros_like(command), command)
+
+
 class Joystick:
     """Repository-facing wrapper around the exact pinned Playground G1 task."""
 
@@ -140,6 +147,13 @@ class Joystick:
         self._narrow_feet_scale = float(getattr(cfg.reward_scales, "narrow_feet", 0.0))
         self._mjx_env_module = mjx_env_module
         self._env = joystick_module.Joystick(task="flat_terrain", config=effective)
+        stand_probability = float(getattr(cfg.playground, "standing_command_probability", 0.1))
+        if not 0.1 <= stand_probability <= 1.0:
+            raise ValueError("Standing command probability must be in [0.1, 1]")
+        if stand_probability != 0.1:
+            self._env.sample_command = functools.partial(
+                standing_command_sampler, original=self._env.sample_command,
+                probability=stand_probability)
         # Playground's default fast auto-reset restores only data/observations
         # and deliberately carries transition history across episodes.  That
         # makes the command, phase, contact, and action history disagree with
@@ -163,6 +177,9 @@ class Joystick:
                 "preserve Brax terminal and timeout bookkeeping through full reset",
             ],
         }
+        self.effective_config["standing_command_probability"] = stand_probability
+        if stand_probability != 0.1:
+            self.source_record["adaptations"].append("increase sampled zero-command exposure using upstream RNG key")
         if self._feet_contact_phase_scale != 0.0:
             self.effective_config["local_reward_scales"] = {
                 "feet_contact_phase": self._feet_contact_phase_scale,

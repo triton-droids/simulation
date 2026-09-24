@@ -59,6 +59,7 @@ class G1PlaygroundMJXConfig(G1MJXConfig):
         recovery_reset_candidates: int = 1
         reset_disturbance_scale: float = 1.0
         phase_reward_command_only: bool = False
+        standing_command_probability: float = 0.1
 
     reward_scales: RewardScales = field(default_factory=RewardScales)
     commands: CommandsConfig = field(default_factory=CommandsConfig)

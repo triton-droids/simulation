@@ -361,3 +361,39 @@ def test_command_only_phase_reward_removes_exact_term_only_when_stopped():
         result = adapter.step(state, jp.zeros(29))
         assert float(result.reward) == pytest.approx(expected)
         assert float(result.metrics["reward/feet_phase"]) == (0. if expected < .5 else 2.)
+
+
+def test_standing_command_sampler_preserves_moving_samples():
+    from source.locomotion.unitree_g1.playground_joystick import standing_command_sampler
+    import jax
+    import jax.numpy as jp
+    import numpy as np
+    def original(key):
+        a,b,c,z = jax.random.split(key,4)
+        cmd = jp.array([jax.random.uniform(a),jax.random.uniform(b),jax.random.uniform(c)])
+        return jp.where(jax.random.bernoulli(z,p=0.1),jp.zeros(3),cmd)
+    keys = jax.random.split(jax.random.PRNGKey(19),10000)
+    baseline = jax.jit(jax.vmap(original))(keys)
+    def sample(p):
+        return jax.jit(jax.vmap(lambda k: standing_command_sampler(k,original=original,probability=p)))(keys)
+    np.testing.assert_array_equal(sample(0.1),baseline)
+    increased = np.asarray(sample(0.3)); moving=np.any(increased!=0,axis=1)
+    np.testing.assert_array_equal(increased[moving],np.asarray(baseline)[moving])
+    assert 0.28 < np.mean(~moving) < 0.32
+    assert np.all(increased[np.all(np.asarray(baseline)==0,axis=1)]==0)
+    assert np.all(np.asarray(sample(1.0))==0)
+
+
+def test_real_upstream_standing_sampler_override():
+    import numpy as np
+    cfg = OmegaConf.structured(G1PlaygroundMJXConfig())
+    cfg.playground.fetch_source = False
+    cfg.playground.standing_command_probability = 0.3
+    env = Joystick("unitree_g1", UnitreeG1Model(fetch=False), "flat", cfg)
+    keys = jax.random.split(jax.random.PRNGKey(71),10000)
+    sample = jax.jit(jax.vmap(env._env.sample_command))(keys)
+    original = jax.jit(jax.vmap(env._env.sample_command.keywords["original"]))(keys)
+    moving = np.any(np.asarray(sample)!=0,axis=1)
+    assert 0.28 < np.mean(~moving) < 0.32
+    np.testing.assert_array_equal(np.asarray(sample)[moving],np.asarray(original)[moving])
+    assert env.effective_config["standing_command_probability"] == 0.3
