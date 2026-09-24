@@ -128,6 +128,9 @@ class Joystick:
         self._recovery_reset_candidates = int(getattr(cfg.playground, "recovery_reset_candidates", 1))
         if not 1 <= self._recovery_reset_candidates <= 8:
             raise ValueError("Reset candidates must be between 1 and 8")
+        self._reset_disturbance_scale = float(getattr(cfg.playground, "reset_disturbance_scale", 1.0))
+        if not 0.0 <= self._reset_disturbance_scale <= 1.0:
+            raise ValueError("Reset disturbance scale must be in [0, 1]")
         # Old saved configs have no local shaping field and remain unchanged.
         self._feet_contact_phase_scale = float(getattr(cfg.reward_scales, "feet_contact_phase", 0.0))
         self._mjx_env_module = mjx_env_module
@@ -198,9 +201,14 @@ class Joystick:
         info = dict(state.info)
         metrics = dict(state.metrics)
         data = state.data
-        if not self._reset_randomized:
-            qpos = self._env._init_q
-            qvel = jp.zeros(self.nv)
+        if not self._reset_randomized or self._reset_disturbance_scale != 1.0:
+            if not self._reset_randomized:
+                qpos = self._env._init_q
+                qvel = jp.zeros(self.nv)
+            else:
+                scale = self._reset_disturbance_scale
+                qpos = data.qpos.at[7:].set(self._env._init_q[7:] + scale * (data.qpos[7:] - self._env._init_q[7:]))
+                qvel = data.qvel * scale
             data = self._mjx_env_module.make_data(
                 self._env.mj_model,
                 qpos=qpos,

@@ -54,6 +54,8 @@ def main():
     cfg = OmegaConf.load(args.run_dir / "resolved_config.json")
     if "recovery_reset_candidates" in cfg.sim.playground:
         cfg.sim.playground.recovery_reset_candidates = 1
+    if "reset_disturbance_scale" in cfg.sim.playground:
+        cfg.sim.playground.reset_disturbance_scale = 1.0
     cfg.robot.fetch_model = False
     cfg.sim.playground.fetch_source = False
     cfg.sim.reset.randomize = args.randomized_reset

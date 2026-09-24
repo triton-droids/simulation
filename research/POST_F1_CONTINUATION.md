@@ -397,3 +397,11 @@ C10/reference paired trajectories at6000/6002/6014,500 steps,90-minute cap.
 Read cause/attitude/contact evidence before deciding any training recipe.
 Diagnostic helper test and script syntax pass; actual done parity is asserted
 throughout the queued rollouts. Preserve failures and final validation criteria.
+
+## A02 reviewed; P01 early curriculum versus matched control
+Both difficult starts terminate through foot-foot contact; ordinary survives.
+See PIPELINE_AUDIT_A01.md for full frozen pilot settings/budget/decision point.
+P01 has two fresh seed11 development arms,each3010560 steps in three equal
+stages,only reset disturbance schedule differs.96 screening rows total; full
+evaluation conditional. No final gate weakened. Test real reset endpoints and
+observation coherence before launch; preserve scale1 behavior for evaluation.

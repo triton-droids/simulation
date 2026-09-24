@@ -56,6 +56,7 @@ class G1PlaygroundMJXConfig(G1MJXConfig):
         fetch_source: bool = True
         implementation: str = "jax"
         recovery_reset_candidates: int = 1
+        reset_disturbance_scale: float = 1.0
 
     reward_scales: RewardScales = field(default_factory=RewardScales)
     commands: CommandsConfig = field(default_factory=CommandsConfig)
