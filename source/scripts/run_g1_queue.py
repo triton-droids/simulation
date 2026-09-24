@@ -125,6 +125,13 @@ def assess_gate(csv_path, gate):
             'mean_yaw_rmse': sum(float(r['yaw_rate_rmse']) for r in trained) / len(trained)}
 
 
+def screening_allows(job, completed):
+    """Fail closed: only a completed screening pass can unlock dependent work."""
+    by_id = {item['id']: item for item in completed}
+    return all(by_id.get(key, {}).get('status') == 'screening_passed'
+               for key in job.get('requires_screening', []))
+
+
 def stop_process(process):
     if process.poll() is not None:
         return
@@ -192,6 +199,12 @@ def validate_plan(plan, root):
             raise ValueError('Job needs exactly one assessment source')
         if 'review_artifact' in job:
             local_path(root, job['review_artifact'])
+        for dependency in job.get('requires_screening', []):
+            previous = next((j for j in plan['jobs'] if j['id'] == dependency), None)
+            if dependency not in ids or not previous.get('screening_only', False):
+                raise ValueError('Screen dependencies must reference earlier screening jobs')
+        if job.get('screening_only') and ('gate' not in job or 'episodes_csv' not in job):
+            raise ValueError('Screening requires complete declared CSV evidence and gate')
         ids.append(job['id'])
         stage_ids = []
         for stage in job['stages']:
@@ -242,6 +255,11 @@ def main():
         deadline = time.monotonic() + plan['max_wall_seconds']
         try:
             for job in plan['jobs']:
+                if not screening_allows(job, state['jobs']):
+                    state['jobs'].append({'id': job['id'], 'status': 'skipped_screening',
+                                          'requires_screening': job['requires_screening']})
+                    publish()
+                    continue
                 job_output = output / job['id']
                 job_output.mkdir()
                 current = {'id': job['id'], 'status': 'running'}
@@ -257,7 +275,12 @@ def main():
                     current['status'] = 'needs_review'
                 else:
                     current['assessment'] = assess_gate(local_path(ROOT, job['episodes_csv']), job['gate'])
-                    current['status'] = 'needs_visual_review' if current['assessment']['outcomes']['pass']['passed'] else 'numeric_gate_failed'
+                    passed = current['assessment']['outcomes']['pass']['passed']
+                    if job.get('screening_only', False):
+                        current['assessment']['full_validation'] = False
+                        current['status'] = 'screening_passed' if passed else 'screening_rejected'
+                    else:
+                        current['status'] = 'needs_visual_review' if passed else 'numeric_gate_failed'
                 publish()
             state['status'] = 'needs_review'
         except BaseException as error:

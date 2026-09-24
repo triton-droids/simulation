@@ -1,7 +1,7 @@
 # Unattended G1 experiments
 
-Active queue: `research/queues/post_f1_c16.json`. Read only
-`results/post_f1_c16/queue/status.json` first. Current authorization:
+Active queue: `research/queues/post_f1_a01.json`. Read only
+`results/post_f1_a01/queue/status.json` first. Current authorization:
 `research/POST_F1_CONTINUATION.md`. Hourly minimal checks; continue bounded
 research until one frozen recipe passes three fresh independent seeds.
 Diagnostic-only jobs may use `review_artifact` instead of a CSV gate;
@@ -89,3 +89,10 @@ all process-group tests; other hosts skip those tests. Coverage includes actual
 child failure, timeout/termination, missing output, no-overwrite, incomplete
 metric writes, KL transients, nonfinite values, malformed evaluation sets,
 strict height gates and separating extension eligibility from success.
+
+## Staged development screening
+Screening jobs declare screening_only=true. Dependent jobs declare
+requires_screening with earlier screen IDs; only screening_passed unlocks them.
+Rejected screens skip dependent evaluation, preserve evidence, and cannot count
+as full validation. Missing/nonfinite evidence remains an execution error.
+See research/PIPELINE_AUDIT_A01.md for the frozen screen and strategy.

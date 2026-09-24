@@ -378,3 +378,14 @@ Frozen commands research/queues/post_f1_c16.json, original144 evaluation rows
 plus36 additional forward rows,5-hour cap. Preserve all final criteria and
 fresh-three-seed requirements. No runner logic changed; validate JSON, single
 parameter change versus C11 training argv, parent/budget/fresh paths and diff.
+
+## C16 verdict and authorized strategy change
+C16 randomized12/24 and additional forward10/12; nominal tracking gates fail.
+No extension. See research/PIPELINE_AUDIT_A01.md for source-backed audit,
+remaining uncertainties, frozen48-row staged screening, and hypothesis budgets.
+A01 runs saved C10 inference parity and real screening with conditionally gated
+full evaluation, zero training. Runner now skips dependent jobs after rejected
+screens, labels screening as non-final, and fails closed on missing evidence.
+Six adapter bookkeeping/observation tests and16 Linux queue tests passed.
+Next wake must review A01 and continue the audit decision sequence before any
+training. This supersedes automatic local parameter-tweak continuation.

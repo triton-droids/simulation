@@ -8,7 +8,7 @@ import tempfile
 import time
 import unittest
 
-from source.scripts.run_g1_queue import assess_gate, execute_stage, local_path, metrics_health, source_is_clean, validate_plan
+from source.scripts.run_g1_queue import assess_gate, execute_stage, local_path, metrics_health, source_is_clean, validate_plan, screening_allows
 
 
 class QueueTests(unittest.TestCase):
@@ -23,6 +23,18 @@ class QueueTests(unittest.TestCase):
         p.write_text(''.join(json.dumps({'event': 'metrics', 'step': step,
                      'metrics': {'training/kl_mean': value}}) + '\n' for step, value in values) + tail)
         return metrics_health(p, self.monitor)
+
+    def test_screen_dependencies_fail_closed(self):
+        job = {'requires_screening': ['screen']}
+        for status in ['screening_rejected', 'error', 'needs_review', 'needs_visual_review']:
+            self.assertFalse(screening_allows(job, [{'id': 'screen', 'status': status}]))
+        self.assertFalse(screening_allows(job, []))
+        self.assertTrue(screening_allows(job, [{'id': 'screen', 'status': 'screening_passed'}]))
+
+    def test_screen_rejects_future_or_non_screen_dependency(self):
+        plan=json.loads((Path(__file__).resolve().parents[1]/'research/queues/c16_balance.json').read_text())
+        plan['jobs'][0]['requires_screening']=['missing']
+        with self.assertRaises(ValueError): validate_plan(plan,self.root)
 
     def test_transient_and_partial_write(self):
         self.assertEqual(self.metrics([(0, 0), (100, .8), (200, .04)], '{'), (None, 200))
@@ -127,13 +139,24 @@ class QueueTests(unittest.TestCase):
             review_artifact='results/diagnostic.json', stages=[dict(id='diagnostic',
             argv=['-c', "from pathlib import Path;Path('results/diagnostic.json').write_text('{}')"],
             fresh_paths=['results/diagnostic.json'], required_paths=['results/diagnostic.json'], timeout_seconds=30)]))
+        import copy
+        screen=copy.deepcopy(job)
+        screen['id']='screen';screen['screening_only']=True
+        screen['episodes_csv']='results/screen/episodes.csv'
+        screen['stages']=json.loads(json.dumps(screen['stages']).replace('results/eval','results/screen'))
+        screen['gate']['outcomes']['pass']=[dict(name='forced rejection',aggregate='min',metric='episode_steps',min=501)]
+        plan['jobs'].append(screen)
+        blocked=copy.deepcopy(plan['jobs'][1]);blocked['id']='blocked'
+        blocked['requires_screening']=['screen']
+        blocked=json.loads(json.dumps(blocked).replace('results/diagnostic.json','results/blocked.json'))
+        plan['jobs'].append(blocked)
         p=self.root/'plan.json';p.write_text(json.dumps(plan))
         for args in (['init','-q'],['add','.'],['-c','user.name=Queue Test','-c','user.email=test@example.invalid','commit','-qm','fixture']):
             subprocess.run(['git','-c','core.autocrlf=true']+args,cwd=self.root,check=True,capture_output=True)
         # Windows checkout line endings are not a semantic source change.
         (self.root/'crlf_fixture.txt').write_bytes(b'unchanged content\r\n')
         command=[sys.executable,str(runner),'--plan',str(p)]
-        first=subprocess.run(command,cwd=self.root,capture_output=True,text=True,timeout=45)
+        first=subprocess.run(command,cwd=self.root,capture_output=True,text=True,timeout=75)
         self.assertEqual(first.returncode,0,first.stderr)
         status_path=self.root/'results/queue/status.json'
         before=status_path.read_bytes()
@@ -141,6 +164,10 @@ class QueueTests(unittest.TestCase):
         self.assertEqual(status['status'],'needs_review')
         self.assertEqual(status['jobs'][0]['status'],'needs_visual_review')
         self.assertTrue(status['plan_sha256'])
+        self.assertEqual(status['jobs'][2]['status'],'screening_rejected')
+        self.assertFalse(status['jobs'][2]['assessment']['full_validation'])
+        self.assertEqual(status['jobs'][3]['status'],'skipped_screening')
+        self.assertFalse((self.root/'results/blocked.json').exists())
         self.assertEqual(status['jobs'][1]['status'], 'needs_review')
         self.assertFalse(status['jobs'][1]['assessment']['numeric_gate_evaluated'])
         second=subprocess.run(command,cwd=self.root,capture_output=True,text=True,timeout=10)
