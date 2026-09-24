@@ -467,3 +467,8 @@ B06 matched zero-command yaw-rate cost-1 versus0, same B05control parent,
 Yaw damping fails standing yaw; no extension. Objective review finds air-time
 reward remains positive at zero command. B07 tests command-only air-time gating
 versus control,1,003,520steps each; exact budget/stop rules in audit.
+
+## B07 closed; A05 structural diagnostic
+Both arms fail standing; control also loses one randomized survivor. No further
+reward-mask tuning. A05 runs six zero-training phase-input interventions/baselines
+on a frozen policy; diagnostic only, never a gate pass. See audit for decision.

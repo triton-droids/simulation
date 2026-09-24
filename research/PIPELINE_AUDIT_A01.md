@@ -364,3 +364,33 @@ requires a bounded structural diagnostic. Reject stand gains with recovery/movin
 regression. Full original numeric/control/visual gates and three fresh independent
 training seeds plus held-out tests remain required; screens are not full passes.
 B07 verification:4 focused tests passed; real MJX smoke exercised nonzero air-time removal and unchanged moving reward/physics/termination (results/b07_airtime_smoke.log). Queue validation,paired argv equality and diff checks passed.
+
+
+## B07 closed; A05 frozen phase-input structural diagnostic
+B07 air-time gate survives16/16 and passes random numeric screen; nominal stand
+linear.14940 passes but yaw.22611 fails. Control nominal linear/yaw.15394/.21222
+fails and random7/8 survives (mean444.875,min59,height.35746). All full evaluations
+skipped. Sampled stand/forward frames show residual stepping and upright ordinary
+forward motion, not final visual approval. Close objective-mask hypothesis; no
+further mask/coefficient sweep or unchanged extension. Retain failed control.
+A05 uses ZERO training: fixed B07airtime_gate final1003520, deterministic stand,
+nominal reset6000 and difficult random6002. Each gets unchanged input baseline,
+phase clamp0 and phase clamp pi/2: six500-step trajectories,3-hour queue cap,
+40-minute stage caps. No oracle rerun. Uses original physical resets/termination.
+Clamp ONLY raw phase observation indices99:103 before saved normalizer/inference,
+actor and privileged vectors consistently to cos/sin of antipodal phases. Actual
+simulator phase,reward,history,physics and contacts remain unchanged. DefaultNone
+is exact historical inference. This is an out-of-training-distribution diagnostic,
+not a candidate deployment mode or legitimate full validation pass.
+Record all six survival,height,linear/yaw errors,contacts and first100/last250
+motion metrics. No choosing favorable phase or seed. Evidence supporting a future
+standing-specific phase representation requires BOTH clamped angles on BOTH
+resets to retain500-step survival/height>.6,lower yaw RMSE by at least20% versus
+matched baseline, and linear RMSE no more than.02 worse. Even this only motivates
+one prospectively frozen training/evaluation-consistent representation experiment.
+If effects are angle-dependent or falls occur, do not promote an inference clamp;
+record sensitivity/inconclusiveness and design the cheapest specific alternative
+structural test. Failure cannot prove phase independence due distribution shift.
+All original whole-episode gates,full command/control/gait evaluation and three
+fresh independent training seeds/held-out tests remain unchanged and outstanding.
+A05 verification: jitted observation-intervention test passed for both angles, exact no-op default and all nonphase indices; queue validation and diff checks passed.

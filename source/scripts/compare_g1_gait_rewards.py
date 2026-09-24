@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from source.scripts import evaluate_g1 as ev
 from source.scripts import evaluate_playground_onnx as oracle
 from source.utils.g1_terminal_diagnostic import terminal_signals
+from source.utils.g1_phase_diagnostic import replace_policy_phase
 from brax.io import model
 from brax.training.agents.ppo import networks
 import jax
@@ -43,6 +44,7 @@ def main():
     parser.add_argument("--seed", type=int, default=2000)
     parser.add_argument("--stochastic-policy", action="store_true", help="Diagnostic only; final evaluation remains deterministic")
     parser.add_argument("--policy-seed", type=int, default=0)
+    parser.add_argument("--policy-phase-angle", type=float, default=None, help="Diagnostic only: clamp raw actor/critic phase input; simulator phase remains unchanged")
     parser.add_argument("--local-only", action="store_true", help="Avoid rerunning an already recorded oracle trajectory")
     parser.add_argument("--randomized-reset", action="store_true")
     parser.add_argument("--evaluation-reset", action="store_true",
@@ -52,6 +54,8 @@ def main():
     args = parser.parse_args()
     if not np.isfinite(args.command).all():
         parser.error("--command values must be finite")
+    if args.policy_phase_angle is not None and (not np.isfinite(args.policy_phase_angle) or not args.local_only):
+        parser.error("Phase intervention requires finite angle and --local-only")
     args.output_dir.mkdir(parents=True, exist_ok=False)
     start = time.perf_counter()
     cfg = OmegaConf.load(args.run_dir / "resolved_config.json")
@@ -149,7 +153,7 @@ def main():
         for index in range(args.steps):
             if controller != "oracle":
                 action_key = jax.random.fold_in(jax.random.PRNGKey(args.policy_seed), index) if args.stochastic_policy else jax.random.PRNGKey(index)
-                action = policy(state.obs, action_key)[0]
+                action = policy(replace_policy_phase(state.obs, args.policy_phase_angle), action_key)[0]
             else:
                 action = jp.asarray(session.run(None, {"obs": np.asarray(state.obs["state"])[None]})[0][0])
             state = step(state, action)
@@ -190,6 +194,7 @@ def main():
         }
         print(controller, json.dumps(rows[controller]), flush=True)
     result = {"kind": "same_MJX_reward_diagnostic", "command": args.command,
+        "policy_phase_angle": args.policy_phase_angle, "full_validation": False,
         "run_dir": str(args.run_dir), "checkpoint": args.checkpoint,
         "policy_label": args.policy_label, "stochastic_policy": args.stochastic_policy, "policy_seed": args.policy_seed, "local_only": args.local_only,
         "phase_frequency_hz": float(np.asarray(state.info["phase_dt"])[0] / (2 * np.pi * env.dt)),
