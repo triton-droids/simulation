@@ -1,0 +1,13 @@
+{
+  "duration_s": 20,
+  "requested_shift_amplitude_rad": 0.24,
+  "peak_tilt_deg": 1.1586022049453935,
+  "peak_torque_Nm": 9.558346797193316,
+  "minimum_single_foot_normal_load_N": 30.430487708062707,
+  "left_load_fraction_range": [
+    0.19393690394276014,
+    0.806789079252678
+  ],
+  "end_root_height_m": 0.6721448952752738,
+  "note": "Feedback can reduce actual shift; this is not successful single-leg balancing."
+}

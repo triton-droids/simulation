@@ -1,0 +1,18 @@
+{
+  "fps": 30.0,
+  "duration_seconds": 6.0,
+  "constant_ground_lift_m": 0.0011387611868495726,
+  "sole_height_min_m": [
+    0.00020146101272051214,
+    0.0
+  ],
+  "sole_height_max_m": [
+    0.05120505764440699,
+    0.05257955368787729
+  ],
+  "ankle_limit_frame_fraction": [
+    0.0,
+    0.0
+  ],
+  "status": "Kinematic playback only; contact and actuator checks required before training."
+}

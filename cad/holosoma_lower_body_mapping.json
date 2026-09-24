@@ -1,0 +1,61 @@
+{
+  "status": "landmark geometry validated; solver adapter not yet run",
+  "source_format": "kimodo",
+  "robot_dof": 10,
+  "joints_mapping": {
+    "Hips": "retarget_pelvis",
+    "LeftLeg": "retarget_left_leg",
+    "LeftShin": "retarget_left_shin",
+    "LeftFoot": "retarget_left_foot",
+    "RightLeg": "retarget_right_leg",
+    "RightShin": "retarget_right_shin",
+    "RightFoot": "retarget_right_foot"
+  },
+  "foot_sticking_links": [
+    "retarget_left_foot",
+    "retarget_right_foot"
+  ],
+  "neutral_landmark_positions_m": {
+    "Hips": [
+      -0.005087000000000008,
+      -0.021495,
+      0.562401
+    ],
+    "LeftLeg": [
+      0.150452,
+      -0.021495,
+      0.562401
+    ],
+    "LeftShin": [
+      0.150452,
+      -0.021495,
+      0.291338
+    ],
+    "LeftFoot": [
+      0.16008,
+      -0.022,
+      0.016527999999999987
+    ],
+    "RightLeg": [
+      -0.16072300000000003,
+      -0.021495,
+      0.562401
+    ],
+    "RightShin": [
+      -0.16072300000000003,
+      -0.021495,
+      0.291338
+    ],
+    "RightFoot": [
+      -0.170351,
+      -0.022,
+      0.016527999999999987
+    ]
+  },
+  "notes": [
+    "No upper-body targets.",
+    "Marker bodies have no mass or joints.",
+    "Hip positions are derived from the existing XML, not new Fusion calibration.",
+    "Do not use this extra-body model to generate training body arrays; use the original model."
+  ]
+}

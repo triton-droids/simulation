@@ -1,0 +1,11 @@
+{
+  "left_foot_normal_load_fraction_range": [
+    0.38496664028570676,
+    0.6150487315001288
+  ],
+  "minimum_foot_normal_load_N": [
+    60.42539061804141,
+    60.42078613431822
+  ],
+  "notes": "Normal contact loads on the two named foot boxes, not a full center-of-pressure test."
+}

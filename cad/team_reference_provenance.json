@@ -1,0 +1,6 @@
+{
+  "git_ref": "876a87e2e213d4d753b3bd267e73105d8c3731ae",
+  "path": "logs/mujoco_playback/source_motion_refs/ch_robot_replay_qpos_demo_3_lafan30.npz",
+  "source_path": "/workspace/mujoco/cse-145-237d-humanoid-teleop/data/ch_robot_replay_qpos_demo_3.npz",
+  "status": "candidate only; not validated for current geometry or used for training"
+}

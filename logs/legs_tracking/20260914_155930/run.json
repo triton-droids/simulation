@@ -1,0 +1,5 @@
+{
+  "motion": "/home/thewheelneedsme/Projects/droids/simulation/cad/motions/calm91_contacts/walking_reference_50hz.npz",
+  "num_envs": 256,
+  "iterations": 1000
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "amplitude_rad": 0.08,
+    "duration_s": 20,
+    "left_load_fraction_range": [
+      0.37536357944375853,
+      0.6259058462306585
+    ],
+    "peak_tilt_deg": 0.049563152902564196,
+    "minimum_root_height_m": 0.6841625915317913,
+    "minimum_total_foot_load_N": 156.86392723152605,
+    "upright_at_end": true
+  },
+  {
+    "amplitude_rad": 0.12,
+    "duration_s": 20,
+    "left_load_fraction_range": [
+      0.36667218412804625,
+      0.6360376697523517
+    ],
+    "peak_tilt_deg": 0.07461511623901121,
+    "minimum_root_height_m": 0.6837666508590202,
+    "minimum_total_foot_load_N": 156.76980757476892,
+    "upright_at_end": true
+  },
+  {
+    "amplitude_rad": 0.16,
+    "duration_s": 20,
+    "left_load_fraction_range": [
+      0.32425781302292195,
+      0.6723915683835853
+    ],
+    "peak_tilt_deg": 0.24421754329624165,
+    "minimum_root_height_m": 0.6796592261435361,
+    "minimum_total_foot_load_N": 156.63815363226541,
+    "upright_at_end": true
+  },
+  {
+    "amplitude_rad": 0.2,
+    "duration_s": 20,
+    "left_load_fraction_range": [
+      0.18054512338121828,
+      0.7996635715685545
+    ],
+    "peak_tilt_deg": 0.8982339545738206,
+    "minimum_root_height_m": 0.6703155181626633,
+    "minimum_total_foot_load_N": 156.21500659977374,
+    "upright_at_end": true
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "test": "side_push",
+    "duration_s": 20,
+    "peak_tilt_deg": 0.056979634630397874,
+    "maximum_lateral_COM_shift_m": 0.004690183622069773,
+    "end_root_height_m": 0.6841632973806242,
+    "minimum_total_contacts_after_2s": 4,
+    "finite": true,
+    "upright_at_end": true
+  },
+  {
+    "test": "weight_shift",
+    "duration_s": 20,
+    "peak_tilt_deg": 0.04726755163903622,
+    "maximum_lateral_COM_shift_m": 0.005571566933350327,
+    "end_root_height_m": 0.6841953459591903,
+    "minimum_total_contacts_after_2s": 4,
+    "finite": true,
+    "upright_at_end": true
+  }
+]

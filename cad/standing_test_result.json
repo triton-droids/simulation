@@ -1,0 +1,11 @@
+{
+  "duration_s": 5,
+  "mass_kg": 15.999999999993,
+  "end_root_height_m": 0.06110846201654973,
+  "root_height_drop_m": 0.6234915379834503,
+  "end_tilt_degrees": 91.14442763829888,
+  "peak_actuator_torque_Nm": 9.196096193227548,
+  "end_contact_count": 5,
+  "finite": true,
+  "notes": "Zero joint targets, gravity enabled, no root support or balance feedback; limited baseline standing check."
+}

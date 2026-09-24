@@ -1,0 +1,29 @@
+{
+  "joint_names": [
+    "left_hip1_joint",
+    "left_hip2_joint",
+    "left_thigh_joint",
+    "left_knee_joint",
+    "left_ankle_joint",
+    "right_hip1_joint",
+    "right_hip2_joint",
+    "right_thigh_joint",
+    "right_knee_joint",
+    "right_ankle_joint"
+  ],
+  "body_names": [
+    "floating_base",
+    "torso",
+    "hip",
+    "left_leg1",
+    "left_leg2",
+    "left_leg3",
+    "left_leg4",
+    "left_foot",
+    "right_leg1",
+    "right_leg2",
+    "right_leg3",
+    "right_leg4",
+    "right_foot"
+  ]
+}

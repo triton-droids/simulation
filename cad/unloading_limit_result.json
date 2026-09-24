@@ -1,0 +1,29 @@
+[
+  {
+    "amplitude_rad": 0.24,
+    "completed_time_s": 14.955000000000938,
+    "peak_tilt_deg": 20.12610361589505,
+    "minimum_single_foot_load_N": 0.0,
+    "time_with_one_foot_below_1N_s": 0.28500000000000003,
+    "peak_torque_Nm": 20.6975915676032,
+    "stopped_on_instability": true
+  },
+  {
+    "amplitude_rad": 0.28,
+    "completed_time_s": 4.749999999999921,
+    "peak_tilt_deg": 20.29288477644083,
+    "minimum_single_foot_load_N": 0.0,
+    "time_with_one_foot_below_1N_s": 0.3,
+    "peak_torque_Nm": 16.128014961776955,
+    "stopped_on_instability": true
+  },
+  {
+    "amplitude_rad": 0.32,
+    "completed_time_s": 4.34499999999993,
+    "peak_tilt_deg": 20.185296314034854,
+    "minimum_single_foot_load_N": 0.0,
+    "time_with_one_foot_below_1N_s": 0.325,
+    "peak_torque_Nm": 13.446356559754907,
+    "stopped_on_instability": true
+  }
+]

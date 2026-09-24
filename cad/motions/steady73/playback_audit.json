@@ -1,0 +1,16 @@
+{
+  "constant_ground_lift_m": -0.0308204542968896,
+  "sole_height_min_m": [
+    0.011568646713945453,
+    0.0
+  ],
+  "sole_height_max_m": [
+    0.0753208381414793,
+    0.0742800509965103
+  ],
+  "ankle_limit_frame_fraction": [
+    0.2611111111111111,
+    0.2111111111111111
+  ],
+  "status": "Kinematic playback only; contact and actuator checks required before training."
+}

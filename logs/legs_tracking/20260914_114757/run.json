@@ -1,0 +1,5 @@
+{
+  "motion": "/home/thewheelneedsme/Projects/droids/simulation/cad/standing_reference.npz",
+  "num_envs": 32,
+  "iterations": 2
+}

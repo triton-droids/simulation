@@ -1,0 +1,99 @@
+{
+  "status": "approximate simulation candidate, not calibrated hardware dynamics",
+  "cad_total_kg": 16.270112573561338,
+  "target_total_kg": 16,
+  "preserved_torso_mass_kg": 0.001,
+  "cad_mass_factor": 0.9833367733421899,
+  "mapping_basis": "named subassemblies matched to XML hip, hip2, thigh, knee and foot chain; joint-separated rigid grouping not independently confirmed",
+  "inertia_method": "old fullinertia multiplied by new_mass/old_mass; old COM retained; exported CAD inertia not used",
+  "links": [
+    {
+      "xml_body": "hip",
+      "cad_assembly": "Pelvis Sub-Assembly",
+      "old_mass_kg": 5.159055,
+      "cad_mass_kg": 3.523294888491766,
+      "candidate_mass_kg": 3.464585427182524,
+      "inertia_scale": 0.6715542724748086
+    },
+    {
+      "xml_body": "left_leg1",
+      "cad_assembly": "Left Pelvis-Hip Connector",
+      "old_mass_kg": 2.189611,
+      "cad_mass_kg": 1.1950996709115533,
+      "candidate_mass_kg": 1.17518545421648,
+      "inertia_scale": 0.5367096960220239
+    },
+    {
+      "xml_body": "left_leg2",
+      "cad_assembly": "Left Hip Sub-Assembly v13",
+      "old_mass_kg": 1.709674,
+      "cad_mass_kg": 1.7061356749675707,
+      "candidate_mass_kg": 1.6777059495066102,
+      "inertia_scale": 0.981301668918525
+    },
+    {
+      "xml_body": "left_leg3",
+      "cad_assembly": "Left Thigh Sub-Assembly",
+      "old_mass_kg": 3.156742,
+      "cad_mass_kg": 1.8872415775648128,
+      "candidate_mass_kg": 1.8557940433998072,
+      "inertia_scale": 0.5878827105287057
+    },
+    {
+      "xml_body": "left_leg4",
+      "cad_assembly": "Configuration 1",
+      "old_mass_kg": 1.980828,
+      "cad_mass_kg": 0.9942130404666858,
+      "candidate_mass_kg": 0.9776462432272389,
+      "inertia_scale": 0.49355433345411054
+    },
+    {
+      "xml_body": "left_foot",
+      "cad_assembly": "Left Foot Sub-Assembly",
+      "old_mass_kg": 0.765723,
+      "cad_mass_kg": 0.6027376748644292,
+      "candidate_mass_kg": 0.5926941203729618,
+      "inertia_scale": 0.7740320198987908
+    },
+    {
+      "xml_body": "right_leg1",
+      "cad_assembly": "Right Pelvis-Hip Connector",
+      "old_mass_kg": 2.189548,
+      "cad_mass_kg": 1.1990605098257197,
+      "candidate_mass_kg": 1.1790802927740645,
+      "inertia_scale": 0.5385039710360606
+    },
+    {
+      "xml_body": "right_leg2",
+      "cad_assembly": "Right Hip Sub-Assembly",
+      "old_mass_kg": 1.72284,
+      "cad_mass_kg": 1.7061479348524888,
+      "candidate_mass_kg": 1.6777180051022873,
+      "inertia_scale": 0.9738095267710799
+    },
+    {
+      "xml_body": "right_leg3",
+      "cad_assembly": "Right Thigh Sub-Assembly",
+      "old_mass_kg": 3.074969,
+      "cad_mass_kg": 1.8755693381992171,
+      "candidate_mass_kg": 1.8443163012043648,
+      "inertia_scale": 0.5997837055282069
+    },
+    {
+      "xml_body": "right_leg4",
+      "cad_assembly": "Right Lower Leg Sub-Assembly",
+      "old_mass_kg": 1.980828,
+      "cad_mass_kg": 0.9790521659004666,
+      "candidate_mass_kg": 0.9627379977502473,
+      "inertia_scale": 0.4860280638956271
+    },
+    {
+      "xml_body": "right_foot",
+      "cad_assembly": "Right Foot Sub-Assembly",
+      "old_mass_kg": 0.765723,
+      "cad_mass_kg": 0.6015600975166275,
+      "candidate_mass_kg": 0.5915361652634137,
+      "inertia_scale": 0.7725197823017118
+    }
+  ]
+}

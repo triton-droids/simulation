@@ -1,0 +1,14 @@
+{
+  "original": {
+    "source_pelvis_tilt_peak_to_peak_deg": 20.416202545166016,
+    "robot_pelvis_tilt_peak_to_peak_deg": 20.200514762081397,
+    "robot_lateral_residual_peak_to_peak_m": 0.06890583028820388,
+    "source_mean_speed_m_s": 0.7828574180603027
+  },
+  "replacement": {
+    "source_pelvis_tilt_peak_to_peak_deg": 12.534111976623535,
+    "robot_pelvis_tilt_peak_to_peak_deg": 12.390918024475656,
+    "robot_lateral_residual_peak_to_peak_m": 0.11235584407559365,
+    "source_mean_speed_m_s": 1.0574144124984741
+  }
+}

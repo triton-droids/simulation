@@ -1,0 +1,21 @@
+{
+  "frames": 180,
+  "fps": 30,
+  "duration_seconds": 6.0,
+  "finite": true,
+  "root_displacement_m": [
+    0.17641779780387878,
+    0.019283294677734375,
+    4.6150054931640625
+  ],
+  "horizontal_mean_speed_m_s": 0.7828574180603027,
+  "foot_contact_fractions": [
+    0.4722222222222222,
+    0.5666666666666667,
+    0.5666666666666667,
+    0.39444444444444443,
+    0.4388888888888889,
+    0.4388888888888889
+  ],
+  "status": "Generated human candidate; encoder warnings and motion quality require review before training."
+}

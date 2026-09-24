@@ -1,0 +1,7 @@
+/Lower_Body_Reassembled_No_3d.stl filter=lfs diff=lfs merge=lfs -text
+/assets/Lower_Body_Reassembled.stl filter=lfs diff=lfs merge=lfs -text
+cad/motions/**/*.gif filter=lfs diff=lfs merge=lfs -text
+logs/legs_tracking/**/*.pt filter=lfs diff=lfs merge=lfs -text
+logs/legs_tracking/**/*.onnx filter=lfs diff=lfs merge=lfs -text
+logs/legs_tracking/**/events.out.tfevents.* filter=lfs diff=lfs merge=lfs -text
+logs/legs_tracking/**/*.gif filter=lfs diff=lfs merge=lfs -text

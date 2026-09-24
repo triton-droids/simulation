@@ -1,0 +1,24 @@
+{
+  "scale": 0.6380551414117317,
+  "robot_segment_lengths_m": {
+    "Left": [
+      0.27106300000000005,
+      0.27497907103814284
+    ],
+    "Right": [
+      0.27106300000000005,
+      0.27497907103814284
+    ]
+  },
+  "human_segment_lengths_m": {
+    "Left": [
+      0.4322921633720398,
+      0.4229861795902252
+    ],
+    "Right": [
+      0.43369701504707336,
+      0.4226079285144806
+    ]
+  },
+  "note": "XML-based segment and hip-width fit; no CAD joint recalibration."
+}

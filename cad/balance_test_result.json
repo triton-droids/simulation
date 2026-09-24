@@ -1,0 +1,20 @@
+[
+  {
+    "duration_s": 20,
+    "push_force_N": 0,
+    "push_duration_s": 0,
+    "peak_tilt_deg": 0.008590790076111784,
+    "end_root_height_m": 0.6841632965422855,
+    "peak_motor_torque_Nm": 0.03707893824600327,
+    "finite": true
+  },
+  {
+    "duration_s": 20,
+    "push_force_N": 10,
+    "push_duration_s": 0.2,
+    "peak_tilt_deg": 9.542985664314392,
+    "end_root_height_m": 0.6841632962410987,
+    "peak_motor_torque_Nm": 6.756804171142864,
+    "finite": true
+  }
+]

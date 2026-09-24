@@ -1,0 +1,141 @@
+<mujoco model="ch_robot_16kg_actuated">
+  <compiler angle="radian"/>
+
+  <option timestep="0.005" integrator="implicitfast" cone="elliptic"/>
+
+  <default>
+    <joint limited="true" damping="1"/>
+    <default class="visual">
+      <geom type="mesh" contype="0" conaffinity="0" group="2"/>
+    </default>
+    <default class="collision">
+      <geom group="3"/>
+    </default>
+  </default>
+
+  <asset>
+    <material name="metal_silver" specular="1" shininess="1" reflectance="0.5" rgba="0.55 0.55 0.6 1"/>
+    <mesh name="hip" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/hip_ch.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="left_leg1" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/left_leg1_ch.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="left_leg2" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/left_leg2_ch.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="left_leg3" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/left_leg3_ch.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="left_leg4" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/left_leg4_ch.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="right_leg1" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/right_leg1_ch.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="right_leg2" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/right_leg2_ch.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="right_leg3" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/right_leg3_ch.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="right_leg4" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/right_leg4_ch.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="hip_visual" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/visual/hip_dumb2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="left_leg1_visual" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/visual/left_leg1_dumb.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="left_leg2_visual" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/visual/left_leg2_dumb.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="left_leg3_visual" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/visual/left_leg3_dumb.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="left_leg4_visual" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/visual/left_leg4_dumb.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="left_foot_visual" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/visual/left_foot.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="left_foot_sole_visual" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/visual/left_foot_sole.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="right_leg1_visual" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/visual/right_leg1_dumb.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="right_leg2_visual" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/visual/right_leg2_dumb.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="right_leg3_visual" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/visual/right_leg3_dumb.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="right_leg4_visual" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/visual/right_leg4_dumb.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="right_foot_visual" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/visual/right_foot.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="right_foot_sole_visual" file="/home/thewheelneedsme/Projects/droids/simulation/mjlab/src/mjlab/asset_zoo/robots/triton_robot/meshes/visual/right_foot_sole.stl" scale="0.001 0.001 0.001"/>
+  </asset>
+
+  <worldbody>
+    <body name="floating_base" pos="0 0 0.6846">
+      <joint type="free" damping="0"/>
+      <site name="imu" pos="0 0 0"/>
+      <body name="torso" pos="0.1505 0.008 -0.6996">
+        <inertial pos="-0.156928 -0.029496 0.666" mass="0.001" diaginertia="1e-06 1e-06 1e-06"/>
+        <site name="top" pos="-0.155 -0.016 0.765" size="0.01" rgba="0 1 0 1"/>
+        <body name="hip">
+          <inertial pos="-0.155587 -0.02906 0.584318" quat="-0.0033003 0.706961 -0.0187819 0.706995" mass="3.46459" diaginertia="0.0169039 0.0159646 0.0104736"/>
+          <geom class="collision" size="0.0695385" pos="-0.155593 -0.0294944 0.580198" quat="-4.77528e-05 0.707672 -4.78292e-05 0.706541"/>
+          <geom class="visual" material="metal_silver" mesh="hip_visual"/>
+          <body name="left_leg1">
+            <inertial pos="-0.005945 -0.035287 0.577433" quat="0.0533097 0.705768 -0.0521611 0.704506" mass="1.17519" diaginertia="0.00181998 0.00169022 0.00139371"/>
+            <joint name="left_hip1_joint" pos="-0.068372 -0.029495 0.577401" axis="1 0 0" range="-1.57 1.57" armature="0.01"/>
+            <geom class="collision" size="0.0442524" pos="-0.00844983 -0.0297995 0.57741" quat="0.501224 0.50167 0.498783 0.498314"/>
+            <geom class="visual" material="metal_silver" mesh="left_leg1_visual"/>
+            <body name="left_leg2">
+              <inertial pos="-1.8e-05 -0.025475 0.486173" quat="0.993586 -0.111729 0.00099561 0.0173992" mass="1.67771" diaginertia="0.00596914 0.00526288 0.00263573"/>
+              <joint name="left_hip2_joint" pos="-4.8e-05 -0.029495 0.577401" axis="0 1 0" range="-1.57 0.436332" armature="0.01"/>
+              <geom class="collision" size="0.0590525" pos="-5.0566e-05 -0.029499 0.513044" quat="0.999993 0.00363887 -3.10219e-05 -0.00014776"/>
+              <geom class="visual" material="metal_silver" mesh="left_leg2_visual"/>
+              <body name="left_leg3">
+                <inertial pos="0.005174 -0.030248 0.318931" quat="0.99962 -0.00722951 -0.0200685 0.0174438" mass="1.85579" diaginertia="0.00551298 0.00476134 0.00256798"/>
+                <joint name="left_thigh_joint" pos="-4.8e-05 -0.029495 0.463816" axis="0 0 -1" range="-0.785398 0.785398" armature="0.01"/>
+                <geom class="collision" size="0.0550055" pos="0.00118305 -0.0295809 0.33455" quat="0.999951 -0.000469905 -0.00975346 0.00189168"/>
+                <geom class="visual" material="metal_silver" mesh="left_leg3_visual"/>
+                <body name="left_leg4">
+                  <inertial pos="0.001337 -0.031134 0.183938" quat="0.657263 -0.0207294 -0.000839795 0.753376" mass="0.977646" diaginertia="0.00589315 0.00578201 0.0014593"/>
+                  <joint name="left_knee_joint" pos="-4.8e-05 -0.029495 0.306338" axis="1 0 0" range="-2.0944 0" armature="0.01"/>
+                  <geom class="collision" size="0.074531" pos="0.00210055 -0.0297579 0.204228" quat="0.999956 -0.000858743 -0.0019351 0.00917237"/>
+                  <geom class="visual" material="metal_silver" mesh="left_leg4_visual"/>
+                  <body name="left_foot">
+                    <inertial pos="-0.00053 -0.020276 0.011109" quat="0.521814 0.482863 -0.48335 0.510809" mass="0.592694" diaginertia="0.00171896 0.00160316 0.000355924"/>
+                    <joint name="left_ankle_joint" pos="0.00958 -0.03 0.031528" axis="1 0 0" range="-0.6 0.6" armature="0.01"/>
+                    <geom name="left_foot_collision_box" class="collision" size="0.04 0.105 0.00763" pos="-0.00042 -0.005 -0.0045" type="box"/>
+                    <geom class="visual" material="metal_silver" mesh="left_foot_visual"/>
+                    <geom class="visual" pos="0.30958 0 0" quat="1 0 0 0" material="metal_silver" mesh="left_foot_sole_visual"/>
+                    <site name="left_foot" pos="-0.00042 -0.005 -0.01213" size="0.01"/>
+                    <body name="retarget_left_foot" pos="0.00958 -0.03 0.031528"/>
+                  </body>
+                  <body name="retarget_left_shin" pos="-4.8e-05 -0.029495 0.306338"/>
+                </body>
+              </body>
+              <body name="retarget_left_leg" pos="-4.8e-05 -0.029495 0.577401"/>
+            </body>
+          </body>
+          <body name="right_leg1">
+            <inertial pos="-0.305326 -0.035287 0.577434" quat="-0.0521282 0.704511 0.053335 0.705764" mass="1.17908" diaginertia="0.00182607 0.00169587 0.00139837"/>
+            <joint name="right_hip1_joint" pos="-0.2429 -0.029495 0.577401" axis="1 0 0" range="-1.57 1.57" armature="0.01"/>
+            <geom class="collision" size="0.0454332" pos="-0.300838 -0.0297882 0.578168" quat="0.483502 0.52001 0.518441 0.47648"/>
+            <geom class="visual" material="metal_silver" mesh="right_leg1_visual"/>
+            <body name="right_leg2">
+              <inertial pos="-0.311252 -0.025506 0.485714" quat="0.993727 -0.110476 -0.0009949 -0.0173641" mass="1.67772" diaginertia="0.00597226 0.00526962 0.0026203"/>
+              <joint name="right_hip2_joint" pos="-0.311223 -0.029495 0.577401" axis="0 1 0" range="-0.436332 1.57" armature="0.01"/>
+              <geom class="collision" size="0.0590869" pos="-0.31122 -0.029499 0.51288" quat="0.999993 0.003613 3.09461e-05 0.000147705"/>
+              <geom class="visual" material="metal_silver" mesh="right_leg2_visual"/>
+              <body name="right_leg3">
+                <inertial pos="-0.317293 -0.030266 0.31875" quat="0.99959 -0.00751447 0.0228341 -0.0155304" mass="1.84432" diaginertia="0.00550942 0.00469234 0.00254964"/>
+                <joint name="right_thigh_joint" pos="-0.311223 -0.029495 0.463816" axis="0 0 1" range="-0.785398 0.785398" armature="0.01"/>
+                <geom class="collision" size="0.0550889" pos="-0.311776 -0.0295792 0.334119" quat="0.999981 -0.000441715 0.00582548 -0.00203739"/>
+                <geom class="visual" material="metal_silver" mesh="right_leg3_visual"/>
+                <body name="right_leg4">
+                  <inertial pos="-0.312608 -0.031134 0.183938" quat="0.753376 0.000839794 0.0207294 0.657263" mass="0.962738" diaginertia="0.00580329 0.00569384 0.00143705"/>
+                  <joint name="right_knee_joint" pos="-0.311223 -0.029495 0.306338" axis="1 0 0" range="-2.0944 0" armature="0.01"/>
+                  <geom class="collision" size="0.0745541" pos="-0.313377 -0.0296541 0.203857" quat="0.999963 4.04521e-05 0.00198332 -0.00838521"/>
+                  <geom class="visual" material="metal_silver" mesh="right_leg4_visual"/>
+                  <body name="right_foot">
+                    <inertial pos="-0.310741 -0.020276 0.011109" quat="0.510809 0.48335 -0.482863 0.521814" mass="0.591536" diaginertia="0.0017156 0.00160003 0.000355229"/>
+                    <joint name="right_ankle_joint" pos="-0.320851 -0.03 0.031528" axis="1 0 0" range="-0.6 0.6" armature="0.01"/>
+                    <geom name="right_foot_collision_box" class="collision" size="0.04 0.105 0.00763" pos="-0.310851 -0.005 -0.0045" type="box"/>
+                    <geom class="visual" material="metal_silver" mesh="right_foot_visual"/>
+                    <geom class="visual" pos="-0.310851 0 0" quat="1 0 0 0" material="metal_silver" mesh="right_foot_sole_visual"/>
+                    <site name="right_foot" pos="-0.310851 -0.005 -0.01213" size="0.01"/>
+                    <body name="retarget_right_foot" pos="-0.320851 -0.03 0.031528"/>
+                  </body>
+                  <body name="retarget_right_shin" pos="-0.311223 -0.029495 0.306338"/>
+                </body>
+              </body>
+              <body name="retarget_right_leg" pos="-0.311223 -0.029495 0.577401"/>
+            </body>
+          </body>
+          <body name="retarget_pelvis" pos="-0.155587 -0.029495 0.577401"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <general name="left_hip1_act" joint="left_hip1_joint" forcelimited="true" forcerange="-120 120" biastype="affine" gainprm="100" biasprm="0 -100 -1"/>
+    <general name="left_hip2_act" joint="left_hip2_joint" forcelimited="true" forcerange="-120 120" biastype="affine" gainprm="100" biasprm="0 -100 -1"/>
+    <general name="left_thigh_act" joint="left_thigh_joint" forcelimited="true" forcerange="-120 120" biastype="affine" gainprm="100" biasprm="0 -100 -1"/>
+    <general name="left_knee_act" joint="left_knee_joint" forcelimited="true" forcerange="-120 120" biastype="affine" gainprm="80" biasprm="0 -80 -1"/>
+    <general name="left_ankle_act" joint="left_ankle_joint" forcelimited="true" forcerange="-120 120" biastype="affine" gainprm="20" biasprm="0 -20 -1"/>
+    <general name="right_hip1_act" joint="right_hip1_joint" forcelimited="true" forcerange="-120 120" biastype="affine" gainprm="100" biasprm="0 -100 -1"/>
+    <general name="right_hip2_act" joint="right_hip2_joint" forcelimited="true" forcerange="-120 120" biastype="affine" gainprm="100" biasprm="0 -100 -1"/>
+    <general name="right_thigh_act" joint="right_thigh_joint" forcelimited="true" forcerange="-120 120" biastype="affine" gainprm="100" biasprm="0 -100 -1"/>
+    <general name="right_knee_act" joint="right_knee_joint" forcelimited="true" forcerange="-120 120" biastype="affine" gainprm="80" biasprm="0 -80 -1"/>
+    <general name="right_ankle_act" joint="right_ankle_joint" forcelimited="true" forcerange="-120 120" biastype="affine" gainprm="20" biasprm="0 -20 -1"/>
+  </actuator>
+</mujoco>

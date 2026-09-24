@@ -1,0 +1,14 @@
+{
+  "original": {
+    "pelvis_tilt_peak_to_peak_deg": 20.200514762081397,
+    "lateral_travel_after_linear_drift_removed_m": 0.06890583028820388,
+    "mean_pelvis_horizontal_speed_m_s": 0.49943270874424817,
+    "duration_seconds": 6.0
+  },
+  "calmer": {
+    "pelvis_tilt_peak_to_peak_deg": 8.989552488143177,
+    "lateral_travel_after_linear_drift_removed_m": 0.06602110974663523,
+    "mean_pelvis_horizontal_speed_m_s": 0.3771777211867041,
+    "duration_seconds": 9.0
+  }
+}

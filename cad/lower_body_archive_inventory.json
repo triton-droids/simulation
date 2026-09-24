@@ -1,0 +1,828 @@
+{
+  "source_archive": "Full Assembly with PLA Arms.f3z",
+  "assembly": "Lower Body Reassembled",
+  "target_measured_mass_kg": 16,
+  "note": "Document dependency inventory, not occurrence counts or physical properties.",
+  "documents": [
+    {
+      "id": 160618,
+      "name": "Lower Body Reassembled",
+      "archive_member": "5bb43d80-c123-4dd0-b4e9-55998fa46fc1.f3d"
+    },
+    {
+      "id": 160619,
+      "name": "Left Leg Assembly",
+      "archive_member": "a25f590b-7065-4ca3-86e4-2c2b452f0f03.f3d"
+    },
+    {
+      "id": 160620,
+      "name": "Left Thigh Sub-Assembly",
+      "archive_member": "00fc6ec1-4d4c-438f-b324-b348b653e689.f3d"
+    },
+    {
+      "id": 160621,
+      "name": "L R04 Spacer",
+      "archive_member": "b77e71ac-d149-49ec-90c4-98e05fc6f1d4.f3d"
+    },
+    {
+      "id": 160622,
+      "name": "L Thigh Inner Connector",
+      "archive_member": "0d28d065-a275-44cc-a703-570e15fd36a2.f3d"
+    },
+    {
+      "id": 160623,
+      "name": "L Spacer",
+      "archive_member": "3b9561b4-9895-4bcc-8d2f-31f6f6a38244.f3d"
+    },
+    {
+      "id": 160624,
+      "name": "L Leg Abduction Ball Bearing",
+      "archive_member": "d259e056-9db6-4804-ad7d-994cf67f786a.f3d"
+    },
+    {
+      "id": 160625,
+      "name": "S_R04 Motor (9)",
+      "archive_member": "49b79df6-214a-408d-8c8e-59cd0e2c9da5.f3d"
+    },
+    {
+      "id": 160626,
+      "name": "Forged Hexagon Socket Button Head Cap Screw ANSI B18.3.4M - M4 x 0.7 x 12 Steel Grade 2 Plain",
+      "archive_member": "7610fd9d-31bb-437d-8366-6fa9db85cc6e.f3d"
+    },
+    {
+      "id": 160627,
+      "name": "Forged Hexagon Socket Button Head Cap Screw ANSI B18.3.4M - M3 x 0.5 x 8 Steel Grade 2 Plain",
+      "archive_member": "a3aab9ed-b6d8-4160-9b93-553fe0c0158b.f3d"
+    },
+    {
+      "id": 160628,
+      "name": "Hexagon Socket Button Head Screw STN EN ISO 7380-1 - M4 x 25 Steel 4.6 Plain",
+      "archive_member": "0e4bdcff-da83-4959-bc77-d54bfbb74166.f3d"
+    },
+    {
+      "id": 160629,
+      "name": "L Thigh Outer Connector",
+      "archive_member": "08cfc969-9273-4c21-9ec9-5b10d754a605.f3d"
+    },
+    {
+      "id": 160630,
+      "name": "L R04 Spacer Plug",
+      "archive_member": "d15ef2c9-382b-4c8d-acb3-892a4bb7ea1b.f3d"
+    },
+    {
+      "id": 160631,
+      "name": "Configuration 1",
+      "archive_member": "0abc7561-4c91-40ff-bc5c-a287d1dfca66.f3d"
+    },
+    {
+      "id": 160632,
+      "name": "L R02 Connector",
+      "archive_member": "9d9783cf-d25f-491c-9dd2-bbd18429357f.f3d"
+    },
+    {
+      "id": 160633,
+      "name": "L SM Slot Spacer",
+      "archive_member": "e93dfe06-44bd-49a5-85b3-433c56b234f7.f3d"
+    },
+    {
+      "id": 160634,
+      "name": "L Top Heel Linkage Rod",
+      "archive_member": "0668f0f2-ec2f-47ef-8eb4-629ff9bfb474.f3d"
+    },
+    {
+      "id": 160635,
+      "name": "Hexagon Thin Nut DIN 439-2 - M5 x 0.8 Steel 6 Plain",
+      "archive_member": "59f68f6f-a890-487b-9d80-2dd95842d985.f3d"
+    },
+    {
+      "id": 160636,
+      "name": "Broached Hexagon Socket Head Cap Screw ASME B18.3.1M - M2.5x0.45 x 8 Steel Grade 2 Plain",
+      "archive_member": "be752de0-d39b-4f60-b0cf-9a2b9cf6be38.f3d"
+    },
+    {
+      "id": 160637,
+      "name": "L Ankle Bearing 2",
+      "archive_member": "b6d790cc-fda7-43d4-9617-ef2a013f37bc.f3d"
+    },
+    {
+      "id": 160638,
+      "name": "Broached Hexagon Socket Button Head Cap Screw ASME B18.3.4M - M5 x 0.8 x 10 Steel Grade 2 Plain",
+      "archive_member": "4465edf0-83de-4f87-9bcb-721a668c5440.f3d"
+    },
+    {
+      "id": 160639,
+      "name": "Hexagon Socket Button Head Screw NS-EN ISO 7380-1 - M5 x 20 Steel 4.6 Plain",
+      "archive_member": "25db9559-a130-4c37-b023-765e67f0f3a6.f3d"
+    },
+    {
+      "id": 160640,
+      "name": "L Ankle Bearing 1",
+      "archive_member": "1527558d-dc0b-4aa7-be30-ed1fdae980a2.f3d"
+    },
+    {
+      "id": 160641,
+      "name": "L Leg Outer SM",
+      "archive_member": "a5a7a69e-a39b-4325-a0b7-0dda7d861647.f3d"
+    },
+    {
+      "id": 160642,
+      "name": "Hexagon Thin Nut DIN 439-2 - M6 x 1 Steel 6 Plain",
+      "archive_member": "b7ad9998-edda-495f-b4c0-4f752cf01867.f3d"
+    },
+    {
+      "id": 160643,
+      "name": "L Leg Inner SM",
+      "archive_member": "a788a965-d1fd-4d4f-944e-e5167d74aba7.f3d"
+    },
+    {
+      "id": 160644,
+      "name": "Forged Hexagon Socket Button Head Cap Screw ANSI B18.3.4M - M6 x 1 x 16 Steel Grade 2 Plain",
+      "archive_member": "f79f2b9d-41b4-477c-ab53-0f99daf83ede.f3d"
+    },
+    {
+      "id": 160645,
+      "name": "L SM Round Spacer",
+      "archive_member": "e7c6eeae-af16-47b2-a0d7-8063832a1ed9.f3d"
+    },
+    {
+      "id": 160646,
+      "name": "Broached Hexagon Socket Head Cap Screw ASME B18.3.1M - M3x0.5 x 5 Steel Grade 2 Plain",
+      "archive_member": "5d657454-be37-41e8-ae53-b3dcee89287b.f3d"
+    },
+    {
+      "id": 160647,
+      "name": "Washer NF E25-514 - L6 Steel 100 HV Plain",
+      "archive_member": "0902e716-0dc1-4183-98b0-015a894055b7.f3d"
+    },
+    {
+      "id": 160648,
+      "name": "S_R02 Motor (10)",
+      "archive_member": "25f6129b-4984-4dc8-b894-0731fad96f96.f3d"
+    },
+    {
+      "id": 160649,
+      "name": "L Slot Bearing",
+      "archive_member": "b4045efe-ab75-4254-92df-6fa3498960e8.f3d"
+    },
+    {
+      "id": 160650,
+      "name": "L Leg SM Connector",
+      "archive_member": "9f32647f-3cee-47c3-af90-eb71df8681d5.f3d"
+    },
+    {
+      "id": 160651,
+      "name": "Broached Hexagon Socket Button Head Cap Screw ASME B18.3.4M - M4 x 0.7 x 12 Steel Grade 2 Plain",
+      "archive_member": "93188d68-7b24-4e27-8367-23d56ba970af.f3d"
+    },
+    {
+      "id": 160652,
+      "name": "Left Hip Sub-Assembly v13",
+      "archive_member": "b77d7326-7906-4745-ae58-5d7056ff66ac.f3d"
+    },
+    {
+      "id": 160653,
+      "name": "Forged Hexagon Socket Button Head Cap Screw ANSI B18.3.4M - M4 x 0.7 x 16 Steel Grade 2 Plain",
+      "archive_member": "4fbdd587-b288-4070-9bec-bcf5764f1a45.f3d"
+    },
+    {
+      "id": 160654,
+      "name": "Hexagon Thin Nut DIN 439-2 - M4 x 0.7 Steel 6 Plain",
+      "archive_member": "a8cc3ba8-975a-4394-a93e-112b66fa20ee.f3d"
+    },
+    {
+      "id": 160655,
+      "name": "L Gusset 1",
+      "archive_member": "9c7816db-4ddf-4a0d-b299-b56e98660bf3.f3d"
+    },
+    {
+      "id": 160656,
+      "name": "Broached Hexagon Socket Button Head Cap Screw ASME B18.3.4M - M5 x 0.8 x 30 Steel Grade 2 Plain",
+      "archive_member": "f74a7c84-81a8-4750-825a-91f092f25c20.f3d"
+    },
+    {
+      "id": 160657,
+      "name": "L Lower Bracket",
+      "archive_member": "872b1309-44d5-44b2-8397-f06eade0ea88.f3d"
+    },
+    {
+      "id": 160658,
+      "name": "Broached Hexagon Socket Button Head Cap Screw ASME B18.3.4M - M4 x 0.7 x 30 Steel Grade 2 Plain",
+      "archive_member": "f4996a6e-6d23-420d-97c6-464c8cff7991.f3d"
+    },
+    {
+      "id": 160659,
+      "name": "L Hip Spacer",
+      "archive_member": "477dfeed-991a-4088-bdda-067762e88999.f3d"
+    },
+    {
+      "id": 160660,
+      "name": "Forged Hexagon Socket Button Head Cap Screw ANSI B18.3.4M - M4 x 0.7 x 10 Steel Grade 2 Plain",
+      "archive_member": "8dd4bbfb-297f-4382-bd2b-c1e89a7127f0.f3d"
+    },
+    {
+      "id": 160661,
+      "name": "L Spacer Set 1",
+      "archive_member": "db4c2709-e2e3-4940-967d-d63397c4f675.f3d"
+    },
+    {
+      "id": 160662,
+      "name": "L Upper Bracket",
+      "archive_member": "cb374c23-f953-4ac0-8c36-0307fb5d8aa3.f3d"
+    },
+    {
+      "id": 160663,
+      "name": "Washer NF E25-514 - M5 Steel 100 HV Plain",
+      "archive_member": "06da5646-4818-4b8c-9402-f491f5430e9b.f3d"
+    },
+    {
+      "id": 160664,
+      "name": "L Spacer Set 2",
+      "archive_member": "5492aecc-dffd-47f8-a167-5b67ecdeb619.f3d"
+    },
+    {
+      "id": 160665,
+      "name": "L Gusset 2",
+      "archive_member": "e900441b-5477-48ec-a341-7e4b9c0da100.f3d"
+    },
+    {
+      "id": 160666,
+      "name": "L Fastened SM",
+      "archive_member": "6d1ff9a6-d0f6-40ee-bc21-23b453c73abf.f3d"
+    },
+    {
+      "id": 160667,
+      "name": "L Inner Bracket",
+      "archive_member": "1215c5e9-a1bd-43fb-bbc3-f4a638f53b10.f3d"
+    },
+    {
+      "id": 160668,
+      "name": "Forged Hexagon Socket Button Head Cap Screw ANSI B18.3.4M - M5 x 0.8 x 20 Steel Grade 2 Plain",
+      "archive_member": "c36d9c32-8cc3-4861-8d1f-abd79dc95a3b.f3d"
+    },
+    {
+      "id": 160669,
+      "name": "L BB SM",
+      "archive_member": "5dfd16de-9816-4f10-950e-98e5ceb392a1.f3d"
+    },
+    {
+      "id": 160670,
+      "name": "S_R03 Motor (8)",
+      "archive_member": "3cc1764b-471d-402f-b4b1-1f51038dbd6f.f3d"
+    },
+    {
+      "id": 160671,
+      "name": "Left Foot Sub-Assembly",
+      "archive_member": "030419e4-7c9d-4759-a58b-73bffb552fc0.f3d"
+    },
+    {
+      "id": 160672,
+      "name": "L Ankle Flange 4",
+      "archive_member": "342a5c03-9a53-4096-9e62-71676f59b038.f3d"
+    },
+    {
+      "id": 160673,
+      "name": "L SM Foot",
+      "archive_member": "f518bf01-f631-4beb-b36c-be2436851acb.f3d"
+    },
+    {
+      "id": 160674,
+      "name": "Forged Hexagon Socket Button Head Cap Screw ANSI B18.3.4M - M6 x 1 x 20 Steel Grade 2 Plain",
+      "archive_member": "18a7f999-8822-44ad-a695-fea7ac924eb1.f3d"
+    },
+    {
+      "id": 160675,
+      "name": "L Heel Rod",
+      "archive_member": "6721ac6e-5101-4b0d-b635-5272f26755e7.f3d"
+    },
+    {
+      "id": 160676,
+      "name": "L Heel Ball Bearing 2",
+      "archive_member": "978d8479-cf75-4c65-b67a-da90512db45c.f3d"
+    },
+    {
+      "id": 160677,
+      "name": "Button Head Screw BS 4168-6 - M5 x 12 Steel 4.6 Plain",
+      "archive_member": "9eab84d8-fe81-460e-96f9-9c1d90baa075.f3d"
+    },
+    {
+      "id": 160678,
+      "name": "L Ankle Flange 3",
+      "archive_member": "a89c2f06-32a7-4d88-bdae-ae989735902a.f3d"
+    },
+    {
+      "id": 160679,
+      "name": "L Ankle Flange 2",
+      "archive_member": "64cfd5af-d1a8-493e-bcfc-bd09f81d9cb5.f3d"
+    },
+    {
+      "id": 160680,
+      "name": "Broached Hexagon Socket Head Cap Screw ASME B18.3.1M - M3x0.5 x 10 Steel Grade 2 Plain",
+      "archive_member": "1791c909-f0de-4b4f-9ca9-484ef658657e.f3d"
+    },
+    {
+      "id": 160681,
+      "name": "Hexagon Thin Nut DIN 439-2 - M3 x 0.5 Steel 6 Plain",
+      "archive_member": "d0c45864-9942-4a6a-8680-da58df2da00c.f3d"
+    },
+    {
+      "id": 160682,
+      "name": "L Heel Flange 2",
+      "archive_member": "ba07f111-25b1-4206-a916-6c878942a1a9.f3d"
+    },
+    {
+      "id": 160683,
+      "name": "L Foot Sole",
+      "archive_member": "a9c44896-e5ac-4477-a273-501c4d8dfed5.f3d"
+    },
+    {
+      "id": 160684,
+      "name": "L Heel Linkage",
+      "archive_member": "1b9b07b7-df62-4d22-9091-e104b1f6a693.f3d"
+    },
+    {
+      "id": 160685,
+      "name": "L Heel Ball Bearing 1",
+      "archive_member": "cfd939b0-25e2-4d19-8d46-99084f0b6025.f3d"
+    },
+    {
+      "id": 160686,
+      "name": "L Heel Flange 1",
+      "archive_member": "86f952ff-fdf7-4d9a-93c8-1bf9e2b14360.f3d"
+    },
+    {
+      "id": 160687,
+      "name": "L Ankle Rod 1",
+      "archive_member": "677497ae-f19a-4e73-ab32-b4c60b1b5f2d.f3d"
+    },
+    {
+      "id": 160689,
+      "name": "L Ankle Flange 1",
+      "archive_member": "e1b8011b-656f-4b23-a00e-da0ca4700323.f3d"
+    },
+    {
+      "id": 160690,
+      "name": "L Ankle Rod 2",
+      "archive_member": "beda0289-3bdd-4388-adff-6f2c0b7f8e8f.f3d"
+    },
+    {
+      "id": 160691,
+      "name": "Forged Hexagon Socket Button Head Cap Screw ANSI B18.3.4M - M6 x 1 x 25 Steel Grade 2 Plain",
+      "archive_member": "e8c39712-f2a0-4760-9038-ffd98999673a.f3d"
+    },
+    {
+      "id": 160692,
+      "name": "Left Pelvis-Hip Connector",
+      "archive_member": "54fafb93-0f1d-462e-9e15-1487d69d1b3f.f3d"
+    },
+    {
+      "id": 160693,
+      "name": "L PH Rear Connector",
+      "archive_member": "f2eacd26-0f40-4f99-adb8-a1e4c6eb5189.f3d"
+    },
+    {
+      "id": 160694,
+      "name": "Forged Hexagon Socket Button Head Cap Screw ANSI B18.3.4M - M5 x 0.8 x 16 Steel Grade 2 Plain",
+      "archive_member": "ef49a442-4d76-403b-afb1-705f420d45f6.f3d"
+    },
+    {
+      "id": 160695,
+      "name": "L R03 PH Spacer",
+      "archive_member": "7ee7e243-4d40-432b-97e4-11f9b23e9497.f3d"
+    },
+    {
+      "id": 160696,
+      "name": "S_R03 Motor (7)",
+      "archive_member": "492c04d6-1956-422d-98cd-0d7d949e06a6.f3d"
+    },
+    {
+      "id": 160697,
+      "name": "L R03 Spacer Plug",
+      "archive_member": "03885602-5146-4f59-8ca1-8156d8f15b2f.f3d"
+    },
+    {
+      "id": 160698,
+      "name": "L PH Front Connector",
+      "archive_member": "c2841e95-1599-4cf9-a639-9c2efe1d58d4.f3d"
+    },
+    {
+      "id": 160699,
+      "name": "L Fastened Spacer",
+      "archive_member": "c9e83672-2e37-4a75-b60c-08060b8b68a2.f3d"
+    },
+    {
+      "id": 160700,
+      "name": "L PH Abduction Ball Bearing",
+      "archive_member": "36701a21-a28e-45ba-9681-d524d359d925.f3d"
+    },
+    {
+      "id": 160701,
+      "name": "Pelvis Sub-Assembly",
+      "archive_member": "369f746a-ba0d-4133-bb04-245e1f70745f.f3d"
+    },
+    {
+      "id": 160702,
+      "name": "S_R04 Motor (1)",
+      "archive_member": "fd14bfba-00d1-4d04-934c-a0568564e309.f3d"
+    },
+    {
+      "id": 160703,
+      "name": "Rear Lower Pelvis Spacer 2",
+      "archive_member": "88fb01e3-023d-438f-abeb-1fcba2b343f6.f3d"
+    },
+    {
+      "id": 160704,
+      "name": "Jetson Mount",
+      "archive_member": "ed1d70d7-8d5f-4dd1-a81e-710db83025e2.f3d"
+    },
+    {
+      "id": 160705,
+      "name": "Top Hip Connector",
+      "archive_member": "333ff8c0-baf3-4da7-94ac-063258a7c4ce.f3d"
+    },
+    {
+      "id": 160706,
+      "name": "L Rear Pelvis Full Bracket",
+      "archive_member": "229a6a28-7310-49e4-8d61-bdf142095cc0.f3d"
+    },
+    {
+      "id": 160707,
+      "name": "R Front Pelvis Half Bracket",
+      "archive_member": "b70d5993-9227-4ebc-92ff-07f4c86624ca.f3d"
+    },
+    {
+      "id": 160708,
+      "name": "R Mid Pelvis Half Bracket",
+      "archive_member": "bd225cfd-9a8f-4532-a6ea-b785545bfdce.f3d"
+    },
+    {
+      "id": 160709,
+      "name": "Forged Hexagon Socket Button Head Cap Screw ANSI B18.3.4M - M5 x 0.8 x 12 Steel Grade 2 Plain",
+      "archive_member": "20e3b40a-df87-49bb-9abf-67cbbbe4a472.f3d"
+    },
+    {
+      "id": 160710,
+      "name": "Weight Mount",
+      "archive_member": "41f25d4c-d0d8-48ba-828a-fddce7828bc1.f3d"
+    },
+    {
+      "id": 160711,
+      "name": "Rear Lower Pelvis Spacer 1",
+      "archive_member": "415c8c41-52e1-4864-b9c7-4826b9855038.f3d"
+    },
+    {
+      "id": 160712,
+      "name": "L Front Pelvis Half Bracket",
+      "archive_member": "9560e45c-3788-4802-8a33-b2b3bce5fb71.f3d"
+    },
+    {
+      "id": 160713,
+      "name": "Front Lower Pelvis Spacer",
+      "archive_member": "7d7c6d77-66dd-464d-a717-110716190fe7.f3d"
+    },
+    {
+      "id": 160714,
+      "name": "Hexagon Socket Button Head Screw NS-EN ISO 7380-1 - M5 x 25 Steel 4.6 Plain",
+      "archive_member": "e5ba0f1e-35e8-4b43-a116-95d94808b721.f3d"
+    },
+    {
+      "id": 160715,
+      "name": "L Pelvis PH Spacer",
+      "archive_member": "085d18ac-5212-4d5c-8ff0-5bc221eff3a9.f3d"
+    },
+    {
+      "id": 160716,
+      "name": "S_R04 Motor (6)",
+      "archive_member": "0807f2b3-28ac-415d-883f-cba709798e8f.f3d"
+    },
+    {
+      "id": 160717,
+      "name": "Forged Hexagon Socket Button Head Cap Screw ANSI B18.3.4M - M4 x 0.7 x 8 Steel Grade 2 Plain",
+      "archive_member": "1dce87e9-7151-4abe-bf6c-fef6904828fa.f3d"
+    },
+    {
+      "id": 160718,
+      "name": "L Mid Pelvis Half Bracket",
+      "archive_member": "931168ef-2796-4faf-a429-a08120d0a03e.f3d"
+    },
+    {
+      "id": 160719,
+      "name": "R Rear Pelvis Full Bracket",
+      "archive_member": "19e5156b-976a-43f8-9428-4013bdab3339.f3d"
+    },
+    {
+      "id": 160720,
+      "name": "R Pelvis PH Spacer",
+      "archive_member": "c428e3d1-3f87-4f42-af43-5bada237c81f.f3d"
+    },
+    {
+      "id": 160721,
+      "name": "Mid Lower Pelvis Spacer",
+      "archive_member": "afc3a7bf-79be-4376-a719-e1f73276bff3.f3d"
+    },
+    {
+      "id": 160722,
+      "name": "IMU + Powerbank Mount",
+      "archive_member": "3463d909-318a-41eb-b661-5b809f29b7d3.f3d"
+    },
+    {
+      "id": 160723,
+      "name": "10lb (4.535kg) Weight",
+      "archive_member": "aa449daa-3724-4926-a2da-9aaa5c8f51f9.f3d"
+    },
+    {
+      "id": 160724,
+      "name": "Right Leg Assembly",
+      "archive_member": "e58aee5f-816a-45be-9205-ba31e160db47.f3d"
+    },
+    {
+      "id": 160725,
+      "name": "Right Foot Sub-Assembly",
+      "archive_member": "00bb5461-1a65-4481-8785-365511dd5346.f3d"
+    },
+    {
+      "id": 160726,
+      "name": "R Foot Sole",
+      "archive_member": "e1e7bc36-a97d-4688-8840-feff3f2bffd4.f3d"
+    },
+    {
+      "id": 160727,
+      "name": "R Ankle Flange 2",
+      "archive_member": "1951ae8b-3329-4c18-88fa-a0ab7fa4401c.f3d"
+    },
+    {
+      "id": 160728,
+      "name": "R Heel Ball Bearing 2",
+      "archive_member": "6ca3498d-2a9f-4795-b134-ee24bc8bc24c.f3d"
+    },
+    {
+      "id": 160729,
+      "name": "R Ankle Rod 1",
+      "archive_member": "17970a3f-ae2b-460c-9858-647e9d9b3f19.f3d"
+    },
+    {
+      "id": 160730,
+      "name": "R Heel Flange 1",
+      "archive_member": "dde367f2-bbfb-4856-b1c0-dec7741da2a6.f3d"
+    },
+    {
+      "id": 160731,
+      "name": "R SM Foot",
+      "archive_member": "3c34d278-4148-4354-95e2-07282a59bab5.f3d"
+    },
+    {
+      "id": 160732,
+      "name": "R Heel Flange 2",
+      "archive_member": "9219ada2-8e6f-47e7-93cc-fc7d1cc9a9a1.f3d"
+    },
+    {
+      "id": 160733,
+      "name": "R Heel Rod",
+      "archive_member": "38af2921-dffc-408e-b358-8430ab71b11e.f3d"
+    },
+    {
+      "id": 160734,
+      "name": "R Ankle Flange 3",
+      "archive_member": "d5f8fa40-4d2f-46a5-8b84-36da4f74552a.f3d"
+    },
+    {
+      "id": 160735,
+      "name": "R Heel Linkage",
+      "archive_member": "726da6ce-8b76-469f-afed-eda7385b901f.f3d"
+    },
+    {
+      "id": 160736,
+      "name": "R Heel Ball Bearing 1",
+      "archive_member": "e7872450-2820-4497-bb88-43c4332afa99.f3d"
+    },
+    {
+      "id": 160737,
+      "name": "R Ankle Flange 1",
+      "archive_member": "8b2a8f03-79d7-40cc-b3eb-89a556218eae.f3d"
+    },
+    {
+      "id": 160738,
+      "name": "R Ankle Flange 4",
+      "archive_member": "abf3e4b0-8567-4911-a3c4-c9ffc976b785.f3d"
+    },
+    {
+      "id": 160739,
+      "name": "R Ankle Rod 2",
+      "archive_member": "03085c32-5a0d-4b10-8532-6aa9a68c5b35.f3d"
+    },
+    {
+      "id": 160740,
+      "name": "Right Hip Sub-Assembly",
+      "archive_member": "eec5d7c7-7ae8-4b8d-bc37-6cd0636b1d85.f3d"
+    },
+    {
+      "id": 160741,
+      "name": "R Gusset 2",
+      "archive_member": "35dc3c67-db15-4b54-b5ed-db305d99a121.f3d"
+    },
+    {
+      "id": 160742,
+      "name": "R Gusset 1",
+      "archive_member": "eb91c2b2-468b-4dc5-83dd-2b9fb2f66232.f3d"
+    },
+    {
+      "id": 160743,
+      "name": "R Upper Bracket",
+      "archive_member": "06a9a1a0-e0bf-4472-8693-a839b7409854.f3d"
+    },
+    {
+      "id": 160744,
+      "name": "R Lower Bracket",
+      "archive_member": "06f3aa3f-1b7a-4b0a-b92f-797cedf14d02.f3d"
+    },
+    {
+      "id": 160745,
+      "name": "R Inner Bracket",
+      "archive_member": "f532d8de-c120-4942-8dd1-f63a7bf32bf9.f3d"
+    },
+    {
+      "id": 160746,
+      "name": "R Spacer Set 2",
+      "archive_member": "b61b694a-8c82-406d-b9ad-e7d625f054c3.f3d"
+    },
+    {
+      "id": 160747,
+      "name": "S_R03 Motor (3)",
+      "archive_member": "de944832-da58-4d06-96ef-eb948c670022.f3d"
+    },
+    {
+      "id": 160748,
+      "name": "R Fastened SM",
+      "archive_member": "6b9e7109-1776-4531-af32-616b2aebd8b5.f3d"
+    },
+    {
+      "id": 160749,
+      "name": "R BB SM",
+      "archive_member": "72f7136f-5715-466b-92e9-b6e54ea978b0.f3d"
+    },
+    {
+      "id": 160750,
+      "name": "R Hip Spacer",
+      "archive_member": "0738eb5c-0366-45ed-a1c8-b288272e96a5.f3d"
+    },
+    {
+      "id": 160751,
+      "name": "R Spacer Set 1",
+      "archive_member": "d8019477-9c7d-4b59-80a8-c17f475b2cdc.f3d"
+    },
+    {
+      "id": 160752,
+      "name": "Right Thigh Sub-Assembly",
+      "archive_member": "1cf6afa9-87f1-451a-8276-508b7200d088.f3d"
+    },
+    {
+      "id": 160753,
+      "name": "R Spacer",
+      "archive_member": "bb24ddfa-e310-4109-8b25-c1232bc8854c.f3d"
+    },
+    {
+      "id": 160754,
+      "name": "R Thigh Inner Connector",
+      "archive_member": "2e483703-1382-4631-a9b9-8cdd9dd9eb24.f3d"
+    },
+    {
+      "id": 160755,
+      "name": "Forged Hexagon Socket Button Head Cap Screw ANSI B18.3.4M - M3 x 0.5 x 10 Steel Grade 2 Plain",
+      "archive_member": "cf5afb22-a7ff-49a8-8794-5913ea18e975.f3d"
+    },
+    {
+      "id": 160756,
+      "name": "R R04 Spacer Plug",
+      "archive_member": "ac073e58-817e-4108-8134-e81db582a6ce.f3d"
+    },
+    {
+      "id": 160757,
+      "name": "R R04 Spacer",
+      "archive_member": "70d5c613-15ec-41c5-8f0a-b988b508ae44.f3d"
+    },
+    {
+      "id": 160758,
+      "name": "R Leg Abduction Ball Bearing",
+      "archive_member": "9c6f4a2f-7fcc-4f5d-8286-1631f808301e.f3d"
+    },
+    {
+      "id": 160759,
+      "name": "R Thigh Outer Connector",
+      "archive_member": "a7ed1c7d-9dfc-4dd9-a08c-a43c973e8698.f3d"
+    },
+    {
+      "id": 160760,
+      "name": "S_R04 Motor (4)",
+      "archive_member": "eaf1d73d-6f17-4ec1-bae9-b362e3f08daa.f3d"
+    },
+    {
+      "id": 160761,
+      "name": "Right Lower Leg Sub-Assembly",
+      "archive_member": "99927a25-8ffa-44d7-b545-bed138375d53.f3d"
+    },
+    {
+      "id": 160762,
+      "name": "R SM Round Spacer",
+      "archive_member": "28830bd3-fe11-4fe2-9574-0d3f3b02d4bd.f3d"
+    },
+    {
+      "id": 160763,
+      "name": "R Leg Inner SM",
+      "archive_member": "3c24c51c-7d1e-410f-b0b1-7943c0427c3f.f3d"
+    },
+    {
+      "id": 160764,
+      "name": "R Top Heel Linkage Rod",
+      "archive_member": "735f935b-bb29-4f54-8312-97b5ea4c0d11.f3d"
+    },
+    {
+      "id": 160765,
+      "name": "R Leg SM Connector",
+      "archive_member": "c23cb4e4-1901-484f-8d67-6fffc1366860.f3d"
+    },
+    {
+      "id": 160766,
+      "name": "R Ankle Bearing 2",
+      "archive_member": "0d41620a-7b9f-4801-aad7-83aac26f96cb.f3d"
+    },
+    {
+      "id": 160767,
+      "name": "R Ankle Bearing 1",
+      "archive_member": "71d64a8d-93f1-4019-8e8c-97d503b890b0.f3d"
+    },
+    {
+      "id": 160768,
+      "name": "Broached Hexagon Socket Head Cap Screw ASME B18.3.1M - M2.5x0.45 x 6 Steel Grade 2 Plain",
+      "archive_member": "9869d79e-ed06-4470-960f-4be4f055e336.f3d"
+    },
+    {
+      "id": 160769,
+      "name": "R Leg Outer SM",
+      "archive_member": "5a258f20-2e4c-43ff-823c-82665c543411.f3d"
+    },
+    {
+      "id": 160770,
+      "name": "Hexagon Socket Button Head Screw NS-EN ISO 7380-1 - M5 x 12 Steel 4.6 Plain",
+      "archive_member": "a638efd9-6838-4b8f-ae2a-789423520891.f3d"
+    },
+    {
+      "id": 160771,
+      "name": "R SM Slot Spacer",
+      "archive_member": "36e11740-0768-4238-8751-05722d2b405f.f3d"
+    },
+    {
+      "id": 160772,
+      "name": "R R02 Connector",
+      "archive_member": "5d1d709d-42a1-41cb-8dc5-09ce786f45ac.f3d"
+    },
+    {
+      "id": 160773,
+      "name": "S_R02 Motor (5)",
+      "archive_member": "38d2b316-8c96-4691-8284-cc6d373d5396.f3d"
+    },
+    {
+      "id": 160774,
+      "name": "R Slot Bearing",
+      "archive_member": "22b29059-a3b5-4753-85b3-3183fa656f31.f3d"
+    },
+    {
+      "id": 160775,
+      "name": "Right Pelvis-Hip Connector",
+      "archive_member": "e14f5366-9e18-4d86-b263-85d986712ec4.f3d"
+    },
+    {
+      "id": 160776,
+      "name": "R Fastened Spacer",
+      "archive_member": "c57abdd2-c4d2-4fd6-91f0-d313c68ed407.f3d"
+    },
+    {
+      "id": 160777,
+      "name": "R R03 Spacer Plug",
+      "archive_member": "35237484-5fd3-4b01-a9b8-cfc0a0a52c2e.f3d"
+    },
+    {
+      "id": 160778,
+      "name": "R PH Abduction Ball Bearing",
+      "archive_member": "d78409e1-77c6-44a5-8840-3bbba7a21d90.f3d"
+    },
+    {
+      "id": 160779,
+      "name": "R PH Rear Connector",
+      "archive_member": "0088cbd5-c87e-4193-b1ec-2921e3c4c62e.f3d"
+    },
+    {
+      "id": 160780,
+      "name": "R R03 PH Spacer",
+      "archive_member": "3ee46352-bc64-4e3d-9970-d1949391cbc6.f3d"
+    },
+    {
+      "id": 160781,
+      "name": "R PH Front Connector",
+      "archive_member": "e25a1a00-dae9-47ca-967e-3235c0a95f70.f3d"
+    },
+    {
+      "id": 160782,
+      "name": "S_R03 Motor (2)",
+      "archive_member": "e51b7ae6-ea30-4d2b-86ba-be6563557754.f3d"
+    }
+  ]
+}
