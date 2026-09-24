@@ -67,6 +67,7 @@ class Joystick:
     _narrow_feet_scale = 0.0
     _stand_yaw_scale = 0.0
     _phase_reward_command_only = False
+    _airtime_reward_command_only = False
 
     def __init__(self, name: str, robot: Any, scene: str, cfg: Any, **_: Any):
         if name != "unitree_g1":
@@ -145,6 +146,7 @@ class Joystick:
         # Old saved configs have no local shaping field and remain unchanged.
         self._feet_contact_phase_scale = float(getattr(cfg.reward_scales, "feet_contact_phase", 0.0))
         self._phase_reward_command_only = bool(getattr(cfg.playground, "phase_reward_command_only", False))
+        self._airtime_reward_command_only = bool(getattr(cfg.playground, "airtime_reward_command_only", False))
         self._narrow_feet_scale = float(getattr(cfg.reward_scales, "narrow_feet", 0.0))
         self._stand_yaw_scale = float(getattr(cfg.reward_scales, "stand_yaw", 0.0))
         self._mjx_env_module = mjx_env_module
@@ -198,6 +200,9 @@ class Joystick:
         if self._phase_reward_command_only:
             self.effective_config["phase_reward_command_only"] = True
             self.source_record["adaptations"].append("disable phase-height reward at zero command")
+        if self._airtime_reward_command_only:
+            self.effective_config["airtime_reward_command_only"] = True
+            self.source_record["adaptations"].append("disable air-time reward at zero command")
         self.nq = self._env.mj_model.nq
         self.nv = self._env.mj_model.nv
         self.nu = self._env.mj_model.nu
@@ -283,6 +288,11 @@ class Joystick:
             old = metrics["reward/feet_phase"]
             new = old * (jp.linalg.norm(state.info["command"]) > 0.01)
             metrics["reward/feet_phase"] = new
+            reward = reward + (new - old) * self.dt
+        if self._airtime_reward_command_only:
+            old = metrics["reward/feet_air_time"]
+            new = old * (jp.linalg.norm(state.info["command"]) > 0.01)
+            metrics["reward/feet_air_time"] = new
             reward = reward + (new - old) * self.dt
         if self._feet_contact_phase_scale != 0.0:
             weighted = self._feet_contact_phase_scale * contact_phase_reward(

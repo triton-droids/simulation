@@ -462,3 +462,8 @@ same B04control parent. Original screens/full gates retained; see audit for reje
 Standing linear precision passes but yaw fails both arms; survival intact.
 B06 matched zero-command yaw-rate cost-1 versus0, same B05control parent,
 1,003,520steps each; no moving reward changes. See audit for budget/rejection.
+
+## B06 closed; B07 frozen
+Yaw damping fails standing yaw; no extension. Objective review finds air-time
+reward remains positive at zero command. B07 tests command-only air-time gating
+versus control,1,003,520steps each; exact budget/stop rules in audit.

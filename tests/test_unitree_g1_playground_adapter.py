@@ -417,3 +417,18 @@ def test_stand_yaw_cost_uses_previous_command_and_single_dt():
         assert float(result.reward)==pytest.approx(.5+cost*.02)
         assert float(result.metrics["reward/stand_yaw"])==pytest.approx(cost)
         assert result.data is state.data
+
+
+@pytest.mark.parametrize("airtime", [.3, -.2])
+def test_airtime_command_gate_uses_pretransition_command(airtime):
+    class Upstream(_MutatingUpstream):
+        def step(self,state,action):
+            return super().step(state,action).replace(reward=jp.asarray(.5),metrics={"reward/feet_air_time":jp.asarray(airtime)})
+    adapter=Joystick.__new__(Joystick);adapter._env=Upstream();adapter.dt=.02
+    for enabled in [False,True]:
+        adapter._airtime_reward_command_only=enabled
+        for cmd in [jp.zeros(3),jp.array([.45,0,0]),jp.array([0,0,.4])]:
+            state=_FakeState(data=_FakeData(jp.zeros(36),jp.zeros(35)),obs={"state":jp.zeros(103),"privileged_state":jp.zeros(216)},reward=jp.zeros(()),done=jp.zeros(()),metrics={},info={"command":cmd,"last_act":jp.zeros(29),"phase":jp.zeros(2),"feet_air_time":jp.zeros(2)})
+            out=adapter.step(state,jp.zeros(29));removed=enabled and float(jp.linalg.norm(cmd))==0
+            assert float(out.reward)==pytest.approx(.5-(airtime*.02 if removed else 0))
+            assert float(out.metrics['reward/feet_air_time'])==pytest.approx(0 if removed else airtime)

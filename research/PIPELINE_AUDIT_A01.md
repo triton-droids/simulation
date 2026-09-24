@@ -336,3 +336,31 @@ coefficient or continue unchanged. Review remaining objective conflict before an
 further training. Partial screens never equal full pass; original control/visual
 and three fresh independent training seeds/held-out criteria remain mandatory.
 B06 verification:3 focused adapter tests passed; real MJX reset/step metric structure and stand/moving reward/physics/termination parity passed (results/b06_stand_yaw_smoke.log). Paired argv assertion, queue validation and diff check passed.
+
+
+## B06 closed; remaining objective conflict and B07 freeze
+B06 both16/16 screen survival, nominal stand linear .14729/.14157 passes but
+stand yaw .24195/.21583 fails. Damping random screen passes; control worst yaw
+.44120 fails. All full evaluations skipped. Sampled stand/forward videos retain
+stepping and upright walking. Close damping hypothesis; no coefficient escalation.
+Objective review of existing A04 traces (not repeated simulation): settled stand
+weighted feet_air_time reward+.01216 in both reset regimes despite phase reward0.
+Pinned upstream _reward_feet_air_time explicitly deletes/ignores command. Other
+positive terms are tracking rewards; pose penalty dominates costs at~-1.023.
+This small air-time incentive is a real objective conflict, not an implementation
+bug and not proof it causes the plateau. Removing it is a bounded causal test.
+B07 command-gates feet_air_time at norm<=.01 versus unchanged upstream. Includes
+both positive and negative air-time terms; moving/turning rewards unchanged.
+Same B06control fixed-final1003520 parent,seed11,1003520steps each,lr1e-4,gamma.97,
+phase gatingtrue,stand yaw0,stand pose-1,standing exposure10%. No cherry-picked
+checkpoint. One paired budget2,007,040 steps,8-hour cap. Fixed48 screen rows and
+conditional180 full rows each,original gates; B01checkpoint0 untrained reference.
+Pre-transition command,weighted delta*dt once; defaultfalse restores old behavior.
+No reset,physics,termination or observation changes. Restore audits mandatory.
+If neither passes both screens, close this objective-mask hypothesis; do not run
+another mask/coefficient sweep or extend unchanged. Before further training assess
+whether the learned periodic gait representation, rather than more reward tuning,
+requires a bounded structural diagnostic. Reject stand gains with recovery/moving
+regression. Full original numeric/control/visual gates and three fresh independent
+training seeds plus held-out tests remain required; screens are not full passes.
+B07 verification:4 focused tests passed; real MJX smoke exercised nonzero air-time removal and unchanged moving reward/physics/termination (results/b07_airtime_smoke.log). Queue validation,paired argv equality and diff checks passed.
