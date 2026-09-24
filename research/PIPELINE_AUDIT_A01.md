@@ -144,3 +144,25 @@ No unchanged extension if difficult survival fails to improve without ordinary
 regression. Tests verify bounded geometry and yaw/translation invariance; actual
 MJX reset/step required before launch. No final independent seed success claimed.
 P02 validation: geometry unit test, real MJX reset/step smoke (results/narrow_feet_smoke.log), queue validation and diff checks passed.
+
+## P02 rejected and A03 action-sampling diagnostic
+P02 nominal8/8 survive but standing yaw .15675 exceeds .15; randomized4/8
+survive just as C10,mean276 versus274.625. Difficult forward6002/6014 lasts
+41/55 versus31/54. No survival success; abandon separation-cost pilot, no
+extension. Sampled ordinary forward videos show stepping, not a full gait pass.
+Full180 evaluations skipped. Original terminal and evaluation rules unchanged.
+A03 evaluates frozen C10 stochastically at reset6000/6002/6014 with independent
+policy RNG keys17/29/43,forward.45,500steps. Nine local trajectories,zero training,
+2-hour cap. Existing A02 deterministic/oracle data remain matched references;
+do not rerun reference for each key. Record every trajectory; no lucky-draw
+selection or promotion. Question: does the trained action distribution contain
+recoveries that its deterministic action choice fails to reproduce? This is
+not a claim of inference bug; stochastic training and deterministic deployment
+are intentional different modes. Final evaluations remain deterministic.
+If all difficult draws fail, close this explanation; if recoveries appear, report
+frequency and ordinary regression, then design a bounded learning/distribution
+experiment rather than changing the final evaluation mode. Freeze decisions only
+after all9 results. CLI defaults preserve original behavior. Verify saved-policy
+same-key repeatability/different-key sensitivity/deterministic invariance before
+launch; per-transition terminal decomposition checks remain active.
+A03 validation: saved-policy repeatability, RNG sensitivity and deterministic invariance passed (results/a03_sampler_check.log); Python syntax, frozen queue and diff checks passed.

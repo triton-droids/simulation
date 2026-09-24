@@ -413,3 +413,9 @@ bounded dense separation-cost mechanism, not another general balance weight.
 See PIPELINE_AUDIT_A01.md and queues/post_f1_p02.json for evidence,budget,
 prospective rejection rule and unchanged screening/full gates. Fresh final seeds
 remain required after any development success. Preserve every failure.
+
+## P02 closed; A03 frozen
+P02 fails screening with unchanged4/8 random survivors; do not extend penalty.
+A03 is zero-training saved-policy sampling diagnostic:3 original resets x3 fixed
+policy RNG keys,all outcomes retained. See PIPELINE_AUDIT_A01.md for hypothesis,
+budget and decisions. No stochastic outcome can satisfy final deterministic gates.

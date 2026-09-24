@@ -41,6 +41,9 @@ def main():
     parser.add_argument("--command", type=float, nargs=3, default=[0.5, 0.0, 0.0],
                         metavar=("VX", "VY", "YAW"))
     parser.add_argument("--seed", type=int, default=2000)
+    parser.add_argument("--stochastic-policy", action="store_true", help="Diagnostic only; final evaluation remains deterministic")
+    parser.add_argument("--policy-seed", type=int, default=0)
+    parser.add_argument("--local-only", action="store_true", help="Avoid rerunning an already recorded oracle trajectory")
     parser.add_argument("--randomized-reset", action="store_true")
     parser.add_argument("--evaluation-reset", action="store_true",
                         help="Use evaluate_g1's split reset key and sampled gait frequency.")
@@ -73,10 +76,10 @@ def main():
     net = ev._make_evaluation_network(factory, env.observation_size, 29,
         normalize_observations=cfg.agent.normalize_observations)
     params = model.load_params(args.run_dir / "logs/checkpoints" / str(args.checkpoint) / "policy")
-    policy = jax.jit(networks.make_inference_fn(net)(params, deterministic=True))
+    policy = jax.jit(networks.make_inference_fn(net)(params, deterministic=not args.stochastic_policy))
     path = oracle._default_policy_path()
     assert oracle._sha256(path) == oracle.EXPECTED_ONNX_SHA256
-    session = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+    session = None if args.local_only else ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
     command = jp.array(args.command)
     def diagnostic_reset(state):
         if args.reset_ablation == "full":
@@ -111,7 +114,7 @@ def main():
     step = jax.jit(lambda state, action: ev._step_with_held_command(env, state, action, command))
     rows = {}
     initial_states = {}
-    for controller in (args.policy_label, "oracle"):
+    for controller in ((args.policy_label,) if args.local_only else (args.policy_label, "oracle")):
         reset_key = jax.random.PRNGKey(args.seed)
         if args.evaluation_reset:
             reset_key = jax.random.split(reset_key)[0]
@@ -145,7 +148,8 @@ def main():
         trace = []
         for index in range(args.steps):
             if controller != "oracle":
-                action = policy(state.obs, jax.random.PRNGKey(index))[0]
+                action_key = jax.random.fold_in(jax.random.PRNGKey(args.policy_seed), index) if args.stochastic_policy else jax.random.PRNGKey(index)
+                action = policy(state.obs, action_key)[0]
             else:
                 action = jp.asarray(session.run(None, {"obs": np.asarray(state.obs["state"])[None]})[0][0])
             state = step(state, action)
@@ -187,7 +191,7 @@ def main():
         print(controller, json.dumps(rows[controller]), flush=True)
     result = {"kind": "same_MJX_reward_diagnostic", "command": args.command,
         "run_dir": str(args.run_dir), "checkpoint": args.checkpoint,
-        "policy_label": args.policy_label,
+        "policy_label": args.policy_label, "stochastic_policy": args.stochastic_policy, "policy_seed": args.policy_seed, "local_only": args.local_only,
         "phase_frequency_hz": float(np.asarray(state.info["phase_dt"])[0] / (2 * np.pi * env.dt)),
         "seed": args.seed, "reset_randomized": args.randomized_reset,
         "evaluation_reset": args.evaluation_reset, "initial_states": initial_states,

@@ -1,0 +1,421 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_a03/queue",
+  "max_wall_seconds": 7200,
+  "jobs": [
+    {
+      "id": "reset6000_policy17",
+      "hypothesis": "Measure sampled-action recovery versus existing deterministic failures without changing policy or selecting successful draws.",
+      "evidence": "Late reward/curriculum pilots failed; PPO samples during training while deployment uses deterministic actions. A01 verified preprocessing parity, not behavioral equivalence of these modes.",
+      "review_artifact": "results/post_f1_a03/reset6000_policy17/summary.json",
+      "stages": [
+        {
+          "id": "C10_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c10/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a03/reset6000_policy17",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C10",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6000",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "full",
+            "--stochastic-policy",
+            "--policy-seed",
+            "17",
+            "--local-only"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a03/reset6000_policy17"
+          ],
+          "required_paths": [
+            "results/post_f1_a03/reset6000_policy17/summary.json",
+            "results/post_f1_a03/reset6000_policy17/C10_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "reset6000_policy29",
+      "hypothesis": "Measure sampled-action recovery versus existing deterministic failures without changing policy or selecting successful draws.",
+      "evidence": "Late reward/curriculum pilots failed; PPO samples during training while deployment uses deterministic actions. A01 verified preprocessing parity, not behavioral equivalence of these modes.",
+      "review_artifact": "results/post_f1_a03/reset6000_policy29/summary.json",
+      "stages": [
+        {
+          "id": "C10_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c10/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a03/reset6000_policy29",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C10",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6000",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "full",
+            "--stochastic-policy",
+            "--policy-seed",
+            "29",
+            "--local-only"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a03/reset6000_policy29"
+          ],
+          "required_paths": [
+            "results/post_f1_a03/reset6000_policy29/summary.json",
+            "results/post_f1_a03/reset6000_policy29/C10_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "reset6000_policy43",
+      "hypothesis": "Measure sampled-action recovery versus existing deterministic failures without changing policy or selecting successful draws.",
+      "evidence": "Late reward/curriculum pilots failed; PPO samples during training while deployment uses deterministic actions. A01 verified preprocessing parity, not behavioral equivalence of these modes.",
+      "review_artifact": "results/post_f1_a03/reset6000_policy43/summary.json",
+      "stages": [
+        {
+          "id": "C10_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c10/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a03/reset6000_policy43",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C10",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6000",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "full",
+            "--stochastic-policy",
+            "--policy-seed",
+            "43",
+            "--local-only"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a03/reset6000_policy43"
+          ],
+          "required_paths": [
+            "results/post_f1_a03/reset6000_policy43/summary.json",
+            "results/post_f1_a03/reset6000_policy43/C10_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "reset6002_policy17",
+      "hypothesis": "Measure sampled-action recovery versus existing deterministic failures without changing policy or selecting successful draws.",
+      "evidence": "Late reward/curriculum pilots failed; PPO samples during training while deployment uses deterministic actions. A01 verified preprocessing parity, not behavioral equivalence of these modes.",
+      "review_artifact": "results/post_f1_a03/reset6002_policy17/summary.json",
+      "stages": [
+        {
+          "id": "C10_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c10/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a03/reset6002_policy17",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C10",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6002",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "full",
+            "--stochastic-policy",
+            "--policy-seed",
+            "17",
+            "--local-only"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a03/reset6002_policy17"
+          ],
+          "required_paths": [
+            "results/post_f1_a03/reset6002_policy17/summary.json",
+            "results/post_f1_a03/reset6002_policy17/C10_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "reset6002_policy29",
+      "hypothesis": "Measure sampled-action recovery versus existing deterministic failures without changing policy or selecting successful draws.",
+      "evidence": "Late reward/curriculum pilots failed; PPO samples during training while deployment uses deterministic actions. A01 verified preprocessing parity, not behavioral equivalence of these modes.",
+      "review_artifact": "results/post_f1_a03/reset6002_policy29/summary.json",
+      "stages": [
+        {
+          "id": "C10_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c10/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a03/reset6002_policy29",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C10",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6002",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "full",
+            "--stochastic-policy",
+            "--policy-seed",
+            "29",
+            "--local-only"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a03/reset6002_policy29"
+          ],
+          "required_paths": [
+            "results/post_f1_a03/reset6002_policy29/summary.json",
+            "results/post_f1_a03/reset6002_policy29/C10_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "reset6002_policy43",
+      "hypothesis": "Measure sampled-action recovery versus existing deterministic failures without changing policy or selecting successful draws.",
+      "evidence": "Late reward/curriculum pilots failed; PPO samples during training while deployment uses deterministic actions. A01 verified preprocessing parity, not behavioral equivalence of these modes.",
+      "review_artifact": "results/post_f1_a03/reset6002_policy43/summary.json",
+      "stages": [
+        {
+          "id": "C10_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c10/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a03/reset6002_policy43",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C10",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6002",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "full",
+            "--stochastic-policy",
+            "--policy-seed",
+            "43",
+            "--local-only"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a03/reset6002_policy43"
+          ],
+          "required_paths": [
+            "results/post_f1_a03/reset6002_policy43/summary.json",
+            "results/post_f1_a03/reset6002_policy43/C10_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "reset6014_policy17",
+      "hypothesis": "Measure sampled-action recovery versus existing deterministic failures without changing policy or selecting successful draws.",
+      "evidence": "Late reward/curriculum pilots failed; PPO samples during training while deployment uses deterministic actions. A01 verified preprocessing parity, not behavioral equivalence of these modes.",
+      "review_artifact": "results/post_f1_a03/reset6014_policy17/summary.json",
+      "stages": [
+        {
+          "id": "C10_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c10/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a03/reset6014_policy17",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C10",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6014",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "full",
+            "--stochastic-policy",
+            "--policy-seed",
+            "17",
+            "--local-only"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a03/reset6014_policy17"
+          ],
+          "required_paths": [
+            "results/post_f1_a03/reset6014_policy17/summary.json",
+            "results/post_f1_a03/reset6014_policy17/C10_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "reset6014_policy29",
+      "hypothesis": "Measure sampled-action recovery versus existing deterministic failures without changing policy or selecting successful draws.",
+      "evidence": "Late reward/curriculum pilots failed; PPO samples during training while deployment uses deterministic actions. A01 verified preprocessing parity, not behavioral equivalence of these modes.",
+      "review_artifact": "results/post_f1_a03/reset6014_policy29/summary.json",
+      "stages": [
+        {
+          "id": "C10_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c10/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a03/reset6014_policy29",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C10",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6014",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "full",
+            "--stochastic-policy",
+            "--policy-seed",
+            "29",
+            "--local-only"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a03/reset6014_policy29"
+          ],
+          "required_paths": [
+            "results/post_f1_a03/reset6014_policy29/summary.json",
+            "results/post_f1_a03/reset6014_policy29/C10_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "reset6014_policy43",
+      "hypothesis": "Measure sampled-action recovery versus existing deterministic failures without changing policy or selecting successful draws.",
+      "evidence": "Late reward/curriculum pilots failed; PPO samples during training while deployment uses deterministic actions. A01 verified preprocessing parity, not behavioral equivalence of these modes.",
+      "review_artifact": "results/post_f1_a03/reset6014_policy43/summary.json",
+      "stages": [
+        {
+          "id": "C10_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_c10/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a03/reset6014_policy43",
+            "--steps",
+            "500",
+            "--policy-label",
+            "C10",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6014",
+            "--randomized-reset",
+            "--evaluation-reset",
+            "--reset-ablation",
+            "full",
+            "--stochastic-policy",
+            "--policy-seed",
+            "43",
+            "--local-only"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a03/reset6014_policy43"
+          ],
+          "required_paths": [
+            "results/post_f1_a03/reset6014_policy43/summary.json",
+            "results/post_f1_a03/reset6014_policy43/C10_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    }
+  ]
+}
