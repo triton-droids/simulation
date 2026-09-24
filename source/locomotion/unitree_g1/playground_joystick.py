@@ -17,6 +17,7 @@ from source.locomotion.unitree_g1.playground_source import (
     resolve_playground_source,
 )
 from source.locomotion.unitree_g1.training_wrapper import wrap_for_brax_training
+from source.locomotion.unitree_g1.foot_separation import narrow_foot_cost
 from source.locomotion.unitree_g1.recovery_reset import sample_recovery_reset, backward_lateral_score
 
 
@@ -56,6 +57,7 @@ class Joystick:
     """Repository-facing wrapper around the exact pinned Playground G1 task."""
 
     _feet_contact_phase_scale = 0.0
+    _narrow_feet_scale = 0.0
 
     def __init__(self, name: str, robot: Any, scene: str, cfg: Any, **_: Any):
         if name != "unitree_g1":
@@ -133,6 +135,7 @@ class Joystick:
             raise ValueError("Reset disturbance scale must be in [0, 1]")
         # Old saved configs have no local shaping field and remain unchanged.
         self._feet_contact_phase_scale = float(getattr(cfg.reward_scales, "feet_contact_phase", 0.0))
+        self._narrow_feet_scale = float(getattr(cfg.reward_scales, "narrow_feet", 0.0))
         self._mjx_env_module = mjx_env_module
         self._env = joystick_module.Joystick(task="flat_terrain", config=effective)
         # Playground's default fast auto-reset restores only data/observations
@@ -165,6 +168,9 @@ class Joystick:
             self.source_record["adaptations"].append(
                 "optional local contact-phase reward using pre-transition phase and command"
             )
+        if self._narrow_feet_scale != 0.0:
+            self.effective_config.setdefault("local_reward_scales", {})["narrow_feet"] = self._narrow_feet_scale
+            self.source_record["adaptations"].append("optional bounded narrow-foot cost, heading-frame width .16m")
         self.nq = self._env.mj_model.nq
         self.nv = self._env.mj_model.nv
         self.nu = self._env.mj_model.nu
@@ -231,6 +237,8 @@ class Joystick:
         info["motor_targets"] = data.ctrl
         if self._feet_contact_phase_scale != 0.0:
             metrics["reward/feet_contact_phase"] = jp.zeros_like(state.reward)
+        if self._narrow_feet_scale != 0.0:
+            metrics["reward/narrow_feet"] = jp.zeros_like(state.reward)
         return state.replace(data=data, obs=obs, info=info, metrics=metrics)
 
     def step(self, state: Any, action: jax.Array):
@@ -247,6 +255,11 @@ class Joystick:
                 self._contact(next_state.data), state.info["phase"], state.info["command"]
             )
             metrics["reward/feet_contact_phase"] = weighted
+            reward = reward + weighted * self.dt
+        if self._narrow_feet_scale != 0.0:
+            weighted = self._narrow_feet_scale * narrow_foot_cost(
+                next_state.data.site_xpos[self._env._feet_site_id], next_state.data.qpos[3:7])
+            metrics["reward/narrow_feet"] = weighted
             reward = reward + weighted * self.dt
         obs = synchronize_transition_observation(next_state.obs, info)
         invalid = ~jp.isfinite(next_state.data.qpos).all()

@@ -120,3 +120,27 @@ if improved but gates fail, record specific failures before any new hypothesis.
 No claim this short pilot must solve full locomotion. Final recipe, all gates,
 fresh held-out tests and three new independent training seeds remain required.
 Validation: real MJX reset scales0/.5/1 passed qpos/qvel scaling, unchanged root pose, finite observations, recomputed observation coherence and exact upstream actor observation parity at scale1 (results/reset_curriculum_audit.log). Queue validation and diff checks passed.
+
+## P01 rejected; P02 collision-precursor hypothesis
+P01 curriculum/control randomized survivors0/8 each,mean171.75/170.125;
+nominal1/8 versus0/8,mean367.75/92.25. Curriculum improves nominal duration
+but not recovery without ordinary regression versus C10. Sampled forward6000
+videos show crouching/unstable steps; no pass. Abandon this pilot, no extension.
+Screening skipped all six full jobs (360 additional evaluation episodes).
+Post-hoc A02 trace geometry, heading-frame signed left-minus-right foot width:
+ordinary C10 min.173m; difficult6002 min.066, below.10 at step28 then collision31;
+6014 min-.023, below.10 at step52 then collision57. Reference minima.128/.208/.146
+and survives all. These selected traces motivate a hypothesis, not causal proof.
+P02 adds bounded squared deficit clip((.16-width)/.16,0,1)^2 with weight-4,
+control_dt scaling once; no cost at width>=.16. Measured in root yaw frame,
+left/right pinned feet sites, global yaw/translation invariant. Applies both
+standing and moving. Contact and termination rules unchanged. Risk: overly wide
+or rigid gait; final command/gait gates remain. Reference only informs diagnosis,
+never targets or imitation data. Default weight0 preserves existing behavior.
+Single bounded C10-parent continuation,seed11,1003520steps; all C11 recipe
+settings otherwise unchanged. Same-parent C11 supplies historical control.
+48-row frozen screen,180 full rows only after both screens pass,5-hour cap.
+No unchanged extension if difficult survival fails to improve without ordinary
+regression. Tests verify bounded geometry and yaw/translation invariance; actual
+MJX reset/step required before launch. No final independent seed success claimed.
+P02 validation: geometry unit test, real MJX reset/step smoke (results/narrow_feet_smoke.log), queue validation and diff checks passed.

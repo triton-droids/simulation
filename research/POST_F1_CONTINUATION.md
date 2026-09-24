@@ -405,3 +405,11 @@ P01 has two fresh seed11 development arms,each3010560 steps in three equal
 stages,only reset disturbance schedule differs.96 screening rows total; full
 evaluation conditional. No final gate weakened. Test real reset endpoints and
 observation coherence before launch; preserve scale1 behavior for evaluation.
+
+## P01 rejection and P02 freeze
+Both P01 arms fail all8 randomized survival rows; no further curriculum extension.
+Geometry from A02 reveals narrowing before foot-foot contact; P02 tests one
+bounded dense separation-cost mechanism, not another general balance weight.
+See PIPELINE_AUDIT_A01.md and queues/post_f1_p02.json for evidence,budget,
+prospective rejection rule and unchanged screening/full gates. Fresh final seeds
+remain required after any development success. Preserve every failure.
