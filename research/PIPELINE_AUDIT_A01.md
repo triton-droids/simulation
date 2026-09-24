@@ -166,3 +166,28 @@ after all9 results. CLI defaults preserve original behavior. Verify saved-policy
 same-key repeatability/different-key sensitivity/deterministic invariance before
 launch; per-transition terminal decomposition checks remain active.
 A03 validation: saved-policy repeatability, RNG sensitivity and deterministic invariance passed (results/a03_sampler_check.log); Python syntax, frozen queue and diff checks passed.
+
+## A03 closed; B01 uninterrupted baseline feasibility probe
+A03 ordinary6000 survives3/3 but yawRMSE .424-.447; difficult6002 lasts31/31/63
+and6014 lasts40/57/47,zero6 survivors. All report foot-foot contact;6002/key43
+also inversion. No stochastic recovery evidence; close this explanation, retain
+all draws. No new videos from this numeric diagnostic; prior C10 reviewed.
+Budget audit: DECISIONS.md line444 and EXPERIMENT_PLAN.md line510 record pinned
+upstream200M-step/8192-env profile. Recent P01 only3.01M per arm and optimizer
+restarts. These are not comparable training budgets; no proof of impossibility.
+B01 is one prospectively bounded uninterrupted20070400-step from-scratch
+seed11 development probe,512envs,batch32*16,unroll20,8evals,lr3e-4,gamma.97,
+entropy.005,original default reward scales (phase1,contact-phase0,narrow-feet0),
+full randomized starts with scale1/candidate1,upstream command ranges vx[-1,1],
+vy[-.5,.5],yaw[-1,1]. Noise,pushes,domain randomization remain disabled;
+horizon500 rather than upstream profile. This is NOT exact upstream replication,
+and changes versus P01 prevent attributing outcomes solely to budget.
+No warm starts, optimizer resets, oracle labels or parameter sweeps. Final20070400
+checkpoint fixed before run; ignoreKL only through first2867200 callback; existing
+sustainedKL/nonfinite guards remain.6-hour queue cap,4-hour training cap.
+Screen fixed48 original rows,own checkpoint0 untrained reference,then conditional
+full180 with original thresholds. No checkpoint cherry-picking. If both screens
+fail/no recovery gain, do not extend unchanged; review learning curve and stop
+this baseline hypothesis or identify a specific justified redesign. A pass only
+permits full development evaluation and later fresh independent validation.
+This replaces short repeated fine-tuning with one bounded budget/recipe probe.

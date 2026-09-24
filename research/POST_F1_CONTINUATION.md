@@ -419,3 +419,10 @@ P02 fails screening with unchanged4/8 random survivors; do not extend penalty.
 A03 is zero-training saved-policy sampling diagnostic:3 original resets x3 fixed
 policy RNG keys,all outcomes retained. See PIPELINE_AUDIT_A01.md for hypothesis,
 budget and decisions. No stochastic outcome can satisfy final deterministic gates.
+
+## A03 reviewed and B01 freeze
+No difficult stochastic successes0/6; ordinary3/3 survival but worseyaw. Close
+sampling explanation. B01 is a bounded uninterrupted20,070,400-step original-
+reward randomized baseline feasibility probe,not a3-seed study or exact upstream
+replication. See PIPELINE_AUDIT_A01.md for evidence,all differences and rejection
+rule. Fixed checkpoint and original screening/full gates; no automatic extension.
