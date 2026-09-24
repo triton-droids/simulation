@@ -397,3 +397,23 @@ def test_real_upstream_standing_sampler_override():
     assert 0.28 < np.mean(~moving) < 0.32
     np.testing.assert_array_equal(np.asarray(sample)[moving],np.asarray(original)[moving])
     assert env.effective_config["standing_command_probability"] == 0.3
+
+
+def test_stand_yaw_cost_uses_previous_command_and_single_dt():
+    class Upstream(_MutatingUpstream):
+        def get_gyro(self, data, body):
+            assert body == "pelvis"
+            return jp.array([0.,0.,.5])
+    adapter = Joystick.__new__(Joystick)
+    adapter._env = Upstream()
+    adapter._stand_yaw_scale = -1.
+    adapter.dt = .02
+    for cmd,cost in [(jp.zeros(3),-.25),(jp.array([.45,0,0]),0.),(jp.array([0,0,.4]),0.)]:
+        state = _FakeState(data=_FakeData(jp.zeros(36),jp.zeros(35)),
+            obs={"state":jp.zeros(103),"privileged_state":jp.zeros(216)},
+            reward=jp.asarray(.5),done=jp.zeros(()),metrics={},
+            info={"command":cmd,"last_act":jp.zeros(29),"phase":jp.zeros(2),"feet_air_time":jp.zeros(2)})
+        result=adapter.step(state,jp.zeros(29))
+        assert float(result.reward)==pytest.approx(.5+cost*.02)
+        assert float(result.metrics["reward/stand_yaw"])==pytest.approx(cost)
+        assert result.data is state.data

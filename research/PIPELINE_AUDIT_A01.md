@@ -312,3 +312,27 @@ regression, close this exposure hypothesis; no automatic unchanged extension or
 probability sweep. Both arms reviewed, never select reward alone. Full original
 control/gait gates and three fresh training seeds/held-out grid remain mandatory.
 B05 verification:16 adapter tests passed; additional real pinned upstream sampler test passed, confirming30% exposure and exact retained moving samples. Queue validation,paired argv assertion and diff checks passed.
+
+
+## B05 exposure hypothesis closed; B06 targeted yaw damping frozen
+Both arms survive16/16 screen episodes and pass randomized numeric screening.
+Nominal stand linear passes:30% .13411 versus control .14526; yaw still fails:
+.20471 versus .18867 (limit.15). All full evaluations skipped. Sampled stand
+frames show continuing steps and forward frames upright stepping; no final visual
+pass claimed. Close standing-exposure hypothesis: no probability sweep/extension.
+A04 yaw variance dominates mean yaw; B05 leaves yaw as nominal screen failure.
+B06 tests an explicit squared pelvis gyro-z cost ONLY at zero command(norm<.01),
+weight-1 versus0. This differs from failed global yaw reward3: moving/turning reward
+unchanged. Same B05control final1003520 parent,seed11,1003520steps each,lr1e-4,
+gamma.97,phase gatingtrue,stand pose-1,standing exposure10%. Pre-transition command
+and post-transition gyro; cost*control_dt added once. Default0 is historical parity;
+reset initializes metric to preserve JAX tree; saved recipe used in evaluation.
+No changes to physics,termination,commands,reset distribution or evaluation gates.
+Budget2,007,040 training steps total,8-hour queue cap; fixed48 screening rows each,
+conditional180 full rows each; B01checkpoint0 untrained reference; restore audit.
+Reject yaw gains that lose standing linear precision,recovery or moving gait.
+If neither arm passes both screens, close this damping hypothesis; do not escalate
+coefficient or continue unchanged. Review remaining objective conflict before any
+further training. Partial screens never equal full pass; original control/visual
+and three fresh independent training seeds/held-out criteria remain mandatory.
+B06 verification:3 focused adapter tests passed; real MJX reset/step metric structure and stand/moving reward/physics/termination parity passed (results/b06_stand_yaw_smoke.log). Paired argv assertion, queue validation and diff check passed.

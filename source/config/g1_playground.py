@@ -30,6 +30,7 @@ class G1PlaygroundMJXConfig(G1MJXConfig):
         # Local diagnostic extension; zero preserves upstream rewards exactly.
         feet_contact_phase: float = 0.0
         narrow_feet: float = 0.0
+        stand_yaw: float = 0.0
         alive: float = 0.0
         stand_still: float = -1.0
         termination: float = -100.0

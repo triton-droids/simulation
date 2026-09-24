@@ -457,3 +457,8 @@ See PIPELINE_AUDIT_A01.md for budget and decision rules; no gate changes.
 Persistent stepping remains despite zero phase reward; reference also fails stand precision.
 B05 matched30% versus10% standing command exposure,1,003,520steps per arm,
 same B04control parent. Original screens/full gates retained; see audit for rejection rule.
+
+## B05 closed; B06 frozen
+Standing linear precision passes but yaw fails both arms; survival intact.
+B06 matched zero-command yaw-rate cost-1 versus0, same B05control parent,
+1,003,520steps each; no moving reward changes. See audit for budget/rejection.

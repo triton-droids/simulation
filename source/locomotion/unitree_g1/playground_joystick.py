@@ -65,6 +65,7 @@ class Joystick:
 
     _feet_contact_phase_scale = 0.0
     _narrow_feet_scale = 0.0
+    _stand_yaw_scale = 0.0
     _phase_reward_command_only = False
 
     def __init__(self, name: str, robot: Any, scene: str, cfg: Any, **_: Any):
@@ -145,6 +146,7 @@ class Joystick:
         self._feet_contact_phase_scale = float(getattr(cfg.reward_scales, "feet_contact_phase", 0.0))
         self._phase_reward_command_only = bool(getattr(cfg.playground, "phase_reward_command_only", False))
         self._narrow_feet_scale = float(getattr(cfg.reward_scales, "narrow_feet", 0.0))
+        self._stand_yaw_scale = float(getattr(cfg.reward_scales, "stand_yaw", 0.0))
         self._mjx_env_module = mjx_env_module
         self._env = joystick_module.Joystick(task="flat_terrain", config=effective)
         stand_probability = float(getattr(cfg.playground, "standing_command_probability", 0.1))
@@ -190,6 +192,9 @@ class Joystick:
         if self._narrow_feet_scale != 0.0:
             self.effective_config.setdefault("local_reward_scales", {})["narrow_feet"] = self._narrow_feet_scale
             self.source_record["adaptations"].append("optional bounded narrow-foot cost, heading-frame width .16m")
+        if self._stand_yaw_scale != 0.0:
+            self.effective_config.setdefault("local_reward_scales", {})["stand_yaw"] = self._stand_yaw_scale
+            self.source_record["adaptations"].append("zero-command-only squared pelvis yaw rate cost")
         if self._phase_reward_command_only:
             self.effective_config["phase_reward_command_only"] = True
             self.source_record["adaptations"].append("disable phase-height reward at zero command")
@@ -261,6 +266,8 @@ class Joystick:
             metrics["reward/feet_contact_phase"] = jp.zeros_like(state.reward)
         if self._narrow_feet_scale != 0.0:
             metrics["reward/narrow_feet"] = jp.zeros_like(state.reward)
+        if self._stand_yaw_scale != 0.0:
+            metrics["reward/stand_yaw"] = jp.zeros_like(state.reward)
         return state.replace(data=data, obs=obs, info=info, metrics=metrics)
 
     def step(self, state: Any, action: jax.Array):
@@ -287,6 +294,10 @@ class Joystick:
             weighted = self._narrow_feet_scale * narrow_foot_cost(
                 next_state.data.site_xpos[self._env._feet_site_id], next_state.data.qpos[3:7])
             metrics["reward/narrow_feet"] = weighted
+            reward = reward + weighted * self.dt
+        if self._stand_yaw_scale != 0.0:
+            weighted = self._stand_yaw_scale * jp.square(self._env.get_gyro(next_state.data, "pelvis")[2]) * (jp.linalg.norm(state.info["command"]) < 0.01)
+            metrics["reward/stand_yaw"] = weighted
             reward = reward + weighted * self.dt
         obs = synchronize_transition_observation(next_state.obs, info)
         invalid = ~jp.isfinite(next_state.data.qpos).all()
