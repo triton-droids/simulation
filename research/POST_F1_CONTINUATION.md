@@ -477,3 +477,10 @@ on a frozen policy; diagnostic only, never a gate pass. See audit for decision.
 Three antipodal clamps terminate early and survivor worsens yaw. No promotion.
 Pinned upstream suggests both phases at pi for standing; A06 tests that distinct
 encoding in two zero-training trials against saved A05 baselines. See audit.
+
+## A06 rejected; S01 feasibility probe
+Double-stance inference clamps both fail early; phase intervention branch closed.
+S01 trains a standing specialist from scratch for3,010,560steps to test a
+prerequisite for possible separate policy branches. Original48-row screen retains
+movement tests; specialist success alone is never a locomotion/full gate pass.
+See audit for bounded budget,old C07 distinction and decision rules.

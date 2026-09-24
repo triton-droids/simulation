@@ -424,3 +424,41 @@ Reassess a separately justified training architecture/objective design before
 new training. All original full numeric/control/gait gates and three fresh
 independent training seeds/held-out tests remain unchanged and outstanding.
 A06 verification: both jitted diagnostic tests passed, including exact double-stance encoding/nonphase preservation and prior intervention/default parity. Queue validation, Python compile and diff checks passed.
+
+
+## A06 rejected; S01 specialist architecture feasibility freeze
+Both double-stance interventions terminate foot-foot: nominal98 steps,height
+.26018,linear/yaw.75791/.47876; random57,height.36160,.92147/.88712. First100
+and last250 summaries each contain entire shortened98/57 traces, not settled
+windows. Matching A05 baselines survive500; neither promotion condition passes.
+Close inference-phase branch; no more phase constants or inference-only changes.
+Reassessment: B03-B07 corrections to the mature mixed-command walking policy
+have not produced standing precision; phase intervention breaks its feedback
+behavior. This does not prove an architectural limitation. Test prerequisite
+capability for a possible separate standing branch before building a switch.
+S01 is ONE from-scratch standing specialist feasibility probe, seed11,3010560
+steps uninterrupted,512envs,lr3e-4,gamma.97,8evals,500-step horizon,full original
+random resets,candidates1/scale1,zero command ranges. Original baseline rewards
+with existing phase/air-time command masks true,stand pose-1,yaw damping0.
+Cyclic phase observations remain normal: no new phase encoding or model change.
+No warmstart,reference labels,optimizer restarts,checkpoint selection or retuning.
+Contrast with old C07: it fine-tuned weak C02 with phase shaping active and
+orientation-4; S01 learns standing from initialization with no zero-command gait
+incentives. This is not causal isolation or a repeat mixed-command exposure sweep.
+Budget3,010,560 training steps,2-hour train cap,6-hour queue cap; final checkpoint
+fixed in advance. Guards ignore KL only through430080 and retain sustainedKL/
+nonfinite checks. Fixed48 original screen rows include stand AND forward; own
+checkpoint0 untrained reference. Full180 still conditional on BOTH original
+screen passes; expected movement loss cannot be hidden or counted as success.
+Record all stand rows,forward rows and videos. Specialist capability criterion:
+all4 nominal stand rows survive500,height>.6,linear/yaw<=.15; all4 randomized
+stand rows survive500,height>.6,linear/yaw<=.35. These are prerequisite criteria
+ONLY, not substituted full gates. If met but movement fails, the only permitted
+next direction is a prospectively frozen joint-controller/transition feasibility
+study with original full evaluation; no deployment or automatic switch. If unmet,
+close this specialist probe with no unchanged extension; use learning curve and
+failure evidence to reassess before additional compute. No inevitable success
+claim. Final recipe must independently train every component for three fresh
+predetermined seeds and fresh held-out tests and pass all original numeric,
+control-superiority,standing,gait and visual gates. Nothing is waived.
+S01 verification: plan validation, fixed checkpoint/monitor/initialization assertions and output-video path checks passed; no runner/model logic changed.
