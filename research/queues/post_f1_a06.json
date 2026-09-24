@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_a06/queue",
+  "max_wall_seconds": 5400,
+  "jobs": [
+    {
+      "id": "nominal_double_stance",
+      "hypothesis": "Test canonical upstream double-stance phase encoding, distinct from opposite-leg phase clamping.",
+      "evidence": "Pinned upstream commented standing proposal sets both phases to pi; A05 antipodal clamps failed and are rejected.",
+      "review_artifact": "results/post_f1_a06/nominal_double_stance/summary.json",
+      "stages": [
+        {
+          "id": "phase_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_b07/airtime_gate/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a06/nominal_double_stance",
+            "--steps",
+            "500",
+            "--policy-label",
+            "B07",
+            "--command",
+            "0",
+            "0",
+            "0",
+            "--seed",
+            "6000",
+            "--evaluation-reset",
+            "--local-only",
+            "--policy-double-stance"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a06/nominal_double_stance"
+          ],
+          "required_paths": [
+            "results/post_f1_a06/nominal_double_stance/summary.json",
+            "results/post_f1_a06/nominal_double_stance/B07_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "randomized_double_stance",
+      "hypothesis": "Test canonical upstream double-stance phase encoding, distinct from opposite-leg phase clamping.",
+      "evidence": "Pinned upstream commented standing proposal sets both phases to pi; A05 antipodal clamps failed and are rejected.",
+      "review_artifact": "results/post_f1_a06/randomized_double_stance/summary.json",
+      "stages": [
+        {
+          "id": "phase_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_b07/airtime_gate/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a06/randomized_double_stance",
+            "--steps",
+            "500",
+            "--policy-label",
+            "B07",
+            "--command",
+            "0",
+            "0",
+            "0",
+            "--seed",
+            "6002",
+            "--evaluation-reset",
+            "--local-only",
+            "--randomized-reset",
+            "--policy-double-stance"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a06/randomized_double_stance"
+          ],
+          "required_paths": [
+            "results/post_f1_a06/randomized_double_stance/summary.json",
+            "results/post_f1_a06/randomized_double_stance/B07_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    }
+  ]
+}

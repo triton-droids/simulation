@@ -394,3 +394,33 @@ structural test. Failure cannot prove phase independence due distribution shift.
 All original whole-episode gates,full command/control/gait evaluation and three
 fresh independent training seeds/held-out tests remain unchanged and outstanding.
 A05 verification: jitted observation-intervention test passed for both angles, exact no-op default and all nonphase indices; queue validation and diff checks passed.
+
+
+## A05 rejected; A06 source-motivated double-stance diagnostic
+A05 nominal baseline500 steps,linear/yaw.14134/.17784; random baseline500,
+.19988/.19382. Nominal phase0 terminates foot-foot at102(height.27631),phase90
+survives500 but yaw.35124. Random phase0/90 terminate foot-foot at64/55,
+heights.52019/.42550,yaw.67297/.70400. All interventions fail frozen promotion.
+Nominal baseline first100/last250 yaw.19579/.17497; random.23317/.17126.
+Nominal phase90 first/last yaw.36951/.36226; failed trials' last250 windows
+contain only102/64/55 available steps, not settled survival. No favorable clamp
+selected; failure under distribution shift does not establish phase independence.
+Specific new structural evidence: pinned joystick.py lines396-402 has a disabled
+standing proposal setting BOTH phases to pi at zero command. A05 used antipodal
+phases, always encoding one swinging leg; canonical double stance is distinct.
+A06 freezes only two500-step zero-training trials, B07airtime_gate final1003520,
+nominal6000/random6002,stand,deterministic,raw observation phase[-1,-1,0,0].
+Reuse exact A05 matching baselines; no repeat baseline/oracle or phase sweep.
+Actual simulator phase/history/reward/physics unchanged; intervention precedes
+saved normalizer; observation indices99:103 only. Default paths unchanged.
+Plan research/queues/post_f1_a06.json,90-minute queue cap,40-minute stage caps.
+This tests the encoding, NOT full implementation of upstream's proposed state
+update; it remains out-of-training-distribution and cannot count as a gate pass.
+Promotion evidence for a future training-consistent structural experiment requires
+BOTH cases500 steps,height>.6,yaw at least20% below matched baseline,linear no
+more than.02 worse. Record all outcomes,first100/last250 and contacts. If either
+fails,close inference-phase-intervention branch; do not try more phase constants.
+Reassess a separately justified training architecture/objective design before
+new training. All original full numeric/control/gait gates and three fresh
+independent training seeds/held-out tests remain unchanged and outstanding.
+A06 verification: both jitted diagnostic tests passed, including exact double-stance encoding/nonphase preservation and prior intervention/default parity. Queue validation, Python compile and diff checks passed.

@@ -472,3 +472,8 @@ versus control,1,003,520steps each; exact budget/stop rules in audit.
 Both arms fail standing; control also loses one randomized survivor. No further
 reward-mask tuning. A05 runs six zero-training phase-input interventions/baselines
 on a frozen policy; diagnostic only, never a gate pass. See audit for decision.
+
+## A05 rejected; A06 frozen
+Three antipodal clamps terminate early and survivor worsens yaw. No promotion.
+Pinned upstream suggests both phases at pi for standing; A06 tests that distinct
+encoding in two zero-training trials against saved A05 baselines. See audit.
