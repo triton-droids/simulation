@@ -342,3 +342,22 @@ def test_adapter_jitted_reset_step_and_resampling_invariants(contact_phase_scale
 
     assert int(resampled.info["step"]) == 0
     assert jp.allclose(resampled.obs["state"][9:12], resampled.info["command"])
+
+
+def test_command_only_phase_reward_removes_exact_term_only_when_stopped():
+    class PhaseUpstream(_MutatingUpstream):
+        def step(self, state, action):
+            result = super().step(state, action)
+            return result.replace(reward=jp.asarray(.5), metrics={"reward/feet_phase": jp.asarray(2.)})
+    adapter = Joystick.__new__(Joystick)
+    adapter._env = PhaseUpstream()
+    adapter._phase_reward_command_only = True
+    adapter.dt = .02
+    for command, expected in [(jp.zeros(3), .46), (jp.array([.45,0,0]), .5)]:
+        state = _FakeState(data=_FakeData(jp.zeros(36), jp.zeros(35)),
+            obs={"state": jp.zeros(103), "privileged_state": jp.zeros(216)},
+            reward=jp.zeros(()), done=jp.zeros(()), metrics={},
+            info={"command": command, "last_act": jp.zeros(29), "phase": jp.zeros(2), "feet_air_time": jp.zeros(2)})
+        result = adapter.step(state, jp.zeros(29))
+        assert float(result.reward) == pytest.approx(expected)
+        assert float(result.metrics["reward/feet_phase"]) == (0. if expected < .5 else 2.)

@@ -433,3 +433,10 @@ random linear gates pass. Yaw gates fail,so no full validation pass. B02 compare
 weight3 yaw correction versus.75 continuation control from same B01 final,each
 1003520steps atlr1e-4,original fixed screens/full gates. See audit document for
 all frozen settings,budget and rejection rule. No checkpoint/seed cherry-picking.
+
+## B02 review and B03 freeze
+B02control passes randomized screening but fails nominal stand precision;
+yaw3 loses recovery and is rejected. B03 matched command-only phase-reward
+mask versus unchanged mask targets observed stepping at zero command.
+See audit document and frozen queue for exact budget/decision. No full pass
+or independent seed claim. Preserve random recovery and all original gates.

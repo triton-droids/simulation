@@ -58,6 +58,7 @@ class Joystick:
 
     _feet_contact_phase_scale = 0.0
     _narrow_feet_scale = 0.0
+    _phase_reward_command_only = False
 
     def __init__(self, name: str, robot: Any, scene: str, cfg: Any, **_: Any):
         if name != "unitree_g1":
@@ -135,6 +136,7 @@ class Joystick:
             raise ValueError("Reset disturbance scale must be in [0, 1]")
         # Old saved configs have no local shaping field and remain unchanged.
         self._feet_contact_phase_scale = float(getattr(cfg.reward_scales, "feet_contact_phase", 0.0))
+        self._phase_reward_command_only = bool(getattr(cfg.playground, "phase_reward_command_only", False))
         self._narrow_feet_scale = float(getattr(cfg.reward_scales, "narrow_feet", 0.0))
         self._mjx_env_module = mjx_env_module
         self._env = joystick_module.Joystick(task="flat_terrain", config=effective)
@@ -171,6 +173,9 @@ class Joystick:
         if self._narrow_feet_scale != 0.0:
             self.effective_config.setdefault("local_reward_scales", {})["narrow_feet"] = self._narrow_feet_scale
             self.source_record["adaptations"].append("optional bounded narrow-foot cost, heading-frame width .16m")
+        if self._phase_reward_command_only:
+            self.effective_config["phase_reward_command_only"] = True
+            self.source_record["adaptations"].append("disable phase-height reward at zero command")
         self.nq = self._env.mj_model.nq
         self.nv = self._env.mj_model.nv
         self.nu = self._env.mj_model.nu
@@ -250,6 +255,11 @@ class Joystick:
         info = dict(next_state.info)
         metrics = dict(next_state.metrics)
         reward = next_state.reward
+        if self._phase_reward_command_only:
+            old = metrics["reward/feet_phase"]
+            new = old * (jp.linalg.norm(state.info["command"]) > 0.01)
+            metrics["reward/feet_phase"] = new
+            reward = reward + (new - old) * self.dt
         if self._feet_contact_phase_scale != 0.0:
             weighted = self._feet_contact_phase_scale * contact_phase_reward(
                 self._contact(next_state.data), state.info["phase"], state.info["command"]

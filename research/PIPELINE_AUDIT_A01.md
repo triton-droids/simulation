@@ -215,3 +215,27 @@ failure before another specific hypothesis. Three fresh training seeds and fresh
 held-out grid remain required after development; all B01/B02 are development.
 No runner/physics code changes. Plan validation,diff check and paired-command
 assertion required before commit/launch.
+
+## B02 reviewed; B03 stand-command reward conflict
+B02 yaw3 random7/8 survive,mean446.125;nominal8/8 but stand yaw .1900>.15.
+Reject yaw3 because recovery regresses. Control random8/8 and all random screen
+numeric gates PASS (linear/yaw means.21949/.22617); nominal8/8 survival but
+stand linear .15894 and yaw .22117 fail. Full jobs skipped; no full-gate pass.
+Sampled ordinary random-forward videos show upright alternating support.
+Nominal stand single-support .824-.834 and completed air .28-.34s indicate
+continued stepping. Upstream _reward_feet_phase gates on commanded OR actual
+motion>.1, so movement can sustain phase-height reward at zero command. This
+is an intentional upstream objective, not a software bug; hypothesis: conflict
+with strict standing precision. Do not weaken stand gates or contact rules.
+B03 compares command-only phase gating vs unchanged mask from SAME B02control
+final1003520,seed11,1003520steps each,lr1e-4,gamma.97,yawweight.75,all other
+settings identical. Subtract only weighted phase term*dt at command norm<=.01;
+moving reward,physics,terminal rules remain unchanged. Defaultfalse preserves
+historical behavior. Both training/evaluation use the saved recipe; gate metrics
+exclude shaped reward. Real-MJX stand/move parity smoke required before launch.
+Nominal screen videos now show stand; random screen videos forward. Original48
+screen rows and conditional180 full rows each,8-hour cap. No unchanged extension.
+If standing improves with any recovery loss,reject; full validation and all3
+fresh independent training seeds/held-out grid still mandatory. Reference remains
+B01 true initialization checkpoint0. No winner selection from reward alone.
+B03 validation: real-MJX stand/moving reward and physics/termination parity passed; three adapter tests including exact nonzero phase subtraction passed. Queue validation and diff checks passed.
