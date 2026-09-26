@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_a09/queue",
+  "max_wall_seconds": 7200,
+  "jobs": [
+    {
+      "id": "rate_cost_6001",
+      "hypothesis": "Identify remaining backward-reset failure mechanism before choosing further development.",
+      "evidence": "T02 rate cost passes screening,nominal24/24 and extra forward12/12,but full randomized backward6001 fails109steps.",
+      "review_artifact": "results/post_f1_a09/rate_cost_6001/summary.json",
+      "stages": [
+        {
+          "id": "backward_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_t02/rate_cost/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a09/rate_cost_6001",
+            "--steps",
+            "500",
+            "--policy-label",
+            "T02",
+            "--command",
+            "-0.25",
+            "0",
+            "0",
+            "--seed",
+            "6001",
+            "--evaluation-reset",
+            "--randomized-reset",
+            "--local-only"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a09/rate_cost_6001"
+          ],
+          "required_paths": [
+            "results/post_f1_a09/rate_cost_6001/summary.json",
+            "results/post_f1_a09/rate_cost_6001/T02_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "control_6001",
+      "hypothesis": "Identify remaining backward-reset failure mechanism before choosing further development.",
+      "evidence": "T02 rate cost passes screening,nominal24/24 and extra forward12/12,but full randomized backward6001 fails109steps.",
+      "review_artifact": "results/post_f1_a09/control_6001/summary.json",
+      "stages": [
+        {
+          "id": "backward_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_t02/control/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a09/control_6001",
+            "--steps",
+            "500",
+            "--policy-label",
+            "T02",
+            "--command",
+            "-0.25",
+            "0",
+            "0",
+            "--seed",
+            "6001",
+            "--evaluation-reset",
+            "--randomized-reset",
+            "--local-only"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a09/control_6001"
+          ],
+          "required_paths": [
+            "results/post_f1_a09/control_6001/summary.json",
+            "results/post_f1_a09/control_6001/T02_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "rate_cost_6000",
+      "hypothesis": "Identify remaining backward-reset failure mechanism before choosing further development.",
+      "evidence": "T02 rate cost passes screening,nominal24/24 and extra forward12/12,but full randomized backward6001 fails109steps.",
+      "review_artifact": "results/post_f1_a09/rate_cost_6000/summary.json",
+      "stages": [
+        {
+          "id": "backward_trace",
+          "argv": [
+            "source/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "results/post_f1_t02/rate_cost/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "results/post_f1_a09/rate_cost_6000",
+            "--steps",
+            "500",
+            "--policy-label",
+            "T02",
+            "--command",
+            "-0.25",
+            "0",
+            "0",
+            "--seed",
+            "6000",
+            "--evaluation-reset",
+            "--randomized-reset",
+            "--local-only"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a09/rate_cost_6000"
+          ],
+          "required_paths": [
+            "results/post_f1_a09/rate_cost_6000/summary.json",
+            "results/post_f1_a09/rate_cost_6000/T02_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    }
+  ]
+}

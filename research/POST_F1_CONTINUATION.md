@@ -507,3 +507,8 @@ Filtered traces both terminate foot-foot; matched controls survive. Reduced
 applied increments support one test of learned smoothness without fixed delay.
 T02 existing action-rate cost-.1 versus0,filteralpha1 both,same pre-T01 B07 parent,
 1,003,520steps each. No coefficient sweep; original full gates remain mandatory.
+
+## T02 gain with one full-suite failure; A09 frozen
+Rate-cost passes both screens,full nominal24/24,extra forward12/12; full random
+23/24 with backward6001 failure. No full pass. A09 traces that reset against
+matched control and ordinary6000 before another bounded decision. See audit.

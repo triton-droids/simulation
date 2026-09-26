@@ -592,3 +592,38 @@ learned-rate-cost hypothesis,no coefficient sweep or unchanged extension. If bot
 pass,full numeric/control/visual development evidence still required before one
 frozen recipe and three fresh independent training seeds/fresh held-out tests.
 A08 is not another general source audit; completed diagnostics must not repeat.
+
+
+## T02 substantial development gain but full rejection; A09 freeze
+Rate-cost arm passes BOTH original screens. Full nominal24/24 survive500 and
+all numeric checks pass,mean linear/yaw.13060/.14076,stand worst.14027/.13149.
+Full random23/24 survive500; sole failure backward-.25 reset6001 at109steps,
+linear1.49275,yaw.90042. Full random mean linear.26254 also fails. Additional
+forward resets6010-6021 all12/12 survive,mean linear.15733. All recorded full
+suite failures are retained; no final development or three-seed pass.
+Controls comparison: trained/untrained/standing mean linear nominal
+.13060/1.13295/1.08649,random.26254/1.36374/1.35873,extra forward
+.15733/1.27314/1.21280. Trained mean lengths500/483.708/500 exceed both
+controls. These satisfy aggregate20% linear superiority but cannot override
+survival/tracking failure. T02 control arm fails both screens,stand.15605/.18296
+and one random failure198steps; its full stages skipped as frozen.
+Sampled frames from all five rate-cost and both control clips show upright
+ordinary standing/forward/combined stepping. Not continuous final visual approval;
+no gait certification claimed. Both-arm results considered,not reward selection.
+A09 freezes THREE zero-training backward-.25 traces: fixed T02 rate_cost final
+1003520 at failing reset6001 and ordinary6000,plus matched T02control at6001.
+Original random reset scale1/candidates1,deterministic500steps cap,no oracle,
+filteralpha1 and saved rewards unchanged.2-hour queue cap,40-minute stage caps.
+Inspect terminal decomposition,early height/velocity/foot geometry/action changes
+and preterminal20; compare matching time windows to controls. Exact failures may
+vary across diagnostic compilation; never overwrite original full-suite evidence.
+Decision: if early foot collision/missed corrective response persists, identify
+one specific correction tied to that mechanism; no action-rate coefficient sweep.
+If control also fails, do not attribute all failure to rate cost. If diagnostic
+survives, treat sensitivity as uncertainty and use a bounded deterministic
+reproducibility check before altering recipe. No lucky checkpoint/reset selection,
+no unconditional continuation. T02 earned continued investigation by passing both
+screens,not eligibility for final independent validation until ALL development
+numeric/control/visual gates pass. All three fresh independent training seeds and
+fresh held-out criteria remain unchanged. Record a complete frozen recipe chain
+before eventual fresh-seed study; inherited development checkpoints cannot count.
