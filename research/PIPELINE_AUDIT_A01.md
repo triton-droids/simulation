@@ -627,3 +627,28 @@ screens,not eligibility for final independent validation until ALL development
 numeric/control/visual gates pass. All three fresh independent training seeds and
 fresh held-out criteria remain unchanged. Record a complete frozen recipe chain
 before eventual fresh-seed study; inherited development checkpoints cannot count.
+
+
+## A09 sensitivity; A10 exact-harness reproducibility freeze
+A09 rate_cost backward6001 survives500,height.71889,linear.37605/yaw.29034,
+so STILL fails original worst linear.35. Control6001 survives500 but
+linear.53753/yaw.70411 fails. Rate_cost6000 survives500,.19374/.15081.
+Original full-suite rate_cost6001 failed109steps. Do not overwrite original,
+claim success or blame rate cost alone. Diagnostic scalar loop and evaluation
+compiled rollout are distinct execution paths; survival discrepancy needs a
+bounded reproducibility check before changing training. Not proof of an error.
+A10 executes EXACT original T02 rate_cost full_randomized stage TWICE in fresh
+processes/paths,unchanged saved checkpoint1003520 and full command/reset order,
+B01checkpoint0 and standing controls,original500-step horizon,batching/default
+settings and video command. Only output directory differs. No training or new
+seeds; no choosing the best repeat. Original plus both repeats are retained.
+Plan research/queues/post_f1_a10.json,3-hour queue cap,original stage timeouts.
+Compare all per-row numeric values/survival and run metadata against original;
+identify whether exact evaluation repeats reproduce109-step backward failure.
+If repeats agree with original, treat scalar diagnostic as a separate numerical
+path and target the reproducible original failure. If repeats vary, record
+sensitivity and investigate execution consistency; do not treat any favorable
+repeat as a development pass. Even two passing repeats cannot erase original
+failure or allow premature three-seed promotion. Do not weaken gates or rerun
+until lucky. Next training decision must account for this result. No need to
+repeat completed preprocessing/source audits without new defect evidence.

@@ -1,0 +1,219 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_a10/queue",
+  "max_wall_seconds": 10800,
+  "jobs": [
+    {
+      "id": "repeat1",
+      "hypothesis": "Check exact evaluation-harness reproducibility of fixed T02 checkpoint without selecting favorable repeats.",
+      "evidence": "Original full randomized backward6001 fails109steps; A09 scalar diagnostic survives500 but linear.376 fails. Different harness compilation paths may differ.",
+      "stages": [
+        {
+          "id": "evaluate_randomized",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_t02/rate_cost/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/post_f1_b01/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002",
+            "--command-grid",
+            "research/queues/final_f1_commands.json",
+            "--randomized-reset",
+            "--video",
+            "--video-command",
+            "combined",
+            "--output-dir",
+            "results/post_f1_a10/repeat1"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a10/repeat1"
+          ],
+          "required_paths": [
+            "results/post_f1_a10/repeat1/summary.json",
+            "results/post_f1_a10/repeat1/episodes.csv",
+            "results/post_f1_a10/repeat1/trained_combined_seed6000.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ],
+      "episodes_csv": "results/post_f1_a10/repeat1/episodes.csv",
+      "gate": {
+        "horizon": 500,
+        "controllers": [
+          "trained",
+          "untrained",
+          "standing"
+        ],
+        "commands": [
+          "stand",
+          "forward",
+          "backward",
+          "left",
+          "right",
+          "turn_left",
+          "turn_right",
+          "combined"
+        ],
+        "seeds": [
+          6000,
+          6001,
+          6002
+        ],
+        "outcomes": {
+          "pass": [
+            {
+              "name": "all16 survive500",
+              "aggregate": "min",
+              "metric": "episode_steps",
+              "min": 500
+            },
+            {
+              "name": "upright pelvis",
+              "aggregate": "min",
+              "metric": "minimum_pelvis_height",
+              "above": 0.6
+            },
+            {
+              "name": "mean linear_velocity_vector_rmse",
+              "aggregate": "mean",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "worst linear_velocity_vector_rmse",
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.35
+            },
+            {
+              "name": "mean yaw_rate_rmse",
+              "aggregate": "mean",
+              "metric": "yaw_rate_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "worst yaw_rate_rmse",
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.35
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "repeat2",
+      "hypothesis": "Check exact evaluation-harness reproducibility of fixed T02 checkpoint without selecting favorable repeats.",
+      "evidence": "Original full randomized backward6001 fails109steps; A09 scalar diagnostic survives500 but linear.376 fails. Different harness compilation paths may differ.",
+      "stages": [
+        {
+          "id": "evaluate_randomized",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_t02/rate_cost/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/post_f1_b01/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002",
+            "--command-grid",
+            "research/queues/final_f1_commands.json",
+            "--randomized-reset",
+            "--video",
+            "--video-command",
+            "combined",
+            "--output-dir",
+            "results/post_f1_a10/repeat2"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a10/repeat2"
+          ],
+          "required_paths": [
+            "results/post_f1_a10/repeat2/summary.json",
+            "results/post_f1_a10/repeat2/episodes.csv",
+            "results/post_f1_a10/repeat2/trained_combined_seed6000.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ],
+      "episodes_csv": "results/post_f1_a10/repeat2/episodes.csv",
+      "gate": {
+        "horizon": 500,
+        "controllers": [
+          "trained",
+          "untrained",
+          "standing"
+        ],
+        "commands": [
+          "stand",
+          "forward",
+          "backward",
+          "left",
+          "right",
+          "turn_left",
+          "turn_right",
+          "combined"
+        ],
+        "seeds": [
+          6000,
+          6001,
+          6002
+        ],
+        "outcomes": {
+          "pass": [
+            {
+              "name": "all16 survive500",
+              "aggregate": "min",
+              "metric": "episode_steps",
+              "min": 500
+            },
+            {
+              "name": "upright pelvis",
+              "aggregate": "min",
+              "metric": "minimum_pelvis_height",
+              "above": 0.6
+            },
+            {
+              "name": "mean linear_velocity_vector_rmse",
+              "aggregate": "mean",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "worst linear_velocity_vector_rmse",
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.35
+            },
+            {
+              "name": "mean yaw_rate_rmse",
+              "aggregate": "mean",
+              "metric": "yaw_rate_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "worst yaw_rate_rmse",
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.35
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

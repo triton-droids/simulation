@@ -512,3 +512,8 @@ T02 existing action-rate cost-.1 versus0,filteralpha1 both,same pre-T01 B07 pare
 Rate-cost passes both screens,full nominal24/24,extra forward12/12; full random
 23/24 with backward6001 failure. No full pass. A09 traces that reset against
 matched control and ordinary6000 before another bounded decision. See audit.
+
+## A09 sensitivity; A10 frozen
+Backward6001 scalar trace survives but linear error.376 still fails; original
+full eval terminated109steps. A10 repeats exact full-randomized evaluation twice,
+fresh processes/paths,unchanged checkpoint; every outcome retained,no lucky reruns.
