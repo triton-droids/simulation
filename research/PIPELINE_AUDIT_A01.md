@@ -559,3 +559,36 @@ validation remain unchanged. This diagnostic never counts as a full pass.
 Automation persistence issue: tool reports update success but saved prompt remains
 C22/30minutes. Until fixed, QUEUE_WORKFLOW active path is authoritative; do not
 rerun or re-review C22. No duplicate schedule or queue was created.
+
+
+## A08 reviewed; T02 learned action smoothness without delay
+Both matched control traces survive500; filtered forward/stand terminate foot-foot
+at63/83 with minheight.33918/.62424. Screening had67/120; diagnostic trajectory
+lengths differ, so do not claim bitwise rollout parity or overwrite screen data.
+Qualitative paired collision/recovery loss reproduces. Controllers have separately
+trained weights, so the traces cannot isolate filter latency as sole cause.
+First50 clipped raw/applied action-difference RMS:filtered forward.17450/.10533,
+stand.19511/.11112;controls .25201/.25201 and.23597/.23597. Filter discrepancy
+RMS.10810/.11399. Forward filtered foot-site horizontal distance drops to.05269m
+preterminal,control first50 minimum.17330m;stand filtered last20 minimum.13630m
+and collision sensor fires (site distance alone is not geometry collision).
+Controls retain height>.71 through first50. These meet the qualitative frozen
+criterion for testing learned smoothness without forced actuator delay; no alpha
+sweep or inference filter rescue. Four outcomes retained; no final pass.
+T02 is one matched continuation from SAME B07airtime_gate final1003520 as T01,
+seed11,1003520steps each,lr1e-4,gamma.97;existing action_rate weight-.1 versus0,
+alpha1 BOTH arms,all other rewards/commands/reset/phase settings same. Upstream
+cost=sum((clipped_action-last_applied_action)^2),dt included once by upstream.
+No new reward implementation or environment architecture. At observed control
+RMS .236-.252 over29 joints the penalty is about.16-.18 beforedt, a bounded
+starting magnitude relative to tracking rewards; no coefficient search authorized.
+PPO can trade smoothness against recovery using immediate actions instead of
+unconditionally delaying them. This remains a hypothesis,not guaranteed recovery.
+Total2,007,040 new training steps,8-hour cap,exact restore audit,original48-row
+screens and conditional180 full evaluations each;B01checkpoint0 untrained control.
+Review both arms including videos and ALL original gates. Reject stand gains
+with recovery/moving regressions. If neither clears both screens close this
+learned-rate-cost hypothesis,no coefficient sweep or unchanged extension. If both
+pass,full numeric/control/visual development evidence still required before one
+frozen recipe and three fresh independent training seeds/fresh held-out tests.
+A08 is not another general source audit; completed diagnostics must not repeat.

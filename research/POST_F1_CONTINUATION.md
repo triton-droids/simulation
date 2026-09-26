@@ -501,3 +501,9 @@ Filtered nominal screen passes including stand yaw.09636; random reset6001 fails
 both stand/forward while control survives. No alpha sweep/extension. A08 traces
 both policies on both failed commands to locate recovery divergence. Original
 gates and fresh three-seed requirement remain unchanged.
+
+## A08 reviewed; T02 frozen
+Filtered traces both terminate foot-foot; matched controls survive. Reduced
+applied increments support one test of learned smoothness without fixed delay.
+T02 existing action-rate cost-.1 versus0,filteralpha1 both,same pre-T01 B07 parent,
+1,003,520steps each. No coefficient sweep; original full gates remain mandatory.
