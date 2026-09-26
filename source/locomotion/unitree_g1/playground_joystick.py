@@ -66,6 +66,7 @@ class Joystick:
     _feet_contact_phase_scale = 0.0
     _narrow_feet_scale = 0.0
     _stand_yaw_scale = 0.0
+    _action_filter_alpha = 1.0
     _phase_reward_command_only = False
     _airtime_reward_command_only = False
 
@@ -149,6 +150,9 @@ class Joystick:
         self._airtime_reward_command_only = bool(getattr(cfg.playground, "airtime_reward_command_only", False))
         self._narrow_feet_scale = float(getattr(cfg.reward_scales, "narrow_feet", 0.0))
         self._stand_yaw_scale = float(getattr(cfg.reward_scales, "stand_yaw", 0.0))
+        self._action_filter_alpha = float(getattr(cfg.playground, "action_filter_alpha", 1.0))
+        if not 0.0 < self._action_filter_alpha <= 1.0:
+            raise ValueError("Action filter alpha must be in (0, 1]")
         self._mjx_env_module = mjx_env_module
         self._env = joystick_module.Joystick(task="flat_terrain", config=effective)
         stand_probability = float(getattr(cfg.playground, "standing_command_probability", 0.1))
@@ -203,6 +207,9 @@ class Joystick:
         if self._airtime_reward_command_only:
             self.effective_config["airtime_reward_command_only"] = True
             self.source_record["adaptations"].append("disable air-time reward at zero command")
+        self.effective_config["action_filter_alpha"] = self._action_filter_alpha
+        if self._action_filter_alpha != 1.0:
+            self.source_record["adaptations"].append("EMA of clipped target action with previous applied action")
         self.nq = self._env.mj_model.nq
         self.nv = self._env.mj_model.nv
         self.nu = self._env.mj_model.nu
@@ -280,6 +287,8 @@ class Joystick:
             info=dict(state.info), metrics=dict(state.metrics)
         )
         applied_action = jp.clip(jp.asarray(action), -1.0, 1.0)
+        if self._action_filter_alpha != 1.0:
+            applied_action = self._action_filter_alpha * applied_action + (1.0 - self._action_filter_alpha) * state.info["last_act"]
         next_state = self._env.step(functional_state, applied_action)
         info = dict(next_state.info)
         metrics = dict(next_state.metrics)

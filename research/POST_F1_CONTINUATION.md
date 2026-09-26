@@ -489,3 +489,9 @@ See audit for bounded budget,old C07 distinction and decision rules.
 Nominal feet stay planted but yaw fails; randomized standing0/4 survives. No
 specialist promotion/extension. A07 collects two unmodified saved-policy traces
 to assess temporal action/yaw motion and terminal causes before redesign.
+
+## A07 reviewed; T01 frozen
+Planted-foot yaw peaks23.8Hz with97.56% power above5Hz and action jumps.491RMS,
+meeting frozen criterion. T01 matched alpha.5 action EMA versus unchanged alpha1,
+same B07 mixed-command parent,1,003,520steps each. Filter used in training and
+evaluation; original recovery/gait gates guard delay risk. See audit.

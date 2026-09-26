@@ -495,3 +495,35 @@ temporal-control experiment. If absent, do not add smoothing speculatively;
 use measured failure cause to select a different specific diagnostic/design.
 Randomized terminal evidence must inform recovery risks of any added latency.
 Original full gates and three fresh independent seeds/held-out tests unchanged.
+
+
+## A07 evidence met; T01 matched temporal-control freeze
+A07 completed Sept24 at21:10UTC and awaited review; no training ran during that
+review gap. Nominal S01 survives500,minimumheight.75495,support0,linear/yaw
+.02746/.20577. First100 linear/yaw.02989/.19463;last250 .02717/.20933.
+Settled Hann demeaned yaw power97.56% above5Hz,peak23.8Hz,action difference
+RMS.49118 meets ALL frozen evidence conditions. Whole500 power97.66%,peak23.9Hz.
+B07/B04 saved settled values54.79%/44.65%,action RMS.20093/.15943. This supports
+a causal temporal-control experiment,not proof of actuator jitter causation.
+Random S01 foot-foot termination43steps,height.64165,linear/yaw.47402/.59496;
+short trace not a settled window. Added delay could worsen early recovery.
+T01 compares alpha.5 EMA versus alpha1 unchanged, same B07airtime_gate final
+1003520 parent (mixed-command recovery-capable policy, NOT failed S01 specialist),
+seed11,1003520steps each,lr1e-4,gamma.97,phase/airtime gatingtrue,standing exposure
+10%,standpose-1,standyaw0. Same moving command distribution/rewards in both arms.
+Applied action = alpha*clip(raw,-1,1)+(1-alpha)*previous APPLIED action. Upstream
+last_act already stores applied action and synchronized actor history exposes it;
+reset zeros that history. No hidden filter state or observation-size changes.
+Alpha1 bypass is exact old behavior. Saved config applies filter in both training
+and all evaluation; no inference-only retrofit. Action remains bounded; alpha.5
+adds approximately one control-step low-frequency delay (20ms),explicit recovery
+risk. No termination/reset/contact/gate changes. Both actors warmstart exactly;
+optimizer restarts in both arms; normalizer/actor restoration checked.
+Budget2,007,040 training steps total,8-hour queue cap,original48-row screens and
+conditional180 full evaluation each,B01checkpoint0 reference. Review BOTH arms,
+stand and forward videos,all original numeric/control gates. Reject precision
+improvement with recovery/moving regression. If neither clears both screens,
+close temporal-control hypothesis; no alpha sweep or unchanged extension. Final
+three fresh seeds/held-out full validation still mandatory; partial tests never
+count as success. No assumption that this will resolve the remaining full grid.
+T01 verification:6 focused adapter/reset tests passed; real MJX two-seed reset and multistep filtered-versus-manual target equivalence passed including exact physical states/done/history (results/t01_filter_smoke.log). Paired argv check,queue validation,diff check passed.

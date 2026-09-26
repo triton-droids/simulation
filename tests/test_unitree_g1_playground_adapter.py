@@ -432,3 +432,15 @@ def test_airtime_command_gate_uses_pretransition_command(airtime):
             out=adapter.step(state,jp.zeros(29));removed=enabled and float(jp.linalg.norm(cmd))==0
             assert float(out.reward)==pytest.approx(.5-(airtime*.02 if removed else 0))
             assert float(out.metrics['reward/feet_air_time'])==pytest.approx(0 if removed else airtime)
+
+
+def test_action_filter_clips_before_mixing_and_tracks_applied_history():
+    adapter=Joystick.__new__(Joystick);adapter._env=_MutatingUpstream();adapter._action_filter_alpha=.5
+    state=_FakeState(data=_FakeData(jp.zeros(36),jp.zeros(35)),obs={"state":jp.zeros(103),"privileged_state":jp.zeros(216)},reward=jp.zeros(()),done=jp.zeros(()),metrics={},info={"command":jp.zeros(3),"last_act":jp.zeros(29),"phase":jp.zeros(2),"feet_air_time":jp.zeros(2)})
+    first=adapter.step(state,jp.ones(29)*2)
+    assert jp.all(first.info['last_act']==.5)
+    assert jp.all(first.obs['state'][70:99]==.5)
+    second=adapter.step(first,-jp.ones(29)*2)
+    assert jp.all(second.info['last_act']==-.25)
+    assert jp.all(second.obs['state'][70:99]==-.25)
+    assert jp.all(state.info['last_act']==0)
