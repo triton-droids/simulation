@@ -495,3 +495,9 @@ Planted-foot yaw peaks23.8Hz with97.56% power above5Hz and action jumps.491RMS,
 meeting frozen criterion. T01 matched alpha.5 action EMA versus unchanged alpha1,
 same B07 mixed-command parent,1,003,520steps each. Filter used in training and
 evaluation; original recovery/gait gates guard delay risk. See audit.
+
+## T01 overall rejection; A08 frozen
+Filtered nominal screen passes including stand yaw.09636; random reset6001 fails
+both stand/forward while control survives. No alpha sweep/extension. A08 traces
+both policies on both failed commands to locate recovery divergence. Original
+gates and fresh three-seed requirement remain unchanged.

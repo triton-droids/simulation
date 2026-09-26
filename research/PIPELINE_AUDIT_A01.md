@@ -527,3 +527,35 @@ close temporal-control hypothesis; no alpha sweep or unchanged extension. Final
 three fresh seeds/held-out full validation still mandatory; partial tests never
 count as success. No assumption that this will resolve the remaining full grid.
 T01 verification:6 focused adapter/reset tests passed; real MJX two-seed reset and multistep filtered-versus-manual target equivalence passed including exact physical states/done/history (results/t01_filter_smoke.log). Paired argv check,queue validation,diff check passed.
+
+
+## T01 rejected overall despite nominal breakthrough; A08 freeze
+Filtered T01 passes ALL nominal screen checks:8/8 survive500,stand linear/yaw
+.14251/.09636,forward support.804,air.26/.28. Control nominal stand.15494/.24199
+fails. Filtered random6/8 survive:reset6001 stand120steps and forward67; other
+six survive500. Control random8/8 passes all numeric checks. Thus reject T01
+as a full candidate; no alpha sweep or unchanged extension. Both full suites
+correctly skipped. Sampled nominal stand/random ordinary forward videos remain
+upright with stepping; not a complete visual certification or three-seed pass.
+This is measured nominal precision improvement with recovery loss, not success.
+A08 freezes FOUR zero-training traces: BOTH T01 fixed-final1003520 policies,
+stand and forward.45,random reset6001,500steps cap,deterministic,original settings.
+No disabling/changing filter,phase,reset or commands; no oracle/baseline reruns
+outside this previously untraced matched failure.3-hour queue cap,40-minute
+stage caps,plan research/queues/post_f1_a08.json. Preserve all four outcomes.
+Inspect terminal causes and first divergence in pelvis height,foot clearance/
+separation,contacts,local velocity,yaw and proposed actions. Reconstruct applied
+EMA from clipped raw actions and initial zero history for filtered traces; raw
+and applied action differences must not be conflated. Compare matched first50
+steps and preterminal20 windows; short failures are not settled trajectories.
+Frozen decision: if filtered failures share early foot collision after reduced
+corrective motion while controls retain separation, evidence supports evaluating
+smoothness learned without added actuator delay, not another filter coefficient.
+If failure is different, choose a redesign tied to observed cause; no speculative
+training launch. Correlation alone cannot establish added delay as the cause.
+No inference-only rescue and no promoting a favorable command/reset. All original
+numeric/control/gait/standing gates,three fresh training seeds and fresh held-out
+validation remain unchanged. This diagnostic never counts as a full pass.
+Automation persistence issue: tool reports update success but saved prompt remains
+C22/30minutes. Until fixed, QUEUE_WORKFLOW active path is authoritative; do not
+rerun or re-review C22. No duplicate schedule or queue was created.
