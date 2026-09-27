@@ -536,3 +536,9 @@ Failures lose height before terminal contact; surviving backward error is mainly
 initial recovery(85.8% squared error in first100;late linear.109). T04 matched
 250vs500 training horizons with unchanged full random resets and500-step tests,
 same T03control parent,1,003,520steps per arm. No horizon sweep; see audit.
+
+## T04 reviewed; T05 frozen
+Both screen sets survive but standing precision fails both; frequent resets also
+fail random tracking. Close reset-frequency hypothesis. T05 transfers historical
+C10 discount.995 idea to T03control parent,1,003,520steps; reuse completed matched
+T04control.97. No duplicate control training or discount sweep. See audit.

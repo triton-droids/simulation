@@ -756,3 +756,36 @@ freeze complete independent recipe for three predetermined fresh seeds and fresh
 held-out grid; inherited development weights are not independent final seeds.
 Plan-only change,paired argv equality except horizon/output asserted,all external
 steps500 asserted,queue validate-only passed. Prior truncation audit remains valid.
+
+## T04 rejected; T05 bounded temporal-credit transfer test
+Both restore audits exact17leaves. Both arms survive all16 trained screen rows,
+but frequent-reset nominal standing linear/yaw.153744/.153868 exceed.15;
+random worst linear.362355/yaw.491779 exceed.35. Control random screen passes,
+nominal standing.150421/.158723 fails. Full stages correctly skipped. Sampled
+all four stand/forward clips show upright ordinary stepping,not full certification.
+Reset-frequency hypothesis closed: no horizon sweep or unchanged extension.
+Historical check also finds C05 already tested100-step episodes on weak C02 and
+failed. T04 was a different stronger-parent250-step test; no further repetition.
+Actor includes pelvis linear velocity already; no missing-linear-velocity
+architecture claim is justified by source inspection.
+T05 tests existing discount.995 versus completed T04control.97 from SAME
+T03control final1003520,seed11,lr1e-4,1003520steps,horizon500,all other argv
+identical except output. Reuse saved T04control; do not retrain it. Earlier C10
+used.995 and improved old branch survival14/24 to16/24,then extensions stalled;
+this is explicitly a transfer of that prior bounded gain to current policy,
+not a novel idea or proof of final success. No discount sweep.
+A11 failures around106-109steps and delayed settling motivate longer return
+credit:100step discount weights.97^100=.04755 versus.995^100=.60577. GAE and
+critic approximation still limit credit; this calculation is motivation only.
+Changing discount changes critic target and may transiently destabilize learning;
+preserve existing KL/nonfinite guards,freeze final checkpoint and no selection.
+Budget ONE1,003,520step candidate,5hqueuecap,original48screens/conditional180full,
+original resets/commands,action-rate-.1,filteralpha1,phase/airtime gatestrue.
+All evaluation500step whole-episode gates unchanged,including controls and gait.
+If screens fail or full recovery does not improve without standing/movement
+regression,close this transfer test;no discount escalation or unchanged extension.
+Reassess structural design rather than append another local scalar sweep.
+Prior C10 data and current development data never serve as independent final seeds.
+Only a full development numeric/control/visual pass permits a frozen complete
+recipe with three predetermined fresh independent training seeds/fresh held-out.
+Plan-only argv equivalence to saved control asserted; queue validation passed.
