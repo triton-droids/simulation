@@ -2,7 +2,25 @@
 from pathlib import Path
 import argparse
 import json
+import sys
 import numpy as np
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+def load_model():
+    """Use the same pinned, local asset resolution as the training adapter."""
+    import mujoco
+    from source.locomotion.unitree_g1.playground_source import (
+        resolve_playground_source, load_playground_g1_modules,
+    )
+    from source.robots.unitree_g1 import UnitreeG1Model
+    source = resolve_playground_source(fetch=False)
+    robot = UnitreeG1Model(fetch=False)
+    mjx_env, _, _ = load_playground_g1_modules(source)
+    mjx_env.MENAGERIE_PATH = mjx_env.epath.Path(robot.resolution.scene_path.parents[1])
+    from mujoco_playground._src.locomotion.g1.base import get_assets
+    xml = source.root/'mujoco_playground/_src/locomotion/g1/xmls/scene_mjx_feetonly_flat_terrain.xml'
+    return mujoco.MjModel.from_xml_string(xml.read_text(), assets=get_assets()), xml
 
 
 def pitch_offsets(phase, moving=True):
@@ -17,9 +35,7 @@ def main():
     parser.add_argument('--output-dir', type=Path, required=True)
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=False)
-    root = Path(__file__).resolve().parents[2]
-    xml = root/'.cache/mujoco_playground/mujoco_playground/_src/locomotion/g1/xmls/scene_mjx_feetonly_flat_terrain.xml'
-    model = mujoco.MjModel.from_xml_path(str(xml))
+    model, xml = load_model()
     data = mujoco.MjData(model)
     q0 = model.keyframe('knees_bent').qpos.copy()
     sites = [model.site(side+'_foot').id for side in ('left','right')]

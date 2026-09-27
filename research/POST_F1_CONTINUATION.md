@@ -586,3 +586,5 @@ AdaptiveLR active near floor but both screens fail;optimizer trial closed. A14
 zero-training fixed-base kinematic check of one analytic swing primitive before
 any residual-action architecture training. Geometric prerequisite only,not gait
 or balance validation;see audit for fixed values/gates and no-sweep decision.
+
+A14 execution recovery: direct XML mesh resolution failed before measurement. Correct the loader using existing pinned local assets; identical zero-training plan proceeds in post_f1_a14_recovery. Original failed evidence retained.

@@ -1009,3 +1009,7 @@ If ultimately adopted,all components/representation must be frozen and independe
 trained for fresh3seeds with original held-out numeric/control/visual tests. No
 oracle imitation. Tests verify left/right phase exchange,zero-command disable,
 offset bound and joint-angle sum;full geometry evidence comes from queue artifact.
+
+### A14 asset-loader recovery
+A14 failed before kinematic measurement because direct XML loading bypassed the pinned Menagerie asset mapping. Use the same local pinned source/model resolver and upstream asset dictionary as training, with fetching disabled. Preserve original failure. Recovery repeats the identical zero-training geometry plan in results/post_f1_a14_recovery; no scientific parameters, budgets or gates change. Verify real model load/forward kinematics plus primitive invariants before commit and launch.
+Validation: both primitive invariant and actual pinned model load/forward tests pass (2 tests); recovery queue validates. No dynamics or training performed by tests.
