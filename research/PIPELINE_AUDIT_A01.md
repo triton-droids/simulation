@@ -1091,3 +1091,33 @@ whether motion acquisition is absent, to justify a distinct bounded next design.
 Do not infer contact-threshold defect from a falling robot, weaken termination,
 select lucky draws, or repeat closed reward/phase/optimizer/feature sweeps.
 All original full numeric/control/visual and fresh3seed criteria remain mandatory.
+
+## A16 reviewed; R02 fixed B08 development replication
+M01 scalar nominal252steps/random63steps both end in foot-foot contact; pelvis
+crosses .6 at238/48, before contacts252/63. Actual mapped roll target maxabs
+.14165/.13669rad, zero target excess and zero raw-roll saturation. Mapping worked;
+close clipping remedy. No termination defect demonstrated. These scalar traces
+cannot supersede original compiled-screen outcomes. Baseline B08 nominal saved
+trace survives500; A12 B08random6002 crosses .6 at50 and contacts62. M01 does not
+show meaningful recovery improvement. No new gait video; M01 clips reviewed at
+previous decision. Short M01 traces have no settled last250 window.
+R02 addresses an unmeasured question instead of another parameter change: does
+B08 joint standing/moving acquisition replicate across independent development
+training runs? Two predetermined seeds22,33,each20,070,400steps from initialization,
+EXACT B08 recipe, ankle mapping OFF, support feature OFF, fixed LR3e-4. No changes
+to architecture/rewards/reset/gates. Seed11 B08 is existing failed development
+baseline,not final validation. Seeds22/33 also already development identities;
+no claims of fresh held-out validation. Retain all three outcomes, never promote
+just a lucky seed as robustness. Fixed final checkpoints only. Each own checkpoint0
+control,48-row screening and conditional full180, original gait/control/standing
+criteria. Train/evaluate sequentially in one local queue;40,140,800total steps,
+4h cap per training stage,12h queue cap. No automatic extra seeds or extension.
+Decision: if both reproduce nominal standing but fail randomized recovery, focus
+next design specifically on recovery; if neither reproduces standing, classify
+B08 acquisition as unstable and reassess training design rather than fine-tune
+seed11. Mixed outcomes quantify instability, not winner selection. Only a recipe
+with full development evidence can enter a separately frozen three-FRESH-seed
+study; existing seed11 failure remains evidence against B08 as a robust solution.
+No changed runner logic; validate both seeds,unique paths,screen dependencies and
+unchanged B08 training arguments except seed/output before commit/launch.
+Verification: all stage arguments in both replications match B08 exactly except training seed and output paths; queue schema/dependencies validate. Existing runner logic unchanged.

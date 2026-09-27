@@ -595,3 +595,5 @@ A15 preflight confirms training used unrestricted model ranges; A14 narrower pre
 A15 found substantial ankle-roll target clipping, including successful B08 standing; not causal proof. M01 freezes one fromscratch B08-recipe20M trial with legal-range ankle-roll actions, unchanged physical limits/gates. No sweep/unchanged extension; see audit.
 
 M01 rejected both screens with falls and late training decline; action mapping branch closed without extension. A16 freezes two final-checkpoint stand traces for mapped saturation/terminal sequence, reusing saved baselines. No training, gate changes or checkpoint selection.
+
+A16 confirms mapping worked but balance loss precedes contact; clipping remedy closed. R02 freezes exact B08 development replications on seeds22 and33,20M each,all outcomes retained. This tests acquisition repeatability before more redesign, not final validation or lucky seed selection. No extra seeds/extensions; see decision rules.
