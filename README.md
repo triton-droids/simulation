@@ -1,5 +1,14 @@
 # Triton Droids RoboCup Simulator
 
+## Current project milestones
+
+1. **Active:** deliver a documented, verified simulation-controller prototype from saved T02.
+2. **Deferred:** reproduce and validate a reliable three-seed locomotion recipe.
+3. **Deferred:** separately scoped soccer integration; hardware requires explicit authorization.
+
+See [the milestone plan](research/MILESTONES.md). Work stops after Milestone 1 and its completion report. Existing research progress is preserved in place; older status notes below are historical.
+
+
 ## Run Unitree G1
 
 1. Install the dependencies:

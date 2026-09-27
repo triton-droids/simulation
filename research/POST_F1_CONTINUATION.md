@@ -1,5 +1,17 @@
 # Continued research after F1 failure
 
+## Current authority — Milestone 1 only (2026-09-27)
+
+The user superseded open-ended three-seed research with **Milestone 1: package,
+verify and report the existing simulation controller**, then STOP and pause the
+repeating task. Read `research/MILESTONES.md` and `research/milestone_status.json`
+first (paths relative to repository root). Milestones 2/3 are deferred and require
+new user authorization. All previous results/code/checkpoints remain preserved;
+see `research/MILESTONE_2_RESUME.md`. Historical "active" queues and instructions
+to continue until three seeds pass below are archival, not current authorization.
+No new training or automatic research continuation. R03 was intentionally stopped.
+
+
 The user explicitly authorizes continued bounded research until a recipe passes
 three fresh independent training seeds. This supersedes the F1 stop-after-failure
 instruction; it does not permit selecting three lucky seeds or weakening gates.

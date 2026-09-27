@@ -1,5 +1,17 @@
 # Gate 4 and Corrective Experiment Plan
 
+## Current authority — Milestone 1 only (2026-09-27)
+
+The user superseded open-ended three-seed research with **Milestone 1: package,
+verify and report the existing simulation controller**, then STOP and pause the
+repeating task. Read `research/MILESTONES.md` and `research/milestone_status.json`
+first (paths relative to repository root). Milestones 2/3 are deferred and require
+new user authorization. All previous results/code/checkpoints remain preserved;
+see `research/MILESTONE_2_RESUME.md`. Historical "active" queues and instructions
+to continue until three seeds pass below are archival, not current authorization.
+No new training or automatic research continuation. R03 was intentionally stopped.
+
+
 ## C22 predeclaration: bounded learning-rate comparison (2026-09-21)
 
 Hypothesis: smaller updates during reset adaptation preserve backward stability better than C21. Cheapest prerequisites completed: identical-state parent/successor video and first100-step trace show a lower-reward stability regression with no action saturation, restore mismatch or gross KL failure. No reward change is justified by these traces.

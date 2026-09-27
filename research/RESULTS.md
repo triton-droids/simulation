@@ -1,5 +1,17 @@
 # G1 Build and Research Results
 
+## Current authority — Milestone 1 only (2026-09-27)
+
+The user superseded open-ended three-seed research with **Milestone 1: package,
+verify and report the existing simulation controller**, then STOP and pause the
+repeating task. Read `research/MILESTONES.md` and `research/milestone_status.json`
+first (paths relative to repository root). Milestones 2/3 are deferred and require
+new user authorization. All previous results/code/checkpoints remain preserved;
+see `research/MILESTONE_2_RESUME.md`. Historical "active" queues and instructions
+to continue until three seeds pass below are archival, not current authorization.
+No new training or automatic research continuation. R03 was intentionally stopped.
+
+
 ## C21 backward regression: stability loss, not reward preference (2026-09-21)
 
 Matched evaluator-reset seed4000 initial states are exactly equal. C20 survives500 with backward vx-.253643,linear RMSE.106874,pelvis>=.744296,single support.772,air.32/.28s. C21 comparison falls142 (versus141 in evaluator, small compilation-path discrepancy),linear.832059,minpelvis-.102243,air.30/.04s. All arrays finite and neither policy saturates actions.

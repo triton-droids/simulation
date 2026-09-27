@@ -673,3 +673,8 @@ alternating support is both measured and visible.
   remains stationary at `vx=0.5`, has zero foot transitions, and fails its gait
   gate. No conventional three-axis, three-seed locomotion baseline exists.
 - Gates 5–7: out of current authorization.
+
+## User scope reset2026-09-27
+Finish Milestone1 controller handoff/report then stop. Milestones2/3 deferred, all artifacts preserved. R03 deliberately stopped at recorded14336000steps via supported STOP, not an execution defect/scientific failure. MILESTONES.md is current authority; prior continue-until-pass instructions superseded.
+
+Automation persistence: supported update acknowledged but left the old prompt/name/cadence unchanged. Applied the user-authorized change to the existing local TOML record with backup in results/milestone_scope_change/automation_before.toml. Parsed/read back valid TOML and confirmed same ID/thread/status, milestone-only prompt and hourly cadence. Scheduler reload is not yet observed. Repository entry-point overrides enforce M1-only scope even if an old prompt fires.

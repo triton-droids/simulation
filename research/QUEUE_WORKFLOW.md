@@ -1,11 +1,17 @@
-# Unattended G1 experiments
+# Unattended G1 milestone delivery
 
-Active queue: `research/queues/post_f1_r03.json`. Read only
-`results/post_f1_r03/queue/status.json` first. Current authorization:
-`research/POST_F1_CONTINUATION.md`. Hourly minimal checks; continue bounded
-research until one frozen recipe passes three fresh independent seeds.
-Diagnostic-only jobs may use `review_artifact` instead of a CSV gate;
-they explicitly report numeric_gate_evaluated=false and require review.
+## Current authority — Milestone 1 only (2026-09-27)
+
+The user superseded open-ended three-seed research with **Milestone 1: package,
+verify and report the existing simulation controller**, then STOP and pause the
+repeating task. Read `research/MILESTONES.md` and `research/milestone_status.json`
+first (paths relative to repository root). Milestones 2/3 are deferred and require
+new user authorization. All previous results/code/checkpoints remain preserved;
+see `research/MILESTONE_2_RESUME.md`. Historical "active" queues and instructions
+to continue until three seeds pass below are archival, not current authorization.
+No new training or automatic research continuation. R03 was intentionally stopped.
+
+Read research/milestone_status.json first. No research queue is active. R03 ended intentionally via STOP; do not recover it. Only bounded Milestone 1 verification jobs may run. On Milestone 1 completion, write the report, notify once, pause the existing schedule and stop. The runner mechanics below remain valid; historical research wake instructions do not override this scope.
 
 The local runner uses Python's standard library and makes no model or network
 calls. One queue owns an OS file lock; jobs and their training/evaluation stages

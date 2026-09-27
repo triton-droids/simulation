@@ -1,5 +1,17 @@
 # GPT-6 Astra Successor Handoff: Unitree G1 Locomotion
 
+## Current authority — Milestone 1 only (2026-09-27)
+
+The user superseded open-ended three-seed research with **Milestone 1: package,
+verify and report the existing simulation controller**, then STOP and pause the
+repeating task. Read `research/MILESTONES.md` and `research/milestone_status.json`
+first (paths relative to repository root). Milestones 2/3 are deferred and require
+new user authorization. All previous results/code/checkpoints remain preserved;
+see `research/MILESTONE_2_RESUME.md`. Historical "active" queues and instructions
+to continue until three seeds pass below are archival, not current authorization.
+No new training or automatic research continuation. R03 was intentionally stopped.
+
+
 ## Active C22 two-candidate learning-rate queue (2026-09-21)
 
 C21 matched backward video confirms falling/short right-foot air; initial states matchC20, first100 reward lower26.06765 vs27.37686, finite/no saturation. Active research/queues/c22_learning_rates.json; status results/gate4_corrective/C22_queue/status.json. Two independent branches from sameC20 parent/seed7, randomresettrue, ONLY lr1e-4 or3e-5 instead3e-4;1,003,520steps each, nominal+random gates per candidate. Review all four jobs and videos. Select only joint passes by lowest randomized meanlinear+meanyaw (tie lowerlr). Not independent final training seeds. No unchanged extension.

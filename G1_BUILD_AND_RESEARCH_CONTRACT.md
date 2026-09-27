@@ -1,6 +1,18 @@
 # Triton Droids Unitree G1 Locomotion Retrofit and Research Contract
 
-Version: 1.1, project-retrofit edition  
+## Current authority — Milestone 1 only (2026-09-27)
+
+The user superseded open-ended three-seed research with **Milestone 1: package,
+verify and report the existing simulation controller**, then STOP and pause the
+repeating task. Read `research/MILESTONES.md` and `research/milestone_status.json`
+first (paths relative to repository root). Milestones 2/3 are deferred and require
+new user authorization. All previous results/code/checkpoints remain preserved;
+see `research/MILESTONE_2_RESUME.md`. Historical "active" queues and instructions
+to continue until three seeds pass below are archival, not current authorization.
+No new training or automatic research continuation. R03 was intentionally stopped.
+
+
+Version: 1.2, staged delivery edition
 Prepared: 2026-09-05  
 Target repository: current Triton Droids RoboCup Simulator / PyCharm project  
 Intended executor: Codex or another autonomous software/research agent
@@ -16,7 +28,7 @@ The repository already contains two useful foundations:
 
 The correct retrofit is to connect those foundations with a G1-specific environment and a small amount of shared infrastructure. Preserve the existing environment as a regression baseline. Extract common abstractions only after G1 and the existing task are both covered by tests.
 
-## 2. Mission
+## 2. Long-term mission (Milestones 2/3; deferred)
 
 Build a reproducible Unitree G1 locomotion research path inside this repository and determine whether selected techniques from HOMIE improve commanded-velocity tracking and stability.
 
@@ -269,9 +281,9 @@ If the current MuJoCo Playground G1 environment cannot be integrated after a bou
 
 Do not begin by porting all of OpenHOMIE from Isaac Gym. OpenHOMIE is a methodological and reward reference for later phases, not the initial runtime dependency.
 
-## 13. Implementation phases and gates
+## 13. Technical research phases and gates (preserved for Milestone 2/3)
 
-Do not begin a later phase until its gate is satisfied.
+These legacy research phases are not the delivery milestones. Milestone 1 packages an existing development policy without claiming these research gates passed. Do not begin a later research phase until its gate is satisfied and the user has authorized that milestone.
 
 ### Phase 0: audit and reproducibility record
 
@@ -543,9 +555,9 @@ At minimum:
 
 Never hide failures with broad exception handling, disabled assertions, or unconditional skips.
 
-## 18. Acceptance criteria for the initial assignment
+## 18. Research acceptance criteria (Milestone 2, not Milestone 1)
 
-The initial G1 baseline milestone is complete only when all of the following exist:
+Milestone 1 acceptance is defined by research/MILESTONES.md. The broader research baseline remains incomplete until the following and the original full three-seed validation criteria are met:
 
 1. Clean documented installation without bundled virtual environments.
 2. Existing G1 loader still works and training uses the same pinned model source.
@@ -615,4 +627,4 @@ Stop and ask the user rather than guessing if:
 - Required compute would create a meaningful cost not already authorized.
 - A missing user decision would materially change the research conclusion.
 
-Otherwise proceed autonomously through the next safe gate and leave the repository in a reproducible state.
+Otherwise proceed autonomously only within the currently authorized milestone. Complete Milestone 1, write its report, pause the repeating task and stop; do not resume Milestones 2/3 without new user authorization.

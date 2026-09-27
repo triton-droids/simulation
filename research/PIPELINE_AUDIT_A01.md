@@ -1,5 +1,17 @@
 # Pipeline audit and staged screening, 2026-09-24
 
+## Current authority — Milestone 1 only (2026-09-27)
+
+The user superseded open-ended three-seed research with **Milestone 1: package,
+verify and report the existing simulation controller**, then STOP and pause the
+repeating task. Read `research/MILESTONES.md` and `research/milestone_status.json`
+first (paths relative to repository root). Milestones 2/3 are deferred and require
+new user authorization. All previous results/code/checkpoints remain preserved;
+see `research/MILESTONE_2_RESUME.md`. Historical "active" queues and instructions
+to continue until three seeds pass below are archival, not current authorization.
+No new training or automatic research continuation. R03 was intentionally stopped.
+
+
 ## Verdict and scope
 C16 rejected: nominal survival24/24 but yaw/standing gates fail; randomized
 12/24,mean281.667 steps,linear/yaw RMSE .65758/.54722; extra forward10/12.

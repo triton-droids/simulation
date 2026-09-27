@@ -1,0 +1,14 @@
+{
+  "active_milestone": 1,
+  "status": "active",
+  "updated_at": "2026-09-27",
+  "scope": "Existing T02 simulation controller handoff only; zero training",
+  "candidate": "results/post_f1_t02/rate_cost/train/logs/checkpoints/1003520/policy",
+  "verification_queue": null,
+  "next_action": "Inspect existing playback/evaluation interfaces and freeze M1 artifact manifest, then implement one-command demo and integration example",
+  "completion_report": "research/MILESTONE_1_REPORT.md",
+  "milestone_2": "deferred; preserved in research/MILESTONE_2_RESUME.md",
+  "milestone_3": "deferred",
+  "stop_after_milestone": 1,
+  "training_allowed": false
+}
