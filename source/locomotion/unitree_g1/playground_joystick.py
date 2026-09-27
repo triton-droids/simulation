@@ -67,6 +67,7 @@ class Joystick:
     _narrow_feet_scale = 0.0
     _stand_yaw_scale = 0.0
     _action_filter_alpha = 1.0
+    _action_multipliers = None
     _phase_reward_command_only = False
     _airtime_reward_command_only = False
     _support_state_observation = False
@@ -156,6 +157,24 @@ class Joystick:
             raise ValueError("Action filter alpha must be in (0, 1]")
         self._mjx_env_module = mjx_env_module
         self._env = joystick_module.Joystick(task="flat_terrain", config=effective)
+        range_action = bool(getattr(cfg.playground, "ankle_roll_range_action", False))
+        if range_action:
+            import numpy as np
+            model = self._env.mj_model
+            multipliers = np.ones(model.nu)
+            for side in ("left", "right"):
+                joint = model.joint(side + "_ankle_roll_joint").id
+                indices = np.flatnonzero(model.actuator_trnid[:, 0] == joint)
+                if len(indices) != 1:
+                    raise ValueError("Expected one ankle-roll actuator per leg")
+                i = int(indices[0])
+                default = float(self._env._default_pose[i])
+                lo, hi = model.actuator_ctrlrange[i]
+                radius = min(default - lo, hi - default)
+                if not np.isfinite(radius) or radius <= 0:
+                    raise ValueError("Default ankle roll must be strictly inside control range")
+                multipliers[i] = min(1., radius / float(effective.action_scale))
+            self._action_multipliers = jp.asarray(multipliers)
         stand_probability = float(getattr(cfg.playground, "standing_command_probability", 0.1))
         if not 0.1 <= stand_probability <= 1.0:
             raise ValueError("Standing command probability must be in [0.1, 1]")
@@ -172,6 +191,9 @@ class Joystick:
             wrap_for_brax_training, wrapper_module=wrapper_module, full_reset=True
         )
         self.effective_config = effective.to_dict()
+        self.effective_config["ankle_roll_range_action"] = range_action
+        if range_action:
+            self.effective_config["action_multipliers"] = multipliers.tolist()
         self.source_record = {
             **source.to_dict(),
             "scene": str(self._env.xml_path),
@@ -187,6 +209,8 @@ class Joystick:
             ],
         }
         self.effective_config["standing_command_probability"] = stand_probability
+        if range_action:
+            self.source_record["adaptations"].append("ankle-roll normalized actions span legal symmetric target range; applied-action history and rewards use mapped actions")
         if stand_probability != 0.1:
             self.source_record["adaptations"].append("increase sampled zero-command exposure using upstream RNG key")
         if self._feet_contact_phase_scale != 0.0:
@@ -256,10 +280,16 @@ class Joystick:
         )
 
     def action_to_targets(self, action: jax.Array) -> tuple[jax.Array, jax.Array]:
-        applied = jp.clip(jp.asarray(action), -1.0, 1.0)
+        applied = self._map_action(action)
         targets = self._env._default_pose + applied * self._env._config.action_scale
         ranges = jp.asarray(self._env.mj_model.actuator_ctrlrange)
         return applied, jp.clip(targets, ranges[:, 0], ranges[:, 1])
+
+    def _map_action(self, action: jax.Array) -> jax.Array:
+        applied = jp.clip(jp.asarray(action), -1.0, 1.0)
+        if self._action_multipliers is not None:
+            applied = applied * self._action_multipliers
+        return applied
 
     def reset(self, rng: jax.Array):
         state = sample_recovery_reset(
@@ -311,7 +341,7 @@ class Joystick:
         functional_state = state.replace(
             info=dict(state.info), metrics=dict(state.metrics)
         )
-        applied_action = jp.clip(jp.asarray(action), -1.0, 1.0)
+        applied_action = self._map_action(action)
         if self._action_filter_alpha != 1.0:
             applied_action = self._action_filter_alpha * applied_action + (1.0 - self._action_filter_alpha) * state.info["last_act"]
         next_state = self._env.step(functional_state, applied_action)

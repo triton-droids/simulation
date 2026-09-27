@@ -473,3 +473,34 @@ def test_support_observation_real_reset_step_and_held_command():
         right = jax.jit(supported.step)(right, jp.zeros(29))
     jax.block_until_ready(right.reward)
     np.testing.assert_allclose(left.reward, right.reward, rtol=0, atol=0)
+
+
+def test_ankle_roll_mapping_real_model_bounds_and_saved_config():
+    import numpy as np
+    cfg = OmegaConf.structured(G1PlaygroundMJXConfig())
+    cfg.playground.fetch_source = False
+    cfg.playground.ankle_roll_range_action = True
+    cfg.noise.add_noise = False
+    robot = UnitreeG1Model(fetch=False)
+    env = Joystick('unitree_g1', robot, 'flat', cfg)
+    restored = OmegaConf.create(json.loads(json.dumps(OmegaConf.to_container(cfg))))
+    other = Joystick('unitree_g1', robot, 'flat', restored)
+    model = env.mj_model
+    ids = [int(np.flatnonzero(model.actuator_trnid[:,0] == model.joint(s+'_ankle_roll_joint').id)[0]) for s in ('left','right')]
+    assert ids == [5,11]
+    for sign in (-1., 0., 1.):
+        raw = jp.full(29, sign*2)
+        applied, target = env.action_to_targets(raw)
+        np.testing.assert_allclose(applied, other.action_to_targets(raw)[0])
+        expected = np.clip(np.asarray(raw),-1,1)
+        expected[ids] *= .2618/.5
+        np.testing.assert_allclose(applied, expected, atol=1e-7)
+        if sign:
+            np.testing.assert_allclose(np.asarray(target)[ids], sign*.2618, atol=1e-7)
+    assert env.effective_config['ankle_roll_range_action'] is True
+    # Applied history must remain in physical normalized units, not raw policy units.
+    env._env = _MutatingUpstream()
+    state = _FakeState(data=_FakeData(jp.zeros(36),jp.zeros(35)),obs={'state':jp.zeros(103),'privileged_state':jp.zeros(216)},reward=jp.zeros(()),done=jp.zeros(()),metrics={},info={'command':jp.zeros(3),'last_act':jp.zeros(29),'phase':jp.zeros(2),'feet_air_time':jp.zeros(2)})
+    result = env.step(state,jp.ones(29)*2)
+    np.testing.assert_allclose(result.info['last_act'][jp.array(ids)], .5236, atol=1e-7)
+    np.testing.assert_allclose(result.obs['state'][70:99], result.info['last_act'])

@@ -1036,3 +1036,31 @@ no automatic bound widening, inference remapping, or training. Failed recovery
 and every original gate remain unchanged; this audit never counts as validation.
 Preflight correction: saved B08/O01 effective configs have restricted_joint_range=false. A14 deliberately used a narrower geometric prerequisite; its rejection does NOT establish that training clamps ankles at-.4. A15 must use actual model actuator ranges when this flag is false and record both flag/ranges. This distinction is central to the audit; no model bounds are changed.
 Validation: asymmetric target-clipping unit test passed; queue validate-only passed. Runtime records actual configured actuator ranges for all four traces.
+
+## A15 reviewed; M01 legal-range ankle-roll action trial
+All four saved traces show actual ankle-roll clipping. Whole-trace right-roll
+fractions B08stand1.0/forward.342, O01stand.998/forward.982, RMS excess radians
+.10972/.03883/.11703/.06426. O01 left-roll forward.992/RMS.05694. Persistent in
+last250: right fractions1/.30/1/1. All use original model ranges, not restricted
+ranges; ankle-roll bounds +/- .2618. No new gait videos; saved A13 behaviors
+already reviewed. B08 standing succeeds despite clipping; clipping alone cannot
+explain failure. This evidence motivates one representation feasibility trial,
+not a defect claim or inferred causal result.
+M01: one fromscratch seed11,20,070,400steps, B08 recipe unchanged except ankle-roll
+policy action maps [-1,1] to the legal symmetric range around default pose.
+Per-actuator multiplier min(1,available symmetric radius / action_scale), named
+left/right ankle roll only; current values .5236. All physical joint/actuator
+limits unchanged. Other27 actions unchanged; optional default false preserves
+old checkpoints. Applied action is used consistently by upstream reward/history,
+so this also changes ankle exploration and normalized action-rate cost magnitude;
+not a pure clipping causal isolation. No inference-only remapping old policies.
+Restore from saved config in evaluation; verify model mapping, endpoints, unchanged
+other joints, applied history, default compatibility and config restoration.
+512env,lr3e-4,gamma.97,full random starts, original commands, masks true,action_rate
+-.1,alpha1,103actor/216critic. Budget4htraining/6hqueue. Fixed final checkpoint,
+48-row screens and conditional180 full eval, own checkpoint0 controls. Reuse B08
+baseline; no checkpoint selection or multiplier sweep. If fails screens/full,
+close this mapping trial without unchanged extension; inspect clipping/learning
+curve before next design. Partial screening never full pass. Complete-recipe
+three fresh independent seeds/held-out tests remain mandatory before success.
+Validation: five targeted config/Hydra/default-clipping/filter/real-model mapping checks passed (real mapping rerun after correcting test-only JAX indexing); queue validate-only passed. Actual endpoints, saved-config roundtrip and applied history verified. No physical limits modified.
