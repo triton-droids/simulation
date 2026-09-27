@@ -822,3 +822,33 @@ This longer run reduces model interventions and tests history rather than
 spending more1M rounds on the same inherited gait. It offers no success guarantee.
 Plan-only change based on validated B01 plan; no-resume and final-budget assertions,
 queue validation passed. Existing code unchanged. Prior failures retained.
+
+## B08 rejected with standing gain; B09 acquisition factor isolation
+B08 final20,070,400 nominal screen8/8 survives and ALL numeric rules pass;
+stand worst linear.021774/yaw.024698,forward support.6,airtimes.22/.24. Sampled
+standing frames show planted feet; ordinary forward alternates support. This is
+sampled review,not final continuous gait certification. Random screen4/8 survives:
+6000/6001 stand+forward500;6002 stand62/forward72;6014 stand55/forward51. Worst
+height-.56356,linear2.00015,yaw.58282. Reject overall;full tests skipped. No
+unchanged extension or checkpoint selection. Internal mean lengths by callback
+53,83,289,292,305,380,366,335; improvement not converged success. All KL below.2.
+B08 changes masks and action-rate together relative to B01; standing gain cannot
+identify which caused recovery loss. B09 is ONE predeclared factor-isolation
+experiment: identical from-initialization seed11,20,070,400step B08 setup with
+original action_rate0 instead of-.1. Command-only phase/airtime masks retained
+fromstep0. Reuse completed B08 and B01,do not retrain controls. This asks whether
+a smooth-action objective hampers acquisition before recovery is learned; T02's
+benefit was on a mature inherited policy and does not establish early-stage benefit.
+This is an ablation of B08's composite design,not a new penalty coefficient search.
+Earlier B07 tested masks on an inherited policy; B09 tests acquisition with those
+masks and no action penalty. No other reward/mask/discount changes or inference
+interventions. Same architecture/reset/commands,lr3e-4,gamma.97,512env,horizon500,
+10%standing,filteralpha1. Total20,070,400newsteps,4htraining/6hqueuecap. Fixed final
+checkpoint,original48screen/conditional180full,own checkpoint0 and standing controls.
+If recovery improves but standing fails,do not silently combine policies or accept
+partial gates. If both fail,close this acquisition-ablation branch;no coefficient
+sweep or automatic unchanged extension. If full development numeric/control/visual
+passes,freeze recipe for three predetermined fresh independent seeds and fresh
+held-out tests;seed11 remains development. No proof of causal generality from one
+seed. Paired training argv differs only action_rate/output;assertion and queue
+validation passed. All failure evidence retained; runner/model code unchanged.

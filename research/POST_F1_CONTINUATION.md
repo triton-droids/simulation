@@ -549,3 +549,9 @@ close discount branch. B08 one from-initialization joint walking/standing20,070,
 step recipe with established masks/action-rate from step0; no inherited policy or
 optimizer restarts. Original full gates,fresh three-seed requirement unchanged.
 See audit for fixed budget and no-extension decision.
+
+## B08 reviewed; B09 frozen
+B08 passes nominal with standing.022/.025 but random recovery4/8;overall rejected.
+B09 isolates action-rate contribution to acquisition: masks remain fromstep0,
+original action_rate0,otherwise identical20,070,400step seed11 run. Reuse B08/B01
+controls,no sweep or automatic extension. Full three-seed criteria unchanged.
