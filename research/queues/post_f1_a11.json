@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_a11/queue",
+  "max_wall_seconds": 10800,
+  "jobs": [
+    {
+      "id": "t02",
+      "hypothesis": "Capture previously discarded exact-harness numeric trajectories to distinguish recovery regression from persistent tracking error.",
+      "evidence": "T03 control backward survives but error .38675; right6001 fails106; T02 backward fails109. Scalar diagnostic differed; preserve original compiled rollout unchanged.",
+      "review_artifact": "results/post_f1_a11/t02/summary.json",
+      "stages": [
+        {
+          "id": "evaluate_randomized",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_t02/rate_cost/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/post_f1_b01/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002",
+            "--command-grid",
+            "research/queues/final_f1_commands.json",
+            "--randomized-reset",
+            "--video",
+            "--video-command",
+            "combined",
+            "--output-dir",
+            "results/post_f1_a11/t02",
+            "--save-numeric-traces"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a11/t02"
+          ],
+          "required_paths": [
+            "results/post_f1_a11/t02/summary.json",
+            "results/post_f1_a11/t02/episodes.csv",
+            "results/post_f1_a11/t02/numeric_traces/trained_right_seed6001.npz",
+            "results/post_f1_a11/t02/numeric_traces/trained_backward_seed6001.npz"
+          ],
+          "timeout_seconds": 7200
+        }
+      ]
+    },
+    {
+      "id": "t03",
+      "hypothesis": "Capture previously discarded exact-harness numeric trajectories to distinguish recovery regression from persistent tracking error.",
+      "evidence": "T03 control backward survives but error .38675; right6001 fails106; T02 backward fails109. Scalar diagnostic differed; preserve original compiled rollout unchanged.",
+      "review_artifact": "results/post_f1_a11/t03/summary.json",
+      "stages": [
+        {
+          "id": "evaluate_randomized",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_t03/control/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/post_f1_b01/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002",
+            "--command-grid",
+            "research/queues/final_f1_commands.json",
+            "--randomized-reset",
+            "--video",
+            "--video-command",
+            "combined",
+            "--output-dir",
+            "results/post_f1_a11/t03",
+            "--save-numeric-traces"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a11/t03"
+          ],
+          "required_paths": [
+            "results/post_f1_a11/t03/summary.json",
+            "results/post_f1_a11/t03/episodes.csv",
+            "results/post_f1_a11/t03/numeric_traces/trained_right_seed6001.npz",
+            "results/post_f1_a11/t03/numeric_traces/trained_backward_seed6001.npz"
+          ],
+          "timeout_seconds": 7200
+        }
+      ]
+    }
+  ]
+}

@@ -523,3 +523,10 @@ Both exact repeats reproduce109-step backward failure; no more repeats.
 T03 matched moderate versus broad training command envelope, same T02 parent,
 1,003,520steps each; original evaluation commands/gates/resets unchanged.
 See audit for ranges,budget and prospective no-sweep decision.
+
+## T03 reviewed; A11 frozen
+Moderate range loses stand recovery; hypothesis closed. Broad control retains
+nominal gates but random right6001 fails106steps; backward survives yet linear
+.38675 misses. Still no full pass. A11 exports existing numeric rollout arrays
+for fixed T02/T03 full randomized evaluations to diagnose temporal failure without
+changing compiled dynamics. Zero training,two evaluations; see audit for decisions.

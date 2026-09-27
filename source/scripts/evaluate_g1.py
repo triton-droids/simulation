@@ -111,6 +111,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--video", action="store_true")
+    parser.add_argument("--save-numeric-traces", action="store_true",
+                        help="Save existing host-side rollout arrays without changing the compiled rollout.")
     parser.add_argument(
         "--video-command", choices=[name for name, _ in COMMANDS], default="combined",
         help="Command to render for each controller on the first reset seed.",
@@ -942,6 +944,13 @@ def main() -> None:
                 )
                 jax.block_until_ready(device_trace["reward"])
                 host_trace = jax.tree.map(np.asarray, device_trace)
+                if args.save_numeric_traces:
+                    trace_dir = output_dir / "numeric_traces"
+                    trace_dir.mkdir(exist_ok=True)
+                    np.savez_compressed(
+                        trace_dir / f"{controller}_{command_name}_seed{seed}.npz",
+                        **host_trace,
+                    )
                 row = _summarize_trace(
                     host_trace,
                     controller=controller,
@@ -1002,6 +1011,7 @@ def main() -> None:
         "reference_run_dir": str(reference_run_dir),
         "steps_per_episode": args.steps,
         "numeric_batch_size": 1,
+        "numeric_traces_saved": args.save_numeric_traces,
         "control_dt_seconds": env.dt,
         "reset_seeds": seeds,
         "reset_randomized": bool(cfg.sim.reset.randomize),

@@ -683,3 +683,37 @@ three-seed study require ALL full development numeric/control/visual gates,then
 freeze complete recipe chain and fresh predetermined training seeds/held-out tests.
 T03 plan-only change: paired argv equivalence except command ranges and output
 paths asserted; validate plan and diff before launch. No new runner/model logic.
+
+## T03 rejection; A11 exact-rollout trace capture freeze
+Both restore audits exact (17 actor/normalizer leaves). Moderate envelope passes
+nominal but randomized stand6001 fails98steps; random7/8 survive. Reject narrower
+range,close envelope hypothesis; no range sweep or unchanged extension.
+Control passes screens and full nominal24/24; extra forward12/12 survive.
+Full random23/24: previous backward6001 now survives500 but linear.386746>.35;
+right6001 terminates106steps with undesired contact,minimum height.430893,
+linear.97467/yaw1.14383. Mean random linear.24350/yaw.23093 pass but cannot
+override worst-row/survival failure. Not a full pass; no fresh-seed study yet.
+Sampled frames from all seven trained videos show ordinary upright stepping and
+standing; results/post_f1_t03/review.jpg. Sampling is not final continuous gait
+certification. Failure episodes are not the representative saved videos.
+A11 freezes TWO zero-training full-randomized evaluations: fixed T02 rate_cost
+final1003520 and T03control final1003520,original command grid/order,seeds6000-6002,
+controls,500steps and video settings unchanged. Sole functional addition writes
+ALREADY computed host numeric arrays to NPZ after device synchronization. It does
+not change compiled rollout outputs/physics/inputs. AST equality checked for
+_build_rollout,_summarize_trace,_numeric_episode_traces against previous revision.
+Budget zero training,2 full evaluations,3-hour queue cap. Fresh paths post_f1_a11.
+This is acquisition of previously discarded temporal evidence,not another search
+for favorable repeat results. Original failure records remain authoritative; if
+survival differs,record sensitivity and do not promote a lucky result.
+Review valid-only whole/first50/preterminal20 velocity and yaw errors,height,
+torso tilt,contact asymmetry/slip,action-rate and saturation around failures;
+compare T02 vs T03 on backward/right6001 and ordinary6000,using matched windows.
+Classify collision preceding loss of balance versus loss of height/tilt preceding
+collision; aggregate undesired-contact flags cannot establish exact foot pair.
+Surviving backward traces must distinguish early recovery error from persistent
+late tracking error. No full-pass claims from diagnostics and no automatic
+training extension. Select one bounded mechanistic training/representation test
+only after this evidence; do not resume reward coefficient/phase/range sweeps.
+Original complete independent three-seed,held-out,numeric/control/visual gates
+remain. No inherited development checkpoint counts as a fresh independent seed.
