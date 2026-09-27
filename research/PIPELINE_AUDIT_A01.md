@@ -1013,3 +1013,26 @@ offset bound and joint-angle sum;full geometry evidence comes from queue artifac
 ### A14 asset-loader recovery
 A14 failed before kinematic measurement because direct XML loading bypassed the pinned Menagerie asset mapping. Use the same local pinned source/model resolver and upstream asset dictionary as training, with fetching disabled. Preserve original failure. Recovery repeats the identical zero-training geometry plan in results/post_f1_a14_recovery; no scientific parameters, budgets or gates change. Verify real model load/forward kinematics plus primitive invariants before commit and launch.
 Validation: both primitive invariant and actual pinned model load/forward tests pass (2 tests); recovery queue validates. No dynamics or training performed by tests.
+
+## A14 rejected; A15 saved-command actuator audit
+A14 recovery completed: both feet peaklift .037861m, no penetrating nonfloor
+contacts, but26/32 phases violate restricted pitch limits (ankle target reaches
+-.513rad versus -.4 lower bound). Reject primitive; no amplitude/phase sweep.
+No dynamic gait video exists for this fixed-base geometry diagnostic.
+A15 asks whether mechanical target clipping is material in already saved A13
+B08/O01 stand/forward500step traces. Raw normalized-action saturation alone
+cannot detect asymmetric target saturation near the default ankle pose-.363.
+Offline only: use pinned model named actuator order, saved effective action scale,
+restricted ranges and alpha1; reconstruct default+scale*clip(raw,-1,1). Report
+per-joint clipping fraction and excess RMS/max for whole/first100/last250 windows
+on ALL four traces; do not rerun policies. Budget600secstage/1800secqueue,zero
+training/rollouts. Verify asymmetric-bound math before launch; fail on unexpected
+trace length, actuator mapping, or config. If no leg target clips >10% of samples
+with RMS excess>.02rad, close material-clipping explanation on these nominal
+traces. Otherwise inspect affected joints across both policies/commands before
+considering one separately frozen training-consistent action representation.
+Clipping is not an implementation defect by itself and correlation is not cause;
+no automatic bound widening, inference remapping, or training. Failed recovery
+and every original gate remain unchanged; this audit never counts as validation.
+Preflight correction: saved B08/O01 effective configs have restricted_joint_range=false. A14 deliberately used a narrower geometric prerequisite; its rejection does NOT establish that training clamps ankles at-.4. A15 must use actual model actuator ranges when this flag is false and record both flag/ranges. This distinction is central to the audit; no model bounds are changed.
+Validation: asymmetric target-clipping unit test passed; queue validate-only passed. Runtime records actual configured actuator ranges for all four traces.

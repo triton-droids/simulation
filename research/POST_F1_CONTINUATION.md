@@ -588,3 +588,6 @@ any residual-action architecture training. Geometric prerequisite only,not gait
 or balance validation;see audit for fixed values/gates and no-sweep decision.
 
 A14 execution recovery: direct XML mesh resolution failed before measurement. Correct the loader using existing pinned local assets; identical zero-training plan proceeds in post_f1_a14_recovery. Original failed evidence retained.
+
+A14 rejected:26/32 poses exceed restricted ankle limits despite3.8cm lift. Primitive closed. A15 offline audit measures actual target clipping from all four saved A13 traces; no training or rollouts, no bound changes. See frozen audit decision.
+A15 preflight confirms training used unrestricted model ranges; A14 narrower prerequisite is not evidence of actual policy clipping. Audit uses saved effective config, not assumed restricted ranges.

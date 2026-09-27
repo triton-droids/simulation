@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_a15/queue",
+  "max_wall_seconds": 1800,
+  "jobs": [
+    {
+      "id": "target_clipping",
+      "hypothesis": "Measure actuator target clipping separately from raw action saturation in all four saved A13 traces.",
+      "evidence": "A14 primitive violates restricted ankle targets in26/32 phases; test relevance to actual learned commands without a rollout.",
+      "review_artifact": "results/post_f1_a15/audit/summary.json",
+      "stages": [
+        {
+          "id": "offline_audit",
+          "argv": [
+            "source/scripts/audit_g1_target_clipping.py",
+            "--output-dir",
+            "results/post_f1_a15/audit"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a15/audit"
+          ],
+          "required_paths": [
+            "results/post_f1_a15/audit/summary.json"
+          ],
+          "timeout_seconds": 600
+        }
+      ]
+    }
+  ]
+}
