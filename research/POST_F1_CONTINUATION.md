@@ -568,3 +568,9 @@ no collision weakening. O01 adds explicit height/foot-contact actor inputs with
 unchanged216critic and original reward/gates,one fromscratch20,070,400step seed11
 trial versus saved B08. Simulated-state representation hypothesis,not hardware
 readiness. Tests required before launch;see audit for fixed budget/decision.
+
+## O01 reviewed; A13 frozen
+O01 stands instead of forward walking and random0/8survives;feature trial closed.
+A13 four zero-training B08/O01 nominal stand/forward reward traces test whether
+observed static behavior outranks walking under same rewards. Diagnostic only,
+no scalar reward selection or gate override. Follow audit decision before training.

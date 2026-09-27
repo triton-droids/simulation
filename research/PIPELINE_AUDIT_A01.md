@@ -921,3 +921,31 @@ state; held-command replacement retains appended fields. Config rejects wrong
 actor dimension. Real MJX parity and existing adapter/evaluation tests required
 before launch; plan validation passed. No queue running during edits.
 Verification completed:58 adapter/evaluator tests passed,including real reset/step physical and reward parity,actor prefix/critic equality,held-command feature preservation and dimension rejection. Four existing-style dependency/JAX warnings,no failures.
+
+## O01 rejected; A13 reward-ranking diagnostic freeze
+O01 final20,070,400 nominal8/8 survives but forward linear.44905,single support0,
+airtimes0/0 fail:stationary under forward command. Random0/8survives(44-61steps),
+worst linear1.77580,height-.13751. Representative random forward video falls;
+nominal stand planted. Internal mean lengths54,177,175,169,121,126,135,85; no
+convergence success. All KL<.2. Added-support feature trial CLOSED,no feature
+subset sweep or unchanged extension. Extra features are not proven universally
+harmful; altered initialization and learning can change outcome. Default remains
+103,optional106 saved for evidence. All full stages skipped and failure retained.
+O01 static nominal forward earns mean reward.03137 despite linear.449 failure.
+A13 freezes FOUR zero-training scalar reward traces: B08 and O01 fixedfinal
+20070400 at nominal6000,stand and forward.45,500steps each. Same reward recipe,
+noise/push off,original evaluation reset convention,local-only,no oracle labels.
+Actor sizes103/106 differ as saved. Save per-step weighted reward terms and action/
+physical traces. 3hqueuecap,40minstagecap,no training. This is objective analysis,
+not alternative gate evaluation: scalar compilation may differ; reproduce observed
+behaviors or record that comparison is inconclusive,never override original gates.
+Compare whole episodes and matched first100/last250 only when both survive500.
+Check reward reconstruction and list dominant weighted terms,tracking benefit,
+regularization/gait costs,standing-versus-moving ranking. If stationary forward
+reward>=successful B08 walking reward,identify explicit objective conflict before
+any training proposal. If walking reward is higher,do not blame reward ranking;
+investigate acquisition/optimization with measured margin,not another coefficient
+sweep. If diagnostic B08 no longer walks or O01 not stationary,record uncertainty
+and avoid causal ranking claim. No automatic repair/training bundled with A13.
+No policy passes by reward; original whole-episode numeric/control/visual and
+three fresh independent seed/held-out criteria unchanged. Plan-only validated.
