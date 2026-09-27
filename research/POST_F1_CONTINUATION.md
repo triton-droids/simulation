@@ -597,3 +597,5 @@ A15 found substantial ankle-roll target clipping, including successful B08 stand
 M01 rejected both screens with falls and late training decline; action mapping branch closed without extension. A16 freezes two final-checkpoint stand traces for mapped saturation/terminal sequence, reusing saved baselines. No training, gate changes or checkpoint selection.
 
 A16 confirms mapping worked but balance loss precedes contact; clipping remedy closed. R02 freezes exact B08 development replications on seeds22 and33,20M each,all outcomes retained. This tests acquisition repeatability before more redesign, not final validation or lucky seed selection. No extra seeds/extensions; see decision rules.
+
+R02 both seeds reproduced nominal standing but not walking; random0/8 each. No winner. R03 freezes one matched seed22 original B01-objective acquisition control versus saved R02seed22,20Msteps,unchanged evaluation. No extension/sweep; determine whether staged objective design is justified.

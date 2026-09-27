@@ -1121,3 +1121,30 @@ study; existing seed11 failure remains evidence against B08 as a robust solution
 No changed runner logic; validate both seeds,unique paths,screen dependencies and
 unchanged B08 training arguments except seed/output before commit/launch.
 Verification: all stage arguments in both replications match B08 exactly except training seed and output paths; queue schema/dependencies validate. Existing runner logic unchanged.
+
+## R02 rejected; R03 matched original-objective acquisition control
+R02 fixed seeds22/33 both nominal8/8 survive with stand errors .01636/.04377 and
+.01136/.01647 (linear/yaw), but forward errors .45058/.44771, singlesupport0 and
+both air times0: standing under movement commands. Random both0/8survive;meansteps
+53.875/55,minimum45/43,meanlinear1.54030/1.58818. Full stages skipped correctly.
+Sampled stand videos planted/stable; random forward videos lose balance and fall.
+Training length curves22:57,121,207,98,177,97,197,163;33:50,72,146,285,173,146,256,126.
+Standing repeats,walking/recovery do not. Existing seed11 B08 nominal walking is
+not representative of these replications. No seed or checkpoint promoted;R02closed.
+R03 is the cheapest matched control for the missing acquisition comparison:
+exact B01 original-objective recipe,fromscratch seed22,20,070,400steps, versus
+already completed R02 seed22 B08. Seed22 predetermined as first replication,not
+selected by performance. All original training/evaluation controls identical
+except composite objective recipe. No support feature/ankle mapping; no reward
+coefficient search. B01 seed11 remains historical evidence only. This is NOT
+claim of exact upstream replication or fresh held-out validation. Main question:
+do original objectives recover walking and difficult starts where joint standing
+recipe did not? One run only,4htraining/6hqueue,owncheckpoint0,48screens/conditional
+full180,finalcheckpoint only. Both outcomes retained;no automatic secondseed or
+extension. If original also lacks walking/recovery,do not assume objective timing
+is cause;close this matched comparison and reassess acquisition design. If it
+restores recovery/motion while standing fails,that motivates separately frozen
+training-stage separation,not deployment or relaxing standing gates. Full recipe
+still requires genuine development pass then3fresh independent seeds/held-outtests.
+No runner/code changes; validate command equivalence to B01 except seed/path.
+Validation: all R03 stage arguments equal B01 except seed22/output paths; queue validate-only and diff check passed.
