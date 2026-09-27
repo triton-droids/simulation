@@ -580,3 +580,9 @@ Walking reward.03968 exceeds static.03138;no ranking defect demonstrated. L01
 one B08-recipe fromscratch20,070,400step optimizer test using installed bounded
 ADAPTIVE_KL,defaulttarget.01,LR1e-5..3e-4. Rewards/103observations/gates unchanged;
 reuse B08, no target sweep or unchanged extension. See audit for decision.
+
+## L01 reviewed; A14 frozen
+AdaptiveLR active near floor but both screens fail;optimizer trial closed. A14
+zero-training fixed-base kinematic check of one analytic swing primitive before
+any residual-action architecture training. Geometric prerequisite only,not gait
+or balance validation;see audit for fixed values/gates and no-sweep decision.

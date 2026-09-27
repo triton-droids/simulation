@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_a14/queue",
+  "max_wall_seconds": 1800,
+  "jobs": [
+    {
+      "id": "kinematics",
+      "hypothesis": "Check fixed analytic swing-leg target geometry before considering residual-action learning.",
+      "evidence": "Several fromscratch policies remain stationary or cannot establish corrective support; scalar and feature branches closed.",
+      "review_artifact": "results/post_f1_a14/kinematics/summary.json",
+      "stages": [
+        {
+          "id": "fixed_geometry",
+          "argv": [
+            "source/scripts/probe_g1_swing_kinematics.py",
+            "--output-dir",
+            "results/post_f1_a14/kinematics"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a14/kinematics"
+          ],
+          "required_paths": [
+            "results/post_f1_a14/kinematics/summary.json"
+          ],
+          "timeout_seconds": 600
+        }
+      ]
+    }
+  ]
+}

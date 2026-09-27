@@ -981,3 +981,31 @@ optimizer behavior and API compatibility tests required before launch. Plan froz
 All original numeric/control/visual and complete-recipe fresh3seed/held-out gates
 remain mandatory;diagnostic reward comparisons never establish success.
 Verification:13 config/installed-optimizer tests passed; queue validate-only and diff check passed.
+
+## L01 rejected; A14 analytic-action geometry prerequisite
+L01 nominal survives8/8 but stand linear/yaw.21381/.25144,forwardlinear.35022,
+airtimes.08/.10 fail. Random minimum36steps,height.2100,worstlinear1.34336/yaw.76018
+fails. Sampled stand steps/drifts,random forward falls;no full gait pass. Adaptive
+path active:meanLR3.33e-5->1.138e-5,KL.013-.021;near-floor rate and no validation
+gain. Close optimizer trial;no target/floor sweep or unchanged extension.
+A14 proposes a different action representation to scaffold swing acquisition,
+not a learned-label source,phase-input intervention or reward coefficient change.
+Before any training or adapter change,check ONE fixed analytic geometry: for each
+leg offset hip_pitch=-.15,knee=.30,ankle_pitch=-.15 radians timesmax(cosphase,0),
+legs antipodal. Offsets sum0 to preserve sagittal foot orientation approximately;
+actual foot geometry must be measured. Zero command would disable primitive.
+These fixed values are a testable engineering proposal,not fitted to reset seeds.
+A14 uses pinned scene knees_bent keyframe and named pitch joints,32fixed phases,
+MuJoCo forward kinematics at fixed base. Records exact names/addresses,foot-site
+3D displacement,restricted pitch limits and penetrating nonfloor contacts.
+Prerequisite:both feet peaklift>=.01m,all targets within restricted limits,no
+penetrating nonfloor contacts. No amplitude/phase search. CPU-only,zero training,
+zero dynamic rollout,10minstage/30minqueue cap. A pass is ONLY geometric viability,
+not balance,recovery,gait,or any original research gate. If it fails close this
+particular primitive;no parameter sweep. If passes,freeze a small dynamics/control
+feasibility check before considering a training-consistent residual architecture.
+No automatic deployment or trained-policy switching. Existing actor/config unchanged.
+If ultimately adopted,all components/representation must be frozen and independently
+trained for fresh3seeds with original held-out numeric/control/visual tests. No
+oracle imitation. Tests verify left/right phase exchange,zero-command disable,
+offset bound and joint-angle sum;full geometry evidence comes from queue artifact.
