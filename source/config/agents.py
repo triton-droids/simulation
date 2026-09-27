@@ -107,6 +107,10 @@ class G1PPOCorrectiveConfig(PPOConfig):
     num_updates_per_batch: int = 4
     discounting: float = 0.97
     learning_rate: float = 3e-4
+    learning_rate_schedule: str = "NONE"
+    learning_rate_schedule_min_lr: float = 1e-5
+    learning_rate_schedule_max_lr: float = 3e-4
+    desired_kl: float = 0.01
     entropy_cost: float = 0.005
     clipping_epsilon: float = 0.2
     num_envs: int = 512

@@ -574,3 +574,9 @@ O01 stands instead of forward walking and random0/8survives;feature trial closed
 A13 four zero-training B08/O01 nominal stand/forward reward traces test whether
 observed static behavior outranks walking under same rewards. Diagnostic only,
 no scalar reward selection or gate override. Follow audit decision before training.
+
+## A13 reviewed; L01 frozen
+Walking reward.03968 exceeds static.03138;no ranking defect demonstrated. L01
+one B08-recipe fromscratch20,070,400step optimizer test using installed bounded
+ADAPTIVE_KL,defaulttarget.01,LR1e-5..3e-4. Rewards/103observations/gates unchanged;
+reuse B08, no target sweep or unchanged extension. See audit for decision.

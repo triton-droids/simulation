@@ -949,3 +949,35 @@ sweep. If diagnostic B08 no longer walks or O01 not stationary,record uncertaint
 and avoid causal ranking claim. No automatic repair/training bundled with A13.
 No policy passes by reward; original whole-episode numeric/control/visual and
 three fresh independent seed/held-out criteria unchanged. Plan-only validated.
+
+## A13 objective ranking; L01 bounded optimizer experiment
+All four traces survive500 and reproduce intended behavior. B08 forward linear
+.16804,reward.039682 vs static O01 linear.44888,reward.031375. Last250 rewards
+.039906/.031065 and first100 .039344/.031946 agree. Walking outranks static;
+reject claim reward ranking favors static on this comparison. Weighted terms
+reconstruct reward within1.12e-8. Walking linear tracking .8977 vs.4470 and phase
+.7595 vs.4671 outweigh slip-.1749 vs-.00568 and other costs. Stand rewards
+B08.023034,O01.024395; both genuinely stationary per contact/velocity evidence.
+This single nominal pair does not prove global objective sufficiency. Original
+O01/B08 failure verdicts remain;no policy chosen by reward. No additional gait
+video was generated;previous representative clips and these physical traces used.
+L01 tests optimization,not another reward change: installed Brax ADAPTIVE_KL
+scheduler with default desired_kl.01,minLR1e-5,maxLR3e-4,start3e-4. Existing
+implementation dividesLR1.5 above2*target,increases1.5 belowtarget/2 within bounds.
+It is adaptive,not monotonic decay. B08 fixedLR3e-4 KL~.07-.08 and late mean
+survival380->335 motivate testing bounded updates; correlation not causation.
+One fromscratch seed11,20,070,400steps,B08 reward/103actor/216critic recipe,original
+random starts/commands/horizon500,512env,gamma.97. Support-state input OFF. Reuse
+B08 baseline. No reward/mask/feature/target/bound sweep or unchanged extension.
+If screens/full fail,close this optimizer trial and inspect whether effective LR
+hit floor or stayed stable before any further decision;never select checkpoints.
+Budget4htraining/6hqueue,48screen/conditional180full,own checkpoint0 control.
+Original KL>=.2 two-report operational stop unchanged;target.01 is not a new
+validation gate. Read logged effective training/learning_rate to verify adaptive
+path,not configured initial rate alone. No training restarts within experiment.
+Optional config forwarding only when enabled preserves old defaults/arguments;
+reject unknown modes,nonfinite/nonpositive target and invalid LRbounds. Installed
+optimizer behavior and API compatibility tests required before launch. Plan frozen.
+All original numeric/control/visual and complete-recipe fresh3seed/held-out gates
+remain mandatory;diagnostic reward comparisons never establish success.
+Verification:13 config/installed-optimizer tests passed; queue validate-only and diff check passed.

@@ -74,3 +74,34 @@ def test_corrective_g1_profile_yaml_round_trip_is_lossless():
     assert OmegaConf.to_container(restored, resolve=True) == OmegaConf.to_container(
         structured, resolve=True
     )
+
+def test_adaptive_kl_runtime_forwarding_and_installed_optimizer():
+    import inspect
+    import jax
+    import jax.numpy as jp
+    import optax
+    from brax.training.agents.ppo import optimizer, train
+    cfg = G1PPOCorrectiveConfig(learning_rate_schedule='ADAPTIVE_KL')
+    controls = trainer_runtime_controls(cfg)
+    assert all(k in inspect.signature(train.train).parameters for k in controls)
+    assert controls['desired_kl'] == .01
+    assert controls['learning_rate_schedule_min_lr'] == 1e-5
+    assert controls['learning_rate_schedule_max_lr'] == 3e-4
+    opt = optax.chain(optax.clip_by_global_norm(1.), optax.inject_hyperparams(optax.adam)(learning_rate=cfg.learning_rate))
+    state = opt.init(jp.zeros(2))
+    def update(state, kl):
+        return optimizer.adaptive_kl_learning_rate(state, kl, controls['desired_kl'], min_learning_rate=controls['learning_rate_schedule_min_lr'], max_learning_rate=controls['learning_rate_schedule_max_lr'])
+    step = jax.jit(update)
+    for _ in range(30): state, rate = step(state, jp.array(.08))
+    assert float(rate) == pytest.approx(1e-5)
+    for _ in range(30): state, rate = step(state, jp.array(.001))
+    assert float(rate) == pytest.approx(3e-4)
+    _, unchanged = step(state, jp.array(.01))
+    assert float(unchanged) == pytest.approx(float(rate))
+
+
+@pytest.mark.parametrize('field,value', [('learning_rate_schedule','invalid'), ('desired_kl',float('nan')), ('learning_rate_schedule_min_lr',.001), ('learning_rate_schedule_max_lr',-1)])
+def test_adaptive_kl_invalid_controls(field, value):
+    cfg = G1PPOCorrectiveConfig(learning_rate_schedule='ADAPTIVE_KL')
+    setattr(cfg, field, value)
+    with pytest.raises(ValueError): trainer_runtime_controls(cfg)
