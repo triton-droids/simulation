@@ -652,3 +652,34 @@ repeat as a development pass. Even two passing repeats cannot erase original
 failure or allow premature three-seed promotion. Do not weaken gates or rerun
 until lucky. Next training decision must account for this result. No need to
 repeat completed preprocessing/source audits without new defect evidence.
+
+
+## A10 stable failure; T03 command-envelope comparison freeze
+Both exact-harness repeats reproduce original backward6001 at109steps with
+identical height-.02933025,linear1.49274528,yaw.90041691. Trained row survival
+and heights identical across all24 rows; max other trained linear/yaw variations
+.0005738/.0022716. Some untrained/standing rows vary up to1step/.06yaw; preserve
+all data,do not claim global bitwise determinism. Target failure is reproducible.
+Scalar A09 results remain separate execution-path sensitivity,not proof of fixed
+failure or grounds for accepting a lucky repeat. No more evaluation repeats.
+T02 internal mean lengths500,477,500,471,443,500,457,471 do not show convergence;
+no earlier checkpoint selected. Broad training commands span vx+-1,vy+-.5,yaw+-1
+while original gate commands are moderate speeds. A single matched envelope test
+can increase continuous low-speed training density without choosing failing seeds
+or discrete evaluation commands. Causal mechanism is uncertain; no promised gain.
+T03 compares uniform vx[-.6,.6],vy[-.35,.35],yaw[-.6,.6] versus unchanged broad
+ranges,from SAME T02rate_cost final1003520,seed11,1003520steps each,lr1e-4,
+gamma.97,action-rate-.1,filteralpha1,phase/air-time gatingtrue. All other settings
+identical,including10% zero commands and original random resets. Moderate box
+contains all original default and development command vectors; evaluation grid,
+held commands and thresholds unchanged. This is a training-distribution change,
+not restricting which commands are tested. No reset-seed oversampling.
+Total2,007,040 new steps,8-hour queue cap,exact restore audits;original48-row
+screens/conditional180 full rows per arm,B01checkpoint0 control. Both arms and
+all failure evidence reviewed. If neither fully improves remaining recovery while
+retaining standing/movement,close envelope hypothesis;no range sweep or automatic
+unchanged extension. Existing screen/full skip logic unchanged. Before final
+three-seed study require ALL full development numeric/control/visual gates,then
+freeze complete recipe chain and fresh predetermined training seeds/held-out tests.
+T03 plan-only change: paired argv equivalence except command ranges and output
+paths asserted; validate plan and diff before launch. No new runner/model logic.

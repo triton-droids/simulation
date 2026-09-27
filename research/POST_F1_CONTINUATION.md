@@ -517,3 +517,9 @@ matched control and ordinary6000 before another bounded decision. See audit.
 Backward6001 scalar trace survives but linear error.376 still fails; original
 full eval terminated109steps. A10 repeats exact full-randomized evaluation twice,
 fresh processes/paths,unchanged checkpoint; every outcome retained,no lucky reruns.
+
+## A10 stable failure; T03 frozen
+Both exact repeats reproduce109-step backward failure; no more repeats.
+T03 matched moderate versus broad training command envelope, same T02 parent,
+1,003,520steps each; original evaluation commands/gates/resets unchanged.
+See audit for ranges,budget and prospective no-sweep decision.
