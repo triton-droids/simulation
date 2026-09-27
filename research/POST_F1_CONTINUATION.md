@@ -542,3 +542,10 @@ Both screen sets survive but standing precision fails both; frequent resets also
 fail random tracking. Close reset-frequency hypothesis. T05 transfers historical
 C10 discount.995 idea to T03control parent,1,003,520steps; reuse completed matched
 T04control.97. No duplicate control training or discount sweep. See audit.
+
+## T05 reviewed; B08 frozen
+T05 random screening passes but nominal stand yaw.1509956 exceeds.15. Reject,
+close discount branch. B08 one from-initialization joint walking/standing20,070,400
+step recipe with established masks/action-rate from step0; no inherited policy or
+optimizer restarts. Original full gates,fresh three-seed requirement unchanged.
+See audit for fixed budget and no-extension decision.

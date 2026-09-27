@@ -789,3 +789,36 @@ Prior C10 data and current development data never serve as independent final see
 Only a full development numeric/control/visual pass permits a frozen complete
 recipe with three predetermined fresh independent training seeds/fresh held-out.
 Plan-only argv equivalence to saved control asserted; queue validation passed.
+
+## T05 rejected; B08 joint-objective initialization freeze
+T05 exact restore17leaves. All16 trained screen episodes survive; random gates
+pass,nominal stand yaw.150995567>.15 fails. Do not round into a pass. Full stages
+skipped;discount-transfer test closed,no escalation/extension. Sampled both
+stand/forward videos upright but no continuous full gait approval.
+Targeted reset-source check rules out cached-start explanation: adapter sets
+full_reset=True and pinned BraxAutoResetWrapper.step calls reset with split key.
+No reset-diversity fix warranted; completed general audits need no repetition.
+Structural training-history issue remains: B01 learned20M with original periodic
+rewards before phase/airtime command masks and learned action smoothness were
+introduced through many1M parameter continuations (optimizer state restarts).
+B08 evaluates ONE coherent joint walking/standing objective from initialization,
+not another local scalar sweep or unchanged continuation. Composite recipe
+feasibility test; cannot isolate objective timing from initialization/history.
+Original B01 seed11/budget/batch/LR/gamma recipe:20,070,400 uninterruptedsteps,
+512envs,lr3e-4,gamma.97,horizon500,8evals,full original random resets,broad commands,
+10%standing. From step0 phase/airtime command gatestrue,action_rate-.1,standpose-1,
+standyaw0,filteralpha1,yawweight.75; other baseline defaults unchanged. No resume,
+no inherited checkpoint. Existing B01 is historical baseline,not newly matched
+causal control. S01 was stand-only3M; B08 trains full movement commands20M.
+Budget exactly20,070,400 newsteps,4htrainingcap,6hqueuecap as B01. Final checkpoint
+only,48-row screens/conditional180full,all original500step thresholds. Candidate's
+own initialization checkpoint0 is true untrained control; standing control kept.
+No intermediate checkpoint selection,seed replacement,automatic extension or
+recipe retuning midrun. If screens/full fail close this bounded unified-objective
+probe and reassess structural alternatives from evidence,not a new coefficient
+sweep. If all full numeric/control/visual gates pass,freeze complete recipe for
+three predetermined FRESH training seeds/held-out grid;seed11 remains development.
+This longer run reduces model interventions and tests history rather than
+spending more1M rounds on the same inherited gait. It offers no success guarantee.
+Plan-only change based on validated B01 plan; no-resume and final-budget assertions,
+queue validation passed. Existing code unchanged. Prior failures retained.
