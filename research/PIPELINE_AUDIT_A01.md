@@ -884,3 +884,40 @@ termination. If results vary,record sensitivity,not lucky promotion. No further
 training is bundled with this diagnostic. Source/reset/normalizer audits remain
 complete unless new concrete defect evidence appears. Full original gates and
 complete fresh3seed/held-out study still required. Plan-only export queue validated.
+
+## A12 reviewed; O01 support-state representation freeze
+All trained survival counts reproduce prior B01/B08/B09 screens. B08 height<.6
+at steps50/44(stand6002/6014),52/42(forward);terminal contact later62/55/72/51.
+B09 height<.6 at35/34(stand/forward6001),inversion50,no undesired contact.
+Thus loss of balance precedes termination; collision rules are not the proposed
+change. B01 survives these starts. B08 first40 forward6002 left contact1.0 vs
+B01.7,tilt24deg vs9deg;action-rate.209 vs.511. These are correlations,not proof
+of causal lack of stepping. B09 recovers6002 but settled stand action-rate3.57,
+yaw.300 versus B01.868/.275; no all-gate solution. Sampled all three ordinary
+forward videos inspected; not continuous visual approval or failure videos.
+O01 tests an actor representation change,not another reward scalar. Existing103
+actor features include linear/gyro/gravity/joint positions/velocities/last action/
+phase/command,but omit explicit root height and floor contacts which critic has.
+Actor might infer them; missing information is a hypothesis,not an identified bug.
+Append pelvis qpos[2],left/right existing floor sensor booleans at indices103:106;
+retain original103 prefix and216critic unchanged. No reward/physics/termination
+changes. Enabled only by saved support_state_observation=true,num_single_obs106;
+defaultfalse retains103. Network size determined by env.observation_size; saved
+config reproduced during evaluation,own checkpoint0 control has same architecture.
+These are simulator state inputs: no hardware readiness claim;real deployment
+would need reliable corresponding estimates/sensors. Sim research scope only.
+Freeze ONE fromscratch seed11,20,070,400steps,lr3e-4,gamma.97,512env,horizon500,
+B08 reward recipe withaction_rate-.1 andbothcommandgatestrue,original commands/
+resets. Reuse B08 as completed architectural baseline; changed input dimension
+changes initialization,so no claim identical weights. No old checkpoint padding,
+policy distillation,oracle labels or seed replacement. Budget4htraining/6hqueue;
+48screens/conditional180full and all original500step gates. If recovery improves
+but standing/gait regresses reject; if no full gain close feature trial,no feature
+subset sweep or unchanged extension. A full development numeric/control/visual
+pass remains prerequisite to freezing three fresh independently trained seeds and
+held-out grid. No partial screen can pass final research objective.
+Changed reset/step/direct observation reconstruction all append current physical
+state; held-command replacement retains appended fields. Config rejects wrong
+actor dimension. Real MJX parity and existing adapter/evaluation tests required
+before launch; plan validation passed. No queue running during edits.
+Verification completed:58 adapter/evaluator tests passed,including real reset/step physical and reward parity,actor prefix/critic equality,held-command feature preservation and dimension rejection. Four existing-style dependency/JAX warnings,no failures.

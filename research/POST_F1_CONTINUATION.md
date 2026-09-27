@@ -561,3 +561,10 @@ B09 random6/8 but nominal yaw/gait fail; acquisition ablation closed. A12 captur
 existing exact-evaluator temporal arrays for B01/B08/B09 randomized screens,
 zero training72totalrows. Compare recovery timing before structural next decision;
 no lucky repeat promotion or further coefficient/mask sweep. See audit.
+
+## A12 reviewed; O01 frozen
+All diagnostic survival reproduced. Height loss precedes terminal contact/inversion;
+no collision weakening. O01 adds explicit height/foot-contact actor inputs with
+unchanged216critic and original reward/gates,one fromscratch20,070,400step seed11
+trial versus saved B08. Simulated-state representation hypothesis,not hardware
+readiness. Tests required before launch;see audit for fixed budget/decision.

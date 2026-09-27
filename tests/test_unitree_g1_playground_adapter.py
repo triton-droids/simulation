@@ -444,3 +444,32 @@ def test_action_filter_clips_before_mixing_and_tracks_applied_history():
     assert jp.all(second.info['last_act']==-.25)
     assert jp.all(second.obs['state'][70:99]==-.25)
     assert jp.all(state.info['last_act']==0)
+
+def test_support_observation_real_reset_step_and_held_command():
+    import numpy as np
+    from source.scripts.evaluate_g1 import _replace_command
+    cfg = OmegaConf.structured(G1PlaygroundMJXConfig())
+    cfg.playground.fetch_source = False
+    cfg.noise.add_noise = False
+    cfg.push.add_push = False
+    robot = UnitreeG1Model(fetch=False)
+    baseline = Joystick('unitree_g1', robot, 'flat', cfg)
+    cfg.playground.support_state_observation = True
+    with pytest.raises(ValueError, match='106'):
+        Joystick('unitree_g1', robot, 'flat', cfg)
+    cfg.obs.num_single_obs = 106
+    supported = Joystick('unitree_g1', robot, 'flat', cfg)
+    assert supported.observation_size == {'state': 106, 'privileged_state': 216}
+    key = jax.random.PRNGKey(6002)
+    left, right = jax.jit(baseline.reset)(key), jax.jit(supported.reset)(key)
+    for _ in range(2):
+        np.testing.assert_array_equal(left.data.qpos, right.data.qpos)
+        np.testing.assert_array_equal(left.obs['state'], right.obs['state'][:103])
+        np.testing.assert_array_equal(left.obs['privileged_state'], right.obs['privileged_state'])
+        np.testing.assert_array_equal(right.obs['state'][103:], jp.concatenate((right.data.qpos[2:3], supported._contact(right.data).astype(jp.float32))))
+        held = _replace_command(right, jp.array([.45,0,0]))
+        np.testing.assert_array_equal(held.obs['state'][103:], right.obs['state'][103:])
+        left = jax.jit(baseline.step)(left, jp.zeros(29))
+        right = jax.jit(supported.step)(right, jp.zeros(29))
+    jax.block_until_ready(right.reward)
+    np.testing.assert_allclose(left.reward, right.reward, rtol=0, atol=0)

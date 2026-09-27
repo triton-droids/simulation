@@ -69,6 +69,7 @@ class Joystick:
     _action_filter_alpha = 1.0
     _phase_reward_command_only = False
     _airtime_reward_command_only = False
+    _support_state_observation = False
 
     def __init__(self, name: str, robot: Any, scene: str, cfg: Any, **_: Any):
         if name != "unitree_g1":
@@ -215,6 +216,28 @@ class Joystick:
         self.nu = self._env.mj_model.nu
         self.obs_size = cfg.obs.num_single_obs
         self.privileged_obs_size = cfg.obs.num_single_privileged_obs
+        self._support_state_observation = bool(getattr(cfg.playground, "support_state_observation", False))
+        expected = 106 if self._support_state_observation else 103
+        if self.obs_size != expected:
+            raise ValueError(f"Actor observation config must be {expected}, got {self.obs_size}")
+        self.effective_config["support_state_observation"] = self._support_state_observation
+        if self._support_state_observation:
+            self.source_record["adaptations"].append("actor receives pelvis height and left/right floor contact")
+
+    @property
+    def observation_size(self):
+        return {"state": self.obs_size, "privileged_state": self.privileged_obs_size}
+
+    def _support_observation(self, obs, data, contact):
+        if not self._support_state_observation:
+            return obs
+        return {**obs, "state": jp.concatenate((obs["state"][:103],
+                jp.asarray([data.qpos[2]], dtype=obs["state"].dtype),
+                contact.astype(obs["state"].dtype)))}
+
+    def _get_obs(self, data, info, contact):
+        # Keep direct observation reconstruction consistent with reset/step.
+        return self._support_observation(self._env._get_obs(data, info, contact), data, contact)
 
     def __getattr__(self, name: str):
         if name == "__setstate__":
@@ -280,6 +303,8 @@ class Joystick:
             metrics["reward/narrow_feet"] = jp.zeros_like(state.reward)
         if self._stand_yaw_scale != 0.0:
             metrics["reward/stand_yaw"] = jp.zeros_like(state.reward)
+        if self._support_state_observation:
+            obs = self._support_observation(obs, data, self._contact(data))
         return state.replace(data=data, obs=obs, info=info, metrics=metrics)
 
     def step(self, state: Any, action: jax.Array):
@@ -319,6 +344,8 @@ class Joystick:
             metrics["reward/stand_yaw"] = weighted
             reward = reward + weighted * self.dt
         obs = synchronize_transition_observation(next_state.obs, info)
+        if self._support_state_observation:
+            obs = self._support_observation(obs, next_state.data, self._contact(next_state.data))
         invalid = ~jp.isfinite(next_state.data.qpos).all()
         invalid |= ~jp.isfinite(next_state.data.qvel).all()
         done = next_state.done.astype(bool) | invalid
