@@ -852,3 +852,35 @@ passes,freeze recipe for three predetermined fresh independent seeds and fresh
 held-out tests;seed11 remains development. No proof of causal generality from one
 seed. Paired training argv differs only action_rate/output;assertion and queue
 validation passed. All failure evidence retained; runner/model code unchanged.
+
+## B09 rejected; A12 comparative recovery traces freeze
+B09 final20,070,400: nominal all8survive but mean yaw.34006,stand yaw.32622 and
+forward median air times.04/.06 fail. Random6/8survive;stand+forward6001 both50,
+6000/6002/6014 survive500. Worst random linear1.59464/yaw1.16827. Recovery loss
+changed seeds rather than disappeared. Full stages skipped. Sampled stand frames
+rotate and forward clips show limited foot lift; no full visual pass. Internal
+mean lengths53,79,341,472,485,500,476,421;retain final,do not select earlier500.
+KL stays<.2. Both acquisition variants fail,so branch CLOSED;no action-rate or
+mask coefficient sweep,unchanged continuation or automatic policy combination.
+A12 freezes THREE zero-training original randomized screen evaluations for fixed
+B01,B08,B09 final20070400,original commands/seeds/order/controls/video. Enable
+existing host-only numeric trace export;no compiled rollout change. Each24rows,
+72total,3hourcap. Fresh paths post_f1_a12. This acquires missing temporal evidence,
+not favorable-repeat selection; compare survival/errors to original results and
+preserve discrepancies without overwriting failed verdicts. No baseline training.
+Compare all8 trained rows per policy,especially bothcommands6001/6002/6014 and
+ordinary6000. Use valid first40 steps and matched preterminal windows,height/tilt,
+contact/support,slip,action-rate/saturation,linear/yaw trajectories. Identify
+whether B08/B09 height loss precedes terminal contact or vice versa,how B01
+corrects on same starts,and whether divergence is common across standing/moving.
+Late-window gait/yaw on surviving rows differentiates recovery failure from
+persistent stepping error. Existing numeric arrays have aggregate contact flags,
+not exact contact-pair attribution or raw joint actions;do not overinterpret them.
+Prospective decision: if both variants fail before comparable corrective support
+while B01 recovers,investigate training/representation of that recovery stage,
+not another mask/penalty coefficient. If terminal contacts precede height loss,
+identify contact timing before proposing a training change; never weaken collision
+termination. If results vary,record sensitivity,not lucky promotion. No further
+training is bundled with this diagnostic. Source/reset/normalizer audits remain
+complete unless new concrete defect evidence appears. Full original gates and
+complete fresh3seed/held-out study still required. Plan-only export queue validated.

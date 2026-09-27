@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_a12/queue",
+  "max_wall_seconds": 10800,
+  "jobs": [
+    {
+      "id": "b01",
+      "hypothesis": "Compare exact-evaluator recovery transients across original baseline and both acquisition ablations without selecting favorable repeats.",
+      "evidence": "B01random8/8,B08random4/8,B09random6/8 but gait/yaw fail; identify shared versus changed early failure patterns.",
+      "review_artifact": "results/post_f1_a12/b01/summary.json",
+      "stages": [
+        {
+          "id": "evaluate_randomized",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_b01/train",
+            "--checkpoint",
+            "20070400",
+            "--reference-run-dir",
+            "results/post_f1_b01/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002,6014",
+            "--command-grid",
+            "research/queues/post_f1_screen_commands.json",
+            "--randomized-reset",
+            "--output-dir",
+            "results/post_f1_a12/b01",
+            "--video",
+            "--video-command",
+            "forward",
+            "--save-numeric-traces"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a12/b01"
+          ],
+          "required_paths": [
+            "results/post_f1_a12/b01/episodes.csv",
+            "results/post_f1_a12/b01/summary.json",
+            "results/post_f1_a12/b01/trained_forward_seed6000.mp4",
+            "results/post_f1_a12/b01/numeric_traces/trained_forward_seed6001.npz",
+            "results/post_f1_a12/b01/numeric_traces/trained_forward_seed6002.npz"
+          ],
+          "timeout_seconds": 7200
+        }
+      ]
+    },
+    {
+      "id": "b08",
+      "hypothesis": "Compare exact-evaluator recovery transients across original baseline and both acquisition ablations without selecting favorable repeats.",
+      "evidence": "B01random8/8,B08random4/8,B09random6/8 but gait/yaw fail; identify shared versus changed early failure patterns.",
+      "review_artifact": "results/post_f1_a12/b08/summary.json",
+      "stages": [
+        {
+          "id": "evaluate_randomized",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_b08/train",
+            "--checkpoint",
+            "20070400",
+            "--reference-run-dir",
+            "results/post_f1_b08/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002,6014",
+            "--command-grid",
+            "research/queues/post_f1_screen_commands.json",
+            "--randomized-reset",
+            "--output-dir",
+            "results/post_f1_a12/b08",
+            "--video",
+            "--video-command",
+            "forward",
+            "--save-numeric-traces"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a12/b08"
+          ],
+          "required_paths": [
+            "results/post_f1_a12/b08/episodes.csv",
+            "results/post_f1_a12/b08/summary.json",
+            "results/post_f1_a12/b08/trained_forward_seed6000.mp4",
+            "results/post_f1_a12/b08/numeric_traces/trained_forward_seed6001.npz",
+            "results/post_f1_a12/b08/numeric_traces/trained_forward_seed6002.npz"
+          ],
+          "timeout_seconds": 7200
+        }
+      ]
+    },
+    {
+      "id": "b09",
+      "hypothesis": "Compare exact-evaluator recovery transients across original baseline and both acquisition ablations without selecting favorable repeats.",
+      "evidence": "B01random8/8,B08random4/8,B09random6/8 but gait/yaw fail; identify shared versus changed early failure patterns.",
+      "review_artifact": "results/post_f1_a12/b09/summary.json",
+      "stages": [
+        {
+          "id": "evaluate_randomized",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_b09/train",
+            "--checkpoint",
+            "20070400",
+            "--reference-run-dir",
+            "results/post_f1_b09/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002,6014",
+            "--command-grid",
+            "research/queues/post_f1_screen_commands.json",
+            "--randomized-reset",
+            "--output-dir",
+            "results/post_f1_a12/b09",
+            "--video",
+            "--video-command",
+            "forward",
+            "--save-numeric-traces"
+          ],
+          "fresh_paths": [
+            "results/post_f1_a12/b09"
+          ],
+          "required_paths": [
+            "results/post_f1_a12/b09/episodes.csv",
+            "results/post_f1_a12/b09/summary.json",
+            "results/post_f1_a12/b09/trained_forward_seed6000.mp4",
+            "results/post_f1_a12/b09/numeric_traces/trained_forward_seed6001.npz",
+            "results/post_f1_a12/b09/numeric_traces/trained_forward_seed6002.npz"
+          ],
+          "timeout_seconds": 7200
+        }
+      ]
+    }
+  ]
+}

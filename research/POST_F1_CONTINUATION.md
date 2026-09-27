@@ -555,3 +555,9 @@ B08 passes nominal with standing.022/.025 but random recovery4/8;overall rejecte
 B09 isolates action-rate contribution to acquisition: masks remain fromstep0,
 original action_rate0,otherwise identical20,070,400step seed11 run. Reuse B08/B01
 controls,no sweep or automatic extension. Full three-seed criteria unchanged.
+
+## B09 reviewed; A12 frozen
+B09 random6/8 but nominal yaw/gait fail; acquisition ablation closed. A12 captures
+existing exact-evaluator temporal arrays for B01/B08/B09 randomized screens,
+zero training72totalrows. Compare recovery timing before structural next decision;
+no lucky repeat promotion or further coefficient/mask sweep. See audit.
