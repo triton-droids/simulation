@@ -1064,3 +1064,30 @@ close this mapping trial without unchanged extension; inspect clipping/learning
 curve before next design. Partial screening never full pass. Complete-recipe
 three fresh independent seeds/held-out tests remain mandatory before success.
 Validation: five targeted config/Hydra/default-clipping/filter/real-model mapping checks passed (real mapping rerun after correcting test-only JAX indexing); queue validate-only passed. Actual endpoints, saved-config roundtrip and applied history verified. No physical limits modified.
+
+## M01 rejected; A16 bounded failure characterization
+M01 completed20,070,400steps. Nominal meansteps185.375,min120,height-.05692,
+meanlinear.75747; random meansteps52.125,min37,height-.10083,meanlinear1.34487,
+meanyaw.35189. Both screens rejected; full eval correctly skipped. Representative
+nominal stand/random forward saved video frames show stationary then collapse,
+not sustained gait. Training eval meanlength53,90,151,169,122,175,127,69;
+KL.075-.116; no operational threshold breach. Close mapping trial,no multiplier
+sweep/unchanged extension. B08 performs better; saturation was not demonstrated
+as sufficient explanation. Do not select earlier checkpoints.
+A16 uses existing diagnostic runner for exactly TWO unmodified final M01 stand
+traces: nominal6000/random6002,500stepcaps,local-only,original reset convention,
+original saved config including action mapping. Zero training. Compare nominal
+against saved A13 B08stand and randomized terminal sequence against saved A12 B08;
+no baseline reruns. Record actual mapped target saturation (apply saved multipliers
+before .5scale), raw action saturation, torso tilt, contacts and terminal signals.
+Whole/first100/last250 windows only where trajectory is long enough; shortened
+traces are not settled windows. Scalar rollouts cannot override original compiled
+screen failures. Stage2400sec,queue5400sec. No video needed for this numeric
+mechanism probe; M01 representative screen videos already inspected.
+Decision: if mapped roll targets still exceed actual bounds, repair the diagnosed
+implementation before any new training; otherwise confirm mapping worked and close
+clipping remedy. Inspect whether balance loss precedes contact termination, and
+whether motion acquisition is absent, to justify a distinct bounded next design.
+Do not infer contact-threshold defect from a falling robot, weaken termination,
+select lucky draws, or repeat closed reward/phase/optimizer/feature sweeps.
+All original full numeric/control/visual and fresh3seed criteria remain mandatory.
