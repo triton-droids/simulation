@@ -530,3 +530,9 @@ nominal gates but random right6001 fails106steps; backward survives yet linear
 .38675 misses. Still no full pass. A11 exports existing numeric rollout arrays
 for fixed T02/T03 full randomized evaluations to diagnose temporal failure without
 changing compiled dynamics. Zero training,two evaluations; see audit for decisions.
+
+## A11 reviewed; T04 frozen
+Failures lose height before terminal contact; surviving backward error is mainly
+initial recovery(85.8% squared error in first100;late linear.109). T04 matched
+250vs500 training horizons with unchanged full random resets and500-step tests,
+same T03control parent,1,003,520steps per arm. No horizon sweep; see audit.

@@ -1,0 +1,1389 @@
+{
+  "version": 1,
+  "output_dir": "results/post_f1_t04/queue",
+  "max_wall_seconds": 28800,
+  "jobs": [
+    {
+      "id": "frequent_reset_train",
+      "hypothesis": "Matched 250 versus 500 step training horizons increase original random-reset exposure while preserving 500-step evaluation.",
+      "evidence": "A11 exact traces show early recovery loss before terminal contact; surviving backward6001 late linear .109 versus early .928.",
+      "review_artifact": "results/post_f1_t04/frequent_reset/train/restore_parity.json",
+      "stages": [
+        {
+          "id": "recovery_train",
+          "argv": [
+            "source/scripts/train.py",
+            "--logger",
+            "local",
+            "--seed",
+            "11",
+            "env=unitree_g1_playground",
+            "robot=unitree_g1",
+            "sim=unitree_g1_playground",
+            "agent=ppo_g1_corrective",
+            "robot.fetch_model=false",
+            "sim.playground.fetch_source=false",
+            "sim.reset.randomize=true",
+            "sim.noise.add_noise=false",
+            "sim.push.add_push=false",
+            "sim.domain_rand.add_domain_rand=false",
+            "sim.commands.lin_vel_x=[-1.0,1.0]",
+            "sim.commands.lin_vel_y=[-0.5,0.5]",
+            "sim.commands.ang_vel_yaw=[-1.0,1.0]",
+            "agent.num_timesteps=1003520",
+            "agent.num_evals=8",
+            "agent.num_eval_envs=16",
+            "agent.episode_length=250",
+            "hydra.run.dir={root}/results/post_f1_t04/frequent_reset/train",
+            "hydra.job.chdir=true",
+            "agent.learning_rate=0.0001",
+            "agent.discounting=0.97",
+            "--resume",
+            "--checkpoint",
+            "{root}/results/post_f1_t03/control/train/logs/checkpoints/1003520",
+            "sim.reward_scales.tracking_ang_vel=0.75",
+            "sim.playground.phase_reward_command_only=true",
+            "sim.reward_scales.stand_still=-1.0",
+            "sim.playground.standing_command_probability=0.1",
+            "sim.reward_scales.stand_yaw=0.0",
+            "sim.playground.airtime_reward_command_only=true",
+            "sim.playground.action_filter_alpha=1.0",
+            "sim.reward_scales.action_rate=-0.1"
+          ],
+          "fresh_paths": [
+            "results/post_f1_t04/frequent_reset/train"
+          ],
+          "required_paths": [
+            "results/post_f1_t04/frequent_reset/train/run_manifest.json",
+            "results/post_f1_t04/frequent_reset/train/logs/checkpoints/0/policy",
+            "results/post_f1_t04/frequent_reset/train/logs/checkpoints/1003520/policy"
+          ],
+          "timeout_seconds": 7200,
+          "monitor": {
+            "path": "results/post_f1_t04/frequent_reset/train/logs/metrics.jsonl",
+            "ignore_kl_through_step": 143360,
+            "consecutive_kl_limit": 2,
+            "kl_limit": 0.2,
+            "final_step": 1003520
+          }
+        },
+        {
+          "id": "recovery_restore_audit",
+          "argv": [
+            "-c",
+            "import os;os.environ['JAX_PLATFORMS']='cpu';from brax.io import model;import jax,numpy as np,json;from pathlib import Path;a=model.load_params(Path('results/post_f1_t03/control/train/logs/checkpoints/1003520/policy'));b=model.load_params(Path('results/post_f1_t04/frequent_reset/train/logs/checkpoints/0/policy'));la,ta=jax.tree_util.tree_flatten(a);lb,tb=jax.tree_util.tree_flatten(b);ok=ta==tb and len(la)==len(lb) and all(np.array_equal(np.asarray(x),np.asarray(y)) for x,y in zip(la,lb));f=open('results/post_f1_t04/frequent_reset/train/restore_parity.json','x');json.dump(dict(exact_actor_normalizer_match=ok,leaves=len(la)),f);f.close();assert ok,'Warm-start parity failed'"
+          ],
+          "fresh_paths": [
+            "results/post_f1_t04/frequent_reset/train/restore_parity.json"
+          ],
+          "required_paths": [
+            "results/post_f1_t04/frequent_reset/train/restore_parity.json"
+          ],
+          "timeout_seconds": 600
+        }
+      ]
+    },
+    {
+      "id": "frequent_reset_screen_nominal",
+      "hypothesis": "Matched 250 versus 500 step training horizons increase original random-reset exposure while preserving 500-step evaluation.",
+      "evidence": "A11 exact traces show early recovery loss before terminal contact; surviving backward6001 late linear .109 versus early .928.",
+      "stages": [
+        {
+          "id": "evaluate_nominal",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_t04/frequent_reset/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/post_f1_b01/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002,6014",
+            "--command-grid",
+            "research/queues/post_f1_screen_commands.json",
+            "--nominal-reset",
+            "--output-dir",
+            "results/post_f1_t04/frequent_reset/screen_nominal",
+            "--video",
+            "--video-command",
+            "stand"
+          ],
+          "fresh_paths": [
+            "results/post_f1_t04/frequent_reset/screen_nominal"
+          ],
+          "required_paths": [
+            "results/post_f1_t04/frequent_reset/screen_nominal/episodes.csv",
+            "results/post_f1_t04/frequent_reset/screen_nominal/summary.json",
+            "results/post_f1_t04/frequent_reset/screen_nominal/trained_stand_seed6000.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ],
+      "episodes_csv": "results/post_f1_t04/frequent_reset/screen_nominal/episodes.csv",
+      "gate": {
+        "horizon": 500,
+        "controllers": [
+          "trained",
+          "untrained",
+          "standing"
+        ],
+        "commands": [
+          "stand",
+          "forward"
+        ],
+        "seeds": [
+          6000,
+          6001,
+          6002,
+          6014
+        ],
+        "outcomes": {
+          "pass": [
+            {
+              "name": "all episodes survive500",
+              "aggregate": "min",
+              "metric": "episode_steps",
+              "min": 500
+            },
+            {
+              "name": "upright pelvis",
+              "aggregate": "min",
+              "metric": "minimum_pelvis_height",
+              "above": 0.6
+            },
+            {
+              "name": "mean linear error",
+              "aggregate": "mean",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "mean yaw error",
+              "aggregate": "mean",
+              "metric": "yaw_rate_rmse",
+              "max": 0.2
+            },
+            {
+              "name": "forward linear",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "stand linear_velocity_vector_rmse",
+              "where": {
+                "command_name": "stand"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.15
+            },
+            {
+              "name": "stand yaw_rate_rmse",
+              "where": {
+                "command_name": "stand"
+              },
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.15
+            },
+            {
+              "name": "forward single_support_fraction",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "min",
+              "metric": "single_support_fraction",
+              "min": 0.35,
+              "max": 0.95
+            },
+            {
+              "name": "forward left_median_completed_air_seconds",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "min",
+              "metric": "left_median_completed_air_seconds",
+              "min": 0.12
+            },
+            {
+              "name": "forward right_median_completed_air_seconds",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "min",
+              "metric": "right_median_completed_air_seconds",
+              "min": 0.12
+            }
+          ]
+        }
+      },
+      "screening_only": true
+    },
+    {
+      "id": "frequent_reset_screen_randomized",
+      "hypothesis": "Matched 250 versus 500 step training horizons increase original random-reset exposure while preserving 500-step evaluation.",
+      "evidence": "A11 exact traces show early recovery loss before terminal contact; surviving backward6001 late linear .109 versus early .928.",
+      "stages": [
+        {
+          "id": "evaluate_randomized",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_t04/frequent_reset/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/post_f1_b01/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002,6014",
+            "--command-grid",
+            "research/queues/post_f1_screen_commands.json",
+            "--randomized-reset",
+            "--output-dir",
+            "results/post_f1_t04/frequent_reset/screen_randomized",
+            "--video",
+            "--video-command",
+            "forward"
+          ],
+          "fresh_paths": [
+            "results/post_f1_t04/frequent_reset/screen_randomized"
+          ],
+          "required_paths": [
+            "results/post_f1_t04/frequent_reset/screen_randomized/episodes.csv",
+            "results/post_f1_t04/frequent_reset/screen_randomized/summary.json",
+            "results/post_f1_t04/frequent_reset/screen_randomized/trained_forward_seed6000.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ],
+      "episodes_csv": "results/post_f1_t04/frequent_reset/screen_randomized/episodes.csv",
+      "gate": {
+        "horizon": 500,
+        "controllers": [
+          "trained",
+          "untrained",
+          "standing"
+        ],
+        "commands": [
+          "stand",
+          "forward"
+        ],
+        "seeds": [
+          6000,
+          6001,
+          6002,
+          6014
+        ],
+        "outcomes": {
+          "pass": [
+            {
+              "name": "all16 survive500",
+              "aggregate": "min",
+              "metric": "episode_steps",
+              "min": 500
+            },
+            {
+              "name": "upright pelvis",
+              "aggregate": "min",
+              "metric": "minimum_pelvis_height",
+              "above": 0.6
+            },
+            {
+              "name": "mean linear_velocity_vector_rmse",
+              "aggregate": "mean",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "worst linear_velocity_vector_rmse",
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.35
+            },
+            {
+              "name": "mean yaw_rate_rmse",
+              "aggregate": "mean",
+              "metric": "yaw_rate_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "worst yaw_rate_rmse",
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.35
+            }
+          ]
+        }
+      },
+      "screening_only": true
+    },
+    {
+      "id": "frequent_reset_full_c15_nominal",
+      "hypothesis": "Matched 250 versus 500 step training horizons increase original random-reset exposure while preserving 500-step evaluation.",
+      "evidence": "A11 exact traces show early recovery loss before terminal contact; surviving backward6001 late linear .109 versus early .928.",
+      "stages": [
+        {
+          "id": "evaluate_nominal",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_t04/frequent_reset/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/post_f1_b01/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002",
+            "--command-grid",
+            "research/queues/final_f1_commands.json",
+            "--nominal-reset",
+            "--video",
+            "--video-command",
+            "combined",
+            "--output-dir",
+            "results/post_f1_t04/frequent_reset/full_nominal"
+          ],
+          "fresh_paths": [
+            "results/post_f1_t04/frequent_reset/full_nominal"
+          ],
+          "required_paths": [
+            "results/post_f1_t04/frequent_reset/full_nominal/summary.json",
+            "results/post_f1_t04/frequent_reset/full_nominal/episodes.csv",
+            "results/post_f1_t04/frequent_reset/full_nominal/trained_combined_seed6000.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ],
+      "episodes_csv": "results/post_f1_t04/frequent_reset/full_nominal/episodes.csv",
+      "gate": {
+        "horizon": 500,
+        "controllers": [
+          "trained",
+          "untrained",
+          "standing"
+        ],
+        "commands": [
+          "stand",
+          "forward",
+          "backward",
+          "left",
+          "right",
+          "turn_left",
+          "turn_right",
+          "combined"
+        ],
+        "seeds": [
+          6000,
+          6001,
+          6002
+        ],
+        "outcomes": {
+          "pass": [
+            {
+              "name": "all episodes survive500",
+              "aggregate": "min",
+              "metric": "episode_steps",
+              "min": 500
+            },
+            {
+              "name": "upright pelvis",
+              "aggregate": "min",
+              "metric": "minimum_pelvis_height",
+              "above": 0.6
+            },
+            {
+              "name": "mean linear error",
+              "aggregate": "mean",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "mean yaw error",
+              "aggregate": "mean",
+              "metric": "yaw_rate_rmse",
+              "max": 0.2
+            },
+            {
+              "name": "forward linear",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "backward linear",
+              "where": {
+                "command_name": "backward"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "left linear",
+              "where": {
+                "command_name": "left"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "right linear",
+              "where": {
+                "command_name": "right"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "combined linear",
+              "where": {
+                "command_name": "combined"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "turn_left yaw",
+              "where": {
+                "command_name": "turn_left"
+              },
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "turn_right yaw",
+              "where": {
+                "command_name": "turn_right"
+              },
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "stand linear_velocity_vector_rmse",
+              "where": {
+                "command_name": "stand"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.15
+            },
+            {
+              "name": "stand yaw_rate_rmse",
+              "where": {
+                "command_name": "stand"
+              },
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.15
+            },
+            {
+              "name": "forward single_support_fraction",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "min",
+              "metric": "single_support_fraction",
+              "min": 0.35,
+              "max": 0.95
+            },
+            {
+              "name": "forward left_median_completed_air_seconds",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "min",
+              "metric": "left_median_completed_air_seconds",
+              "min": 0.12
+            },
+            {
+              "name": "forward right_median_completed_air_seconds",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "min",
+              "metric": "right_median_completed_air_seconds",
+              "min": 0.12
+            }
+          ]
+        }
+      },
+      "requires_screening": [
+        "frequent_reset_screen_nominal",
+        "frequent_reset_screen_randomized"
+      ]
+    },
+    {
+      "id": "frequent_reset_full_c15_randomized",
+      "hypothesis": "Matched 250 versus 500 step training horizons increase original random-reset exposure while preserving 500-step evaluation.",
+      "evidence": "A11 exact traces show early recovery loss before terminal contact; surviving backward6001 late linear .109 versus early .928.",
+      "stages": [
+        {
+          "id": "evaluate_randomized",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_t04/frequent_reset/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/post_f1_b01/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002",
+            "--command-grid",
+            "research/queues/final_f1_commands.json",
+            "--randomized-reset",
+            "--video",
+            "--video-command",
+            "combined",
+            "--output-dir",
+            "results/post_f1_t04/frequent_reset/full_randomized"
+          ],
+          "fresh_paths": [
+            "results/post_f1_t04/frequent_reset/full_randomized"
+          ],
+          "required_paths": [
+            "results/post_f1_t04/frequent_reset/full_randomized/summary.json",
+            "results/post_f1_t04/frequent_reset/full_randomized/episodes.csv",
+            "results/post_f1_t04/frequent_reset/full_randomized/trained_combined_seed6000.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ],
+      "episodes_csv": "results/post_f1_t04/frequent_reset/full_randomized/episodes.csv",
+      "gate": {
+        "horizon": 500,
+        "controllers": [
+          "trained",
+          "untrained",
+          "standing"
+        ],
+        "commands": [
+          "stand",
+          "forward",
+          "backward",
+          "left",
+          "right",
+          "turn_left",
+          "turn_right",
+          "combined"
+        ],
+        "seeds": [
+          6000,
+          6001,
+          6002
+        ],
+        "outcomes": {
+          "pass": [
+            {
+              "name": "all16 survive500",
+              "aggregate": "min",
+              "metric": "episode_steps",
+              "min": 500
+            },
+            {
+              "name": "upright pelvis",
+              "aggregate": "min",
+              "metric": "minimum_pelvis_height",
+              "above": 0.6
+            },
+            {
+              "name": "mean linear_velocity_vector_rmse",
+              "aggregate": "mean",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "worst linear_velocity_vector_rmse",
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.35
+            },
+            {
+              "name": "mean yaw_rate_rmse",
+              "aggregate": "mean",
+              "metric": "yaw_rate_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "worst yaw_rate_rmse",
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.35
+            }
+          ]
+        }
+      },
+      "requires_screening": [
+        "frequent_reset_screen_nominal",
+        "frequent_reset_screen_randomized"
+      ]
+    },
+    {
+      "id": "frequent_reset_full_recovery_generalization",
+      "hypothesis": "Matched 250 versus 500 step training horizons increase original random-reset exposure while preserving 500-step evaluation.",
+      "evidence": "A11 exact traces show early recovery loss before terminal contact; surviving backward6001 late linear .109 versus early .928.",
+      "review_artifact": "results/post_f1_t04/frequent_reset/full_forward_resets/summary.json",
+      "stages": [
+        {
+          "id": "evaluate_randomized",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_t04/frequent_reset/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/post_f1_b01/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6010,6011,6012,6013,6014,6015,6016,6017,6018,6019,6020,6021",
+            "--command-grid",
+            "research/queues/post_f1_d07_commands.json",
+            "--randomized-reset",
+            "--video",
+            "--video-command",
+            "forward",
+            "--output-dir",
+            "results/post_f1_t04/frequent_reset/full_forward_resets"
+          ],
+          "fresh_paths": [
+            "results/post_f1_t04/frequent_reset/full_forward_resets"
+          ],
+          "required_paths": [
+            "results/post_f1_t04/frequent_reset/full_forward_resets/summary.json",
+            "results/post_f1_t04/frequent_reset/full_forward_resets/episodes.csv",
+            "results/post_f1_t04/frequent_reset/full_forward_resets/trained_forward_seed6010.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ],
+      "requires_screening": [
+        "frequent_reset_screen_nominal",
+        "frequent_reset_screen_randomized"
+      ]
+    },
+    {
+      "id": "control_train",
+      "hypothesis": "Matched 250 versus 500 step training horizons increase original random-reset exposure while preserving 500-step evaluation.",
+      "evidence": "A11 exact traces show early recovery loss before terminal contact; surviving backward6001 late linear .109 versus early .928.",
+      "review_artifact": "results/post_f1_t04/control/train/restore_parity.json",
+      "stages": [
+        {
+          "id": "recovery_train",
+          "argv": [
+            "source/scripts/train.py",
+            "--logger",
+            "local",
+            "--seed",
+            "11",
+            "env=unitree_g1_playground",
+            "robot=unitree_g1",
+            "sim=unitree_g1_playground",
+            "agent=ppo_g1_corrective",
+            "robot.fetch_model=false",
+            "sim.playground.fetch_source=false",
+            "sim.reset.randomize=true",
+            "sim.noise.add_noise=false",
+            "sim.push.add_push=false",
+            "sim.domain_rand.add_domain_rand=false",
+            "sim.commands.lin_vel_x=[-1.0,1.0]",
+            "sim.commands.lin_vel_y=[-0.5,0.5]",
+            "sim.commands.ang_vel_yaw=[-1.0,1.0]",
+            "agent.num_timesteps=1003520",
+            "agent.num_evals=8",
+            "agent.num_eval_envs=16",
+            "agent.episode_length=500",
+            "hydra.run.dir={root}/results/post_f1_t04/control/train",
+            "hydra.job.chdir=true",
+            "agent.learning_rate=0.0001",
+            "agent.discounting=0.97",
+            "--resume",
+            "--checkpoint",
+            "{root}/results/post_f1_t03/control/train/logs/checkpoints/1003520",
+            "sim.reward_scales.tracking_ang_vel=0.75",
+            "sim.playground.phase_reward_command_only=true",
+            "sim.reward_scales.stand_still=-1.0",
+            "sim.playground.standing_command_probability=0.1",
+            "sim.reward_scales.stand_yaw=0.0",
+            "sim.playground.airtime_reward_command_only=true",
+            "sim.playground.action_filter_alpha=1.0",
+            "sim.reward_scales.action_rate=-0.1"
+          ],
+          "fresh_paths": [
+            "results/post_f1_t04/control/train"
+          ],
+          "required_paths": [
+            "results/post_f1_t04/control/train/run_manifest.json",
+            "results/post_f1_t04/control/train/logs/checkpoints/0/policy",
+            "results/post_f1_t04/control/train/logs/checkpoints/1003520/policy"
+          ],
+          "timeout_seconds": 7200,
+          "monitor": {
+            "path": "results/post_f1_t04/control/train/logs/metrics.jsonl",
+            "ignore_kl_through_step": 143360,
+            "consecutive_kl_limit": 2,
+            "kl_limit": 0.2,
+            "final_step": 1003520
+          }
+        },
+        {
+          "id": "recovery_restore_audit",
+          "argv": [
+            "-c",
+            "import os;os.environ['JAX_PLATFORMS']='cpu';from brax.io import model;import jax,numpy as np,json;from pathlib import Path;a=model.load_params(Path('results/post_f1_t03/control/train/logs/checkpoints/1003520/policy'));b=model.load_params(Path('results/post_f1_t04/control/train/logs/checkpoints/0/policy'));la,ta=jax.tree_util.tree_flatten(a);lb,tb=jax.tree_util.tree_flatten(b);ok=ta==tb and len(la)==len(lb) and all(np.array_equal(np.asarray(x),np.asarray(y)) for x,y in zip(la,lb));f=open('results/post_f1_t04/control/train/restore_parity.json','x');json.dump(dict(exact_actor_normalizer_match=ok,leaves=len(la)),f);f.close();assert ok,'Warm-start parity failed'"
+          ],
+          "fresh_paths": [
+            "results/post_f1_t04/control/train/restore_parity.json"
+          ],
+          "required_paths": [
+            "results/post_f1_t04/control/train/restore_parity.json"
+          ],
+          "timeout_seconds": 600
+        }
+      ]
+    },
+    {
+      "id": "control_screen_nominal",
+      "hypothesis": "Matched 250 versus 500 step training horizons increase original random-reset exposure while preserving 500-step evaluation.",
+      "evidence": "A11 exact traces show early recovery loss before terminal contact; surviving backward6001 late linear .109 versus early .928.",
+      "stages": [
+        {
+          "id": "evaluate_nominal",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_t04/control/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/post_f1_b01/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002,6014",
+            "--command-grid",
+            "research/queues/post_f1_screen_commands.json",
+            "--nominal-reset",
+            "--output-dir",
+            "results/post_f1_t04/control/screen_nominal",
+            "--video",
+            "--video-command",
+            "stand"
+          ],
+          "fresh_paths": [
+            "results/post_f1_t04/control/screen_nominal"
+          ],
+          "required_paths": [
+            "results/post_f1_t04/control/screen_nominal/episodes.csv",
+            "results/post_f1_t04/control/screen_nominal/summary.json",
+            "results/post_f1_t04/control/screen_nominal/trained_stand_seed6000.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ],
+      "episodes_csv": "results/post_f1_t04/control/screen_nominal/episodes.csv",
+      "gate": {
+        "horizon": 500,
+        "controllers": [
+          "trained",
+          "untrained",
+          "standing"
+        ],
+        "commands": [
+          "stand",
+          "forward"
+        ],
+        "seeds": [
+          6000,
+          6001,
+          6002,
+          6014
+        ],
+        "outcomes": {
+          "pass": [
+            {
+              "name": "all episodes survive500",
+              "aggregate": "min",
+              "metric": "episode_steps",
+              "min": 500
+            },
+            {
+              "name": "upright pelvis",
+              "aggregate": "min",
+              "metric": "minimum_pelvis_height",
+              "above": 0.6
+            },
+            {
+              "name": "mean linear error",
+              "aggregate": "mean",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "mean yaw error",
+              "aggregate": "mean",
+              "metric": "yaw_rate_rmse",
+              "max": 0.2
+            },
+            {
+              "name": "forward linear",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "stand linear_velocity_vector_rmse",
+              "where": {
+                "command_name": "stand"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.15
+            },
+            {
+              "name": "stand yaw_rate_rmse",
+              "where": {
+                "command_name": "stand"
+              },
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.15
+            },
+            {
+              "name": "forward single_support_fraction",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "min",
+              "metric": "single_support_fraction",
+              "min": 0.35,
+              "max": 0.95
+            },
+            {
+              "name": "forward left_median_completed_air_seconds",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "min",
+              "metric": "left_median_completed_air_seconds",
+              "min": 0.12
+            },
+            {
+              "name": "forward right_median_completed_air_seconds",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "min",
+              "metric": "right_median_completed_air_seconds",
+              "min": 0.12
+            }
+          ]
+        }
+      },
+      "screening_only": true
+    },
+    {
+      "id": "control_screen_randomized",
+      "hypothesis": "Matched 250 versus 500 step training horizons increase original random-reset exposure while preserving 500-step evaluation.",
+      "evidence": "A11 exact traces show early recovery loss before terminal contact; surviving backward6001 late linear .109 versus early .928.",
+      "stages": [
+        {
+          "id": "evaluate_randomized",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_t04/control/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/post_f1_b01/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002,6014",
+            "--command-grid",
+            "research/queues/post_f1_screen_commands.json",
+            "--randomized-reset",
+            "--output-dir",
+            "results/post_f1_t04/control/screen_randomized",
+            "--video",
+            "--video-command",
+            "forward"
+          ],
+          "fresh_paths": [
+            "results/post_f1_t04/control/screen_randomized"
+          ],
+          "required_paths": [
+            "results/post_f1_t04/control/screen_randomized/episodes.csv",
+            "results/post_f1_t04/control/screen_randomized/summary.json",
+            "results/post_f1_t04/control/screen_randomized/trained_forward_seed6000.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ],
+      "episodes_csv": "results/post_f1_t04/control/screen_randomized/episodes.csv",
+      "gate": {
+        "horizon": 500,
+        "controllers": [
+          "trained",
+          "untrained",
+          "standing"
+        ],
+        "commands": [
+          "stand",
+          "forward"
+        ],
+        "seeds": [
+          6000,
+          6001,
+          6002,
+          6014
+        ],
+        "outcomes": {
+          "pass": [
+            {
+              "name": "all16 survive500",
+              "aggregate": "min",
+              "metric": "episode_steps",
+              "min": 500
+            },
+            {
+              "name": "upright pelvis",
+              "aggregate": "min",
+              "metric": "minimum_pelvis_height",
+              "above": 0.6
+            },
+            {
+              "name": "mean linear_velocity_vector_rmse",
+              "aggregate": "mean",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "worst linear_velocity_vector_rmse",
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.35
+            },
+            {
+              "name": "mean yaw_rate_rmse",
+              "aggregate": "mean",
+              "metric": "yaw_rate_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "worst yaw_rate_rmse",
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.35
+            }
+          ]
+        }
+      },
+      "screening_only": true
+    },
+    {
+      "id": "control_full_c15_nominal",
+      "hypothesis": "Matched 250 versus 500 step training horizons increase original random-reset exposure while preserving 500-step evaluation.",
+      "evidence": "A11 exact traces show early recovery loss before terminal contact; surviving backward6001 late linear .109 versus early .928.",
+      "stages": [
+        {
+          "id": "evaluate_nominal",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_t04/control/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/post_f1_b01/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002",
+            "--command-grid",
+            "research/queues/final_f1_commands.json",
+            "--nominal-reset",
+            "--video",
+            "--video-command",
+            "combined",
+            "--output-dir",
+            "results/post_f1_t04/control/full_nominal"
+          ],
+          "fresh_paths": [
+            "results/post_f1_t04/control/full_nominal"
+          ],
+          "required_paths": [
+            "results/post_f1_t04/control/full_nominal/summary.json",
+            "results/post_f1_t04/control/full_nominal/episodes.csv",
+            "results/post_f1_t04/control/full_nominal/trained_combined_seed6000.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ],
+      "episodes_csv": "results/post_f1_t04/control/full_nominal/episodes.csv",
+      "gate": {
+        "horizon": 500,
+        "controllers": [
+          "trained",
+          "untrained",
+          "standing"
+        ],
+        "commands": [
+          "stand",
+          "forward",
+          "backward",
+          "left",
+          "right",
+          "turn_left",
+          "turn_right",
+          "combined"
+        ],
+        "seeds": [
+          6000,
+          6001,
+          6002
+        ],
+        "outcomes": {
+          "pass": [
+            {
+              "name": "all episodes survive500",
+              "aggregate": "min",
+              "metric": "episode_steps",
+              "min": 500
+            },
+            {
+              "name": "upright pelvis",
+              "aggregate": "min",
+              "metric": "minimum_pelvis_height",
+              "above": 0.6
+            },
+            {
+              "name": "mean linear error",
+              "aggregate": "mean",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "mean yaw error",
+              "aggregate": "mean",
+              "metric": "yaw_rate_rmse",
+              "max": 0.2
+            },
+            {
+              "name": "forward linear",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "backward linear",
+              "where": {
+                "command_name": "backward"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "left linear",
+              "where": {
+                "command_name": "left"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "right linear",
+              "where": {
+                "command_name": "right"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "combined linear",
+              "where": {
+                "command_name": "combined"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "turn_left yaw",
+              "where": {
+                "command_name": "turn_left"
+              },
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "turn_right yaw",
+              "where": {
+                "command_name": "turn_right"
+              },
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "stand linear_velocity_vector_rmse",
+              "where": {
+                "command_name": "stand"
+              },
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.15
+            },
+            {
+              "name": "stand yaw_rate_rmse",
+              "where": {
+                "command_name": "stand"
+              },
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.15
+            },
+            {
+              "name": "forward single_support_fraction",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "min",
+              "metric": "single_support_fraction",
+              "min": 0.35,
+              "max": 0.95
+            },
+            {
+              "name": "forward left_median_completed_air_seconds",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "min",
+              "metric": "left_median_completed_air_seconds",
+              "min": 0.12
+            },
+            {
+              "name": "forward right_median_completed_air_seconds",
+              "where": {
+                "command_name": "forward"
+              },
+              "aggregate": "min",
+              "metric": "right_median_completed_air_seconds",
+              "min": 0.12
+            }
+          ]
+        }
+      },
+      "requires_screening": [
+        "control_screen_nominal",
+        "control_screen_randomized"
+      ]
+    },
+    {
+      "id": "control_full_c15_randomized",
+      "hypothesis": "Matched 250 versus 500 step training horizons increase original random-reset exposure while preserving 500-step evaluation.",
+      "evidence": "A11 exact traces show early recovery loss before terminal contact; surviving backward6001 late linear .109 versus early .928.",
+      "stages": [
+        {
+          "id": "evaluate_randomized",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_t04/control/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/post_f1_b01/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6000,6001,6002",
+            "--command-grid",
+            "research/queues/final_f1_commands.json",
+            "--randomized-reset",
+            "--video",
+            "--video-command",
+            "combined",
+            "--output-dir",
+            "results/post_f1_t04/control/full_randomized"
+          ],
+          "fresh_paths": [
+            "results/post_f1_t04/control/full_randomized"
+          ],
+          "required_paths": [
+            "results/post_f1_t04/control/full_randomized/summary.json",
+            "results/post_f1_t04/control/full_randomized/episodes.csv",
+            "results/post_f1_t04/control/full_randomized/trained_combined_seed6000.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ],
+      "episodes_csv": "results/post_f1_t04/control/full_randomized/episodes.csv",
+      "gate": {
+        "horizon": 500,
+        "controllers": [
+          "trained",
+          "untrained",
+          "standing"
+        ],
+        "commands": [
+          "stand",
+          "forward",
+          "backward",
+          "left",
+          "right",
+          "turn_left",
+          "turn_right",
+          "combined"
+        ],
+        "seeds": [
+          6000,
+          6001,
+          6002
+        ],
+        "outcomes": {
+          "pass": [
+            {
+              "name": "all16 survive500",
+              "aggregate": "min",
+              "metric": "episode_steps",
+              "min": 500
+            },
+            {
+              "name": "upright pelvis",
+              "aggregate": "min",
+              "metric": "minimum_pelvis_height",
+              "above": 0.6
+            },
+            {
+              "name": "mean linear_velocity_vector_rmse",
+              "aggregate": "mean",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "worst linear_velocity_vector_rmse",
+              "aggregate": "max",
+              "metric": "linear_velocity_vector_rmse",
+              "max": 0.35
+            },
+            {
+              "name": "mean yaw_rate_rmse",
+              "aggregate": "mean",
+              "metric": "yaw_rate_rmse",
+              "max": 0.25
+            },
+            {
+              "name": "worst yaw_rate_rmse",
+              "aggregate": "max",
+              "metric": "yaw_rate_rmse",
+              "max": 0.35
+            }
+          ]
+        }
+      },
+      "requires_screening": [
+        "control_screen_nominal",
+        "control_screen_randomized"
+      ]
+    },
+    {
+      "id": "control_full_recovery_generalization",
+      "hypothesis": "Matched 250 versus 500 step training horizons increase original random-reset exposure while preserving 500-step evaluation.",
+      "evidence": "A11 exact traces show early recovery loss before terminal contact; surviving backward6001 late linear .109 versus early .928.",
+      "review_artifact": "results/post_f1_t04/control/full_forward_resets/summary.json",
+      "stages": [
+        {
+          "id": "evaluate_randomized",
+          "argv": [
+            "source/scripts/evaluate_g1.py",
+            "--run-dir",
+            "results/post_f1_t04/control/train",
+            "--checkpoint",
+            "1003520",
+            "--reference-run-dir",
+            "results/post_f1_b01/train",
+            "--reference-label",
+            "untrained",
+            "--steps",
+            "500",
+            "--seeds",
+            "6010,6011,6012,6013,6014,6015,6016,6017,6018,6019,6020,6021",
+            "--command-grid",
+            "research/queues/post_f1_d07_commands.json",
+            "--randomized-reset",
+            "--video",
+            "--video-command",
+            "forward",
+            "--output-dir",
+            "results/post_f1_t04/control/full_forward_resets"
+          ],
+          "fresh_paths": [
+            "results/post_f1_t04/control/full_forward_resets"
+          ],
+          "required_paths": [
+            "results/post_f1_t04/control/full_forward_resets/summary.json",
+            "results/post_f1_t04/control/full_forward_resets/episodes.csv",
+            "results/post_f1_t04/control/full_forward_resets/trained_forward_seed6010.mp4"
+          ],
+          "timeout_seconds": 7200
+        }
+      ],
+      "requires_screening": [
+        "control_screen_nominal",
+        "control_screen_randomized"
+      ]
+    }
+  ]
+}

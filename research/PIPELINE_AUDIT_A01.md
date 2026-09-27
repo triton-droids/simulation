@@ -717,3 +717,42 @@ training extension. Select one bounded mechanistic training/representation test
 only after this evidence; do not resume reward coefficient/phase/range sweeps.
 Original complete independent three-seed,held-out,numeric/control/visual gates
 remain. No inherited development checkpoint counts as a fresh independent seed.
+
+## A11 temporal evidence; T04 reset-frequency test freeze
+Exact target outcomes reproduced: T02 backward6001 fails109; T03 right6001
+fails106; T03 backward6001 survives500 yet whole-episode linear.38675 fails.
+All trained survival counts match originals; several other heights differ by
+up to.00228. Do not claim global bitwise reproducibility or replace prior data.
+T02 backward height crosses.6 at96,low threshold105,undesired contact109;
+T03 right crosses.6 at102,undesired contact106. Height loss precedes terminal
+contact; no evidence terminal foot contact alone initiates these falls. Earlier
+self-contact is also present in survivors,so not sufficient explanation.
+T03 backward first50 linear.92787 versus last250 .10882; first100 accounts for
+85.8% of whole-episode squared linear error. T02 right6001 survivor first100
+accounts for88.3%,last250 linear.10964. Ordinary6000 last250 linear.09-.11.
+This supports early disturbed recovery rather than persistent tracking as the
+remaining bottleneck. Raw action saturation maximum0 on all four6001 traces;
+no saturation fix justified. Sampled both representative combined clips upright,
+not a continuous final gait review. Raw temporal summary saved in A11 results.
+T04 hypothesis: successful long episodes dilute exposure to initial recovery;
+shorter TRAINING horizons can increase full-strength random-reset exposure at
+fixed steps. Matched250step(5s) vs500step(10s) training from SAME T03control final
+1003520,seed11,1003520steps each,lr1e-4,gamma.97,action_rate-.1,filteralpha1,
+original broad commands,phase/airtime gatestrue,10%zero. All original reset
+samples/distribution retained,no seed oversampling or easier reset curriculum.
+Five seconds exceeds observed2.1s failure time; this does not censor the measured
+failure during training. Training uses existing PPO horizon/truncation handling;
+no adapter/runner change. Internal eval reward horizons differ,so do not rank by
+training reward or mean length. Only unchanged external500-step evaluation counts.
+Budget2,007,040steps total,8hqueuecap,48-row screens then conditional180full each.
+Reset frequency gain is a hypothesis,not established cause or guaranteed doubling:
+physical termination also determines actual reset frequency. Risks are reduced
+long-horizon practice and altered timeout distribution. Original10second full
+survival/standing/moving/control gates guard these risks. Compare BOTH arms.
+If no recovery gain without ordinary/standing/gait regression,close frequency
+hypothesis;no horizon sweep or automatic unchanged extension. Never waive full
+validation using transient-only metrics. After genuine full development pass
+freeze complete independent recipe for three predetermined fresh seeds and fresh
+held-out grid; inherited development weights are not independent final seeds.
+Plan-only change,paired argv equality except horizon/output asserted,all external
+steps500 asserted,queue validate-only passed. Prior truncation audit remains valid.
