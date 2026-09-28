@@ -1,0 +1,99 @@
+{
+  "max_wall_seconds": 7200,
+  "version": 1,
+  "output_dir": "results/milestone1/queue",
+  "jobs": [
+    {
+      "hypothesis": "Existing T02 supports documented nominal simulation commands and continuous move-turn-stop",
+      "id": "fixed",
+      "stages": [
+        {
+          "id": "demo",
+          "timeout_seconds": 2400,
+          "argv": [
+            "source/scripts/demo_g1_controller.py",
+            "--profile",
+            "fixed",
+            "--output-dir",
+            "results/milestone1/fixed01",
+            "--video"
+          ],
+          "required_paths": [
+            "results/milestone1/fixed01/summary.json"
+          ],
+          "fresh_paths": [
+            "results/milestone1/fixed01"
+          ]
+        }
+      ],
+      "evidence": "Historical nominal24/24; restored interface smoke passes. No training.",
+      "review_artifact": "results/milestone1/fixed01/summary.json"
+    },
+    {
+      "hypothesis": "Existing T02 supports documented nominal simulation commands and continuous move-turn-stop",
+      "id": "transitions",
+      "stages": [
+        {
+          "id": "demo",
+          "timeout_seconds": 2400,
+          "argv": [
+            "source/scripts/demo_g1_controller.py",
+            "--profile",
+            "transitions",
+            "--output-dir",
+            "results/milestone1/transitions01",
+            "--video"
+          ],
+          "required_paths": [
+            "results/milestone1/transitions01/summary.json"
+          ],
+          "fresh_paths": [
+            "results/milestone1/transitions01"
+          ]
+        }
+      ],
+      "evidence": "Historical nominal24/24; restored interface smoke passes. No training.",
+      "review_artifact": "results/milestone1/transitions01/summary.json"
+    },
+    {
+      "hypothesis": "Fixed T02 artifacts are portable with explicit pinned external caches",
+      "id": "package",
+      "stages": [
+        {
+          "id": "package",
+          "timeout_seconds": 300,
+          "argv": [
+            "source/scripts/package_g1_controller.py",
+            "--output-dir",
+            "results/milestone1/package01"
+          ],
+          "required_paths": [
+            "results/milestone1/package01/manifest.json"
+          ],
+          "fresh_paths": [
+            "results/milestone1/package01"
+          ]
+        },
+        {
+          "id": "clean_verify",
+          "timeout_seconds": 1800,
+          "argv": [
+            "source/scripts/verify_g1_handoff.py",
+            "--package",
+            "results/milestone1/package01",
+            "--output-dir",
+            "results/milestone1/clean01"
+          ],
+          "required_paths": [
+            "results/milestone1/clean01/summary.json"
+          ],
+          "fresh_paths": [
+            "results/milestone1/clean01"
+          ]
+        }
+      ],
+      "evidence": "Verified checkpoint restore and saved source pins",
+      "review_artifact": "results/milestone1/clean01/summary.json"
+    }
+  ]
+}
