@@ -48,6 +48,5 @@ A terminated episode requires an explicit reset; there is no fall recovery.
 Observation normalization is restored with the policy. This API owns simulated
 state and must not be treated as a hardware transport.
 
-Verification status and measured limitations will be recorded in
-research/MILESTONE_1_REPORT.md. Until that report is complete, this handoff is pending
-verification. Existing Milestone2 research remains preserved and deferred.
+Verification results and measured limitations are recorded in
+research/MILESTONE_1_REPORT.md. Milestone 1 verification passed on 2026-09-28. Existing Milestone2 research remains preserved and deferred.

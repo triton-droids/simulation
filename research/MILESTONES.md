@@ -2,9 +2,9 @@
 
 Effective 2026-09-27 by explicit user request. This plan supersedes older
 "continue until three seeds pass" instructions and historical active-queue notes.
-Only Milestone 1 is active. Milestones 2 and 3 require a new user go-ahead.
+Milestone 1 is complete; no milestone is active. Milestones 2 and 3 require a new user go-ahead.
 
-## Milestone 1 — usable simulation controller handoff (ACTIVE, not complete)
+## Milestone 1 — usable simulation controller handoff (COMPLETE — 2026-09-28)
 
 Deliver a working, documented simulation prototype for teammates to integrate.
 Use the existing T02 rate_cost final checkpoint1003520, not a new training search:
@@ -16,31 +16,31 @@ extensions are authorized under this milestone.
 
 ### Completion checklist
 
-- [ ] Identify/checksum the checkpoint and required configs, source pins,
+- [x] Identify/checksum the checkpoint and required configs, source pins,
   dependency versions and provenance; preserve originals outside Git.
-- [ ] Provide a repository-relative, one-command simulation demo with clear
+- [x] Provide a repository-relative, one-command simulation demo with clear
   setup/preflight errors and a documented `[vx, vy, yaw_rate]` interface:
   units, coordinate frame, tested bounds, update timing, reset and stop behavior.
   Stop means request zero velocity; do not promise instantaneous motion arrest.
-- [ ] Provide a minimal scripted integration example using that same interface
+- [x] Provide a minimal scripted integration example using that same interface
   so teammates can later connect ball-approach logic. No perception/kicking scope.
-- [ ] Run/document fixed nominal forward, backward, lateral, turning and stand
+- [x] Run/document fixed nominal forward, backward, lateral, turning and stand
   examples. Reuse validated evaluator/runtime; verify command changes and
   move-to-stop behavior rather than assuming independent episodes prove transitions.
   Record actual supported scope; a broken basic advertised command is not a pass.
-- [ ] Include reviewable videos and machine-readable checks, identify checkpoint,
+- [x] Include reviewable videos and machine-readable checks, identify checkpoint,
   commands and resets; visually inspect walking/turning/stopping evidence.
-- [ ] Include the known disturbed backward failure (seed6001) and its existing
+- [x] Include the known disturbed backward failure (seed6001) and its existing
   evidence, with limitations plainly visible. No robustness/three-seed claim.
-- [ ] Verify documented setup/demo from a clean temporary checkout or equivalent
+- [x] Verify documented setup/demo from a clean temporary checkout or equivalent
   clean working directory with explicitly provisioned external caches/checkpoint.
   Do not claim the ignored checkpoint is bundled in Git. Provide a local packaging
   or restore procedure and manifest; no upload or remote distribution required.
-- [ ] Run targeted interface/restore/command tests and relevant regression checks.
-- [ ] Write `research/MILESTONE_1_REPORT.md` and update `research/RESULTS.md` with
+- [x] Run targeted interface/restore/command tests and relevant regression checks.
+- [x] Write `research/MILESTONE_1_REPORT.md` and update `research/RESULTS.md` with
   the result, deliverable paths/commands, verification evidence, measured behavior,
   failures, limitations, provenance, and preserved Milestone 2 resumption pointer.
-- [ ] Mark status complete only after all required checks actually pass; notify
+- [x] Mark status complete only after all required checks actually pass; notify
   the user once with the report/demo links, then pause the existing repeating task.
 
 ### Boundaries and budget

@@ -862,3 +862,7 @@ in a bounded seed-0 run. Only a conventional three-seed family that passes
 finite forward/lateral/yaw tracking, sustained survival, genuine alternating
 support, exploit checks, and reproducible checkpoint evaluation can justify a
 request to start Phases 5-7.
+
+## Milestone 1 completed — 2026-09-28
+
+T02 simulation handoff passed eight fixed nominal commands, continuous forward/turn/stop, checksum and clean-directory restore/render checks.44 targeted tests passed. Zero training. Report: research/MILESTONE_1_REPORT.md; package: results/milestone1/package01. Known randomized backward6001 failure and lateral underspeed remain. No Gate4/three-seed/hardware claim. Milestones2/3 remain deferred; stop autonomous work.
