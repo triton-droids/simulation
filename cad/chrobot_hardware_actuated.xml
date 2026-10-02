@@ -1,0 +1,18 @@
+<mujoco model="ch_robot_hardware_actuated">
+  <include file="chrobot_hardware_candidate.xml" />
+  <!-- Joint-space actuator model. RS02 ankle linkage efficiency/ratio is
+       approximated by a 16 Nm joint limit, pending measured linkage geometry.
+       Limits here are motor peak estimates; deployed software caps may be lower. -->
+  <actuator>
+    <position name="left_hip1_act" joint="left_hip1_joint" kp="100" kv="2" forcelimited="true" forcerange="-120 120" />
+    <position name="left_hip2_act" joint="left_hip2_joint" kp="100" kv="2" forcelimited="true" forcerange="-60 60" />
+    <position name="left_thigh_act" joint="left_thigh_joint" kp="100" kv="2" forcelimited="true" forcerange="-60 60" />
+    <position name="left_knee_act" joint="left_knee_joint" kp="80" kv="2" forcelimited="true" forcerange="-120 120" />
+    <position name="left_ankle_act" joint="left_ankle_joint" kp="20" kv="2" forcelimited="true" forcerange="-16 16" />
+    <position name="right_hip1_act" joint="right_hip1_joint" kp="100" kv="2" forcelimited="true" forcerange="-120 120" />
+    <position name="right_hip2_act" joint="right_hip2_joint" kp="100" kv="2" forcelimited="true" forcerange="-60 60" />
+    <position name="right_thigh_act" joint="right_thigh_joint" kp="100" kv="2" forcelimited="true" forcerange="-60 60" />
+    <position name="right_knee_act" joint="right_knee_joint" kp="80" kv="2" forcelimited="true" forcerange="-120 120" />
+    <position name="right_ankle_act" joint="right_ankle_joint" kp="20" kv="2" forcelimited="true" forcerange="-16 16" />
+  </actuator>
+</mujoco>
