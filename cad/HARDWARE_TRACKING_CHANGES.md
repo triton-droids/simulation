@@ -14,3 +14,5 @@ Relative to `logs/legs_tracking/20260914_170827`:
 - Interface: 50 Hz, 10 ordered joints, 56 actor observations, action scale 0.2, and the 299-frame reference are unchanged. ONNX includes the same named inputs and outputs.
 
 Known model gaps: the ankle is still a single effective hinge instead of a measured linkage; the CAD masses and inertias are estimates; the 299-frame reference reaches 5.13 rad/s while the deployed position-target slew is 1 rad/s; and torque-limiting software and IMU filtering need confirmation before physical deployment. This simulation result alone does not authorize a hardware walk test.
+
+VM environment: the repository's pinned MuJoCo 3.8.1 development wheel returned HTTP 404 on this VM. `uv lock --upgrade-package mujoco` resolved MuJoCo 3.14.1.dev992196822 with Python 3.12 and CUDA 12.8 packages. The baseline checkpoint is evaluated in this same updated environment, but physics-version drift remains a limitation. Repeat experiments on other VMs only after matching their resolved `mjlab/uv.lock` to this run's environment.
