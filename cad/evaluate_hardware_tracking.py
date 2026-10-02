@@ -116,6 +116,7 @@ def evaluate(checkpoint, reference, condition, num_envs, steps):
     policy = runner.get_inference_policy(device="cuda:0")
     obs, _ = wrapped.reset()
     robot = env.scene["robot"]
+    base_start = (robot.data.root_link_pos_w - env.scene.env_origins).clone()
     completed, failures, timeouts = [], 0, 0
     efforts, velocities, rewards = [], [], []
     metrics = {}
@@ -135,6 +136,8 @@ def evaluate(checkpoint, reference, condition, num_envs, steps):
             metrics.setdefault(name, []).append(float(value.mean().item()))
     effort = np.stack(efforts)
     velocity = np.stack(velocities)
+    base_end = robot.data.root_link_pos_w - env.scene.env_origins
+    forward_displacement = (base_end[:, 1] - base_start[:, 1]).cpu().numpy()
     peak = effort.max(axis=(0, 1))
     mean = effort.mean(axis=(0, 1))
     result = {
@@ -160,6 +163,8 @@ def evaluate(checkpoint, reference, condition, num_envs, steps):
       "peak_torque_limit_nm": list(PEAK_TORQUE),
       "stalled_torque_rating_nm": list(STALLED_TORQUE),
       "peak_joint_speed_rad_s": velocity.max(axis=(0, 1)).tolist(),
+      "forward_displacement_m_by_env": forward_displacement.tolist(),
+      "forward_fraction": float(np.mean(forward_displacement > 0)),
       "motor_speed_limit_rad_s": list(MOTOR_SPEED_LIMIT_RAD_S),
       "deployed_target_slew_limit_rad_s": 1.0,
       "mean_tracking_errors": {k: float(np.mean(v)) for k, v in metrics.items()},
