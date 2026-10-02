@@ -18,6 +18,8 @@ from mjlab.envs import ManagerBasedRlEnv
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
 
+MOTOR_SPEED_LIMIT_RAD_S = (18.0, 19.0, 19.0, 18.0, 40.0) * 2
+
 
 def fixed_extreme_imu(env, env_ids):
   if not hasattr(env, "hardware_imu_tilt"):
@@ -158,6 +160,8 @@ def evaluate(checkpoint, reference, condition, num_envs, steps):
       "peak_torque_limit_nm": list(PEAK_TORQUE),
       "stalled_torque_rating_nm": list(STALLED_TORQUE),
       "peak_joint_speed_rad_s": velocity.max(axis=(0, 1)).tolist(),
+      "motor_speed_limit_rad_s": list(MOTOR_SPEED_LIMIT_RAD_S),
+      "deployed_target_slew_limit_rad_s": 1.0,
       "mean_tracking_errors": {k: float(np.mean(v)) for k, v in metrics.items()},
     }
     return result
