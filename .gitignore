@@ -3,3 +3,7 @@
 __pycache__/
 
 .DS_Store
+
+# Local policy benchmark environment and generated telemetry.
+.venv-policy/
+policy_bench_runs/
