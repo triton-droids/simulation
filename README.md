@@ -8,6 +8,11 @@ This codebase provides a framework to train, evaluate, and test reinforcement le
 
 Please refer to [setup.md] for installation and configuration steps.
 
+For the lower-body tracking ONNX bench and its dedicated Python environment, see
+[standalone policy benchmark](scripts/policy_bench/README.md). The sibling
+`embedded` repository contains the ROS 2 50 Hz integration and native topic-rate
+test instructions in `docs/tracking_policy_ros2.md`.
+
 ## 🚀 Features
 
 This simulator codebase provides a platform for:
