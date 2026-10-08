@@ -1,0 +1,27 @@
+{
+  "fit_sha256": "b1fd2c218c67df7158d9688790f5c1c48d9f94c32a0f11c716fdb9d1edbebcc9",
+  "motor": 9,
+  "mjcf": {
+    "ref": "origin/codex/hardware-tracking-retrain:cad/chrobot_hardware_candidate.xml",
+    "commit": "6fcd451fdafff86e2242b66f588f514b480dde29",
+    "base_mode": "yaw",
+    "sim_dt": 0.0005
+  },
+  "results": [
+    {
+      "trial": "m9_step3_20261006_230428.npz",
+      "raw_sha256": "ef3a59da03eacdca7b128ff7fcb02552d72daa33c63ea040fcf7bfb13b337a46",
+      "fitted_rms_deg": 0.26471224111698666,
+      "baseline_rms_deg": 0.36783113159350156,
+      "samples": 473
+    },
+    {
+      "trial": "m9_sine05_20261006_230506.npz",
+      "raw_sha256": "3c4122bd25f76e8115dd3e6fcc30fe789a7c0c11d8adde070424a50a5e0f3d39",
+      "fitted_rms_deg": 0.24011327140731084,
+      "baseline_rms_deg": 0.49545891280445703,
+      "samples": 573
+    }
+  ],
+  "scope": "Recorded gantry holdout replay; no contact, peak torque or hardware qualification"
+}

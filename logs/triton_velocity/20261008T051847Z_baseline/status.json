@@ -1,0 +1,7 @@
+{
+  "state": "completed",
+  "stop_reason": "time_limit",
+  "finished_epoch": 1791465575.9267333,
+  "iteration": 23730,
+  "final_checkpoint": "final.pt"
+}

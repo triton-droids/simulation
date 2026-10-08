@@ -1,0 +1,45 @@
+{
+  "started": "2026-10-08T05:19:29",
+  "num_envs": 4096,
+  "iterations": 1000000,
+  "hours": 8.0,
+  "device": "cuda:0",
+  "resume": null,
+  "fit": "/opt/him/triton_droids/handoff-review/triton_velocity_handoff_20261007_v2/sysid/sysid_params.json",
+  "fit_sha256": "b1fd2c218c67df7158d9688790f5c1c48d9f94c32a0f11c716fdb9d1edbebcc9",
+  "contract_sha256": "86cb518b36b87b3a7c85efe6f1daf612ecc4d1b05b2d4a30eb1528ded761e7f6",
+  "hardware": {
+    "fit_path": "/opt/him/triton_droids/handoff-review/triton_velocity_handoff_20261007_v2/sysid/sysid_params.json",
+    "style_clip": null,
+    "style_weight": 0.0,
+    "contract_path": "/opt/him/triton_droids/simulation-system-id/cad/velocity_contract.json",
+    "observation_delay_steps": [
+      1,
+      1
+    ],
+    "action_delay_physics_steps": [
+      0,
+      2
+    ],
+    "gain_scale": [
+      1.0,
+      1.0
+    ],
+    "randomize": true,
+    "standing_steps": 36000
+  },
+  "git_head": "6fcd451fdafff86e2242b66f588f514b480dde29",
+  "git_dirty": [
+    " M mjlab/uv.lock",
+    "?? MUJOCO_LOG.TXT",
+    "?? cad/VELOCITY_TASK.md",
+    "?? cad/evaluate_velocity.py",
+    "?? cad/smoke_test_velocity.py",
+    "?? cad/system_id/",
+    "?? cad/train_velocity.py",
+    "?? cad/velocity_contract.json",
+    "?? cad/velocity_task.py",
+    "?? logs/triton_velocity/",
+    "?? reports/"
+  ]
+}

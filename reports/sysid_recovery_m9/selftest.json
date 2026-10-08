@@ -1,0 +1,22 @@
+[
+  {
+    "motor_id": 9,
+    "truth": {
+      "armature": 0.03,
+      "frictionloss": 0.6,
+      "damping": 0.0,
+      "delay_s": 0.004,
+      "kp_scale": 1.0,
+      "kd_scale": 0.6
+    },
+    "recovered": {
+      "armature": 0.029811004272705405,
+      "frictionloss": 0.5994789630508428,
+      "kd_scale": 0.6001759289845884,
+      "delay_s": 0.004,
+      "kp_scale": 1.0,
+      "damping": 0.0
+    },
+    "rms_deg": 0.020104649645570447
+  }
+]

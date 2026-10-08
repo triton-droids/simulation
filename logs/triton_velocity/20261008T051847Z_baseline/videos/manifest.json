@@ -1,0 +1,21 @@
+{
+  "onnx": "/opt/him/triton_droids/simulation-system-id/logs/triton_velocity/20261008T051847Z_baseline/20261008T051847Z_baseline.onnx",
+  "sha256": "b79c448533f8d14d663389998bf19d9b2d9315222c3eb1a3677ceab948760163",
+  "condition": "fitted nominal values, measured-delay setting; no parameter randomization",
+  "trials": {
+    "standing": {
+      "video": "/opt/him/triton_droids/simulation-system-id/logs/triton_velocity/20261008T051847Z_baseline/videos/standing.mp4",
+      "seconds": 15,
+      "forward_command_m_s": 0.0,
+      "termination_count": 0,
+      "mean_forward_speed_m_s": -0.00041262712329626083
+    },
+    "forward_0p2": {
+      "video": "/opt/him/triton_droids/simulation-system-id/logs/triton_velocity/20261008T051847Z_baseline/videos/forward_0p2.mp4",
+      "seconds": 15,
+      "forward_command_m_s": 0.2,
+      "termination_count": 0,
+      "mean_forward_speed_m_s": 0.00020026785205118358
+    }
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "name": "triton_stand_forward_v2_experimental",
+  "_about": [
+    "Single source of truth shared by cad/velocity_task.py (training) and",
+    "embedded/ctrl_scripts/run_velocity_policy.py (robot). Change a value here and both follow.",
+    "Joint angles are in the SIM convention; sim_to_hw_joint_sign converts to the hardware convention.",
+    "Public commands are [forward,lateral,yaw]; plant axes are +X right, +Y forward, +Z up."
+  ],
+  "control_hz": 50,
+  "joint_order": [
+    "left_hip1_joint",
+    "left_hip2_joint",
+    "left_thigh_joint",
+    "left_knee_joint",
+    "left_ankle_joint",
+    "right_hip1_joint",
+    "right_hip2_joint",
+    "right_thigh_joint",
+    "right_knee_joint",
+    "right_ankle_joint"
+  ],
+  "motor_model": [
+    "rs-04",
+    "rs-03",
+    "rs-03",
+    "rs-04",
+    "rs-02",
+    "rs-04",
+    "rs-03",
+    "rs-03",
+    "rs-04",
+    "rs-02"
+  ],
+  "stand_pose_rad": {
+    "left_hip1_joint": 0.25,
+    "left_hip2_joint": 0.0,
+    "left_thigh_joint": 0.0,
+    "left_knee_joint": -0.5,
+    "left_ankle_joint": 0.25,
+    "right_hip1_joint": 0.25,
+    "right_hip2_joint": 0.0,
+    "right_thigh_joint": 0.0,
+    "right_knee_joint": -0.5,
+    "right_ankle_joint": 0.25
+  },
+  "_stand_pose_note": "Moderate crouch. Feet-welded statics on the CAD model: knee ~2.8 Nm, ankle ~2 Nm holding per leg (RS-02 rated 6 Nm continuous).",
+  "action_scale": 0.2,
+  "target_slew_rad_s": 1.0,
+  "_slew_note": "Verified deployed position-target slew; hardware limit is not raised for this experiment.",
+  "target_clip_lo": [
+    -1.4915,
+    -0.5,
+    -0.7461281,
+    -2.04204,
+    -0.57,
+    -1.4915,
+    -0.3861737,
+    -0.7461281,
+    -2.04204,
+    -0.57
+  ],
+  "target_clip_hi": [
+    1.4915,
+    0.3861737,
+    0.7461281,
+    -0.05236,
+    0.57,
+    1.4915,
+    0.5,
+    0.7461281,
+    -0.05236,
+    0.57
+  ],
+  "kp_motor": [
+    100,
+    100,
+    100,
+    80,
+    22,
+    100,
+    100,
+    100,
+    80,
+    22
+  ],
+  "kd_motor": [
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2
+  ],
+  "ankle_linkage_ratio": 0.957,
+  "_gains_note": "Motor-side MIT gains as sent on CAN. Joint-side ankle gains are kp*r^2 and kd*r^2 (r = ankle_linkage_ratio).",
+  "torque_cap_motor_nm": {
+    "rs-04": 80.0,
+    "rs-03": 40.0,
+    "rs-02": 11.0
+  },
+  "_torque_cap_note": "The deployed guard bounds the spring term |kp*(target - pos)| in motor space by pulling the target toward the current position. Training reproduces this exactly.",
+  "sim_to_hw_joint_sign": {
+    "left_hip2_joint": -1.0,
+    "left_thigh_joint": -1.0,
+    "right_thigh_joint": -1.0
+  },
+  "actor_obs": [
+    {
+      "name": "base_ang_vel",
+      "dim": 3,
+      "units": "rad/s, IMU gyro in the base frame"
+    },
+    {
+      "name": "projected_gravity",
+      "dim": 3,
+      "units": "unit vector in the base frame, (0, 0, -1) upright"
+    },
+    {
+      "name": "joint_pos_rel",
+      "dim": 10,
+      "units": "rad, joint_pos - stand_pose (sim convention)"
+    },
+    {
+      "name": "joint_vel",
+      "dim": 10,
+      "units": "rad/s (sim convention)"
+    },
+    {
+      "name": "last_action",
+      "dim": 10,
+      "units": "raw policy output from the previous step"
+    },
+    {
+      "name": "command",
+      "dim": 3,
+      "units": "[forward m/s, lateral m/s, yaw rate rad/s]; public order mapped to plant X right, Y forward"
+    }
+  ],
+  "actor_obs_dim": 39,
+  "command_limits": {
+    "v_right": [
+      0.0,
+      0.0
+    ],
+    "v_forward": [
+      0.0,
+      0.2
+    ],
+    "yaw_rate": [
+      0.0,
+      0.0
+    ]
+  },
+  "deployment_status": "simulation experiment; standing pose, unhealthy ankle and contact are not hardware-qualified"
+}
