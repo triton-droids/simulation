@@ -1,0 +1,12 @@
+{
+  "dataset": "Replace with your recording name",
+  "synthetic": false,
+  "frame": "base_footprint",
+  "ground_truth": "ground_truth.csv",
+  "time_tolerance_s": 0.05,
+  "position_threshold_m": 0.2,
+  "runs": [
+    {"name": "baseline", "predictions": "baseline.csv"},
+    {"name": "candidate", "predictions": "candidate.csv"}
+  ]
+}

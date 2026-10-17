@@ -1,0 +1,6 @@
+__pycache__/
+demo_output/
+reports/
+*.bag
+*.db3
+*.mcap
