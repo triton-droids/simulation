@@ -4,14 +4,14 @@ Target hardware: approximately 16 kg, lower body only, external battery.
 These totals were verified by compiling the checked-in XMLs with MuJoCo.
 
 Update: the Fusion export now reports **16.270112574 kg** for Lower Body
-Reassembled. A separate `cad/chrobot_16kg_candidate.xml` compiles to **16 kg**
+Reassembled. The legacy `cad/triton_lower_body_legacy.xml` compiles to **16 kg**
 using CAD subassembly mass proportions. Original XMLs remain unchanged.
 See `cad/README.md` and `cad/mass_mapping_candidate.json` for the approximate
 link mapping and retained COM/scaled original inertia limitations.
 
 | Model | Compiled mass |
 | --- | ---: |
-| `mjlab/src/mjlab/asset_zoo/robots/triton_robot/xmls/chrobot.xml` | 24.696541 kg |
+| `mjlab/src/mjlab/asset_zoo/robots/triton_robot/xmls/triton_lower_body_original.xml` | 24.696541 kg |
 | `src/robots/default_humanoid_legs/default_humanoid_legs.xml` | 23.893370785 kg |
 | Older flat and rough scenes | 23.893370785 kg each |
 

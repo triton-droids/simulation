@@ -54,13 +54,10 @@ class MotionReferenceJointPositionActionCfg(BaseActionCfg):
 class MotionReferenceJointPositionAction(BaseAction):
   """Joint position action with the motion reference pose as dynamic offset."""
 
-  cfg: MotionReferenceJointPositionActionCfg
-
   def process_actions(self, actions: torch.Tensor) -> None:
     self._raw_actions[:] = actions
-    command = cast(
-      MotionCommand, self._env.command_manager.get_term(self.cfg.command_name)
-    )
+    cfg = cast(MotionReferenceJointPositionActionCfg, self.cfg)
+    command = cast(MotionCommand, self._env.command_manager.get_term(cfg.command_name))
     # Reference at the step the policy observed; columns are entity joint
     # indices, matching command.joint_pos / robot.data.joint_pos ordering.
     ref_joint_pos = command.joint_pos[:, self._target_ids]

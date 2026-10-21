@@ -45,6 +45,9 @@ Added
 Changed
 ^^^^^^^
 
+- Renamed the legacy Triton lower-body MJCF asset from ``chrobot.xml`` to
+  ``triton_lower_body_original.xml`` so the asset name identifies the robot and
+  distinguishes it from the hardware-calibrated model used by locomotion tasks.
 - Bumped ``mujoco`` to 3.8 and ``mujoco-warp`` to 3.8.0. The ``multiccd``
   enable flag was removed in mujoco 3.8 (it became default-on), so configs
   that listed ``"multiccd"`` in ``MujocoCfg.enableflags`` need to drop it.
@@ -80,6 +83,8 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed the tracking action term's narrowed mutable ``cfg`` annotation, which
+  violated the base action type and caused Pyright to fail.
 - Fixed duplicate random seeds across nodes in multi-node training. The
   per-process seed offset in ``scripts/train.py`` now uses the global
   ``RANK`` instead of ``LOCAL_RANK``. Contribution by @bd-pdomanico.

@@ -15,7 +15,7 @@ v=v*.001
 f=inverse[mesh.faces]
 v[:,0]+= .7-(mesh.bounds[:,0].mean()*.001)
 v[:,2]-=mesh.bounds[0,2]*.001+.027
-model=EntityCfg(spec_fn=lambda:mujoco.MjSpec.from_file(str(base/'chrobot_16kg_candidate.xml'))).build().compile()
+model=EntityCfg(spec_fn=lambda:mujoco.MjSpec.from_file(str(base/'triton_lower_body_legacy.xml'))).build().compile()
 data=mujoco.MjData(model)
 mujoco.mj_forward(model,data)
 server=viser.ViserServer(host='127.0.0.1',port=8080)

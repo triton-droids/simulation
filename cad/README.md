@@ -1,5 +1,16 @@
 # Lower-body CAD extraction
 
+## Model names
+
+`triton_lower_body.xml` is the canonical hardware-aware structure and
+`triton_lower_body_actuated.xml` adds the actuator definitions used by current
+tracking and velocity tasks. Files containing `legacy` preserve the older 16 kg
+reference model. `triton_lower_body_holosoma.xml` is an intermediate landmark
+model used only by the old retargeting tools.
+
+The complete system-identification and training sequence is documented in
+`../SIM2REAL_GUIDE.md`.
+
 The archive `/home/thewheelneedsme/Projects/droids/Full Assembly with PLA Arms.f3z` contains a document
 named **Lower Body Reassembled**, with **Left Leg Assembly**,
 **Pelvis Sub-Assembly**, and **Right Leg Assembly** dependencies.
@@ -46,7 +57,7 @@ or `torso`; this name check alone does not prove physical battery exclusion.
 The CAD total is 0.270112574 kg (1.69%) above the hardware measurement.
 The cause of that small discrepancy is not established.
 
-`chrobot_16kg_candidate.xml` is a separate simulation candidate. It matches
+`triton_lower_body_legacy.xml` is the older simulation candidate. It matches
 the named subassemblies to the XML chain and normalizes their masses to
 15.999 kg, preserving the existing 0.001 kg torso/IMU placeholder for a
 16 kg compiled total. `mass_mapping_candidate.json` records every mapping

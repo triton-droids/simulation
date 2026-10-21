@@ -1,5 +1,19 @@
-.vscode
-
-__pycache__/
-
+.vscode/
 .DS_Store
+
+# Python and local environments
+__pycache__/
+*.py[cod]
+.venv/
+cad/.retarget-venv/
+
+# Local editor and experiment state
+.freebuff/
+wandb/
+
+# Generated training runs stay local. Curated checkpoints and reports should
+# be copied into an explicitly named artifact directory before committing.
+logs/legs_velocity/
+logs/legs_tracking_hardware/
+logs/hardware_*.log
+logs/hardware_*/

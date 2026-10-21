@@ -23,6 +23,7 @@ JOINTS = tuple(
   for part in ("hip1", "hip2", "thigh", "knee", "ankle")
 )
 PEAK_TORQUE = (120.0, 60.0, 60.0, 120.0, 16.0) * 2
+SOFTWARE_JOINT_TORQUE = (80.0, 40.0, 40.0, 80.0, 10.45) * 2
 STALLED_TORQUE = (28.5, 15.0, 15.0, 28.5, 6.0) * 2
 TARGET_CLIP_LO = (-1.4915, -0.3861737, -0.7461281, -2.04204, -0.57) * 2
 TARGET_CLIP_HI = (1.4915, 0.5, 0.7461281, -0.05236, 0.57) * 2
@@ -37,6 +38,9 @@ TORQUE_SPEED_CURVES = {
 class HardwareTrackingConfig:
   # This is the deployed policy_bridge target slew limit, not motor no-load speed.
   target_speed_rad_s: float = 1.0
+  # Conservative approximation of the logged motor command guard.
+  # Ankle: 11 Nm motor cap times estimated 0.95 linkage Jacobian.
+  software_torque_caps: tuple[float, ...] | None = SOFTWARE_JOINT_TORQUE
   observation_delay_steps: tuple[int, int] = (0, 1)
   action_delay_physics_steps: tuple[int, int] = (0, 1)
   gain_scale: tuple[float, float] = (0.8, 1.2)
@@ -47,6 +51,7 @@ class HardwareTrackingConfig:
 @dataclass(kw_only=True)
 class SlewLimitedJointPositionActionCfg(JointPositionActionCfg):
   target_speed_rad_s: float = 1.0
+  software_torque_caps: tuple[float, ...] | None = SOFTWARE_JOINT_TORQUE
 
   def build(self, env):
     return SlewLimitedJointPositionAction(self, env)
@@ -57,6 +62,7 @@ class SlewLimitedJointPositionAction(JointPositionAction):
 
   def __init__(self, cfg, env):
     super().__init__(cfg, env)
+    self._hardware_env = env
     self._step_dt = env.step_dt
     self._commanded = self._entity.data.default_joint_pos[:, self._target_ids].clone()
     self._initialized = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
@@ -72,6 +78,12 @@ class SlewLimitedJointPositionAction(JointPositionAction):
     self._commanded += delta.clamp(-max_step, max_step)
     self._processed_actions = self._commanded.clone()
 
+  def apply_actions(self):
+    speed_dependent_torque_limit(
+      self._hardware_env, None, software_torque_caps=self.cfg.software_torque_caps
+    )
+    super().apply_actions()
+
   def reset(self, env_ids=None):
     super().reset(env_ids)
     self._initialized[env_ids] = False
@@ -79,7 +91,7 @@ class SlewLimitedJointPositionAction(JointPositionAction):
 
 def hardware_robot_spec():
   spec = mujoco.MjSpec.from_file(
-    str(Path(__file__).with_name("chrobot_hardware_actuated.xml"))
+    str(Path(__file__).with_name("triton_lower_body_actuated.xml"))
   )
   spec.add_sensor(
     name="imu_ang_vel",
@@ -96,9 +108,9 @@ def hardware_robot_spec():
   return spec
 
 
-def torque_margin_penalty(env):
+def torque_margin_penalty(env, limits=PEAK_TORQUE):
   effort = env.scene["robot"].data.actuator_force.abs()
-  limits = torch.tensor(PEAK_TORQUE, device=effort.device)
+  limits = torch.tensor(limits, device=effort.device)
   return torch.square(torch.relu(effort / limits - 0.8)).sum(dim=1)
 
 
@@ -115,17 +127,30 @@ def randomize_imu_calibration(env, env_ids):
   if env_ids is None:
     env_ids = torch.arange(env.num_envs, device=env.device)
   count = len(env_ids)
-  tilt = (torch.rand(count, 2, device=env.device) * 2 - 1) * 0.0349066
+  angle = torch.rand(count, device=env.device) * 0.034906585
+  azimuth = torch.rand(count, device=env.device) * (2 * torch.pi)
+  tilt = angle[:, None] * torch.stack((azimuth.cos(), azimuth.sin()), dim=1)
   env.hardware_imu_tilt[env_ids, :2] = tilt
   env.hardware_gyro_bias[env_ids] = (
     torch.rand(count, 3, device=env.device) * 2 - 1
   ) * 0.05
 
 
+def rotate_imu(vector, rotation_vector):
+  """Exact Rodrigues rotation, preserving vector norm even at zero tilt."""
+  angle = rotation_vector.norm(dim=1, keepdim=True)
+  axis = rotation_vector / angle.clamp_min(1e-12)
+  return (
+    vector * angle.cos()
+    + torch.cross(axis, vector, dim=1) * angle.sin()
+    + axis * (axis * vector).sum(dim=1, keepdim=True) * (1 - angle.cos())
+  )
+
+
 def measured_gyro(env):
   gyro = mdp.builtin_sensor(env, sensor_name="robot/imu_ang_vel")
   if hasattr(env, "hardware_imu_tilt"):
-    gyro = gyro + torch.cross(env.hardware_imu_tilt, gyro, dim=1)
+    gyro = rotate_imu(gyro, env.hardware_imu_tilt)
     gyro = gyro + env.hardware_gyro_bias
   return gyro
 
@@ -133,7 +158,7 @@ def measured_gyro(env):
 def measured_gravity(env):
   gravity = projected_gravity(env)
   if hasattr(env, "hardware_imu_tilt"):
-    gravity = gravity + torch.cross(env.hardware_imu_tilt, gravity, dim=1)
+    gravity = rotate_imu(gravity, env.hardware_imu_tilt)
   return gravity
 
 
@@ -147,7 +172,9 @@ def _linear_curve(speed_rpm, knots, values):
 
 
 @requires_model_fields("actuator_forcerange")
-def speed_dependent_torque_limit(env, env_ids, voltage_speed_scale=0.9):
+def speed_dependent_torque_limit(
+  env, env_ids, voltage_speed_scale=0.9, software_torque_caps=None
+):
   """Apply a 42 V approximation to the provided 48 V torque-speed curves."""
   robot = env.scene["robot"]
   speed_rpm = robot.data.joint_vel.abs() * (60.0 / (2.0 * torch.pi))
@@ -158,6 +185,10 @@ def speed_dependent_torque_limit(env, env_ids, voltage_speed_scale=0.9):
     if motor == "rs02_joint":
       motor_speed = motor_speed * 0.95
     limits[:, joint_idx] = _linear_curve(motor_speed, *TORQUE_SPEED_CURVES[motor])
+  if software_torque_caps is not None:
+    limits = torch.minimum(
+      limits, torch.tensor(software_torque_caps, device=env.device)
+    )
   ctrl_ids = robot.actuators[0].global_ctrl_ids
   ids = (
     torch.arange(env.num_envs, device=env.device, dtype=torch.int)
@@ -171,6 +202,14 @@ def speed_dependent_torque_limit(env, env_ids, voltage_speed_scale=0.9):
 def make_hardware_leg_tracking_cfg(motion_file, hardware=None):
   if hardware is None:
     hardware = HardwareTrackingConfig()
+  if hardware.software_torque_caps is not None:
+    if len(hardware.software_torque_caps) != 10 or any(
+      not (0 < value <= peak)
+      for value, peak in zip(hardware.software_torque_caps, PEAK_TORQUE, strict=True)
+    ):
+      raise ValueError(
+        "Expected ten positive software caps no larger than datasheet peaks"
+      )
   cfg = make_leg_tracking_cfg(motion_file)
   cfg.scene.entities["robot"].spec_fn = hardware_robot_spec
   cfg.scene.entities["robot"].articulation.actuators = (
@@ -190,6 +229,7 @@ def make_hardware_leg_tracking_cfg(motion_file, hardware=None):
     },
     use_default_offset=True,
     target_speed_rad_s=hardware.target_speed_rad_s,
+    software_torque_caps=hardware.software_torque_caps,
   )
   actor = cfg.observations["actor"].terms
   actor["base_ang_vel"].func = measured_gyro
@@ -199,17 +239,23 @@ def make_hardware_leg_tracking_cfg(motion_file, hardware=None):
     actor[name].delay_min_lag = hardware.observation_delay_steps[0]
     actor[name].delay_max_lag = hardware.observation_delay_steps[1]
   actor["gravity"].noise = UniformNoiseCfg(n_min=-0.05, n_max=0.05)
-  cfg.rewards["torque_margin"] = RewardTermCfg(func=torque_margin_penalty, weight=-0.02)
+  cfg.rewards["torque_margin"] = RewardTermCfg(
+    func=torque_margin_penalty,
+    weight=-0.02,
+    params={"limits": hardware.software_torque_caps or PEAK_TORQUE},
+  )
   cfg.rewards["stalled_torque"] = RewardTermCfg(
     func=stalled_torque_penalty, weight=-0.02
   )
   cfg.events["torque_speed"] = EventTermCfg(
     mode="step",
     func=speed_dependent_torque_limit,
+    params={"software_torque_caps": hardware.software_torque_caps},
   )
   cfg.events["torque_speed_reset"] = EventTermCfg(
     mode="reset",
     func=speed_dependent_torque_limit,
+    params={"software_torque_caps": hardware.software_torque_caps},
   )
   if hardware.randomize:
     cfg.events["imu_calibration"] = EventTermCfg(

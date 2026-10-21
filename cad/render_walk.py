@@ -20,7 +20,7 @@ if args.rollout:
     resets=np.flatnonzero(z['reset'])
     if len(resets):
         q=q[:max(1,int(resets[0]))]
-spec=mujoco.MjSpec.from_file(str(BASE/'chrobot_16kg_actuated.xml'))
+spec=mujoco.MjSpec.from_file(str(BASE/'triton_lower_body_legacy_actuated.xml'))
 spec.worldbody.add_geom(type=mujoco.mjtGeom.mjGEOM_PLANE,size=[5,5,.1],rgba=[.85,.85,.85,1])
 spec.worldbody.add_light(pos=[1,1,3],dir=[-1,-1,-2])
 m=spec.compile(); d=mujoco.MjData(m)

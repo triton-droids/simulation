@@ -4,6 +4,12 @@ Official repository for **Triton Droids** simulations.
 
 This codebase provides a framework to train, evaluate, and test reinforcement learning (RL) policies using MJX and MuJoCo.
 
+The current hardware-aware locomotion work uses
+`cad/triton_lower_body_actuated.xml`. See [SIM2REAL_GUIDE.md](SIM2REAL_GUIDE.md)
+for the model contract, system-identification procedure, training stages, and
+hardware validation gates. Files containing `legacy` preserve the older
+reference-retargeting model and should not be selected for new locomotion runs.
+
 ## Installation and Configuration
 
 Please refer to [setup.md] for installation and configuration steps.

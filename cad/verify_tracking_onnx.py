@@ -26,10 +26,11 @@ def verify(model_path: Path, reference_path: Path):
   ]
   assert tuple(o.name for o in session.get_outputs()) == EXPECTED_OUTPUTS
   assert session.get_outputs()[0].shape == [1, 10]
+  assert all(i.type == "tensor(float)" for i in session.get_inputs())
   ref = np.load(reference_path)
   assert ref["joint_pos"].shape == (299, 10)
   max_error = 0.0
-  for frame in (0, 1, 149, 298, 320):
+  for frame in (*range(299), 320):
     result = session.run(
       None,
       {

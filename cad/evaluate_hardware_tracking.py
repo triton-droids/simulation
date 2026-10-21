@@ -9,6 +9,7 @@ import torch
 from hardware_tracking_task import (
   JOINTS,
   PEAK_TORQUE,
+  SOFTWARE_JOINT_TORQUE,
   STALLED_TORQUE,
   HardwareTrackingConfig,
   make_hardware_leg_tracking_cfg,
@@ -111,9 +112,31 @@ def evaluate(checkpoint, reference, condition, num_envs, steps):
   try:
     assert tuple(env.scene["robot"].joint_names) == JOINTS
     wrapped = RslRlVecEnvWrapper(env, clip_actions=agent["clip_actions"])
-    runner = MotionTrackingOnPolicyRunner(wrapped, agent, None, "cuda:0")
-    runner.load(str(checkpoint))
-    policy = runner.get_inference_policy(device="cuda:0")
+    if checkpoint.suffix == ".onnx":
+      import onnxruntime as ort
+
+      session = ort.InferenceSession(
+        str(checkpoint), providers=["CPUExecutionProvider"]
+      )
+
+      def policy(observations):
+        actor = observations["actor"].detach().cpu().numpy().astype(np.float32)
+        frames = env.command_manager.get_term("motion").time_steps.cpu().numpy()
+        actions = [
+          session.run(
+            ["actions"],
+            {
+              "obs": row[None, :],
+              "time_step": np.array([[frame]], dtype=np.float32),
+            },
+          )[0][0]
+          for row, frame in zip(actor, frames, strict=True)
+        ]
+        return torch.as_tensor(np.stack(actions), device=env.device)
+    else:
+      runner = MotionTrackingOnPolicyRunner(wrapped, agent, None, "cuda:0")
+      runner.load(str(checkpoint))
+      policy = runner.get_inference_policy(device="cuda:0")
     obs, _ = wrapped.reset()
     robot = env.scene["robot"]
     base_start = (robot.data.root_link_pos_w - env.scene.env_origins).clone()
@@ -161,6 +184,10 @@ def evaluate(checkpoint, reference, condition, num_envs, steps):
       "peak_torque_nm": peak.tolist(),
       "mean_abs_torque_nm": mean.tolist(),
       "peak_torque_limit_nm": list(PEAK_TORQUE),
+      "software_joint_torque_cap_nm": list(SOFTWARE_JOINT_TORQUE),
+      "software_cap_pass": bool(np.all(peak <= np.array(SOFTWARE_JOINT_TORQUE) + 1e-4)),
+      "mean_stalled_rating_pass": bool(np.all(mean <= np.array(STALLED_TORQUE))),
+      "evaluation_scope": "Torque and velocity statistics sampled at 50 Hz; extreme is one simultaneous corner, not all combinations.",
       "stalled_torque_rating_nm": list(STALLED_TORQUE),
       "peak_joint_speed_rad_s": velocity.max(axis=(0, 1)).tolist(),
       "forward_displacement_m_by_env": forward_displacement.tolist(),

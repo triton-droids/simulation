@@ -17,7 +17,7 @@ def make_config(data_path, task_name, save_dir, demo_joints=None):
     mapping = json.loads((BASE / 'holosoma_lower_body_mapping.json').read_text())
     defaults = {'triton_legs': {'robot_dof': 10, 'robot_height': 0.7, 'object_name': 'ground'}}
     robot = RobotConfig(robot_type='triton_legs', robot_defaults=defaults,
-        robot_name='triton_legs', robot_urdf_file=str(BASE / 'chrobot_holosoma_landmarks.xml'),
+        robot_name='triton_legs', robot_urdf_file=str(BASE / 'triton_lower_body_holosoma.xml'),
         foot_sticking_links=mapping['foot_sticking_links'],
         manual_lb={str(i): -1.0 for i in range(3, 7)},
         manual_ub={str(i): 1.0 for i in range(3, 7)},

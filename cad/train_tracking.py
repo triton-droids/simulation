@@ -38,7 +38,12 @@ def main():
     log = Path(__file__).resolve().parent.parent / 'logs' / 'legs_tracking' / datetime.now().strftime('%Y%m%d_%H%M%S')
     log.mkdir(parents=True)
     shutil.copy2(args.motion, log / 'reference.npz')
-    for name in ('chrobot_16kg_candidate.xml', 'chrobot_16kg_actuated.xml', 'tracking_body_order.json', 'tracking_task.py'):
+    for name in (
+        'triton_lower_body_legacy.xml',
+        'triton_lower_body_legacy_actuated.xml',
+        'tracking_body_order.json',
+        'tracking_task.py',
+    ):
         shutil.copy2(Path(__file__).with_name(name), log / name)
     (log / 'run.json').write_text(json.dumps({'motion': str(args.motion.resolve()), 'num_envs': args.num_envs, 'iterations': args.iterations, 'resume': str(args.resume.resolve()) if args.resume else None}, indent=2))
     agent = unitree_g1_tracking_ppo_runner_cfg()

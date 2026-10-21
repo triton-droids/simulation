@@ -1,0 +1,118 @@
+<mujoco model="cad_ankle_linkage_inspection_only">
+  <compiler angle="radian" meshdir="meshes" />
+  <option timestep="0.001" gravity="0 0 0" integrator="implicitfast" />
+  <visual>
+    <global offwidth="1200" offheight="800" />
+  </visual>
+  <default>
+    <geom contype="0" conaffinity="0" />
+    <joint damping="0.01" armature="0.0001" />
+  </default>
+  <asset>
+    <mesh name="L_component_0311_0" file="L_component_0311_0.stl" />
+    <mesh name="L_component_0312_0" file="L_component_0312_0.stl" />
+    <mesh name="L_component_0340_0" file="L_component_0340_0.stl" />
+    <mesh name="L_component_0360_0" file="L_component_0360_0.stl" />
+    <mesh name="L_component_0362_0" file="L_component_0362_0.stl" />
+    <mesh name="L_component_0363_0" file="L_component_0363_0.stl" />
+    <mesh name="L_component_0364_0" file="L_component_0364_0.stl" />
+    <mesh name="L_component_0365_0" file="L_component_0365_0.stl" />
+    <mesh name="L_component_0366_0" file="L_component_0366_0.stl" />
+    <mesh name="L_component_0367_0" file="L_component_0367_0.stl" />
+    <mesh name="L_component_0368_0" file="L_component_0368_0.stl" />
+    <mesh name="L_component_0404_0" file="L_component_0404_0.stl" />
+    <mesh name="L_component_0405_0" file="L_component_0405_0.stl" />
+    <mesh name="L_component_0408_0" file="L_component_0408_0.stl" />
+    <mesh name="L_component_0409_0" file="L_component_0409_0.stl" />
+    <mesh name="L_component_0426_0" file="L_component_0426_0.stl" />
+    <mesh name="L_heel_linkage" file="L_heel_linkage.stl" />
+    <mesh name="R_component_0003_0" file="R_component_0003_0.stl" />
+    <mesh name="R_component_0004_0" file="R_component_0004_0.stl" />
+    <mesh name="R_component_0005_0" file="R_component_0005_0.stl" />
+    <mesh name="R_component_0006_0" file="R_component_0006_0.stl" />
+    <mesh name="R_component_0007_0" file="R_component_0007_0.stl" />
+    <mesh name="R_component_0008_0" file="R_component_0008_0.stl" />
+    <mesh name="R_component_0009_0" file="R_component_0009_0.stl" />
+    <mesh name="R_component_0010_0" file="R_component_0010_0.stl" />
+    <mesh name="R_component_0011_0" file="R_component_0011_0.stl" />
+    <mesh name="R_component_0012_0" file="R_component_0012_0.stl" />
+    <mesh name="R_component_0013_0" file="R_component_0013_0.stl" />
+    <mesh name="R_component_0014_0" file="R_component_0014_0.stl" />
+    <mesh name="R_component_0015_0" file="R_component_0015_0.stl" />
+    <mesh name="R_component_0082_0" file="R_component_0082_0.stl" />
+    <mesh name="R_component_0096_0" file="R_component_0096_0.stl" />
+    <mesh name="R_component_0097_0" file="R_component_0097_0.stl" />
+    <mesh name="R_heel_linkage" file="R_heel_linkage.stl" />
+  </asset>
+  <worldbody>
+    <light pos="0 -1 2" dir="0 1 -2" diffuse="0.8 0.8 0.8" />
+    <light pos="1 1 1" dir="-1 -1 -1" />
+    <geom type="plane" size="1 1 .02" pos="0 0 -.08" rgba=".13 .16 .21 1" />
+    <body name="L_shin_mount" pos="0.18 0 0">
+      <body name="L_foot">
+        <joint name="L_ankle" type="hinge" axis="1 0 0" limited="true" range="-.6 .6" />
+        <geom type="mesh" mesh="L_component_0360_0" mass="0.20683748881060782" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="L_component_0362_0" mass="0.13788977621830184" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="L_component_0363_0" mass="0.011790011053864374" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="L_component_0364_0" mass="0.010889986855746754" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="L_component_0365_0" mass="0.006799999250574069" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="L_component_0366_0" mass="0.006799999250574069" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="L_component_0367_0" mass="0.022229958275296734" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="L_component_0368_0" mass="0.022229958275296734" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="L_component_0404_0" mass="0.0081700012944243" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="L_component_0405_0" mass="0.011789973336654132" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="L_component_0408_0" mass="0.020869998995822436" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="L_component_0409_0" mass="0.020869998995822436" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="L_component_0426_0" mass="0.009069997918306654" rgba=".65 .69 .75 1" />
+        <body name="L_heel_linkage" pos="0.017340526813 0.0443933043873 -0.000975872864414">
+          <joint name="L_bar_joint" axis="1 0 0" />
+          <geom type="mesh" mesh="L_heel_linkage" mass="0.029029988440376905" rgba="1 .48 .08 1" />
+          <site name="L_bar_pin" pos="0 -0.000371800073545 0.166247142054" size=".003" rgba="1 1 0 1" />
+        </body>
+      </body>
+      <geom type="mesh" mesh="L_component_0311_0" mass="0.006799999250574069" rgba=".35 .43 .54 1" />
+      <geom type="mesh" mesh="L_component_0312_0" mass="0.006799999250574069" rgba=".35 .43 .54 1" />
+      <geom type="mesh" mesh="L_component_0340_0" mass="0.03900994296231002" rgba=".35 .43 .54 1" />
+      <body name="L_crank" pos="0.017340526813 -0.000968123206351 0.166237403548">
+        <joint name="L_crank_joint" axis="1 0 0" />
+        <geom type="capsule" fromto="0 0 0 0 0.0449896275202 -0.000966134358019" size=".003" mass=".001" rgba=".2 .65 1 1" />
+        <site name="L_crank_pin" pos="0 0.0449896275202 -0.000966134358019" size=".003" rgba="1 1 0 1" />
+      </body>
+    </body>
+    <body name="R_shin_mount" pos="-0.18 0 0">
+      <body name="R_foot">
+        <joint name="R_ankle" type="hinge" axis="1 0 0" limited="true" range="-.6 .6" />
+        <geom type="mesh" mesh="R_component_0003_0" mass="0.20592976169120558" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="R_component_0004_0" mass="0.13516987344777343" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="R_component_0005_0" mass="0.011790011053864374" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="R_component_0006_0" mass="0.011790011053864374" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="R_component_0007_0" mass="0.0058999998948060205" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="R_component_0008_0" mass="0.006080002236822253" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="R_component_0009_0" mass="0.011789973336654132" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="R_component_0010_0" mass="0.023130042463738898" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="R_component_0011_0" mass="0.020869998995822436" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="R_component_0012_0" mass="0.022229958275296734" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="R_component_0013_0" mass="0.022229958275296734" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="R_component_0014_0" mass="0.0081700012944243" rgba=".65 .69 .75 1" />
+        <geom type="mesh" mesh="R_component_0015_0" mass="0.009069997918306654" rgba=".65 .69 .75 1" />
+        <body name="R_heel_linkage" pos="0.025781918726 0.0443939627116 -0.00094545071544">
+          <joint name="R_bar_joint" axis="1 0 0" />
+          <geom type="mesh" mesh="R_heel_linkage" mass="0.029939969685992503" rgba="1 .48 .08 1" />
+          <site name="R_bar_pin" pos="0 0.000596308836445 0.166246488361" size=".003" rgba="1 1 0 1" />
+        </body>
+      </body>
+      <geom type="mesh" mesh="R_component_0082_0" mass="0.03991998041993925" rgba=".35 .43 .54 1" />
+      <geom type="mesh" mesh="R_component_0096_0" mass="0.006799999250574069" rgba=".35 .43 .54 1" />
+      <geom type="mesh" mesh="R_component_0097_0" mass="0.006799999250574069" rgba=".35 .43 .54 1" />
+      <body name="R_crank" pos="0.025781918726 1.52135248843e-13 0.166236701077">
+        <joint name="R_crank_joint" axis="1 0 0" />
+        <geom type="capsule" fromto="0 0 0 0 0.0449902715479 -0.000935663431971" size=".003" mass=".001" rgba=".2 .65 1 1" />
+        <site name="R_crank_pin" pos="0 0.0449902715479 -0.000935663431971" size=".003" rgba="1 1 0 1" />
+      </body>
+    </body>
+  </worldbody>
+  <equality>
+    <connect name="L_closure" site1="L_bar_pin" site2="L_crank_pin" solref=".002 1" />
+    <connect name="R_closure" site1="R_bar_pin" site2="R_crank_pin" solref=".002 1" />
+  </equality>
+</mujoco>

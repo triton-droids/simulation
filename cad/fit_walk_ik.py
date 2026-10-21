@@ -16,7 +16,7 @@ OUT=args.motion_dir
 z=np.load(OUT/'robot_scaled_targets.npz')
 targets=z['positions']; names=z['joint_names'].tolist()
 mapping=json.loads((BASE/'holosoma_lower_body_mapping.json').read_text())['joints_mapping']
-model=mujoco.MjModel.from_xml_path(str(BASE/'chrobot_holosoma_landmarks.xml'))
+model=mujoco.MjModel.from_xml_path(str(BASE/'triton_lower_body_holosoma.xml'))
 data=mujoco.MjData(model)
 ids=[model.body(n).id for n in mapping.values()]
 indices=[names.index(n) for n in mapping]

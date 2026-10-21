@@ -5,7 +5,7 @@ import mujoco
 import numpy as np
 
 BASE = Path(__file__).resolve().parent
-spec = mujoco.MjSpec.from_file(str(BASE / 'chrobot_16kg_actuated.xml'))
+spec = mujoco.MjSpec.from_file(str(BASE / 'triton_lower_body_legacy_actuated.xml'))
 mapping = {'Hips': 'retarget_pelvis'}
 landmarks = [('hip', 'retarget_pelvis', [-.155587, -.029495, .577401])]
 for side in ('left', 'right'):
@@ -17,7 +17,7 @@ for side in ('left', 'right'):
         landmarks.append((body, marker, spec.joint(joint).pos.copy()))
 for body, marker, pos in landmarks:
     spec.body(body).add_body(name=marker, pos=pos)
-original = mujoco.MjSpec.from_file(str(BASE / 'chrobot_16kg_actuated.xml')).compile()
+original = mujoco.MjSpec.from_file(str(BASE / 'triton_lower_body_legacy_actuated.xml')).compile()
 model = spec.compile()
 assert model.nq == original.nq and model.nv == original.nv
 assert abs(model.body_mass.sum() - original.body_mass.sum()) < 1e-9
@@ -25,7 +25,7 @@ for item in spec.meshes:
     if item.file:
         item.file = str((BASE / spec.meshdir / item.file).resolve())
 spec.meshdir = ''
-(BASE / 'chrobot_holosoma_landmarks.xml').write_text(spec.to_xml())
+(BASE / 'triton_lower_body_holosoma.xml').write_text(spec.to_xml())
 data = mujoco.MjData(model)
 mujoco.mj_forward(model, data)
 positions = {human: data.xpos[mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, marker)].tolist() for human, marker in mapping.items()}

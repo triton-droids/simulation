@@ -12,7 +12,7 @@ BASE = Path(__file__).resolve().parent
 
 
 def robot_spec():
-    spec = mujoco.MjSpec.from_file(str(BASE / 'chrobot_16kg_actuated.xml'))
+    spec = mujoco.MjSpec.from_file(str(BASE / 'triton_lower_body_legacy_actuated.xml'))
     spec.add_sensor(name='imu_ang_vel', type=mujoco.mjtSensor.mjSENS_GYRO,
                     objtype=mujoco.mjtObj.mjOBJ_SITE, objname='imu')
     # Privileged critic only: a real IMU does not directly measure linear velocity.

@@ -1,0 +1,78 @@
+{
+  "scope": "Full robot geometric inspection only",
+  "registration": {
+    "heel_bore_fit_max_residual_mm": 3.969649736035308e-06,
+    "motor_shell_fit_max_residual_mm": 0.04445086462598624,
+    "motor_axis_note": "Estimated from legacy cylindrical motor mesh, not a measured hardware shaft axis"
+  },
+  "limitations": [
+    "Extra passive DOFs require observation/action mapping changes before policy use",
+    "Existing direct ankle actuators retained; motor-side control not calibrated",
+    "Bar masses added to existing lumped links; mass/inertia reconciliation pending",
+    "1 g crank proxies; no identified rotor inertia"
+  ],
+  "sides": {
+    "left": {
+      "A": [
+        0.00958,
+        -0.03,
+        0.031528
+      ],
+      "B": [
+        0.004033933878092109,
+        -0.07439396234848114,
+        0.030618549098113068
+      ],
+      "C": [
+        0.004033933878092109,
+        -0.030053740250879226,
+        0.19777360682212802
+      ],
+      "D": [
+        0.004033933878092109,
+        -0.07504456300055853,
+        0.19686483385456602
+      ],
+      "bar_mass_kg": 0.029029988440376905,
+      "length_m": 0.166247557806219,
+      "crank_radius_m": 0.04499999999999591
+    },
+    "right": {
+      "A": [
+        -0.320851,
+        -0.03,
+        0.031528
+      ],
+      "B": [
+        -0.3153049338780921,
+        -0.07439396234848114,
+        0.030618549098113068
+      ],
+      "C": [
+        -0.3153049338780921,
+        -0.030053740250879226,
+        0.19777360682212802
+      ],
+      "D": [
+        -0.3153049338780921,
+        -0.07504456300064791,
+        0.19686483385456588
+      ],
+      "bar_mass_kg": 0.029939969685992503,
+      "length_m": 0.1662475578062192,
+      "crank_radius_m": 0.045000000000085284
+    }
+  },
+  "validation": {
+    "angles_tested_per_side": 241,
+    "max_pin_closure_error_m": 3.4330880567019455e-13,
+    "baseline_nq": 17,
+    "candidate_nq": 21,
+    "actuators": 10,
+    "baseline_mass_kg": 15.999999999993,
+    "candidate_mass_kg": 16.06096995811937,
+    "zero_gravity_driven_steps": 1000,
+    "zero_gravity_driven_finite": true,
+    "zero_gravity_driven_max_closure_m": 1.2847320465993207e-05
+  }
+}

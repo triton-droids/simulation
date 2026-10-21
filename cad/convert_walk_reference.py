@@ -12,7 +12,7 @@ t=np.arange(len(q))/fps; new=np.arange(int(np.floor(t[-1]*50))+1)/50
 sample=np.column_stack([np.interp(new,t,q[:,i]) for i in range(q.shape[1])])
 r=Slerp(t,Rotation.from_quat(q[:,[4,5,6,3]]))(new).as_quat()
 sample[:,3:7]=r[:,[3,0,1,2]]
-m=mujoco.MjModel.from_xml_path(str(BASE/'chrobot_16kg_actuated.xml'));d=mujoco.MjData(m)
+m=mujoco.MjModel.from_xml_path(str(BASE/'triton_lower_body_legacy_actuated.xml'));d=mujoco.MjData(m)
 order=json.loads((BASE/'tracking_body_order.json').read_text())
 assert [m.body(i).name for i in range(1,m.nbody)]==order['body_names']
 assert [m.joint(i).name for i in range(1,m.njnt)]==order['joint_names']

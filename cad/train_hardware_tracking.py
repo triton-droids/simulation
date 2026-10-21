@@ -2,13 +2,16 @@
 
 import argparse
 import json
+import platform
 import shutil
 from dataclasses import asdict
 from datetime import datetime
+from importlib.metadata import version
 from pathlib import Path
 
 import numpy as np
 import torch
+from budgeted_tracking_runner import BudgetedTrackingRunner, TrainingBudgetReached
 from hardware_tracking_task import (
   JOINTS,
   HardwareTrackingConfig,
@@ -18,7 +21,6 @@ from hardware_tracking_task import (
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.tasks.tracking.config.g1.rl_cfg import unitree_g1_tracking_ppo_runner_cfg
-from mjlab.tasks.tracking.rl import MotionTrackingOnPolicyRunner
 
 
 def main():
@@ -42,7 +44,20 @@ def main():
   parser.add_argument(
     "--resume", type=Path, help="Continue policy and optimizer from a checkpoint"
   )
+  parser.add_argument(
+    "--hours",
+    type=float,
+    default=None,
+    help="Wall-clock budget, checked at checkpoint saves",
+  )
+  parser.add_argument("--evaluation-interval", type=int, default=5000)
   args = parser.parse_args()
+  if args.hours is not None and args.hours <= 0:
+    parser.error("--hours must be positive")
+  if args.evaluation_interval <= 0 or args.save_interval <= 0:
+    parser.error("save and evaluation intervals must be positive")
+  if args.evaluation_interval % args.save_interval:
+    parser.error("evaluation interval must be a multiple of save interval")
   if args.resume is not None and not args.resume.is_file():
     raise FileNotFoundError(args.resume)
   if not torch.cuda.is_available():
@@ -74,11 +89,12 @@ def main():
   log.mkdir(parents=True, exist_ok=False)
   shutil.copy2(args.motion, log / "reference.npz")
   for name in (
-    "chrobot_hardware_candidate.xml",
-    "chrobot_hardware_actuated.xml",
+    "triton_lower_body.xml",
+    "triton_lower_body_actuated.xml",
     "tracking_body_order.json",
     "tracking_task.py",
     "hardware_tracking_task.py",
+    "budgeted_tracking_runner.py",
     "train_hardware_tracking.py",
     "evaluate_hardware_tracking.py",
     "verify_tracking_onnx.py",
@@ -94,6 +110,14 @@ def main():
         "motion": str(args.motion.resolve()),
         "num_envs": args.num_envs,
         "iterations": args.iterations,
+        "hours": args.hours,
+        "environment": {
+          "python": platform.python_version(),
+          "torch": torch.__version__,
+          "mujoco": version("mujoco"),
+          "rsl_rl": version("rsl-rl-lib"),
+        },
+        "evaluation_interval": args.evaluation_interval,
         "resume": str(args.resume.resolve()) if args.resume else None,
         "hardware": asdict(hardware),
       },
@@ -115,14 +139,27 @@ def main():
     assert tuple(env.action_manager.get_term("joint_pos").target_names) == JOINTS
     assert env.observation_manager.group_obs_dim["actor"] == (56,)
     wrapped = RslRlVecEnvWrapper(env, clip_actions=agent.clip_actions)
-    runner = MotionTrackingOnPolicyRunner(wrapped, asdict(agent), str(log), "cuda:0")
+    runner = BudgetedTrackingRunner(wrapped, asdict(agent), str(log), "cuda:0")
+    runner.configure_budget(args.hours, args.evaluation_interval, log)
     if args.resume is not None:
       runner.load(str(args.resume.resolve()), map_location="cuda:0")
       print(
         f"Resumed from {args.resume}; iteration {runner.current_learning_iteration}",
         flush=True,
       )
-    runner.learn(num_learning_iterations=args.iterations, init_at_random_ep_len=True)
+    try:
+      runner.learn(num_learning_iterations=args.iterations, init_at_random_ep_len=True)
+    except TrainingBudgetReached:
+      print("Wall-clock budget reached; checkpoint saved.", flush=True)
+    if args.hours is not None and runner.last_saved is not None:
+      runner.evaluate_candidate(runner.last_saved)
+    status_path = log / "status.json"
+    status = json.loads(status_path.read_text())
+    status["state"] = "training_finished"
+    status_path.write_text(json.dumps(status, indent=2))
+    (log / "TRAINING_FINISHED").write_text(
+      "Training ended; inspect evaluation results before deployment.\n"
+    )
     print(f"Training finished: {log}")
   finally:
     env.close()

@@ -1,0 +1,82 @@
+{
+  "scope": "CAD-derived closed-loop kinematic inspection; not calibrated dynamics or a training replacement",
+  "source": "ankle_audit/fusion_export_20261020_233848",
+  "sides": {
+    "L": {
+      "bar_hole_spacing_m": 0.166247557806219,
+      "crank_radius_m": 0.04499999999999591,
+      "exported_upper_pin_misalignment_m": 0.002649173097713822,
+      "bar_pose_correction_deg": 0.16913464521430743,
+      "upper_pin_pose_adjustment_m": 0.002600053218581952,
+      "pivot_A": [
+        0,
+        0,
+        0
+      ],
+      "pivot_B": [
+        0.01734052681304707,
+        0.04439330438734473,
+        -0.0009758728644141401
+      ],
+      "pivot_C": [
+        0.01734052681304707,
+        -0.0009681232063509168,
+        0.16623740354794975
+      ],
+      "pivot_D_closed": [
+        0.01734052681304707,
+        0.04402150431379962,
+        0.1652712691899305
+      ],
+      "crank_inertia": "1 g capsule proxy; not identified",
+      "crank_angle_per_foot_angle_range": [
+        0.9800143957946261,
+        0.9867567291012141
+      ]
+    },
+    "R": {
+      "bar_hole_spacing_m": 0.1662475578062192,
+      "crank_radius_m": 0.045000000000085284,
+      "exported_upper_pin_misalignment_m": 1.3041820456421797e-14,
+      "bar_pose_correction_deg": -4.478220991500631e-12,
+      "upper_pin_pose_adjustment_m": 1.0271672559928775e-15,
+      "pivot_A": [
+        0,
+        0,
+        0
+      ],
+      "pivot_B": [
+        0.02578191872596583,
+        0.04439396271156224,
+        -0.0009454507154400549
+      ],
+      "pivot_C": [
+        0.02578191872596583,
+        1.5213524884316598e-13,
+        0.16623670107734978
+      ],
+      "pivot_D_closed": [
+        0.02578191872596583,
+        0.04499027154800732,
+        0.16530103764537848
+      ],
+      "crank_inertia": "1 g capsule proxy; not identified",
+      "crank_angle_per_foot_angle_range": [
+        0.9801299107467853,
+        0.9867573395726102
+      ]
+    }
+  },
+  "validation": {
+    "angles_tested_per_side": 241,
+    "foot_angle_range_rad": [
+      -0.6,
+      0.6
+    ],
+    "max_pin_closure_error_m": 5.347187519418794e-13,
+    "branch_continuous": true,
+    "range_note": "Existing simulator range, not verified hardware travel",
+    "zero_gravity_100_step_finite": true,
+    "zero_gravity_100_step_max_closure_m": 6.938893903907228e-18
+  }
+}
