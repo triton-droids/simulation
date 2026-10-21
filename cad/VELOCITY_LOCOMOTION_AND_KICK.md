@@ -17,7 +17,7 @@ hardware model, so sim2real assumptions stay in one place.
 | `cad/soccer_task.py` | Ball entity + approach command + kick rewards + success termination. |
 | `cad/train_soccer.py`, `cad/evaluate_soccer.py` | Soccer training and goal/kick-speed evaluation. |
 | `cad/budgeted_velocity_runner.py`, `cad/budgeted_soccer_runner.py` | Wall-clock budget + checkpoint selection. |
-| `cad/bc_warmstart.py` | Behaviour-cloning warm start: imitates the retargeted reference into the velocity actor. |
+| `cad/train_imitation_warmstart.py` | Behaviour-cloning warm start: imitates the retargeted reference into the velocity actor. |
 | `cad/teleop_to_motion.py` | Converts a teleop joint log into a tracking reference (`reference.npz`). |
 | `cad/render_policy_video.py` | Headless MP4 of a policy. |
 | `cad/run_velocity_experiment.sh` | Launcher. |
@@ -34,7 +34,7 @@ cd mjlab && PYTHONPATH=../cad .venv/bin/python ../cad/evaluate_velocity.py \
     --checkpoint ../logs/legs_velocity/run1/best.pt --num-envs 64 --steps 400
 
 # warm start from your retargeted clip
-cd mjlab && PYTHONPATH=../cad .venv/bin/python ../cad/bc_warmstart.py \
+cd mjlab && PYTHONPATH=../cad .venv/bin/python ../cad/train_imitation_warmstart.py \
     --motion ../logs/legs_tracking/20260914_170827/reference.npz \
     --output ../logs/legs_velocity/bc_init.pt --epochs 3000
 
@@ -106,10 +106,12 @@ reference clip for 150 steps, per-step reward summed over terms):
 
 Walking is 30x better per step, and PPO *still* parks in standing, because the
 first step costs a fall and the per-step rewards are small. What actually fixed
-the bootstrap was a **behaviour-cloning warm start** (`bc_warmstart.py`): cloning
-the reference joint targets into the velocity actor (action MSE 9e-5 rad², i.e.
-~0.01 rad per joint) produced a policy that walks forward at 0.65 m/s
-immediately — from zero to moving with no RL at all.
+the bootstrap was a **behaviour-cloning warm start** (`train_imitation_warmstart.py`): cloning
+the reference joint targets into the velocity actor produced a policy that
+walks forward at 0.65 m/s immediately — from zero to moving with no RL at all.
+The original run clipped actions to ±1, however, which removed 36.8% of the
+valid reference targets. The corrected trainer preserves the full motion range;
+the warm-start checkpoint must be regenerated before the next PPO run.
 
 A gait-phase clock (cos/sin in the observation, 1.4 Hz, ±0.1 Hz jitter per
 episode, plus a lift-and-land foot-height reward) is included as a proto-motion
@@ -126,7 +128,7 @@ keeps PPO from collapsing back to standing.
   in this repo now: **velocity-conditioned PPO + a motion prior** (AMP
   discriminator *or* a phase/foot-height reference, as here) + domain
   randomization matched to measured hardware limits.
-* Your retargeted clip is already a usable prior. `bc_warmstart.py` consumes it
+* Your retargeted clip is already a usable prior. `train_imitation_warmstart.py` consumes it
   directly; for a true AMP setup you would feed the same clip as the demo buffer.
 
 ### 5. Your teleop suite is the highest-value data source you have
@@ -193,11 +195,12 @@ Verified working:
   actor, 50 Hz control, 10 joints in hardware order).
 * Budgeted training, checkpoint selection, ONNX export, evaluation, and headless
   video recording all run end to end.
-* `bc_warmstart.py` clones the reference clip into the velocity actor (action
-  MSE 9e-5 rad², ~0.01 rad per joint). The resulting policy **walks**: 0.66 m/s
-  forward in `logs/legs_velocity/bc_walk.mp4`, up from 0.00 m/s for the PPO-only
-  policies. It is open-loop imitation, so it falls after ~6 s (fall rate 1.0 at
-  300 steps).
+* The earlier imitation checkpoint produced a policy that **walks** at 0.66 m/s
+  in `logs/legs_velocity/bc_walk.mp4`, up from 0.00 m/s for the PPO-only
+  policies. It used incorrectly clipped labels and is retained only as evidence
+  that imitation can escape the standing optimum. Regenerate it with
+  `train_imitation_warmstart.py` before further training. It is still open-loop
+  imitation, so feedback-policy distillation remains the next stability step.
 * `teleop_to_motion.py` reproduces the deployed reference body poses to 4e-8 m.
 
 Measured failures (each is a concrete next experiment, not a mystery):
@@ -224,7 +227,7 @@ not walk. Evaluation now defaults to 3.0 and takes `--target-speed`.
    reacts to balance errors. Roll it out in `cad/tracking_task.py`, log
    `(q, qd, gyro, gravity, last_action, command, phase)` at every control step,
    build the velocity-task observation from those same states
-   (`bc_warmstart.py` already computes every term), and clone its actions. That
+   (`train_imitation_warmstart.py` already computes every term), and clone its actions. That
    gives a feedback-corrected gait as the PPO initialisation instead of the
    open-loop replay that falls at 6 s. Expect the walk to survive, and only then
    fine-tune.

@@ -15,7 +15,7 @@ variety, turns, sidesteps, stopping, and kicking.
 | Hardware tracking task | `cad/hardware_tracking_task.py` |
 | Velocity-command task | `cad/velocity_task.py` |
 | Velocity training and evaluation | `cad/train_velocity.py`, `cad/evaluate_velocity.py` |
-| Hardware evidence | `hardware_data/embedded_2728fe1/` |
+| Hardware evidence | `hardware_data/embedded_2728fe1/REPORT.md`, `analysis.json` |
 | Ankle mechanism candidate | `cad/ankle_linkage_inspection/triton_lower_body_linkage_candidate.xml` |
 
 Files containing `legacy` preserve the older 16 kg model used by the original
@@ -35,12 +35,20 @@ Freeze the quantities that deployment and simulation must share:
 
 The archived logs establish much of this contract at 50 Hz. They do not
 uniquely identify friction, inertia, contact, or calibrated joint torque.
+The reproducible analysis reports 0.075-0.102 rad tracking RMSE across usable
+live trials and a 40-100 ms command-to-velocity response envelope. That response
+includes controller, mechanism, contact, filtering, and transport dynamics; it
+is not a direct estimate of network delay.
 
 Gate: replaying an identical observation/action sequence through the simulator
 and deployment adapter produces the same ordered targets, signs, clipping, and
 slew-limited commands.
 
 ## Stage 2: targeted system identification
+
+Run this stage in parallel with simulation policy development. It is required
+before untethered deployment, but the existing logs are sufficient to train the
+teacher and student while these more diagnostic trials are collected.
 
 Use a support fixture so the tested joint cannot drop the robot. Test one joint
 at a time near a neutral pose and stay inside conservative position, velocity,
