@@ -1,5 +1,5 @@
-<mujoco model="triton_lower_body_linkage_candidate_not_policy_compatible">
-  <!--Inspection candidate: extra passive DOFs, unreconciled masses and 1 g crank proxies. Do not load existing policy blindly.-->
+<mujoco model="humanoid_legs_5">
+  <!--Linkage inspection model: motor-side control and rotor inertia are not calibrated. Do not load existing policy blindly.-->
   <compiler angle="radian" coordinate="local" autolimits="true" meshdir="." />
   <option timestep="0.005" gravity="0 0 -9.81" integrator="implicitfast" cone="elliptic" />
   <default>
@@ -68,13 +68,13 @@
                   <joint name="left_knee_joint" type="hinge" axis="1 0 0" range="-2.0944 0" pos="-0.000048 -0.029495 0.306338" limited="true" armature="0.01" />
                   <geom mesh="left_leg4" class="collision" />
                   <geom mesh="left_leg4_visual" class="visual" material="metal_silver" />
-                  <inertial pos="0.001337 -0.031134 0.183938" mass="0.977646243227" fullinertia="0.00577952124475 0.00588810319811 0.00146684347903 -1.12438774472e-05 0.000140120075268 -0.000115541069462" />
+                  <inertial pos="0.00133423857651 -0.0311120727651 0.183924298805" mass="0.976646243227" fullinertia="0.00577868013092 0.00588791217065 0.00146617440685 -1.130168728e-05 0.000140156200332 -0.000115823918455" />
                   <body name="left_foot" pos="0 0 0">
                     <joint name="left_ankle_joint" type="hinge" axis="1 0 0" range="-0.6 0.6" pos="0.00958 -0.03 0.031528" limited="true" armature="0.01" />
                     <geom name="left_foot_collision_box" type="box" size="0.04 0.105 0.00763" pos="-0.00042 -0.005 -0.0045" class="collision" />
                     <geom mesh="left_foot_visual" class="visual" material="metal_silver" />
                     <geom mesh="left_foot_sole_visual" class="visual" material="metal_silver" pos="0.30958 0 0" />
-                    <inertial pos="-0.00053 -0.020276 0.011109" mass="0.592694120373" fullinertia="0.00160302031321 0.000362092178909 0.00171293286004 -1.37744973468e-05 2.18127254416e-06 9.03295367222e-05" />
+                    <inertial pos="-0.00053 -0.020276 0.011109" mass="0.563664131933" fullinertia="0.00152450484015 0.000344357004145 0.00162903389884 -1.30996812347e-05 2.07442475656e-06 8.59052204828e-05" />
                     <site name="left_foot" pos="-0.00042 -0.005 -0.01213" size="0.01" />
                     <body name="left_heel_linkage" pos="0.00403393387809 -0.0743939623485 0.0306185490981">
                       <joint name="left_heel_bar_joint" limited="false" axis="1 0 0" damping=".01" armature=".0001" />
@@ -110,13 +110,13 @@
                   <joint name="right_knee_joint" type="hinge" axis="1 0 0" range="-2.0944 0" pos="-0.311223 -0.029495 0.306338" limited="true" armature="0.01" />
                   <geom mesh="right_leg4" class="collision" />
                   <geom mesh="right_leg4_visual" class="visual" material="metal_silver" />
-                  <inertial pos="-0.312608 -0.031134 0.183938" mass="0.96273799775" fullinertia="0.00569138862822 0.00579831480227 0.0014444754059 1.10724284105e-05 -0.00013798336734 -0.000113779169758" />
+                  <inertial pos="-0.312605195771 -0.0311117328631 0.183924086418" mass="0.96173799775" fullinertia="0.00569054750428 0.00579812377184 0.00144380632633 1.11302392298e-05 -0.00013801949298 -0.000114062023289" />
                   <body name="right_foot" pos="0 0 0">
                     <joint name="right_ankle_joint" type="hinge" axis="1 0 0" range="-0.6 0.6" pos="-0.320851 -0.03 0.031528" limited="true" armature="0.01" />
                     <geom name="right_foot_collision_box" type="box" size="0.04 0.105 0.00763" pos="-0.310851 -0.005 -0.0045" class="collision" />
                     <geom mesh="right_foot_visual" class="visual" material="metal_silver" />
                     <geom mesh="right_foot_sole_visual" class="visual" material="metal_silver" pos="-0.310851 0 0" />
-                    <inertial pos="-0.310741 -0.020276 0.011109" mass="0.591536165263" fullinertia="0.00159988846915 0.000361384754161 0.00170958627823 1.37475859113e-05 -2.17701096031e-06 9.01530585946e-05" />
+                    <inertial pos="-0.310741 -0.020276 0.011109" mass="0.561596195577" fullinertia="0.00151891183041 0.000343093648313 0.0016230573993 1.30516219286e-05 -2.06681423438e-06 8.55900566849e-05" />
                     <site name="right_foot" pos="-0.310851 -0.005 -0.01213" size="0.01" />
                     <body name="right_heel_linkage" pos="-0.315304933878 -0.0743939623485 0.0306185490981">
                       <joint name="right_heel_bar_joint" limited="false" axis="1 0 0" damping=".01" armature=".0001" />
@@ -156,6 +156,6 @@
     <connect site1="right_heel_bar_pin" site2="right_crank_pin" solref=".002 1" />
   </equality>
   <visual>
-    <global offwidth="1200" offheight="1000" />
+    <global offwidth="1200" offheight="1008" />
   </visual>
 </mujoco>

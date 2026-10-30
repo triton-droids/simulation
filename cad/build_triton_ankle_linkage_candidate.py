@@ -59,12 +59,60 @@ def set_pose(model, data, rigs, q):
     mujoco.mj_forward(model, data)
 
 
+def inertia_matrix(model, body_name):
+    body = model.body(body_name)
+    rotation = np.empty(9)
+    mujoco.mju_quat2Mat(rotation, body.iquat)
+    matrix = rotation.reshape(3, 3)
+    return matrix @ np.diag(body.inertia) @ matrix.T
+
+
+def parallel_axis(position):
+    return np.dot(position, position) * np.eye(3) - np.outer(position, position)
+
+
+def remove_child_mass(parent_inertial, baseline, preliminary, parent_name, child_name):
+    """Move an already-counted CAD part out of its lumped parent inertial."""
+    parent = baseline.body(parent_name)
+    child = preliminary.body(child_name)
+    parent_mass, child_mass = float(parent.mass[0]), float(child.mass[0])
+    remaining_mass = parent_mass - child_mass
+    if remaining_mass <= 0:
+        raise ValueError(f"{parent_name} has insufficient mass for {child_name}")
+    parent_com = np.asarray(parent.ipos).copy()
+    child_com = np.asarray(child.pos) + np.asarray(child.ipos)
+    remaining_com = (parent_mass * parent_com - child_mass * child_com) / remaining_mass
+    origin_inertia = inertia_matrix(baseline, parent_name) + parent_mass * parallel_axis(parent_com)
+    child_origin_inertia = inertia_matrix(preliminary, child_name) + child_mass * parallel_axis(child_com)
+    remaining_inertia = origin_inertia - child_origin_inertia - remaining_mass * parallel_axis(remaining_com)
+    remaining_inertia = (remaining_inertia + remaining_inertia.T) / 2
+    eigenvalues = np.linalg.eigvalsh(remaining_inertia)
+    method = "composite inertia subtraction"
+    if min(eigenvalues) <= 0:
+        # The legacy lumped tensor is not a CAD-derived composite tensor. A
+        # literal subtraction would create an impossible rigid body, so only
+        # conserve mass and retain its positive inertial shape as an estimate.
+        method = "mass subtraction; retained parent COM and scaled parent inertia"
+        remaining_com = parent_com
+        remaining_inertia = inertia_matrix(baseline, parent_name) * (remaining_mass / parent_mass)
+        eigenvalues = np.linalg.eigvalsh(remaining_inertia)
+    parent_inertial.set("mass", f"{remaining_mass:.12g}")
+    parent_inertial.set("pos", fmt(remaining_com))
+    parent_inertial.set("fullinertia", fmt([
+        remaining_inertia[0, 0], remaining_inertia[1, 1], remaining_inertia[2, 2],
+        remaining_inertia[0, 1], remaining_inertia[0, 2], remaining_inertia[1, 2],
+    ]))
+    return {"parent": parent_name, "child": child_name, "moved_mass_kg": child_mass,
+            "remaining_mass_kg": remaining_mass, "method": method,
+            "remaining_inertia_eigenvalues": eigenvalues.tolist()}
+
+
 def main():
     source = json.loads((OUT / "validation.json").read_text())
     heel_yz, motor_yz, registration = measure_old_mesh_axes()
     root = ET.parse(BASE / "triton_lower_body.xml").getroot()
-    root.set("model", "triton_lower_body_linkage_candidate_not_policy_compatible")
-    root.insert(0, ET.Comment("Inspection candidate: extra passive DOFs, unreconciled masses and 1 g crank proxies. Do not load existing policy blindly."))
+    root.set("model", "humanoid_legs_5")
+    root.insert(0, ET.Comment("Linkage inspection model: motor-side control and rotor inertia are not calibrated. Do not load existing policy blindly."))
     root.find("compiler").set("meshdir", ".")
     assets = root.find("asset")
     for mesh in assets.findall("mesh"):
@@ -73,14 +121,14 @@ def main():
     root.append(actuator)
     equality = ET.SubElement(root, "equality")
     visual = ET.SubElement(root, "visual")
-    ET.SubElement(visual, "global", offwidth="1200", offheight="1000")
+    ET.SubElement(visual, "global", offwidth="1200", offheight="1008")
     world = root.find("worldbody")
     ET.SubElement(world, "light", pos="1 -1 2", dir="-1 1 -2", diffuse=".8 .8 .8")
     ET.SubElement(world, "light", pos="-1 1 2", dir="1 -1 -2")
-    rigs, report = {}, {"scope": "Full robot geometric inspection only", "registration": registration,
+    rigs, report = {}, {"scope": "Full robot linkage inspection; not calibrated for training", "registration": registration,
                         "limitations": ["Extra passive DOFs require observation/action mapping changes before policy use",
                                         "Existing direct ankle actuators retained; motor-side control not calibrated",
-                                        "Bar masses added to existing lumped links; mass/inertia reconciliation pending",
+                                        "Baseline lumped link inertias are approximate; some remaining-link tensors require scaled estimates, and rigid-body grouping is not verified",
                                         "1 g crank proxies; no identified rotor inertia"], "sides": {}}
     source_model = mujoco.MjModel.from_xml_path(str(OUT / "ankles.xml"))
     for label, side in (("L", "left"), ("R", "right")):
@@ -124,19 +172,38 @@ def main():
         report["sides"][side] = {"A": a.tolist(), "B": b.tolist(), "C": c.tolist(), "D": d.tolist(),
                                 "bar_mass_kg": mass, "length_m": length, "crank_radius_m":radius}
     ET.indent(root)
-    path = OUT / "triton_lower_body_linkage_candidate.xml"
+    path = OUT / "humanoid_legs_5.xml"
+    ET.ElementTree(root).write(path, encoding="unicode")
+    preliminary = mujoco.MjModel.from_xml_path(str(path))
+    baseline = mujoco.MjModel.from_xml_path(str(BASE / "triton_lower_body_actuated.xml"))
+    # The normalized CAD foot subassembly already includes the heel bar. The
+    # crank proxy is treated as part of the existing shin lump. Conserve the
+    # parent's mass, center of mass, and inertia about its origin when splitting.
+    report["mass_reconciliation"] = []
+    for side in ("left", "right"):
+        foot = root.find(f".//body[@name='{side}_foot']")
+        shin = root.find(f".//body[@name='{side}_leg4']")
+        report["mass_reconciliation"].append(remove_child_mass(
+            foot.find("inertial"), baseline, preliminary, side+"_foot", side+"_heel_linkage"))
+        report["mass_reconciliation"].append(remove_child_mass(
+            shin.find("inertial"), baseline, preliminary, side+"_leg4", side+"_ankle_crank"))
     ET.ElementTree(root).write(path, encoding="unicode")
     model = mujoco.MjModel.from_xml_path(str(path))
-    baseline = mujoco.MjModel.from_xml_path(str(BASE / "triton_lower_body_actuated.xml"))
     data = mujoco.MjData(model)
     errors = []
+    crank_history = {side: [] for side in rigs}
     for q in np.linspace(-.6,.6,241):
         set_pose(model,data,rigs,float(q))
         for side in rigs:
             errors.append(float(np.linalg.norm(data.site(side+"_heel_bar_pin").xpos-data.site(side+"_crank_pin").xpos)))
+            crank_history[side].append(float(data.qpos[model.joint(side+"_ankle_crank_joint").qposadr[0]]))
     assert max(errors)<1e-8
+    for side, values in crank_history.items():
+        assert np.max(np.abs(np.diff(values))) < .1, f"{side} linkage changed branch"
     assert model.nu == baseline.nu == 10
+    assert abs(float(model.body_mass.sum()) - float(baseline.body_mass.sum())) < 1e-8
     report["validation"] = {"angles_tested_per_side":241,"max_pin_closure_error_m":max(errors),
+                            "crank_branch_continuous": True,
                             "baseline_nq":baseline.nq,"candidate_nq":model.nq,
                             "actuators":model.nu,"baseline_mass_kg":float(baseline.body_mass.sum()),
                             "candidate_mass_kg":float(model.body_mass.sum())}
@@ -155,23 +222,28 @@ def main():
     model.opt.gravity[:] = saved_gravity
     report["validation"].update(zero_gravity_driven_steps=1000, zero_gravity_driven_finite=True,
                                 zero_gravity_driven_max_closure_m=max(driven_errors))
-    (OUT/"full_robot_validation.json").write_text(json.dumps(report,indent=2)+"\n")
+    (OUT/"humanoid_legs_5_validation.json").write_text(json.dumps(report,indent=2)+"\n")
     print(json.dumps(report,indent=2),flush=True)
     camera=mujoco.MjvCamera()
     camera.lookat[:]=[0,0,.34];camera.distance=1.55;camera.elevation=-13;camera.azimuth=145
     options=mujoco.MjvOption();options.geomgroup[3]=0
-    with mujoco.Renderer(model,height=1000,width=1200) as renderer:
+    with mujoco.Renderer(model,height=1008,width=1200) as renderer:
         set_pose(model,data,rigs,0)
         renderer.update_scene(data,camera,scene_option=options)
-        imageio.imwrite(OUT/"triton_lower_body_linkage.png",renderer.render())
+        imageio.imwrite(OUT/"humanoid_legs_5.png",renderer.render())
         camera.lookat[:]=[0,-.035,.16];camera.distance=.88;camera.azimuth=180
         renderer.update_scene(data,camera,scene_option=options)
-        imageio.imwrite(OUT/"triton_ankle_detail.png",renderer.render())
-        with imageio.get_writer(OUT/"triton_ankle_sweep.mp4",fps=30) as video:
+        imageio.imwrite(OUT/"humanoid_legs_5_ankle_detail.png",renderer.render())
+        with imageio.get_writer(OUT/"humanoid_legs_5_ankle_sweep.mp4",fps=30) as detail_video, \
+             imageio.get_writer(OUT/"humanoid_legs_5_full_sweep.mp4",fps=30) as full_video:
             for q in .45*np.sin(np.linspace(0,2*np.pi,150)):
                 set_pose(model,data,rigs,float(q))
                 renderer.update_scene(data,camera,scene_option=options)
-                video.append_data(renderer.render())
+                detail_video.append_data(renderer.render())
+                camera.lookat[:]=[0,0,.34];camera.distance=1.55;camera.azimuth=145
+                renderer.update_scene(data,camera,scene_option=options)
+                full_video.append_data(renderer.render())
+                camera.lookat[:]=[0,-.035,.16];camera.distance=.88;camera.azimuth=180
 
 
 if __name__ == "__main__":

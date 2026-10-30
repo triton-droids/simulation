@@ -1,4 +1,4 @@
-# Triton heel-linkage inspection candidates
+# Triton heel-linkage inspection and humanoid_legs_5
 
 The missing long heel bars are restored as independently hinged links with
 closed-loop pin constraints. Orange is the actual exported bar geometry; blue
@@ -10,13 +10,14 @@ not training or hardware deployment.
 - `../triton_lower_body_legacy_actuated.xml`: older normalized 16 kg model.
 - `../triton_lower_body_actuated.xml`: current hardware-aware Triton baseline,
   used by the hardware tracking and velocity tasks. Unchanged by this work.
-- `triton_lower_body_linkage_candidate.xml`: full-robot inspection copy with
+- `humanoid_legs_5.xml`: full-robot inspection copy with
   the articulated heel bars. Includes the same 10 actuator names, plus four
   passive joints; it is not a drop-in checkpoint/policy replacement.
 - `ankles.xml`: isolated two-ankle CAD-frame inspection rig.
 
-`triton_ankle_sweep.mp4` shows an analytically positioned ankle-angle sweep,
-not a learned policy or a walking evaluation. `ankle_sweep.mp4` shows the
+`humanoid_legs_5_full_sweep.mp4` and `humanoid_legs_5_ankle_sweep.mp4`
+show the full robot and ankle detail. They show an analytically positioned
+ankle-angle sweep, not a learned policy or a walking evaluation. `ankle_sweep.mp4` shows the
 isolated mechanism. `triton_lower_body_linkage.png` shows the full robot.
 
 ## Evidence and validation
@@ -32,7 +33,7 @@ candidate registers the lower pin to the existing heel-bearing mesh bores and
 estimates the motor axis from the legacy cylindrical motor shell. The existing
 left/right foot meshes are mirrored; this registration keeps their labels.
 Motor-shell fit residual is approximately 0.0445 mm; that is not independent
-hardware calibration. Full pivot coordinates are in `full_robot_validation.json`.
+hardware calibration. Full pivot coordinates are in `humanoid_legs_5_validation.json`.
 
 Both models compile. Each side passes 241 poses across [-0.6, +0.6] radians
 (the existing simulator's range, not verified hardware travel), with pin gaps
@@ -42,11 +43,12 @@ steps with sinusoidal ankle position commands; maximum pin gap is about
 
 ## Remaining integration work
 
-The original lumped link inertias are retained, and the bar masses plus 1 g
-crank proxies are added. Consequently the candidate is 16.06097 kg versus the
-16 kg baseline. Reassign the bar/crank mass and inertia from the existing
-lumped links using validated rigid-body grouping before dynamics training.
-The proxy crank inertia is not an identified rotor inertia.
+Bar masses are moved out of the old lumped foot links and 1 g crank proxies
+out of the shin links, preserving the 16 kg total. The old foot inertia tensors
+cannot be decomposed into physically valid foot-plus-bar tensors, so their
+remaining tensors are positive estimates made by scaling the originals. The
+crank proxy inertia is not an identified rotor inertia. Validate rigid-body
+grouping and inertial properties before dynamics training.
 
 The model still uses effective foot-joint position actuators. A calibrated
 motor-side model must account for the linkage angle/torque mapping, signs,
