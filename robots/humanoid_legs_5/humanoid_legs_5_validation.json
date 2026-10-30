@@ -1,0 +1,129 @@
+{
+  "scope": "Full robot linkage inspection; not calibrated for training",
+  "registration": {
+    "heel_bore_fit_max_residual_mm": 3.969649736035308e-06,
+    "motor_shell_fit_max_residual_mm": 0.04445086462598624,
+    "motor_axis_note": "Estimated from legacy cylindrical motor mesh, not a measured hardware shaft axis"
+  },
+  "limitations": [
+    "Extra passive DOFs require observation/action mapping changes before policy use",
+    "Existing direct ankle actuators retained; motor-side control not calibrated",
+    "Baseline lumped link inertias are approximate; some remaining-link tensors require scaled estimates, and rigid-body grouping is not verified",
+    "1 g crank proxies; no identified rotor inertia"
+  ],
+  "sides": {
+    "left": {
+      "A": [
+        0.00958,
+        -0.03,
+        0.031528
+      ],
+      "B": [
+        0.004033933878092109,
+        -0.07439396234848114,
+        0.030618549098113068
+      ],
+      "C": [
+        0.004033933878092109,
+        -0.030053740250879226,
+        0.19777360682212802
+      ],
+      "D": [
+        0.004033933878092109,
+        -0.07504456300055853,
+        0.19686483385456602
+      ],
+      "bar_mass_kg": 0.029029988440376905,
+      "length_m": 0.166247557806219,
+      "crank_radius_m": 0.04499999999999591
+    },
+    "right": {
+      "A": [
+        -0.320851,
+        -0.03,
+        0.031528
+      ],
+      "B": [
+        -0.3153049338780921,
+        -0.07439396234848114,
+        0.030618549098113068
+      ],
+      "C": [
+        -0.3153049338780921,
+        -0.030053740250879226,
+        0.19777360682212802
+      ],
+      "D": [
+        -0.3153049338780921,
+        -0.07504456300064791,
+        0.19686483385456588
+      ],
+      "bar_mass_kg": 0.029939969685992503,
+      "length_m": 0.1662475578062192,
+      "crank_radius_m": 0.045000000000085284
+    }
+  },
+  "mass_reconciliation": [
+    {
+      "parent": "left_foot",
+      "child": "left_heel_linkage",
+      "moved_mass_kg": 0.029029988440376905,
+      "remaining_mass_kg": 0.5636641319326231,
+      "method": "mass subtraction; retained parent COM and scaled parent inertia",
+      "remaining_inertia_eigenvalues": [
+        0.0003384909533414372,
+        0.001524638873752483,
+        0.0016347659160405271
+      ]
+    },
+    {
+      "parent": "left_leg4",
+      "child": "left_ankle_crank",
+      "moved_mass_kg": 0.001,
+      "remaining_mass_kg": 0.976646243227,
+      "method": "composite inertia subtraction",
+      "remaining_inertia_eigenvalues": [
+        0.0014586176916956172,
+        0.0057811669480434275,
+        0.005892982068684476
+      ]
+    },
+    {
+      "parent": "right_foot",
+      "child": "right_heel_linkage",
+      "moved_mass_kg": 0.029939969685992503,
+      "remaining_mass_kg": 0.5615961955770075,
+      "method": "mass subtraction; retained parent COM and scaled parent inertia",
+      "remaining_inertia_eigenvalues": [
+        0.0003372491185168969,
+        0.00151904537227696,
+        0.0016287683872240498
+      ]
+    },
+    {
+      "parent": "right_leg4",
+      "child": "right_ankle_crank",
+      "moved_mass_kg": 0.001,
+      "remaining_mass_kg": 0.96173799775,
+      "method": "composite inertia subtraction",
+      "remaining_inertia_eigenvalues": [
+        0.0014363645877750718,
+        0.005692996342301432,
+        0.005803116672374095
+      ]
+    }
+  ],
+  "validation": {
+    "angles_tested_per_side": 241,
+    "max_pin_closure_error_m": 3.4330880567019455e-13,
+    "crank_branch_continuous": true,
+    "baseline_nq": 17,
+    "candidate_nq": 21,
+    "actuators": 10,
+    "baseline_mass_kg": 15.999999999993,
+    "candidate_mass_kg": 15.999999999993369,
+    "zero_gravity_driven_steps": 1000,
+    "zero_gravity_driven_finite": true,
+    "zero_gravity_driven_max_closure_m": 1.2873414738795606e-05
+  }
+}
