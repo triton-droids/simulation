@@ -1,0 +1,542 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "MuJoCo USD Converter v0.2.0"
+    }
+    doc = """Generated from Composed Stage of root layer /antioch/renderer-cache/tmp/tmp077vhhc4/humanoid_legs_5.usdc
+
+
+Generated from Composed Stage of root layer /antioch/renderer-cache/tmp/mjcf_import_humanoid_legs_5_v_25e9re/usdex_humanoid_legs_5/humanoid_legs_5.usdc
+
+
+Generated from Composed Stage of root layer /antioch/renderer-cache/tmp/mjcf_import_humanoid_legs_5_v_25e9re/temp_humanoid_legs_5/humanoid_legs_5.usd
+
+
+Generated from Composed Stage of root layer /workspace/project/robots/humanoid_legs_5/usd_import/humanoid_legs_5/payloads/base.usd
+"""
+    kilogramsPerUnit = 1
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Scope "Instances"
+{
+    def Xform "hip_visual" (
+        prepend references = @./geometries.usd@</Geometries/hip_visual>
+    )
+    {
+        over "hip_visual" (
+            apiSchemas = ["PhysicsCollisionAPI", "NewtonCollisionAPI", "MjcCollisionAPI", "PhysicsMeshCollisionAPI", "NewtonMeshCollisionAPI", "PhysicsMassAPI", "MaterialBindingAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/hip_visual/VisualMaterials/metal_silver>
+            custom rel material:binding:physics
+            prepend rel material:binding:physics = </humanoid_legs_5/Physics/PhysicsMaterial>
+            int mjc:group = 2
+            float newton:contactGap = 0 (
+                limits = {
+                    dictionary hard = {
+                        double minimum = 0
+                    }
+                }
+            )
+            token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 0
+            float physics:density = 1000
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "metal_silver" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/metal_silver>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "left_leg1_visual" (
+        prepend references = @./geometries.usd@</Geometries/left_leg1_visual>
+    )
+    {
+        over "left_leg1_visual" (
+            apiSchemas = ["PhysicsCollisionAPI", "NewtonCollisionAPI", "MjcCollisionAPI", "PhysicsMeshCollisionAPI", "NewtonMeshCollisionAPI", "PhysicsMassAPI", "MaterialBindingAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/left_leg1_visual/VisualMaterials/metal_silver>
+            custom rel material:binding:physics
+            prepend rel material:binding:physics = </humanoid_legs_5/Physics/PhysicsMaterial>
+            int mjc:group = 2
+            float newton:contactGap = 0 (
+                limits = {
+                    dictionary hard = {
+                        double minimum = 0
+                    }
+                }
+            )
+            token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 0
+            float physics:density = 1000
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "metal_silver" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/metal_silver>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "left_leg2_visual" (
+        prepend references = @./geometries.usd@</Geometries/left_leg2_visual>
+    )
+    {
+        over "left_leg2_visual" (
+            apiSchemas = ["PhysicsCollisionAPI", "NewtonCollisionAPI", "MjcCollisionAPI", "PhysicsMeshCollisionAPI", "NewtonMeshCollisionAPI", "PhysicsMassAPI", "MaterialBindingAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/left_leg2_visual/VisualMaterials/metal_silver>
+            custom rel material:binding:physics
+            prepend rel material:binding:physics = </humanoid_legs_5/Physics/PhysicsMaterial>
+            int mjc:group = 2
+            float newton:contactGap = 0 (
+                limits = {
+                    dictionary hard = {
+                        double minimum = 0
+                    }
+                }
+            )
+            token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 0
+            float physics:density = 1000
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "metal_silver" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/metal_silver>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "left_leg3_visual" (
+        prepend references = @./geometries.usd@</Geometries/left_leg3_visual>
+    )
+    {
+        over "left_leg3_visual" (
+            apiSchemas = ["PhysicsCollisionAPI", "NewtonCollisionAPI", "MjcCollisionAPI", "PhysicsMeshCollisionAPI", "NewtonMeshCollisionAPI", "PhysicsMassAPI", "MaterialBindingAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/left_leg3_visual/VisualMaterials/metal_silver>
+            custom rel material:binding:physics
+            prepend rel material:binding:physics = </humanoid_legs_5/Physics/PhysicsMaterial>
+            int mjc:group = 2
+            float newton:contactGap = 0 (
+                limits = {
+                    dictionary hard = {
+                        double minimum = 0
+                    }
+                }
+            )
+            token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 0
+            float physics:density = 1000
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "metal_silver" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/metal_silver>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "left_leg4_visual" (
+        prepend references = @./geometries.usd@</Geometries/left_leg4_visual>
+    )
+    {
+        over "left_leg4_visual" (
+            apiSchemas = ["PhysicsCollisionAPI", "NewtonCollisionAPI", "MjcCollisionAPI", "PhysicsMeshCollisionAPI", "NewtonMeshCollisionAPI", "PhysicsMassAPI", "MaterialBindingAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/left_leg4_visual/VisualMaterials/metal_silver>
+            custom rel material:binding:physics
+            prepend rel material:binding:physics = </humanoid_legs_5/Physics/PhysicsMaterial>
+            int mjc:group = 2
+            float newton:contactGap = 0 (
+                limits = {
+                    dictionary hard = {
+                        double minimum = 0
+                    }
+                }
+            )
+            token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 0
+            float physics:density = 1000
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "metal_silver" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/metal_silver>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "left_foot_visual" (
+        prepend references = @./geometries.usd@</Geometries/left_foot_visual>
+    )
+    {
+        over "left_foot_visual" (
+            apiSchemas = ["PhysicsCollisionAPI", "NewtonCollisionAPI", "MjcCollisionAPI", "PhysicsMeshCollisionAPI", "NewtonMeshCollisionAPI", "PhysicsMassAPI", "MaterialBindingAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/left_foot_visual/VisualMaterials/metal_silver>
+            custom rel material:binding:physics
+            prepend rel material:binding:physics = </humanoid_legs_5/Physics/PhysicsMaterial>
+            int mjc:group = 2
+            float newton:contactGap = 0 (
+                limits = {
+                    dictionary hard = {
+                        double minimum = 0
+                    }
+                }
+            )
+            token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 0
+            float physics:density = 1000
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "metal_silver" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/metal_silver>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "left_foot_sole_visual" (
+        prepend references = @./geometries.usd@</Geometries/left_foot_sole_visual>
+    )
+    {
+        over "left_foot_sole_visual" (
+            apiSchemas = ["PhysicsCollisionAPI", "NewtonCollisionAPI", "MjcCollisionAPI", "PhysicsMeshCollisionAPI", "NewtonMeshCollisionAPI", "PhysicsMassAPI", "MaterialBindingAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/left_foot_sole_visual/VisualMaterials/metal_silver>
+            custom rel material:binding:physics
+            prepend rel material:binding:physics = </humanoid_legs_5/Physics/PhysicsMaterial>
+            int mjc:group = 2
+            float newton:contactGap = 0 (
+                limits = {
+                    dictionary hard = {
+                        double minimum = 0
+                    }
+                }
+            )
+            token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 0
+            float physics:density = 1000
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "metal_silver" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/metal_silver>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "left_heel_linkage_recovered" (
+        prepend references = @./geometries.usd@</Geometries/left_heel_linkage_recovered>
+    )
+    {
+        over "left_heel_linkage_recovered" (
+            apiSchemas = ["PhysicsCollisionAPI", "NewtonCollisionAPI", "MjcCollisionAPI", "PhysicsMeshCollisionAPI", "NewtonMeshCollisionAPI", "PhysicsMassAPI", "MaterialBindingAPI"]
+        )
+        {
+            custom rel material:binding:physics
+            prepend rel material:binding:physics = </humanoid_legs_5/Physics/PhysicsMaterial>
+            int mjc:group = 2
+            float newton:contactGap = 0 (
+                limits = {
+                    dictionary hard = {
+                        double minimum = 0
+                    }
+                }
+            )
+            token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 0
+            float physics:density = 1000
+            float physics:mass = 0.029029988
+        }
+    }
+
+    def Xform "left_heel_linkage_recovered_1" (
+        prepend references = @./geometries.usd@</Geometries/left_heel_linkage_recovered>
+    )
+    {
+        over "left_heel_linkage_recovered" (
+            apiSchemas = ["PhysicsCollisionAPI", "NewtonCollisionAPI", "MjcCollisionAPI", "PhysicsMeshCollisionAPI", "NewtonMeshCollisionAPI", "PhysicsMassAPI", "MaterialBindingAPI"]
+        )
+        {
+            custom rel material:binding:physics
+            prepend rel material:binding:physics = </humanoid_legs_5/Physics/PhysicsMaterial>
+            int mjc:group = 2
+            float newton:contactGap = 0 (
+                limits = {
+                    dictionary hard = {
+                        double minimum = 0
+                    }
+                }
+            )
+            token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 0
+            float physics:density = 1000
+            float physics:mass = 0.02993997
+        }
+    }
+
+    def Xform "right_leg1_visual" (
+        prepend references = @./geometries.usd@</Geometries/right_leg1_visual>
+    )
+    {
+        over "right_leg1_visual" (
+            apiSchemas = ["PhysicsCollisionAPI", "NewtonCollisionAPI", "MjcCollisionAPI", "PhysicsMeshCollisionAPI", "NewtonMeshCollisionAPI", "PhysicsMassAPI", "MaterialBindingAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/right_leg1_visual/VisualMaterials/metal_silver>
+            custom rel material:binding:physics
+            prepend rel material:binding:physics = </humanoid_legs_5/Physics/PhysicsMaterial>
+            int mjc:group = 2
+            float newton:contactGap = 0 (
+                limits = {
+                    dictionary hard = {
+                        double minimum = 0
+                    }
+                }
+            )
+            token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 0
+            float physics:density = 1000
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "metal_silver" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/metal_silver>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "right_leg2_visual" (
+        prepend references = @./geometries.usd@</Geometries/right_leg2_visual>
+    )
+    {
+        over "right_leg2_visual" (
+            apiSchemas = ["PhysicsCollisionAPI", "NewtonCollisionAPI", "MjcCollisionAPI", "PhysicsMeshCollisionAPI", "NewtonMeshCollisionAPI", "PhysicsMassAPI", "MaterialBindingAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/right_leg2_visual/VisualMaterials/metal_silver>
+            custom rel material:binding:physics
+            prepend rel material:binding:physics = </humanoid_legs_5/Physics/PhysicsMaterial>
+            int mjc:group = 2
+            float newton:contactGap = 0 (
+                limits = {
+                    dictionary hard = {
+                        double minimum = 0
+                    }
+                }
+            )
+            token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 0
+            float physics:density = 1000
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "metal_silver" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/metal_silver>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "right_leg3_visual" (
+        prepend references = @./geometries.usd@</Geometries/right_leg3_visual>
+    )
+    {
+        over "right_leg3_visual" (
+            apiSchemas = ["PhysicsCollisionAPI", "NewtonCollisionAPI", "MjcCollisionAPI", "PhysicsMeshCollisionAPI", "NewtonMeshCollisionAPI", "PhysicsMassAPI", "MaterialBindingAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/right_leg3_visual/VisualMaterials/metal_silver>
+            custom rel material:binding:physics
+            prepend rel material:binding:physics = </humanoid_legs_5/Physics/PhysicsMaterial>
+            int mjc:group = 2
+            float newton:contactGap = 0 (
+                limits = {
+                    dictionary hard = {
+                        double minimum = 0
+                    }
+                }
+            )
+            token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 0
+            float physics:density = 1000
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "metal_silver" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/metal_silver>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "right_leg4_visual" (
+        prepend references = @./geometries.usd@</Geometries/right_leg4_visual>
+    )
+    {
+        over "right_leg4_visual" (
+            apiSchemas = ["PhysicsCollisionAPI", "NewtonCollisionAPI", "MjcCollisionAPI", "PhysicsMeshCollisionAPI", "NewtonMeshCollisionAPI", "PhysicsMassAPI", "MaterialBindingAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/right_leg4_visual/VisualMaterials/metal_silver>
+            custom rel material:binding:physics
+            prepend rel material:binding:physics = </humanoid_legs_5/Physics/PhysicsMaterial>
+            int mjc:group = 2
+            float newton:contactGap = 0 (
+                limits = {
+                    dictionary hard = {
+                        double minimum = 0
+                    }
+                }
+            )
+            token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 0
+            float physics:density = 1000
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "metal_silver" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/metal_silver>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "right_foot_visual" (
+        prepend references = @./geometries.usd@</Geometries/right_foot_visual>
+    )
+    {
+        over "right_foot_visual" (
+            apiSchemas = ["PhysicsCollisionAPI", "NewtonCollisionAPI", "MjcCollisionAPI", "PhysicsMeshCollisionAPI", "NewtonMeshCollisionAPI", "PhysicsMassAPI", "MaterialBindingAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/right_foot_visual/VisualMaterials/metal_silver>
+            custom rel material:binding:physics
+            prepend rel material:binding:physics = </humanoid_legs_5/Physics/PhysicsMaterial>
+            int mjc:group = 2
+            float newton:contactGap = 0 (
+                limits = {
+                    dictionary hard = {
+                        double minimum = 0
+                    }
+                }
+            )
+            token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 0
+            float physics:density = 1000
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "metal_silver" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/metal_silver>
+            )
+            {
+            }
+        }
+    }
+
+    def Xform "right_foot_sole_visual" (
+        prepend references = @./geometries.usd@</Geometries/right_foot_sole_visual>
+    )
+    {
+        over "right_foot_sole_visual" (
+            apiSchemas = ["PhysicsCollisionAPI", "NewtonCollisionAPI", "MjcCollisionAPI", "PhysicsMeshCollisionAPI", "NewtonMeshCollisionAPI", "PhysicsMassAPI", "MaterialBindingAPI"]
+        )
+        {
+            custom rel material:binding
+            prepend rel material:binding = </Instances/right_foot_sole_visual/VisualMaterials/metal_silver>
+            custom rel material:binding:physics
+            prepend rel material:binding:physics = </humanoid_legs_5/Physics/PhysicsMaterial>
+            int mjc:group = 2
+            float newton:contactGap = 0 (
+                limits = {
+                    dictionary hard = {
+                        double minimum = 0
+                    }
+                }
+            )
+            token physics:approximation = "convexHull"
+            bool physics:collisionEnabled = 0
+            float physics:density = 1000
+        }
+
+        def Scope "VisualMaterials"
+        {
+            def Material "metal_silver" (
+                instanceable = true
+                prepend references = @./materials.usda@</Materials/metal_silver>
+            )
+            {
+            }
+        }
+    }
+}
+

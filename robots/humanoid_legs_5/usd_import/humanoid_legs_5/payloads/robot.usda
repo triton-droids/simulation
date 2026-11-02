@@ -1,0 +1,247 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "MuJoCo USD Converter v0.2.0"
+    }
+    defaultPrim = "humanoid_legs_5"
+    doc = """Generated from Composed Stage of root layer /antioch/renderer-cache/tmp/tmp077vhhc4/humanoid_legs_5.usdc
+
+
+Generated from Composed Stage of root layer /antioch/renderer-cache/tmp/mjcf_import_humanoid_legs_5_v_25e9re/usdex_humanoid_legs_5/humanoid_legs_5.usdc
+
+
+Generated from Composed Stage of root layer /antioch/renderer-cache/tmp/mjcf_import_humanoid_legs_5_v_25e9re/temp_humanoid_legs_5/humanoid_legs_5.usd
+"""
+    kilogramsPerUnit = 1
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+over "humanoid_legs_5" (
+    prepend apiSchemas = ["IsaacRobotAPI"]
+)
+{
+    prepend rel isaac:physics:robotJoints = [
+        </humanoid_legs_5/Geometry/floating_base/torso/PhysicsFixedJoint>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/PhysicsFixedJoint>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/left_leg1/left_hip1_joint>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/right_leg1/right_hip1_joint>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/left_leg1/left_leg2/left_hip2_joint>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/left_leg1/left_leg2/left_leg3/left_thigh_joint>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/left_leg1/left_leg2/left_leg3/left_leg4/left_knee_joint>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/left_leg1/left_leg2/left_leg3/left_leg4/left_foot/left_ankle_joint>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/left_leg1/left_leg2/left_leg3/left_leg4/left_ankle_crank/left_ankle_crank_joint>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/left_leg1/left_leg2/left_leg3/left_leg4/left_foot/left_heel_linkage/left_heel_bar_joint>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/right_leg1/right_leg2/right_hip2_joint>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/right_leg1/right_leg2/right_leg3/right_thigh_joint>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/right_leg1/right_leg2/right_leg3/right_leg4/right_knee_joint>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/right_leg1/right_leg2/right_leg3/right_leg4/right_foot/right_ankle_joint>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/right_leg1/right_leg2/right_leg3/right_leg4/right_ankle_crank/right_ankle_crank_joint>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/right_leg1/right_leg2/right_leg3/right_leg4/right_foot/right_heel_linkage/right_heel_bar_joint>,
+    ]
+    prepend rel isaac:physics:robotLinks = [
+        </humanoid_legs_5/Geometry/floating_base>,
+        </humanoid_legs_5/Geometry/floating_base/torso>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/left_leg1>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/left_leg1/left_leg2>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/left_leg1/left_leg2/left_leg3>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/left_leg1/left_leg2/left_leg3/left_leg4>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/left_leg1/left_leg2/left_leg3/left_leg4/left_foot>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/left_leg1/left_leg2/left_leg3/left_leg4/left_foot/left_heel_linkage>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/left_leg1/left_leg2/left_leg3/left_leg4/left_ankle_crank>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/right_leg1>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/right_leg1/right_leg2>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/right_leg1/right_leg2/right_leg3>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/right_leg1/right_leg2/right_leg3/right_leg4>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/right_leg1/right_leg2/right_leg3/right_leg4/right_foot>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/right_leg1/right_leg2/right_leg3/right_leg4/right_foot/right_heel_linkage>,
+        </humanoid_legs_5/Geometry/floating_base/torso/hip/right_leg1/right_leg2/right_leg3/right_leg4/right_ankle_crank>,
+    ]
+    token isaac:robotType = "Default"
+
+    over "Geometry"
+    {
+        over "floating_base" (
+            prepend apiSchemas = ["IsaacLinkAPI"]
+        )
+        {
+            over "torso" (
+                prepend apiSchemas = ["IsaacLinkAPI"]
+            )
+            {
+                over "hip" (
+                    prepend apiSchemas = ["IsaacLinkAPI"]
+                )
+                {
+                    over "left_leg1" (
+                        prepend apiSchemas = ["IsaacLinkAPI"]
+                    )
+                    {
+                        over "left_leg2" (
+                            prepend apiSchemas = ["IsaacLinkAPI"]
+                        )
+                        {
+                            over "left_leg3" (
+                                prepend apiSchemas = ["IsaacLinkAPI"]
+                            )
+                            {
+                                over "left_leg4" (
+                                    prepend apiSchemas = ["IsaacLinkAPI"]
+                                )
+                                {
+                                    over "left_foot" (
+                                        prepend apiSchemas = ["IsaacLinkAPI"]
+                                    )
+                                    {
+                                        over "left_heel_linkage" (
+                                            prepend apiSchemas = ["IsaacLinkAPI"]
+                                        )
+                                        {
+                                            over "left_heel_bar_joint" (
+                                                prepend apiSchemas = ["IsaacJointAPI"]
+                                            )
+                                            {
+                                            }
+                                        }
+
+                                        over "left_ankle_joint" (
+                                            prepend apiSchemas = ["IsaacJointAPI"]
+                                        )
+                                        {
+                                        }
+                                    }
+
+                                    over "left_ankle_crank" (
+                                        prepend apiSchemas = ["IsaacLinkAPI"]
+                                    )
+                                    {
+                                        over "left_ankle_crank_joint" (
+                                            prepend apiSchemas = ["IsaacJointAPI"]
+                                        )
+                                        {
+                                        }
+                                    }
+
+                                    over "left_knee_joint" (
+                                        prepend apiSchemas = ["IsaacJointAPI"]
+                                    )
+                                    {
+                                    }
+                                }
+
+                                over "left_thigh_joint" (
+                                    prepend apiSchemas = ["IsaacJointAPI"]
+                                )
+                                {
+                                }
+                            }
+
+                            over "left_hip2_joint" (
+                                prepend apiSchemas = ["IsaacJointAPI"]
+                            )
+                            {
+                            }
+                        }
+
+                        over "left_hip1_joint" (
+                            prepend apiSchemas = ["IsaacJointAPI"]
+                        )
+                        {
+                        }
+                    }
+
+                    over "right_leg1" (
+                        prepend apiSchemas = ["IsaacLinkAPI"]
+                    )
+                    {
+                        over "right_leg2" (
+                            prepend apiSchemas = ["IsaacLinkAPI"]
+                        )
+                        {
+                            over "right_leg3" (
+                                prepend apiSchemas = ["IsaacLinkAPI"]
+                            )
+                            {
+                                over "right_leg4" (
+                                    prepend apiSchemas = ["IsaacLinkAPI"]
+                                )
+                                {
+                                    over "right_foot" (
+                                        prepend apiSchemas = ["IsaacLinkAPI"]
+                                    )
+                                    {
+                                        over "right_heel_linkage" (
+                                            prepend apiSchemas = ["IsaacLinkAPI"]
+                                        )
+                                        {
+                                            over "right_heel_bar_joint" (
+                                                prepend apiSchemas = ["IsaacJointAPI"]
+                                            )
+                                            {
+                                            }
+                                        }
+
+                                        over "right_ankle_joint" (
+                                            prepend apiSchemas = ["IsaacJointAPI"]
+                                        )
+                                        {
+                                        }
+                                    }
+
+                                    over "right_ankle_crank" (
+                                        prepend apiSchemas = ["IsaacLinkAPI"]
+                                    )
+                                    {
+                                        over "right_ankle_crank_joint" (
+                                            prepend apiSchemas = ["IsaacJointAPI"]
+                                        )
+                                        {
+                                        }
+                                    }
+
+                                    over "right_knee_joint" (
+                                        prepend apiSchemas = ["IsaacJointAPI"]
+                                    )
+                                    {
+                                    }
+                                }
+
+                                over "right_thigh_joint" (
+                                    prepend apiSchemas = ["IsaacJointAPI"]
+                                )
+                                {
+                                }
+                            }
+
+                            over "right_hip2_joint" (
+                                prepend apiSchemas = ["IsaacJointAPI"]
+                            )
+                            {
+                            }
+                        }
+
+                        over "right_hip1_joint" (
+                            prepend apiSchemas = ["IsaacJointAPI"]
+                        )
+                        {
+                        }
+                    }
+
+                    over "PhysicsFixedJoint" (
+                        prepend apiSchemas = ["IsaacJointAPI"]
+                    )
+                    {
+                    }
+                }
+
+                over "PhysicsFixedJoint" (
+                    prepend apiSchemas = ["IsaacJointAPI"]
+                )
+                {
+                }
+            }
+        }
+    }
+}
+
