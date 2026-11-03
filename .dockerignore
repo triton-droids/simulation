@@ -1,0 +1,5 @@
+# Only the files listed below reach the image build. Synced source is not a
+# build input, so editing it reuses the image and your running sessions.
+# Add a `!path` line for each file a Dockerfile COPY or ADD needs; a
+# directory takes `!dir` and `!dir/**`.
+*

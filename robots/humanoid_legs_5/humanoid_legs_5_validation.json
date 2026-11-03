@@ -121,7 +121,8 @@
     "candidate_nq": 21,
     "actuators": 10,
     "baseline_mass_kg": 15.999999999993,
-    "candidate_mass_kg": 15.999999999993369,
+    "candidate_mass_kg": 15.998999999993369,
+    "removed_torso_placeholder_mass_kg": 0.001,
     "zero_gravity_driven_steps": 1000,
     "zero_gravity_driven_finite": true,
     "zero_gravity_driven_max_closure_m": 1.2873414738795606e-05

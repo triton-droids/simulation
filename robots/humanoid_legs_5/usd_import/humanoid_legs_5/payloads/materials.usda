@@ -3,16 +3,16 @@
     customLayerData = {
         string creator = "MuJoCo USD Converter v0.2.0"
     }
-    doc = """Generated from Composed Stage of root layer /antioch/renderer-cache/tmp/tmp077vhhc4/humanoid_legs_5.usdc
+    doc = """Generated from Composed Stage of root layer /antioch/renderer-cache/tmp/tmpusyao5h0/humanoid_legs_5.usdc
 
 
-Generated from Composed Stage of root layer /antioch/renderer-cache/tmp/mjcf_import_humanoid_legs_5_v_25e9re/usdex_humanoid_legs_5/humanoid_legs_5.usdc
+Generated from Composed Stage of root layer /antioch/renderer-cache/tmp/mjcf_import_humanoid_legs_5_25gb5uqs/usdex_humanoid_legs_5/humanoid_legs_5.usdc
 
 
-Generated from Composed Stage of root layer /antioch/renderer-cache/tmp/mjcf_import_humanoid_legs_5_v_25e9re/temp_humanoid_legs_5/humanoid_legs_5.usd
+Generated from Composed Stage of root layer /antioch/renderer-cache/tmp/mjcf_import_humanoid_legs_5_25gb5uqs/temp_humanoid_legs_5/humanoid_legs_5.usd
 
 
-Generated from Composed Stage of root layer /workspace/project/robots/humanoid_legs_5/usd_import/humanoid_legs_5/payloads/base.usd
+Generated from Composed Stage of root layer /workspace/project/robots/humanoid_legs_5/usd_import/humanoid_legs_5_1/payloads/base.usd
 """
     kilogramsPerUnit = 1
     metersPerUnit = 1

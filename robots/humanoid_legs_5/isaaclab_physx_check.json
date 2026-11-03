@@ -1,0 +1,40 @@
+{
+  "scope": "Isaac Lab 3.0 / PhysX import, drive, and linkage smoke checks; not a walking validation",
+  "model": "humanoid_legs_5",
+  "fixed_root_joint_sweep": {
+    "gravity_m_s2": [0.0, 0.0, 0.0],
+    "root_fixed": true,
+    "ground_present": false,
+    "joint_target_delta_rad": 0.035,
+    "knee_target_delta_rad": -0.035,
+    "ramp_hold_return_settle_s": [0.5, 0.5, 0.5, 0.5],
+    "maximum_hold_tracking_error_rad": {
+      "left_hip1_joint": 0.00245,
+      "right_hip1_joint": 0.00247,
+      "left_hip2_joint": 0.00273,
+      "right_hip2_joint": 0.00274,
+      "left_thigh_joint": 0.00063,
+      "right_thigh_joint": 0.00063,
+      "left_knee_joint": 0.00094,
+      "right_knee_joint": 0.00094,
+      "left_ankle_joint": 0.00613,
+      "right_ankle_joint": 0.00613
+    },
+    "maximum_sampled_pin_site_gap_m": 0.0,
+    "result": "pass"
+  },
+  "free_root_grounded_zero_pose": {
+    "duration_s": 4.992,
+    "joint_targets_rad": "all zero; knees straight",
+    "actuator_gains": "MJCF-authored values",
+    "root_tilt_deg_at_2_s": 22.8,
+    "root_tilt_deg_at_3_s": 95.4,
+    "maximum_sampled_pin_site_gap_m": 0.0,
+    "result": "fail: the neutral pose falls under gravity"
+  },
+  "limitations": [
+    "The fixed-root sweep does not test ground contact, balance, or walking.",
+    "The free-root test shows that the zero-knee pose is not a stable standing pose with the authored drives.",
+    "Ankle commands still act directly on the foot hinges; motor transmission and several inertias remain estimates."
+  ]
+}

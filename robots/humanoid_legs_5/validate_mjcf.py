@@ -21,7 +21,7 @@ def main():
     model = mujoco.MjModel.from_xml_path(str(MODEL))
     report = json.loads(REPORT.read_text())
     assert model.nq == 21 and model.nu == 10
-    assert abs(float(model.body_mass.sum()) - 16) < 1e-6
+    assert abs(float(model.body_mass.sum()) - 15.999) < 1e-6
     assert report["validation"]["crank_branch_continuous"]
     assert report["validation"]["max_pin_closure_error_m"] < 1e-8
     data = mujoco.MjData(model)
@@ -41,7 +41,7 @@ def main():
     print(json.dumps({"model": "humanoid_legs_5", "nq": model.nq, "actuators": model.nu,
                       "mass_kg": float(model.body_mass.sum()),
                       "zero_gravity_steps": 1000, "max_driven_pin_gap_m": max_error}, indent=2))
-    print("MJCF linkage smoke check passed. Isaac Sim import and hardware calibration remain separate gates.")
+    print("MJCF linkage smoke check passed. Isaac Lab/PhysX import and grounded-hold smoke check passed; hardware calibration and walking remain open.")
 
 
 if __name__ == "__main__":

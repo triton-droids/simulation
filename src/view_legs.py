@@ -23,7 +23,7 @@ def main() -> None:
     args = parser.parse_args()
 
     asset_dir = Path(__file__).resolve().parents[1] / "robots" / "humanoid_legs_5"
-    usd_path = asset_dir / "humanoid_legs_5.usd"
+    usd_path = asset_dir / "usd_import" / "humanoid_legs_5" / "humanoid_legs_5.usda"
     xml_path = asset_dir / "humanoid_legs_5.xml"
     if args.xml and not xml_path.is_file():
         raise FileNotFoundError(f"The MJCF is missing: {xml_path}")
@@ -44,8 +44,9 @@ def main() -> None:
         converter = MjcfConverter(MjcfConverterCfg(
             asset_path=str(xml_path),
             usd_dir=str(asset_dir / "usd_import"),
-            usd_file_name="humanoid_legs_5.usd",
+            usd_file_name="humanoid_legs_5/humanoid_legs_5.usda",
             fix_base=False,
+            force_usd_conversion=True,
             make_instanceable=False,
         ))
         usd_path = Path(converter.usd_path)

@@ -1,0 +1,62 @@
+schema_version: 6
+# The id is the immutable identity used by Antioch sessions.
+id: "notebooks-543b368073c143a1b07d275f49f832cd"
+name: "simulation"
+scenario_paths: ["src/scenarios.py"]
+
+services:
+  # The Dockerfile starts FROM an Antioch engine image, which makes this
+  # service the simulator: scenarios, `antioch service exec python`, and Jupyter execute
+  # here. Its resources.gpu names the session's GPU class; an engine service
+  # with no class gets the engine's recommended one. Every other service
+  # runs on the same machine and sees that GPU.
+  sim:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    resources:
+      gpu: rtx-pro-6000
+    # Local source under the project root is copied to this path before
+    # every command runs; edits sync while the command is attached.
+    sync:
+      - source: .
+        target: /workspace/project
+    # ports:
+    #   - name: viewer
+    #     port: 8080
+    #     direction: client-to-service
+    # another service reaches sim:8080 directly; bind this named route
+    # with `antioch service ports --bind sim.viewer=127.0.0.1:8080`
+    # `antioch session release` closes the route
+
+  # A supporting service runs beside sim on the same machine and sees
+  # the same GPU. An omitted cpu or memory means no request and no
+  # limit. Profiles activate optional services.
+  # worker:
+  #   image: "ros:jazzy"
+  #   profiles: [debug]
+  #   depends_on:
+  #     sim:
+  #       condition: service_healthy
+  #   resources:
+  #     cpu: 500m
+  #     memory: 512Mi
+  #   ports:
+  #     - name: api
+  #       port: 8080
+  #       protocol: tcp
+  #       direction: client-to-service
+
+# Each suite is the ordered union of its select clauses. A clause runs
+# each matching scenario once with its defaults unless it chooses rows
+# with cases, all_cases or rows; set overrides parameters.
+suites:
+  smoke:
+    description: "Fast engine smoke checks"
+    select:
+      - tags: ["smoke"]
+  sweep:
+    description: "Every case of the parameter sweep"
+    select:
+      - tags: ["sweep"]
+        all_cases: true

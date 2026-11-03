@@ -1,4 +1,6 @@
 .venv*/
+.antioch/
+.uv-cache/
 __pycache__/
 *.py[cod]
 .ipynb_checkpoints/
@@ -6,3 +8,12 @@ outputs/
 *.usd
 *.usda
 *.usdc
+# Antioch sessions need the packaged robot USD and its payload layers.
+!robots/humanoid_legs_5/usd_import/**
+.mypy_cache/
+.pytest_cache/
+
+# Local files preserved from the earlier checkout
+local_archive/
+logs/
+tmp/

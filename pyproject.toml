@@ -1,0 +1,7 @@
+[project]
+name = "simulation"
+version = "0.1.0"
+requires-python = ">=3.12, <3.13"
+dependencies = [
+    "antioch-sim[isaac-lab]>=0.5.0",
+]
