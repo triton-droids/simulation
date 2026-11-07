@@ -58,6 +58,7 @@ def test_shared_pycharm_configurations_are_valid_xml() -> None:
         "3 Show Status.run",
         "4 Evaluate T02.run",
         "5 Sweep Smoke.run",
+        "6 Cluster Dashboard.run",
     ]
     for configuration in configurations:
         ET.parse(configuration)

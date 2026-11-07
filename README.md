@@ -11,6 +11,9 @@ Read [`START_HERE.md`](START_HERE.md) for the shortest possible instructions.
 The complete beginner manual is
 [`Documentation/Guides/README.md`](Documentation/Guides/README.md).
 
+Atlantis users can open `App/Scripts/cluster_dashboard.py` for a visual job
+queue, resource dropdowns, snapshot downloads, cancellation, and training logs.
+
 ```powershell
 # Open the saved T02 walker on the visible RoboCup field.
 .venv\Scripts\python.exe App\Scripts\visualize.py

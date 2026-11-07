@@ -3,7 +3,15 @@
 > Full plain-English manual: [`Documentation/Guides/README.md`](Documentation/Guides/README.md)
 
 This repository follows the same public-script pattern as Pupper. Normal users
-only need the five files in `App/Scripts/`.
+only need the six files in `App/Scripts/`.
+
+For Atlantis training, run `App/Scripts/cluster_dashboard.py`. The dashboard
+shows running and finished sweeps, downloads results, displays logs, and lets
+you choose CPU cores, GPU count, GPU type, memory, and time before submission.
+PyCharm also provides the shared **6 Cluster Dashboard** green-button run entry.
+
+Slurm cannot resize a running allocation. To change resources for an active
+sweep, select it in the dashboard and use **Cancel + resubmit**.
 
 ## I want to see the robot walk
 

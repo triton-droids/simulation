@@ -28,6 +28,7 @@ required_values=(BRANCH_NAME SSH_KEY_PATH GITHUB_KEY_PATH SSH_PORT ATLANTIS_HOST
 for value_name in "${required_values[@]}"; do
   [ -n "${!value_name:-}" ] || die "$value_name is missing from .env"
 done
+SLURM_GPU_COUNT="${SLURM_GPU_COUNT:-1}"
 [ -f "$SSH_KEY_PATH" ] || die "Atlantis SSH key not found: $SSH_KEY_PATH"
 [ -f "$GITHUB_KEY_PATH" ] || die "GitHub SSH key not found: $GITHUB_KEY_PATH"
 
@@ -74,7 +75,7 @@ echo "Connecting to $ATLANTIS_HOST ..."
 ssh "${SSH_ARGS[@]}" "$ATLANTIS_HOST" bash -s -- \
   "$BRANCH_NAME" "$SSH_DIRECTORY" "$GITHUB_REPO_SSH" \
   "$SLURM_ACCOUNT" "$SLURM_PARTITION" "$SLURM_TIME" "$SLURM_GRES_TYPE" \
-  "$SLURM_CPUS_PER_TASK" "$SLURM_MEMORY" "$MAX_ALLOCATION_RETRIES" "$@" <<'REMOTE'
+  "$SLURM_GPU_COUNT" "$SLURM_CPUS_PER_TASK" "$SLURM_MEMORY" "$MAX_ALLOCATION_RETRIES" "$@" <<'REMOTE'
 set -euo pipefail
 
 BRANCH_NAME="$1"; shift
@@ -84,11 +85,13 @@ SLURM_ACCOUNT="$1"; shift
 SLURM_PARTITION="$1"; shift
 SLURM_TIME="$1"; shift
 SLURM_GRES_TYPE="$1"; shift
+SLURM_GPU_COUNT="$1"; shift
 SLURM_CPUS_PER_TASK="$1"; shift
 SLURM_MEMORY="$1"; shift
 MAX_ALLOCATION_RETRIES="$1"; shift
 SWEEP_ARGS=("$@")
-SLURM_GRES="${SLURM_GRES_TYPE}:1"
+[[ "$SLURM_GPU_COUNT" =~ ^[1-9][0-9]*$ ]] || { echo "ERROR: SLURM_GPU_COUNT must be a positive integer." >&2; exit 2; }
+SLURM_GRES="${SLURM_GRES_TYPE}:${SLURM_GPU_COUNT}"
 
 command -v sbatch >/dev/null 2>&1 || { echo "ERROR: sbatch is unavailable on the Atlantis login node." >&2; exit 2; }
 
