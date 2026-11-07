@@ -12,12 +12,15 @@ from pathlib import Path
 
 import antioch
 
-from train_locomotion import build_env_cfg
+from train_locomotion import REWARD_PROFILES, build_env_cfg
+from trajectory_metrics import TrajectoryMetrics
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", required=True)
+    parser.add_argument("--standing-pose", choices=["neutral", "crouch"], default="neutral", help="Must match the checkpoint's training pose")
+    parser.add_argument("--reward-profile", choices=REWARD_PROFILES, default="baseline", help="Must match the checkpoint's observation layout")
     parser.add_argument("--num-envs", type=int, default=64)
     parser.add_argument("--duration", type=float, default=10.0)
     parser.add_argument("--vx", type=float, default=0.0)
@@ -25,6 +28,8 @@ def main() -> None:
     parser.add_argument("--yaw-rate", type=float, default=0.0)
     parser.add_argument("--output", default="outputs/locomotion/evaluation.json")
     args = parser.parse_args()
+    if args.duration <= 0 or args.num_envs < 1:
+        parser.error("duration and num-envs must be positive")
 
     antioch.start_simulation()
     import torch
@@ -32,11 +37,13 @@ def main() -> None:
     from isaaclab_rl.rsl_rl import RslRlVecEnvWrapper
     from rsl_rl.runners import OnPolicyRunner
 
-    cfg = build_env_cfg(args.num_envs)
+    cfg = build_env_cfg(args.num_envs, standing_pose=args.standing_pose, reward_profile=args.reward_profile)
+    cfg.commands.base_velocity.rel_standing_envs = 0.0
     cfg.commands.base_velocity.resampling_time_range = (10000.0, 10000.0)
     cfg.commands.base_velocity.ranges.lin_vel_x = (args.vx, args.vx)
     cfg.commands.base_velocity.ranges.lin_vel_y = (args.vy, args.vy)
     cfg.commands.base_velocity.ranges.ang_vel_z = (args.yaw_rate, args.yaw_rate)
+    cfg.episode_length_s = max(cfg.episode_length_s, args.duration + 1.0)
     env = ManagerBasedRLEnv(cfg=cfg)
     wrapped = RslRlVecEnvWrapper(env, clip_actions=1.0)
     train_cfg = {
@@ -58,6 +65,8 @@ def main() -> None:
     left_foot_id = body_names.index("left_foot") if "left_foot" in body_names else None
     right_foot_id = body_names.index("right_foot") if "right_foot" in body_names else None
     obs = wrapped.get_observations()
+    hip_id = body_names.index("hip")
+    trajectory = TrajectoryMetrics(robot.data.body_com_pos_w[:, hip_id], robot.data.root_quat_w)
     ticks = round(args.duration / 0.02)
     sample_start = ticks // 2
     sum_vel_error = 0.0
@@ -76,6 +85,7 @@ def main() -> None:
             actions = policy(obs)
             obs, _, done, _ = wrapped.step(actions)
             done_count += int(done.sum())
+            trajectory.update(robot.data.body_com_pos_w[:, hip_id], robot.data.root_quat_w, done, env.step_dt)
             if i >= sample_start:
                 vel = robot.data.root_lin_vel_b[:, :2]
                 sum_vx += float(vel[:, 0].mean())
@@ -93,6 +103,8 @@ def main() -> None:
                     sum_right_foot_z += float(robot.data.body_pos_w[:, right_foot_id, 2].mean())
                 sample_count += 1
     result = {
+        "standing_pose": args.standing_pose,
+        "reward_profile": args.reward_profile,
         "checkpoint": str(checkpoint),
         "command_mps_radps": {"vx": args.vx, "vy": args.vy, "yaw_rate": args.yaw_rate},
         "duration_s": args.duration,
@@ -109,6 +121,7 @@ def main() -> None:
             "right": sum_right_foot_z / sample_count if right_foot_id is not None else None,
         },
         "terminated_env_steps": done_count,
+        "trajectory": trajectory.summary(),
         "hardware_ready": False,
         "scope": "fixed-command Isaac Lab PhysX evaluation; not hardware validation",
     }

@@ -18,6 +18,7 @@ from pathlib import Path
 
 import antioch
 
+REWARD_PROFILES = ("baseline", "stepping", "stepping_straight", "stepping_wide")
 
 DRIVEN_JOINTS = [
     "left_hip1_joint", "right_hip1_joint",
@@ -44,18 +45,39 @@ def base_tilted_too_far(env, upright_cosine: float = 0.5):
     return -robot.data.projected_gravity_b[:, 2] < upright_cosine
 
 
-def build_env_cfg(num_envs: int):
+def spawn_robot_with_foot_contacts(prim_path, cfg, translation=None, orientation=None, **kwargs):
+    """Enable reporting on nested feet before contact sensors initialize."""
+    import isaaclab.sim as sim_utils
+    from pxr import PhysxSchema, Usd, UsdPhysics
+
+    result = sim_utils.spawn_from_usd(
+        prim_path, cfg, translation=translation, orientation=orientation, **kwargs
+    )
+    for root in sim_utils.find_matching_prims(prim_path):
+        for prim in Usd.PrimRange(root):
+            if prim.GetName() in {"left_foot", "right_foot"} and prim.HasAPI(UsdPhysics.RigidBodyAPI):
+                reporter = PhysxSchema.PhysxContactReportAPI.Apply(prim)
+                reporter.CreateThresholdAttr(0.0)
+    return result
+
+
+def build_env_cfg(num_envs: int, standing_pose: str = "neutral", reward_profile: str = "baseline"):
     """Start from Isaac Lab's standard velocity task and replace H1 specifics."""
     import isaaclab.sim as sim_utils
     from isaaclab.actuators import ImplicitActuatorCfg
     from isaaclab.assets import ArticulationCfg
-    from isaaclab.managers import RewardTermCfg, SceneEntityCfg
+    from isaaclab.managers import ObservationTermCfg, RewardTermCfg, SceneEntityCfg
+    from isaaclab.sensors import ContactSensorCfg
     from isaaclab.terrains import TerrainImporterCfg
     from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
     from isaaclab_tasks.manager_based.locomotion.velocity.config.h1.rough_env_cfg import H1RoughEnvCfg
     from isaaclab_tasks.manager_based.locomotion.velocity import mdp
 
     cfg = H1RoughEnvCfg()
+    if standing_pose not in {"neutral", "crouch"}:
+        raise ValueError(f"Unknown standing pose: {standing_pose}")
+    if reward_profile not in REWARD_PROFILES:
+        raise ValueError(f"Unknown reward profile: {reward_profile}")
     usd = Path("robots/humanoid_legs_5/usd_import/humanoid_legs_5/humanoid_legs_5.usda").resolve()
     if not usd.is_file():
         raise FileNotFoundError(f"Packaged humanoid USD not found: {usd}")
@@ -69,6 +91,17 @@ def build_env_cfg(num_envs: int):
     cfg.scene.env_spacing = 2.0
     cfg.scene.replicate_physics = True
     cfg.scene.height_scanner = None
+    # Imported links are nested; select each physical foot explicitly.
+    cfg.scene.contact_forces = None
+    for side in ("left", "right"):
+        foot_path = (
+            "{ENV_REGEX_NS}/Robot/Geometry/hip/"
+            f"{side}_leg1/{side}_leg2/{side}_leg3/{side}_leg4/{side}_foot"
+        )
+        setattr(cfg.scene, f"{side}_foot_contact", ContactSensorCfg(
+            prim_path=foot_path, update_period=0.0, history_length=3,
+            track_air_time=True,
+        ))
     cfg.scene.terrain = TerrainImporterCfg(
         prim_path="/World/ground",
         terrain_type="plane",
@@ -83,23 +116,30 @@ def build_env_cfg(num_envs: int):
     )
     cfg.scene.sky_light.spawn = sim_utils.DomeLightCfg(intensity=1500.0)
 
-    # Hip is the physical root. A small knee bend avoids the straight-knee
-    # joint limit used by the zero pose. Foot clearance was checked in MuJoCo.
+    # Use the validated neutral standing pose as the initial baseline.
     cfg.scene.robot = ArticulationCfg(
         prim_path="{ENV_REGEX_NS}/Robot",
-        spawn=sim_utils.UsdFileCfg(usd_path=str(usd), activate_contact_sensors=True),
+        spawn=sim_utils.UsdFileCfg(
+            usd_path=str(usd), activate_contact_sensors=True,
+            func=spawn_robot_with_foot_contacts,
+        ),
         init_state=ArticulationCfg.InitialStateCfg(
             pos=(0.0, 0.0, 0.02),
-            joint_pos={"left_knee_joint": -0.10, "right_knee_joint": -0.10},
+            joint_pos={"left_knee_joint": 0.0, "right_knee_joint": 0.0},
         ),
         actuators={
             "hip1": ImplicitActuatorCfg(joint_names_expr=["left_hip1_joint", "right_hip1_joint"], stiffness=100.0, damping=2.0, effort_limit_sim=120.0, velocity_limit_sim=8.0),
             "hip2": ImplicitActuatorCfg(joint_names_expr=["left_hip2_joint", "right_hip2_joint"], stiffness=100.0, damping=2.0, effort_limit_sim=60.0, velocity_limit_sim=8.0),
             "thigh": ImplicitActuatorCfg(joint_names_expr=["left_thigh_joint", "right_thigh_joint"], stiffness=100.0, damping=2.0, effort_limit_sim=60.0, velocity_limit_sim=8.0),
             "knee": ImplicitActuatorCfg(joint_names_expr=["left_knee_joint", "right_knee_joint"], stiffness=80.0, damping=2.0, effort_limit_sim=120.0, velocity_limit_sim=8.0),
-            "ankle": ImplicitActuatorCfg(joint_names_expr=["left_ankle_joint", "right_ankle_joint"], stiffness=20.0, damping=2.0, effort_limit_sim=16.0, velocity_limit_sim=8.0),
+            # Simulation standing check: 20/2 let the ankles yield and tip over.
+            "ankle": ImplicitActuatorCfg(joint_names_expr=["left_ankle_joint", "right_ankle_joint"], stiffness=100.0, damping=5.0, effort_limit_sim=16.0, velocity_limit_sim=8.0),
         },
     )
+    if standing_pose == "crouch":
+        from standing_pose import crouch_joint_positions
+        cfg.scene.robot.init_state.joint_pos = crouch_joint_positions()
+        cfg.scene.robot.init_state.pos = (0.0, 0.0, 0.01)
 
     # Hardware-observable actor inputs: angular rate, gravity direction,
     # commanded velocity, motor-joint state, and previous motor action.
@@ -141,6 +181,9 @@ def build_env_cfg(num_envs: int):
     cfg.events.reset_base.params["velocity_range"] = {"x": (-0.02, 0.02), "y": (-0.02, 0.02), "z": (-0.02, 0.02), "roll": (-0.02, 0.02), "pitch": (-0.02, 0.02), "yaw": (-0.02, 0.02)}
     cfg.events.reset_robot_joints.params["position_range"] = (0.98, 1.02)
     cfg.events.reset_robot_joints.params["velocity_range"] = (0.0, 0.0)
+    if standing_pose == "crouch":
+        # Independent scaling would break the passive linkage's reset closure.
+        cfg.events.reset_robot_joints.params["position_range"] = (1.0, 1.0)
 
     rewards = cfg.rewards
     # Clear H1-specific terms, then define a compact tracking/stability objective.
@@ -158,6 +201,26 @@ def build_env_cfg(num_envs: int):
     rewards.joint_deviation = RewardTermCfg(func=mdp.joint_deviation_l1, weight=-0.05, params={"asset_cfg": SceneEntityCfg("robot", joint_names=DRIVEN_JOINTS, preserve_order=True)})
     rewards.joint_pos_limits = RewardTermCfg(func=mdp.joint_pos_limits, weight=-0.2, params={"asset_cfg": SceneEntityCfg("robot", joint_names=DRIVEN_JOINTS, preserve_order=True)})
     rewards.termination_penalty = RewardTermCfg(func=mdp.is_terminated, weight=-20.0)
+    if reward_profile in {"stepping", "stepping_straight", "stepping_wide"}:
+        from locomotion_rewards import alternating_contact, feet_slide, gait_phase_observation, POSTURE_JOINTS
+        policy.gait_phase = ObservationTermCfg(func=gait_phase_observation)
+        rewards.gait_contact = RewardTermCfg(func=alternating_contact, weight=1.0)
+        rewards.feet_slide = RewardTermCfg(func=feet_slide, weight=-0.2)
+        # Body Y is forward: hip2 and thigh are lateral/yaw joints here.
+        # Let sagittal hip1, knee and ankle joints leave the reference to step.
+        rewards.joint_deviation.params["asset_cfg"] = SceneEntityCfg(
+            "robot", joint_names=list(POSTURE_JOINTS), preserve_order=True
+        )
+    if reward_profile in {"stepping_straight", "stepping_wide"}:
+        from locomotion_rewards import yaw_rate_error_l2, yaw_rate_tracking
+        rewards.track_ang_vel_z_exp = RewardTermCfg(func=yaw_rate_tracking, weight=2.0, params={"std": 0.5})
+        rewards.yaw_rate_error = RewardTermCfg(func=yaw_rate_error_l2, weight=-0.5)
+    if reward_profile == "stepping_wide":
+        from locomotion_rewards import stance_width_tracking
+        rewards.stance_width = RewardTermCfg(
+            func=stance_width_tracking, weight=0.5,
+            params={"minimum": 0.16, "maximum": 0.20, "std": 0.05},
+        )
     cfg.terminations.base_contact = None
     from isaaclab.managers import TerminationTermCfg
     cfg.terminations.base_tilt = TerminationTermCfg(func=base_tilted_too_far, params={"upright_cosine": 0.5})
@@ -165,15 +228,19 @@ def build_env_cfg(num_envs: int):
     return cfg
 
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--num-envs", type=int, default=512)
+    parser.add_argument("--standing-pose", choices=["neutral", "crouch"], default="neutral")
+    parser.add_argument("--reward-profile", choices=REWARD_PROFILES, default="baseline")
     parser.add_argument("--iterations", type=int, default=500)
     parser.add_argument("--steps-per-env", type=int, default=24)
     parser.add_argument("--output", default="outputs/locomotion")
     parser.add_argument("--resume", help="Resume PPO state from an existing .pt checkpoint")
     parser.add_argument("--smoke", action="store_true", help="Initialize and step 8 environments without PPO training")
     parser.add_argument("--pose-check", action="store_true", help="Hold the reset posture under gravity for 5 seconds")
+    parser.add_argument("--pose-check-seconds", type=float, default=5.0)
     args = parser.parse_args()
     if args.smoke:
         args.num_envs, args.iterations, args.steps_per_env = 8, 0, 2
@@ -186,9 +253,26 @@ def main() -> None:
     from isaaclab_rl.rsl_rl import RslRlVecEnvWrapper
     from rsl_rl.runners import OnPolicyRunner
 
-    cfg = build_env_cfg(args.num_envs)
+    cfg = build_env_cfg(args.num_envs, standing_pose=args.standing_pose, reward_profile=args.reward_profile)
+    if args.pose_check:
+        if args.pose_check_seconds <= 0:
+            parser.error("pose-check-seconds must be positive")
+        cfg.episode_length_s = args.pose_check_seconds + 1.0
     print("Initializing humanoid_legs_5 velocity task", flush=True)
     env = ManagerBasedRLEnv(cfg=cfg)
+    import omni.usd
+    from pxr import UsdPhysics
+
+    stage = omni.usd.get_context().get_stage()
+    for prim in stage.Traverse():
+        if prim.GetName() in {"left_foot", "right_foot"}:
+            print(
+                "FOOT:",
+                prim.GetPath(),
+                "rigid_body:",
+                prim.HasAPI(UsdPhysics.RigidBodyAPI),
+                flush=True,
+            )
     print("Articulation joints:", env.scene["robot"].joint_names, flush=True)
     print("Actions:", env.action_manager.total_action_dim, "policy obs:", env.observation_manager.group_obs_dim, flush=True)
     wrapped = RslRlVecEnvWrapper(env, clip_actions=1.0)
@@ -202,15 +286,34 @@ def main() -> None:
         return
     if args.pose_check:
         robot = env.scene["robot"]
+        foot_sensors = {side: env.scene[f"{side}_foot_contact"] for side in ("left", "right")}
+        for side, sensor in foot_sensors.items():
+            print(f"CONTACT SENSOR {side}: {sensor.body_names}", flush=True)
+            if list(sensor.body_names) != [f"{side}_foot"]:
+                raise RuntimeError(f"Unexpected {side} contact sensor bodies: {sensor.body_names}")
         actions = torch.zeros((args.num_envs, len(DRIVEN_JOINTS)), device=env.device)
         done_total = 0
-        for i in range(250):
+        min_upright_cos = 1.0
+        for i in range(round(args.pose_check_seconds / env.step_dt)):
             obs, reward, done, extras = wrapped.step(actions)
             done_total += int(done.sum())
-            if i % 50 == 49:
+            min_upright_cos = min(min_upright_cos, float(-robot.data.projected_gravity_b[:, 2].max()))
+            if not torch.isfinite(robot.data.joint_pos).all():
+                raise RuntimeError("Non-finite joint positions in standing check")
+            if i % 10 == 9:
                 projected = robot.data.projected_gravity_b
-                print(json.dumps({"t_s": round((i + 1) * 0.02, 2), "root_z_mean_m": float(robot.data.root_pos_w[:, 2].mean()), "upright_cos_mean": float(-projected[:, 2].mean()), "done_total": done_total}), flush=True)
+                feet = {}
+                for side, sensor in foot_sensors.items():
+                    force = sensor.data.net_forces_w[0, 0]
+                    feet[side] = {
+                        "force_world_N": force.tolist(),
+                        "contact_above_1N": bool(torch.linalg.vector_norm(force) > 1.0),
+                    }
+                print(json.dumps({"t_s": round((i + 1) * 0.02, 2), "root_z_mean_m": float(robot.data.root_pos_w[:, 2].mean()), "upright_cos_mean": float(-projected[:, 2].mean()), "done_total": done_total, "env0_reset_this_step": bool(done[0]), "env0_feet": feet}), flush=True)
+        print("POSE CHECK SUMMARY:", json.dumps({"seconds": args.pose_check_seconds, "num_envs": args.num_envs, "resets": done_total, "max_tilt_deg": math.degrees(math.acos(max(-1.0, min(1.0, min_upright_cos))))}), flush=True)
         env.close()
+        if done_total:
+            raise RuntimeError(f"Standing check failed: {done_total} resets")
         return
 
     out_dir = Path(args.output)
@@ -243,11 +346,16 @@ def main() -> None:
         "model": "humanoid_legs_5",
         "task": "flat_ground_commanded_velocity",
         "iterations": args.iterations,
+        "resumed_from": args.resume,
         "num_envs": args.num_envs,
         "steps_per_env": args.steps_per_env,
         "policy_rate_hz": 50,
         "driven_joints": DRIVEN_JOINTS,
-        "reset_knee_position_rad": -0.10,
+        "standing_pose": args.standing_pose,
+        "reward_profile": args.reward_profile,
+        "stance_width_reward": ({"band_m": [0.16, 0.20], "std_m": 0.05, "weight": 0.5} if args.reward_profile == "stepping_wide" else None),
+        "policy_observation_dim": env.observation_manager.group_obs_dim["policy"][0],
+        "reset_knee_position_rad": -0.4 if args.standing_pose == "crouch" else 0.0,
         "training_command_ranges": {"forward_body_y_mps": [0.20, 0.50], "body_x_mps": [0.0, 0.0], "yaw_rate_radps": [0.0, 0.0]},
         "checkpoint": str(out_dir / "humanoid_legs_5_latest.pt"),
         "hardware_ready": False,

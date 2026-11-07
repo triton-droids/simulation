@@ -1,0 +1,294 @@
+{
+  "date": "2026-11-07",
+  "physics_dt_s": 0.005,
+  "ankle_effort_limit_Nm": 16,
+  "automatic_resets": false,
+  "training": false,
+  "runs": {
+    "old_gains_zero_pose": {
+      "summary": {
+        "max_tilt_deg": 95.9069499735756,
+        "max_ankle_torque_Nm": 10.929718017578125,
+        "settings": {
+          "ankle_stiffness": 20.0,
+          "ankle_damping": 2.0,
+          "seconds": 5.0,
+          "hold_seconds": 0.0,
+          "knee_angle": 0.0
+        }
+      },
+      "final_sample": {
+        "t_s": 5.0,
+        "tilt_deg": 95.27474104328363,
+        "foot_forces_world_N": {
+          "left": [
+            3.0767384942009812e-06,
+            0.0,
+            22.8994140625
+          ],
+          "right": [
+            3.004659220096073e-06,
+            0.0,
+            22.362943649291992
+          ]
+        },
+        "root_xyz_m": [
+          0.15205807983875275,
+          0.1316041350364685,
+          0.09359080344438553
+        ],
+        "root_quat_xyzw": [
+          -0.7388949394226074,
+          0.00010850950638996437,
+          -0.00046346953604370356,
+          0.673820436000824
+        ],
+        "joint_pos": [
+          0.0072991992346942425,
+          0.008096501231193542,
+          0.002136864233762026,
+          0.00032311183167621493,
+          -0.0007202711421996355,
+          0.000565225665923208,
+          -0.039115410298109055,
+          -0.039673205465078354,
+          0.04306211322546005,
+          0.04249534383416176,
+          0.031512729823589325,
+          0.031098728999495506,
+          -0.04305935651063919,
+          -0.031512416899204254
+        ],
+        "pin_gap_m": {
+          "left": 0.0,
+          "right": 0.0
+        }
+      }
+    },
+    "new_gains_zero_pose": {
+      "summary": {
+        "max_tilt_deg": 0.2624426388026188,
+        "max_ankle_torque_Nm": 0.4713764190673828,
+        "settings": {
+          "ankle_stiffness": 100.0,
+          "ankle_damping": 5.0,
+          "seconds": 10.0,
+          "hold_seconds": 0.0,
+          "knee_angle": 0.0
+        }
+      },
+      "final_sample": {
+        "t_s": 10.0,
+        "tilt_deg": 0.0,
+        "foot_forces_world_N": {
+          "left": [
+            1.056199471349828e-05,
+            0.0,
+            78.6103515625
+          ],
+          "right": [
+            1.05377921499894e-05,
+            0.0,
+            78.43021392822266
+          ]
+        },
+        "root_xyz_m": [
+          0.15050187706947327,
+          0.007972365245223045,
+          0.012123465538024902
+        ],
+        "root_quat_xyzw": [
+          -0.00011007042485289276,
+          -1.5766853778131917e-07,
+          3.1456045235245256e-07,
+          1.0
+        ],
+        "joint_pos": [
+          7.231876952573657e-05,
+          7.4568553827703e-05,
+          3.0821429390925914e-06,
+          3.266222165621002e-06,
+          1.0823366665135836e-06,
+          -5.336069079930894e-07,
+          -7.03918922226876e-05,
+          -7.439070759573951e-05,
+          0.00021676096366718411,
+          0.00021463180019054562,
+          0.00021823777933605015,
+          0.0002181270538130775,
+          -0.00021634924632962793,
+          -0.0002173979883082211
+        ],
+        "pin_gap_m": {
+          "left": 0.0,
+          "right": 0.0
+        }
+      }
+    },
+    "new_gains_bent_knee": {
+      "summary": {
+        "max_tilt_deg": 10.702099104948532,
+        "max_ankle_torque_Nm": 5.325999736785889,
+        "settings": {
+          "ankle_stiffness": 100.0,
+          "ankle_damping": 5.0,
+          "seconds": 10.0,
+          "hold_seconds": 0.0,
+          "knee_angle": -0.1
+        }
+      },
+      "final_sample": {
+        "t_s": 10.0,
+        "tilt_deg": 8.011311335842652,
+        "foot_forces_world_N": {
+          "left": [
+            1.0518086128286086e-05,
+            0.0,
+            78.28353881835938
+          ],
+          "right": [
+            1.0497456969460472e-05,
+            0.0,
+            78.1300048828125
+          ]
+        },
+        "root_xyz_m": [
+          0.15049557387828827,
+          0.044864803552627563,
+          0.019188284873962402
+        ],
+        "root_quat_xyzw": [
+          0.06985404342412949,
+          -5.993981062601961e-07,
+          8.339290502590302e-08,
+          0.9975571632385254
+        ],
+        "joint_pos": [
+          -0.00010734621901065111,
+          -9.616160241421312e-05,
+          -8.12711823527934e-06,
+          -7.685580385441426e-06,
+          -9.416114039595413e-07,
+          9.053447911355761e-07,
+          -0.11944714933633804,
+          -0.11946961283683777,
+          -0.020268963649868965,
+          -0.01999848335981369,
+          -0.020258255302906036,
+          -0.01998724974691868,
+          0.020267808809876442,
+          0.020257044583559036
+        ],
+        "pin_gap_m": {
+          "left": 0.0,
+          "right": 0.0
+        }
+      }
+    }
+  },
+  "limitations": [
+    "Simulation gains are not calibrated hardware gains.",
+    "USD pin-gap sampling is not an independent dynamic linkage validation.",
+    "No disturbance or walking validation.",
+    "Bent-knee single-robot check transitions from the USD pose to bent-knee targets; it does not validate the task bent-knee reset.",
+    "Sole collision-box placement checked numerically; visual-mesh alignment and pressure distribution were not validated."
+  ],
+  "task_checks": {
+    "stronger_gains_bent_knee_reset": {
+      "num_envs": 8,
+      "final_sample": {
+        "t_s": 5.0,
+        "root_z_mean_m": 0.01323273777961731,
+        "upright_cos_mean": 0.9991843104362488,
+        "done_total": 24,
+        "env0_reset_this_step": false,
+        "env0_feet": {
+          "left": {
+            "force_world_N": [
+              9.789599971554708e-06,
+              0.0,
+              72.8615951538086
+            ],
+            "contact_above_1N": true
+          },
+          "right": {
+            "force_world_N": [
+              1.0446774467709474e-05,
+              0.0,
+              77.75279235839844
+            ],
+            "contact_above_1N": true
+          }
+        }
+      }
+    },
+    "stronger_gains_neutral_reset": {
+      "num_envs": 8,
+      "final_sample": {
+        "t_s": 5.0,
+        "root_z_mean_m": 0.012123405933380127,
+        "upright_cos_mean": 0.9999998807907104,
+        "done_total": 0,
+        "env0_reset_this_step": false,
+        "env0_feet": {
+          "left": {
+            "force_world_N": [
+              1.0546627891017124e-05,
+              0.0,
+              78.4959716796875
+            ],
+            "contact_above_1N": true
+          },
+          "right": {
+            "force_world_N": [
+              1.0525939615035895e-05,
+              0.0,
+              78.34199523925781
+            ],
+            "contact_above_1N": true
+          }
+        }
+      }
+    }
+  },
+  "extended_single_robot_check": {
+    "summary": {
+      "max_tilt_deg": 0.2624426388026188,
+      "max_ankle_torque_Nm": 0.4713764190673828,
+      "settings": {
+        "ankle_stiffness": 100.0,
+        "ankle_damping": 5.0,
+        "seconds": 30.0,
+        "hold_seconds": 0.0,
+        "knee_angle": 0.0
+      }
+    },
+    "settled_sole_corner_z_range_m": [
+      -1.1101365089416504e-06,
+      1.4388933777809143e-06
+    ],
+    "settled_foot_vertical_force_range_N": [
+      78.10338592529297,
+      79.16883087158203
+    ],
+    "geometry_method": "USD collision-box bottom corners transformed with live PhysX foot body poses (XYZW); sampled every 0.5 seconds after 1 second."
+  },
+  "extended_task_check": {
+    "seconds": 30.0,
+    "num_envs": 8,
+    "resets": 0,
+    "max_tilt_deg": 0.27553639103081884
+  },
+  "training_preflight": {
+    "num_envs": 256,
+    "iterations": 10,
+    "steps_per_env": 24,
+    "exit_code": 0,
+    "checkpoint": "outputs/standing_fix_preflight_20261107/humanoid_legs_5_latest.pt",
+    "checkpoint_reload_evaluation_exit_code": 0,
+    "evaluation_seconds": 2,
+    "evaluation_num_envs": 8,
+    "evaluation_terminated_env_steps": 14,
+    "scope": "Training and checkpoint pipeline verification only; ten-update policy still falls and is not a walking result."
+  }
+}
