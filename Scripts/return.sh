@@ -33,8 +33,8 @@ root="$1"
 [ -d "$root" ] || exit 0
 find "$root" -mindepth 1 -maxdepth 1 -type d -name 'Sweep_[0-9]*' -print0 | sort -zV | while IFS= read -r -d '' dir; do
   label="$(basename "$dir")"
-  status="$(tr -d '\r\n' < "$dir/.remote_status" 2>/dev/null || printf unknown)"
-  exit_code="$(tr -d '\r\n' < "$dir/.remote_exit_code" 2>/dev/null || true)"
+  status="$(cat "$dir/.remote_status" 2>/dev/null | tr -d '\r\n' || printf unknown)"
+  exit_code="$(cat "$dir/.remote_exit_code" 2>/dev/null | tr -d '\r\n' || true)"
   task="$(sed -n 's/^task_name=//p' "$dir/job_info.txt" 2>/dev/null | head -n 1 || true)"
   policy="$(sed -n 's/^policy_name=//p' "$dir/job_info.txt" 2>/dev/null | head -n 1 || true)"
   submitted="$(sed -n 's/^submitted_at_utc=//p' "$dir/job_info.txt" 2>/dev/null | head -n 1 || true)"
@@ -111,7 +111,7 @@ root="$1"; label="$2"; target="$root/$label"
 [[ "$label" =~ ^Sweep_[0-9]+$ ]] || { echo "Refusing unsafe label" >&2; exit 2; }
 case "$target" in "$root"/Sweep_[0-9]*) ;; *) echo "Refusing unsafe path" >&2; exit 2;; esac
 [ -d "$target" ] || { echo "Remote sweep no longer exists" >&2; exit 2; }
-status="$(tr -d '\r\n' < "$target/.remote_status" 2>/dev/null || true)"
+status="$(cat "$target/.remote_status" 2>/dev/null | tr -d '\r\n' || true)"
 case "$status" in succeeded|failed) rm -rf -- "$target" ;; *) echo "Refusing to delete active sweep" >&2; exit 2;; esac
 REMOTE
       echo "Completed remote sweep deleted because DELETE_REMOTE_AFTER_DOWNLOAD=true."

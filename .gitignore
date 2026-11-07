@@ -2,6 +2,7 @@
 
 # Local Python environments
 .venv/
+.venv-atlantis/
 venv/
 env/
 
