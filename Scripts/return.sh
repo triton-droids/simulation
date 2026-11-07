@@ -41,7 +41,7 @@ find "$root" -mindepth 1 -maxdepth 1 -type d -name 'Sweep_[0-9]*' -print0 | sort
   # file status at launching. Reconcile that stale state with Slurm accounting.
   case "$status" in
     launching|starting|running)
-      if [[ "$job_id" =~ ^[0-9]+$ ]] && ! squeue -h -j "$job_id" | grep -q .; then
+      if [[ "$job_id" =~ ^[0-9]+$ ]] && ! squeue -h -j "$job_id" 2>/dev/null | grep -q .; then
         slurm_state="$(sacct -n -X -j "$job_id" --format=State 2>/dev/null | awk 'NF {print $1; exit}' | cut -d+ -f1)"
         case "$slurm_state" in
           COMPLETED)
