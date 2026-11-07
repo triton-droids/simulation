@@ -35,6 +35,31 @@ find "$root" -mindepth 1 -maxdepth 1 -type d -name 'Sweep_[0-9]*' -print0 | sort
   label="$(basename "$dir")"
   status="$(cat "$dir/.remote_status" 2>/dev/null | tr -d '\r\n' || printf unknown)"
   exit_code="$(cat "$dir/.remote_exit_code" 2>/dev/null | tr -d '\r\n' || true)"
+  job_id="$(cat "$dir/.remote_pid" 2>/dev/null | tr -d '\r\n' || true)"
+
+  # A queued job can be cancelled before its runner starts, leaving the last
+  # file status at launching. Reconcile that stale state with Slurm accounting.
+  case "$status" in
+    launching|starting|running)
+      if [[ "$job_id" =~ ^[0-9]+$ ]] && ! squeue -h -j "$job_id" | grep -q .; then
+        slurm_state="$(sacct -n -X -j "$job_id" --format=State 2>/dev/null | awk 'NF {print $1; exit}' | cut -d+ -f1)"
+        case "$slurm_state" in
+          COMPLETED)
+            status="succeeded"
+            exit_code="0"
+            ;;
+          CANCELLED|FAILED|TIMEOUT|OUT_OF_MEMORY|NODE_FAIL|PREEMPTED|BOOT_FAIL|DEADLINE)
+            status="failed"
+            exit_code="1"
+            ;;
+        esac
+        if [ "$status" = succeeded ] || [ "$status" = failed ]; then
+          printf '%s\n' "$status" > "$dir/.remote_status"
+          printf '%s\n' "$exit_code" > "$dir/.remote_exit_code"
+        fi
+      fi
+      ;;
+  esac
   task="$(sed -n 's/^task_name=//p' "$dir/job_info.txt" 2>/dev/null | head -n 1 || true)"
   policy="$(sed -n 's/^policy_name=//p' "$dir/job_info.txt" 2>/dev/null | head -n 1 || true)"
   submitted="$(sed -n 's/^submitted_at_utc=//p' "$dir/job_info.txt" 2>/dev/null | head -n 1 || true)"
