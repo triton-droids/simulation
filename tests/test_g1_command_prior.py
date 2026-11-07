@@ -3,7 +3,7 @@ import jax.numpy as jp
 import numpy as np
 import pytest
 from brax.training.acme import running_statistics as rs
-from source.utils.checkpoints import set_unseen_g1_command_std
+from robocub.utils.checkpoints import set_unseen_g1_command_std
 
 
 def _params():

@@ -11,10 +11,10 @@ import numpy as np
 from omegaconf import OmegaConf
 import pytest
 
-from source.config.sim import MJXConfig
-from source.locomotion.default_humanoid_legs.joystick import Joystick
-from source.rewards import locomotion_rewards
-from source.robots.robot import Robot
+from robocub.config.sim import MJXConfig
+from robocub.locomotion.default_humanoid_legs.joystick import Joystick
+from robocub.rewards import locomotion_rewards
+from robocub.robots.robot import Robot
 
 
 @pytest.fixture(scope="module")
@@ -155,7 +155,7 @@ def test_scheduled_push_changes_planar_velocity(default_env, reset_state):
 def test_manual_smoke_reads_pipeline_state_fields() -> None:
     smoke_path = (
         Path(__file__).resolve().parents[1]
-        / "source"
+        / "robocub"
         / "locomotion"
         / "test_joystick.py"
     )

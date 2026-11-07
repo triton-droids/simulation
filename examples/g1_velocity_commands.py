@@ -1,5 +1,5 @@
 """Run from repository root: python -m examples.g1_velocity_commands"""
-from source.locomotion.unitree_g1.simulation_controller import SimulationController
+from robocub.locomotion.unitree_g1.simulation_controller import SimulationController
 
 def main():
     robot=SimulationController();robot.reset(seed=6000)

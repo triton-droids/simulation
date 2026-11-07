@@ -1,0 +1,1162 @@
+# Pipeline audit and staged screening, 2026-09-24
+
+## Current authority — Milestone 1 only (2026-09-27)
+
+The user superseded open-ended three-seed research with **Milestone 1: package,
+verify and report the existing simulation controller**, then STOP and pause the
+repeating task. Read `Documentation/Research/MILESTONES.md` and `Documentation/Research/milestone_status.json`
+first (paths relative to repository root). Milestones 2/3 are deferred and require
+new user authorization. All previous Artifacts/Results/code/checkpoints remain preserved;
+see `Documentation/Research/MILESTONE_2_RESUME.md`. Historical "active" queues and instructions
+to continue until three seeds pass below are archival, not current authorization.
+No new training or automatic research continuation. R03 was intentionally stopped.
+
+
+## Verdict and scope
+C16 rejected: nominal survival24/24 but yaw/standing gates fail; randomized
+12/24,mean281.667 steps,linear/yaw RMSE .65758/.54722; extra forward10/12.
+Sampled nominal combined6000 and forward6010 frames show upright stepping,
+not a full visual pass. No more local reward/entropy sweeps are justified now.
+No new implementation defect has been established by this audit. Runtime
+inference and screening checks below are pending in A01. No training authorized
+by the A01 plan (zero training steps,4-hour cap).
+
+## Evidence and distinctions
+- Resets: adapter delegates random resets to pinned upstream Joystick.reset;
+  upstream samples joint multipliers .5..1.5 and six root velocities -.5.. .5.
+  Native reset range fields are NOT forwarded. This known configuration trap
+  makes a config-only gradual reset curriculum ineffective. Candidate selection
+  defaults1; evaluation forces1. Nominal reset explicitly rebuilds data/obs.
+- Observations:103 actor/216 critic; transition command, previous action,phase
+  and critic air time are synchronized. Six selected adapter tests passed on
+  WSL, including physical-terminal versus timeout reset bookkeeping at lengths1/3.
+- Normalization: train.py passes trainer_runtime_controls, which explicitly
+  forwards normalize_observations=true. Evaluation builds the same normalizer
+  preprocessing, actor key/state and critic key/privileged_state. A01 runs the
+  existing saved-policy inference parity audit with64 inputs and a deliberately
+  wrong preprocessing negative control. D06 did not find extreme reset scaling.
+- Actions: C10 config scale .5,10 simulation frames, action_repeat1, matching
+  upstream default scale. Adapter clips normalized actions before upstream PD
+  targets. ONNX reference uses the same adapter; D09 raw actions remain within
+  bounds. No evidence of action saturation explaining those failures.
+- Termination: upstream ends on inverted torso OR specified foot-foot/foot-shin
+  contacts OR invalid state; adapter also catches infinities. It does NOT end
+  merely at pelvis height .6; .6 is a stricter evaluation gate. Thus a terminal
+  at high pelvis height is not itself a bug. Existing D09 trace summaries lack
+  which termination sensor fired. Do not call every termination a fall.
+- Truncation: full reset capture/restore preserves steps,truncation,episode_done
+  and accumulators; selected tests cover physical versus horizon termination.
+  Pinned Brax PPO losses use termination=(1-discount)*(1-truncation), masking
+  truncation in GAE. No local reversal of terminal/truncation found.
+- Restore: C16 restore_parity.json reports exact17 actor/normalizer leaves.
+  Linux checkpoint staging is already verified. Warm starts do NOT restore
+  optimizer/step/PRNG; these experiments are parameter continuations, not exact
+  interrupted-run resumes. This is a training-design difference, not silent
+  corruption. Network layers512/256/128 match saved config/evaluation.
+- Reference: ONNX same-environment success establishes feasibility of these
+  starts, not equivalence of its training recipe/normalization/optimization to
+  ours. Do not infer its training history from the exported policy or use it
+  as imitation labels. Training samples commands; evaluation holds them fixed:
+  intentional held-command task, not an observation mismatch.
+
+## Screening contract
+Before full development evaluation: stand and forward.45, seeds6000,6001
+(ordinary) plus6002,6014 (difficult), nominal AND randomized,500 steps.
+All trained/untrained/standing rows retained:48 episodes versus180 full rows.
+Use existing applicable per-regime numeric rules including survival,height,
+tracking and forward gait; remove only command-specific rules absent from the
+screen. Missing/duplicate/nonfinite evidence is an error. Both screens must pass
+before full180 rows execute; pass merely permits full evaluation, never promotion
+or final success. This screen may conservatively reject candidates; never relax
+it in response to a particular candidate. Full independent validation remains
+unchanged. A01 applies this to C10 without retraining to verify rejection and
+skip behavior on real data; full stages are frozen and conditionally reachable.
+Runner subprocess tests verify rejected-screen dependents do not execute.
+
+## Next decision and budget
+First review A01 inference parity and actual screening/skip evidence. If parity
+fails, repair only its cause and rerun the audit without training. If it passes,
+cheapest next diagnostic is terminal-cause/contact/attitude timing at the two
+known failures and an ordinary start (at most6 paired500-step trajectories,
+zero training). Prioritize this over new reward coefficients: D09 seed6002
+terminates32 steps with minimum pelvis .729, which warrants identifying the
+specific contact versus inversion trigger.
+Then assess an early gradual reset curriculum: it requires actual state-level
+velocity/joint scaling with coherent recomputed sensors/observations, endpoint
+parity tests and original evaluation resets. Start modest and increase towards
+original reset range during initial learning, not only after nominal walking.
+A binary randomized-from-scratch attempt already failed; do not repeat it as a
+new idea. Freeze one matched pilot and control, each at most3,368,960 training
+steps, only after diagnostics justify exact curriculum and budgets. Screen both;
+if neither improves difficult-start survival without ordinary regression, stop
+that hypothesis. Do not launch this proposed pilot automatically from A01.
+All failed evidence, final control superiority, fresh held-out tests, visual review
+and three predetermined fresh independent training seeds remain mandatory.
+
+## A01 runtime evidence and A02 freeze
+A01 inference parity: max action difference0 over64 observations; deliberately
+wrong identity preprocessing differs1.9222, so the audit detects that fault.
+Nominal screen passes; randomized fails (min31 steps,mean274.625). All three
+full jobs are skipped_screening:180 additional evaluations avoided. No full pass.
+A02 records torso gravity and each pinned termination contact sensor in every
+trace, asserts their OR plus finite-state guard equals actual done at every step,
+and reports cause/first trigger. No physics, policy, reward or terminal-rule edits.
+Saved C10 checkpoint1003520, original randomized forward.45 starts6000,6002,
+6014, paired with diagnostic reference,500 steps each: six trajectories maximum,
+zero training,90-minute cap. Tests exercise independent sensor addresses,
+inversion and infinities; runtime parity additionally tests actual environment.
+No new gait videos generated by A01; prior C10 visual samples already reviewed.
+Review causes before freezing a curriculum pilot; do not weaken contact rules.
+
+## A02 results and P01 matched pilot freeze
+C10 ordinary6000 survives500.6002 terminates31 via foot-foot contact while
+minimum pelvis .724;6014 terminates57 via foot-foot contact after height drops
+as low as .107. Neither terminal reports inversion/nonfinite. Reference survives
+500 at all3. Do not conflate collision trigger with root cause or weaken it.
+P01 tests earlier gradual reset learning against full-disturbance-from-start,
+not another late reward tweak. Both from scratch developmentseed11,three
+parameter-warm-start stages1003520 steps each (3010560 per arm;6021120 total).
+Both identical PPO/reward settings:lr.0003,gamma.97,horizon500,original full
+command ranges,linear3,yaw.75,phase3,contact-phase2,orientation-2,otherdefaults.
+Curriculum joint deviations and root velocity scale .25,.5,1;control1,1,1.
+Random world translation/yaw retained. Whole state/sensors/observations rebuilt
+when scaled; scale1 preserves upstream path. Both arms incur the same optimizer
+restart schedule. Actor/normalizer warm-start parity and cross-arm initial-policy
+parity are asserted. No selection of training seeds or use of oracle labels.
+All evaluation forces disturbance scale1 and candidates1. Frozen48-row screen
+per arm; full180 rows only if both screens pass. Forward videos in screens.
+Commands Documentation/Research/queues/post_f1_p01.json;10-hour cap. No automatic extension.
+Compare difficult-start survival and ordinary-start regression on original
+resets. If neither arm improves these jointly, abandon this curriculum pilot;
+if improved but gates fail, record specific failures before any new hypothesis.
+No claim this short pilot must solve full locomotion. Final recipe, all gates,
+fresh held-out tests and three new independent training seeds remain required.
+Validation: real MJX reset scales0/.5/1 passed qpos/qvel scaling, unchanged root pose, finite observations, recomputed observation coherence and exact upstream actor observation parity at scale1 (Artifacts/Results/reset_curriculum_audit.log). Queue validation and diff checks passed.
+
+## P01 rejected; P02 collision-precursor hypothesis
+P01 curriculum/control randomized survivors0/8 each,mean171.75/170.125;
+nominal1/8 versus0/8,mean367.75/92.25. Curriculum improves nominal duration
+but not recovery without ordinary regression versus C10. Sampled forward6000
+videos show crouching/unstable steps; no pass. Abandon this pilot, no extension.
+Screening skipped all six full jobs (360 additional evaluation episodes).
+Post-hoc A02 trace geometry, heading-frame signed left-minus-right foot width:
+ordinary C10 min.173m; difficult6002 min.066, below.10 at step28 then collision31;
+6014 min-.023, below.10 at step52 then collision57. Reference minima.128/.208/.146
+and survives all. These selected traces motivate a hypothesis, not causal proof.
+P02 adds bounded squared deficit clip((.16-width)/.16,0,1)^2 with weight-4,
+control_dt scaling once; no cost at width>=.16. Measured in root yaw frame,
+left/right pinned feet sites, global yaw/translation invariant. Applies both
+standing and moving. Contact and termination rules unchanged. Risk: overly wide
+or rigid gait; final command/gait gates remain. Reference only informs diagnosis,
+never targets or imitation data. Default weight0 preserves existing behavior.
+Single bounded C10-parent continuation,seed11,1003520steps; all C11 recipe
+settings otherwise unchanged. Same-parent C11 supplies historical control.
+48-row frozen screen,180 full rows only after both screens pass,5-hour cap.
+No unchanged extension if difficult survival fails to improve without ordinary
+regression. Tests verify bounded geometry and yaw/translation invariance; actual
+MJX reset/step required before launch. No final independent seed success claimed.
+P02 validation: geometry unit test, real MJX reset/step smoke (Artifacts/Results/narrow_feet_smoke.log), queue validation and diff checks passed.
+
+## P02 rejected and A03 action-sampling diagnostic
+P02 nominal8/8 survive but standing yaw .15675 exceeds .15; randomized4/8
+survive just as C10,mean276 versus274.625. Difficult forward6002/6014 lasts
+41/55 versus31/54. No survival success; abandon separation-cost pilot, no
+extension. Sampled ordinary forward videos show stepping, not a full gait pass.
+Full180 evaluations skipped. Original terminal and evaluation rules unchanged.
+A03 evaluates frozen C10 stochastically at reset6000/6002/6014 with independent
+policy RNG keys17/29/43,forward.45,500steps. Nine local trajectories,zero training,
+2-hour cap. Existing A02 deterministic/oracle data remain matched references;
+do not rerun reference for each key. Record every trajectory; no lucky-draw
+selection or promotion. Question: does the trained action distribution contain
+recoveries that its deterministic action choice fails to reproduce? This is
+not a claim of inference bug; stochastic training and deterministic deployment
+are intentional different modes. Final evaluations remain deterministic.
+If all difficult draws fail, close this explanation; if recoveries appear, report
+frequency and ordinary regression, then design a bounded learning/distribution
+experiment rather than changing the final evaluation mode. Freeze decisions only
+after all9 results. CLI defaults preserve original behavior. Verify saved-policy
+same-key repeatability/different-key sensitivity/deterministic invariance before
+launch; per-transition terminal decomposition checks remain active.
+A03 validation: saved-policy repeatability, RNG sensitivity and deterministic invariance passed (Artifacts/Results/a03_sampler_check.log); Python syntax, frozen queue and diff checks passed.
+
+## A03 closed; B01 uninterrupted baseline feasibility probe
+A03 ordinary6000 survives3/3 but yawRMSE .424-.447; difficult6002 lasts31/31/63
+and6014 lasts40/57/47,zero6 survivors. All report foot-foot contact;6002/key43
+also inversion. No stochastic recovery evidence; close this explanation, retain
+all draws. No new videos from this numeric diagnostic; prior C10 reviewed.
+Budget audit: DECISIONS.md line444 and EXPERIMENT_PLAN.md line510 record pinned
+upstream200M-step/8192-env profile. Recent P01 only3.01M per arm and optimizer
+restarts. These are not comparable training budgets; no proof of impossibility.
+B01 is one prospectively bounded uninterrupted20070400-step from-scratch
+seed11 development probe,512envs,batch32*16,unroll20,8evals,lr3e-4,gamma.97,
+entropy.005,original default reward scales (phase1,contact-phase0,narrow-feet0),
+full randomized starts with scale1/candidate1,upstream command ranges vx[-1,1],
+vy[-.5,.5],yaw[-1,1]. Noise,pushes,domain randomization remain disabled;
+horizon500 rather than upstream profile. This is NOT exact upstream replication,
+and changes versus P01 prevent attributing outcomes solely to budget.
+No warm starts, optimizer resets, oracle labels or parameter sweeps. Final20070400
+checkpoint fixed before run; ignoreKL only through first2867200 callback; existing
+sustainedKL/nonfinite guards remain.6-hour queue cap,4-hour training cap.
+Screen fixed48 original rows,own checkpoint0 untrained reference,then conditional
+full180 with original thresholds. No checkpoint cherry-picking. If both screens
+fail/no recovery gain, do not extend unchanged; review learning curve and stop
+this baseline hypothesis or identify a specific justified redesign. A pass only
+permits full development evaluation and later fresh independent validation.
+This replaces short repeated fine-tuning with one bounded budget/recipe probe.
+
+## B01 recovery gain and B02 matched yaw correction
+B01 fixed-final checkpoint: nominal8/8 and randomized8/8 survive500; random
+height .7033,mean/worst linear .20560/.29515 pass. Both screens still reject:
+nominal mean yaw .26840,stand worst .30174; randomized mean yaw .28197.
+Sampled ordinary forward videos show upright alternating steps,not full visual
+validation. Full jobs correctly skipped. Recovery improved versus C10's4/8 on
+identical screen. Do not call this full command-grid or independent-seed success.
+Learning curve internal mean survival53->76->182->406->470->500->500->445;
+last decline retained, no checkpoint selection. Budget/recipe changes mean
+recovery cannot be attributed to training duration alone.
+B02 freezes two matched continuations from B01 final20070400,seed11,1003520
+steps each,lr1e-4 (both),gamma.97,original B01 command ranges/rewards except
+prospective yaw weight3 versus.75 control. Actual matched argv equivalence
+checked after output paths and yaw weight removal. Exact restore audits.
+48 screening rows each,full180 each only if both screens pass. Reference remains
+B01 checkpoint0 for both arms; original horizon500 and all thresholds unchanged.
+8-hour cap,2,007,040 new training steps total. No unchanged automatic extension.
+Select by all screen/full/control/gait evidence,not reward or yaw alone. If yaw
+improves at cost of recovery, reject; if neither clears gates, record remaining
+failure before another specific hypothesis. Three fresh training seeds and fresh
+held-out grid remain required after development; all B01/B02 are development.
+No runner/physics code changes. Plan validation,diff check and paired-command
+assertion required before commit/launch.
+
+## B02 reviewed; B03 stand-command reward conflict
+B02 yaw3 random7/8 survive,mean446.125;nominal8/8 but stand yaw .1900>.15.
+Reject yaw3 because recovery regresses. Control random8/8 and all random screen
+numeric gates PASS (linear/yaw means.21949/.22617); nominal8/8 survival but
+stand linear .15894 and yaw .22117 fail. Full jobs skipped; no full-gate pass.
+Sampled ordinary random-forward videos show upright alternating support.
+Nominal stand single-support .824-.834 and completed air .28-.34s indicate
+continued stepping. Upstream _reward_feet_phase gates on commanded OR actual
+motion>.1, so movement can sustain phase-height reward at zero command. This
+is an intentional upstream objective, not a software bug; hypothesis: conflict
+with strict standing precision. Do not weaken stand gates or contact rules.
+B03 compares command-only phase gating vs unchanged mask from SAME B02control
+final1003520,seed11,1003520steps each,lr1e-4,gamma.97,yawweight.75,all other
+settings identical. Subtract only weighted phase term*dt at command norm<=.01;
+moving reward,physics,terminal rules remain unchanged. Defaultfalse preserves
+historical behavior. Both training/evaluation use the saved recipe; gate metrics
+exclude shaped reward. Real-MJX stand/move parity smoke required before launch.
+Nominal screen videos now show stand; random screen videos forward. Original48
+screen rows and conditional180 full rows each,8-hour cap. No unchanged extension.
+If standing improves with any recovery loss,reject; full validation and all3
+fresh independent training seeds/held-out grid still mandatory. Reference remains
+B01 true initialization checkpoint0. No winner selection from reward alone.
+B03 validation: real-MJX stand/moving reward and physics/termination parity passed; three adapter tests including exact nonzero phase subtraction passed. Queue validation and diff checks passed.
+
+## B03 review and B04 matched stand-pose test
+B03 both arms survive all16 screen episodes and pass random numeric screen.
+Command-only phase arm nominal worst stand linear/yaw .15602/.16691 versus
+control .15544/.17848; both exceed .15. Random mean yaw .18217 versus .19778.
+Nominal stand sampled video frames show continued stepping in both. Phase gating
+modestly improves yaw without measured recovery loss,not a full-gate pass.
+B04 compares existing stand_still weight-3 versus-1 from SAME B03phase_gate
+final1003520,seed11,1003520steps each,lr1e-4,gamma.97,yaw.75,phase gatingtrue.
+Only stand weight differs; normalized training argv equality asserted. Upstream
+stand_still is sum(abs(jointpos-defaultpose)) only when command norm<.01.
+It penalizes pose deviation,not velocity directly. Hypothesis: reduce residual
+zero-command stepping. Risk: impeding recovery during zero-command disturbances;
+reject any lost survival/random gate or moving gait/tracking regression.
+Original fixed48-row screens and conditional180 full evaluations each;8-hour
+cap,2,007,040 training steps total. Exact actor/normalizer restore audits; no
+new runner/physics code. B01checkpoint0 reference. Do not weaken .15 stand
+thresholds or call passing random screening final validation. If neither clears
+nominal standing,close this coefficient test and reassess mechanism; no blind
+weight escalation or automatic unchanged extension. Fresh independent3-seed
+validation required after any full development pass.
+
+
+## B04 rejected; A04 frozen standing mechanism diagnostic
+Both arms survive all16 screening episodes. Stand3 nominal worst stand linear/yaw
+.16223/.29223 and random mean/worst yaw .25906/.36578 fail. Control passes random
+screen but nominal stand .15420/.18109 fails. All full evaluations skipped.
+Sampled frames from both nominal stand and random forward videos show ongoing
+zero-command stepping and upright forward stepping. This is not final visual
+validation. Close this stand-pose coefficient hypothesis; no weight escalation.
+A04 uses zero training steps: fixed B04control final1003520, stand command0,0,0,
+seed6000 nominal and randomized original resets,500 steps each, deterministic.
+Compare each to the verified reference in the same MJX task (4 trajectories total).
+Plan: Documentation/Research/queues/post_f1_a04.json;90-minute queue cap;40-minute stage caps.
+No physics/reward/inference changes, no fitting to reference actions. Record mean
+velocity versus oscillatory variance, contacts/phase, action saturation and weighted
+reward terms. Compare first100 and last250 steps to distinguish initial settling
+from persistent motion; verify zero-command phase reward is actually zero.
+Decision: an observed parity/implementation defect requires its smallest verified
+repair; otherwise persistent stepping with phase reward zero motivates considering
+one matched mixed-command standing-exposure test (not coefficient escalation).
+If error is confined to initial settling, target recovery/transients instead. Do
+not launch either training hypothesis until traces support it and a budget is
+frozen. No claim that reference shares our training architecture. All original
+screen/full/standing/control/gait gates remain unchanged; diagnostic windows do
+not replace whole-episode scoring. Three fresh independent seeds/held-out grid
+still required after a full development pass. Retain all failures.
+
+
+## A04 reviewed; B05 mixed standing exposure frozen
+All four diagnostic trajectories survive500. Local phase reward is exactly zero,
+no action saturation. Nominal first100/last250 linear RMSE .13695/.13517,
+yaw .20117/.14655; final mean lateral velocity-.06280, yaw mean.02132/std.14499,
+single support.828. Random final250 is similar (.13414/.14488, support.828).
+Persistent stepping/oscillation remains, while reset transients add error. Reference
+also keeps stepping and fails standing precision (nominal final linear/yaw
+.18990/.18762); it is not a standing target or label robocub. No newly found defect.
+Do not replace whole-episode gates with favorable settled windows.
+B05 compares30% zero commands versus original10%, same B04control final1003520,
+seed11,1003520steps each,lr1e-4,gamma.97,phase gatingtrue,stand penalty-1.
+Original moving command ranges, rewards, reset distribution unchanged. Uses pinned
+upstream sampler's fourth random key with larger Bernoulli threshold; preserves
+all retained moving samples and default10% behavior. Applies on reset and command
+resampling through the upstream method. Held-command evaluation remains unchanged.
+Hypothesis: more mixed standing exposure reduces persistent stepping without
+forgetting movement. This is not the old zero-command-only training pilot.
+Total2,007,040 new steps,8-hour queue cap,original48-row screens and conditional
+180 full evaluations per arm; true untrained reference B01checkpoint0. Restore
+parity mandatory. If neither clears nominal standing without recovery/moving
+regression, close this exposure hypothesis; no automatic unchanged extension or
+probability sweep. Both arms reviewed, never select reward alone. Full original
+control/gait gates and three fresh training seeds/held-out grid remain mandatory.
+B05 verification:16 adapter tests passed; additional real pinned upstream sampler test passed, confirming30% exposure and exact retained moving samples. Queue validation,paired argv assertion and diff checks passed.
+
+
+## B05 exposure hypothesis closed; B06 targeted yaw damping frozen
+Both arms survive16/16 screen episodes and pass randomized numeric screening.
+Nominal stand linear passes:30% .13411 versus control .14526; yaw still fails:
+.20471 versus .18867 (limit.15). All full evaluations skipped. Sampled stand
+frames show continuing steps and forward frames upright stepping; no final visual
+pass claimed. Close standing-exposure hypothesis: no probability sweep/extension.
+A04 yaw variance dominates mean yaw; B05 leaves yaw as nominal screen failure.
+B06 tests an explicit squared pelvis gyro-z cost ONLY at zero command(norm<.01),
+weight-1 versus0. This differs from failed global yaw reward3: moving/turning reward
+unchanged. Same B05control final1003520 parent,seed11,1003520steps each,lr1e-4,
+gamma.97,phase gatingtrue,stand pose-1,standing exposure10%. Pre-transition command
+and post-transition gyro; cost*control_dt added once. Default0 is historical parity;
+reset initializes metric to preserve JAX tree; saved recipe used in evaluation.
+No changes to physics,termination,commands,reset distribution or evaluation gates.
+Budget2,007,040 training steps total,8-hour queue cap; fixed48 screening rows each,
+conditional180 full rows each; B01checkpoint0 untrained reference; restore audit.
+Reject yaw gains that lose standing linear precision,recovery or moving gait.
+If neither arm passes both screens, close this damping hypothesis; do not escalate
+coefficient or continue unchanged. Review remaining objective conflict before any
+further training. Partial screens never equal full pass; original control/visual
+and three fresh independent training seeds/held-out criteria remain mandatory.
+B06 verification:3 focused adapter tests passed; real MJX reset/step metric structure and stand/moving reward/physics/termination parity passed (Artifacts/Results/b06_stand_yaw_smoke.log). Paired argv assertion, queue validation and diff check passed.
+
+
+## B06 closed; remaining objective conflict and B07 freeze
+B06 both16/16 screen survival, nominal stand linear .14729/.14157 passes but
+stand yaw .24195/.21583 fails. Damping random screen passes; control worst yaw
+.44120 fails. All full evaluations skipped. Sampled stand/forward videos retain
+stepping and upright walking. Close damping hypothesis; no coefficient escalation.
+Objective review of existing A04 traces (not repeated simulation): settled stand
+weighted feet_air_time reward+.01216 in both reset regimes despite phase reward0.
+Pinned upstream _reward_feet_air_time explicitly deletes/ignores command. Other
+positive terms are tracking rewards; pose penalty dominates costs at~-1.023.
+This small air-time incentive is a real objective conflict, not an implementation
+bug and not proof it causes the plateau. Removing it is a bounded causal test.
+B07 command-gates feet_air_time at norm<=.01 versus unchanged upstream. Includes
+both positive and negative air-time terms; moving/turning rewards unchanged.
+Same B06control fixed-final1003520 parent,seed11,1003520steps each,lr1e-4,gamma.97,
+phase gatingtrue,stand yaw0,stand pose-1,standing exposure10%. No cherry-picked
+checkpoint. One paired budget2,007,040 steps,8-hour cap. Fixed48 screen rows and
+conditional180 full rows each,original gates; B01checkpoint0 untrained reference.
+Pre-transition command,weighted delta*dt once; defaultfalse restores old behavior.
+No reset,physics,termination or observation changes. Restore audits mandatory.
+If neither passes both screens, close this objective-mask hypothesis; do not run
+another mask/coefficient sweep or extend unchanged. Before further training assess
+whether the learned periodic gait representation, rather than more reward tuning,
+requires a bounded structural diagnostic. Reject stand gains with recovery/moving
+regression. Full original numeric/control/visual gates and three fresh independent
+training seeds plus held-out tests remain required; screens are not full passes.
+B07 verification:4 focused tests passed; real MJX smoke exercised nonzero air-time removal and unchanged moving reward/physics/termination (Artifacts/Results/b07_airtime_smoke.log). Queue validation,paired argv equality and diff checks passed.
+
+
+## B07 closed; A05 frozen phase-input structural diagnostic
+B07 air-time gate survives16/16 and passes random numeric screen; nominal stand
+linear.14940 passes but yaw.22611 fails. Control nominal linear/yaw.15394/.21222
+fails and random7/8 survives (mean444.875,min59,height.35746). All full evaluations
+skipped. Sampled stand/forward frames show residual stepping and upright ordinary
+forward motion, not final visual approval. Close objective-mask hypothesis; no
+further mask/coefficient sweep or unchanged extension. Retain failed control.
+A05 uses ZERO training: fixed B07airtime_gate final1003520, deterministic stand,
+nominal reset6000 and difficult random6002. Each gets unchanged input baseline,
+phase clamp0 and phase clamp pi/2: six500-step trajectories,3-hour queue cap,
+40-minute stage caps. No oracle rerun. Uses original physical resets/termination.
+Clamp ONLY raw phase observation indices99:103 before saved normalizer/inference,
+actor and privileged vectors consistently to cos/sin of antipodal phases. Actual
+simulator phase,reward,history,physics and contacts remain unchanged. DefaultNone
+is exact historical inference. This is an out-of-training-distribution diagnostic,
+not a candidate deployment mode or legitimate full validation pass.
+Record all six survival,height,linear/yaw errors,contacts and first100/last250
+motion metrics. No choosing favorable phase or seed. Evidence supporting a future
+standing-specific phase representation requires BOTH clamped angles on BOTH
+resets to retain500-step survival/height>.6,lower yaw RMSE by at least20% versus
+matched baseline, and linear RMSE no more than.02 worse. Even this only motivates
+one prospectively frozen training/evaluation-consistent representation experiment.
+If effects are angle-dependent or falls occur, do not promote an inference clamp;
+record sensitivity/inconclusiveness and design the cheapest specific alternative
+structural test. Failure cannot prove phase independence due distribution shift.
+All original whole-episode gates,full command/control/gait evaluation and three
+fresh independent training seeds/held-out tests remain unchanged and outstanding.
+A05 verification: jitted observation-intervention test passed for both angles, exact no-op default and all nonphase indices; queue validation and diff checks passed.
+
+
+## A05 rejected; A06 source-motivated double-stance diagnostic
+A05 nominal baseline500 steps,linear/yaw.14134/.17784; random baseline500,
+.19988/.19382. Nominal phase0 terminates foot-foot at102(height.27631),phase90
+survives500 but yaw.35124. Random phase0/90 terminate foot-foot at64/55,
+heights.52019/.42550,yaw.67297/.70400. All interventions fail frozen promotion.
+Nominal baseline first100/last250 yaw.19579/.17497; random.23317/.17126.
+Nominal phase90 first/last yaw.36951/.36226; failed trials' last250 windows
+contain only102/64/55 available steps, not settled survival. No favorable clamp
+selected; failure under distribution shift does not establish phase independence.
+Specific new structural evidence: pinned joystick.py lines396-402 has a disabled
+standing proposal setting BOTH phases to pi at zero command. A05 used antipodal
+phases, always encoding one swinging leg; canonical double stance is distinct.
+A06 freezes only two500-step zero-training trials, B07airtime_gate final1003520,
+nominal6000/random6002,stand,deterministic,raw observation phase[-1,-1,0,0].
+Reuse exact A05 matching baselines; no repeat baseline/oracle or phase sweep.
+Actual simulator phase/history/reward/physics unchanged; intervention precedes
+saved normalizer; observation indices99:103 only. Default paths unchanged.
+Plan Documentation/Research/queues/post_f1_a06.json,90-minute queue cap,40-minute stage caps.
+This tests the encoding, NOT full implementation of upstream's proposed state
+update; it remains out-of-training-distribution and cannot count as a gate pass.
+Promotion evidence for a future training-consistent structural experiment requires
+BOTH cases500 steps,height>.6,yaw at least20% below matched baseline,linear no
+more than.02 worse. Record all outcomes,first100/last250 and contacts. If either
+fails,close inference-phase-intervention branch; do not try more phase constants.
+Reassess a separately justified training architecture/objective design before
+new training. All original full numeric/control/gait gates and three fresh
+independent training seeds/held-out tests remain unchanged and outstanding.
+A06 verification: both jitted diagnostic tests passed, including exact double-stance encoding/nonphase preservation and prior intervention/default parity. Queue validation, Python compile and diff checks passed.
+
+
+## A06 rejected; S01 specialist architecture feasibility freeze
+Both double-stance interventions terminate foot-foot: nominal98 steps,height
+.26018,linear/yaw.75791/.47876; random57,height.36160,.92147/.88712. First100
+and last250 summaries each contain entire shortened98/57 traces, not settled
+windows. Matching A05 baselines survive500; neither promotion condition passes.
+Close inference-phase branch; no more phase constants or inference-only changes.
+Reassessment: B03-B07 corrections to the mature mixed-command walking policy
+have not produced standing precision; phase intervention breaks its feedback
+behavior. This does not prove an architectural limitation. Test prerequisite
+capability for a possible separate standing branch before building a switch.
+S01 is ONE from-scratch standing specialist feasibility probe, seed11,3010560
+steps uninterrupted,512envs,lr3e-4,gamma.97,8evals,500-step horizon,full original
+random resets,candidates1/scale1,zero command ranges. Original baseline rewards
+with existing phase/air-time command masks true,stand pose-1,yaw damping0.
+Cyclic phase observations remain normal: no new phase encoding or model change.
+No warmstart,reference labels,optimizer restarts,checkpoint selection or retuning.
+Contrast with old C07: it fine-tuned weak C02 with phase shaping active and
+orientation-4; S01 learns standing from initialization with no zero-command gait
+incentives. This is not causal isolation or a repeat mixed-command exposure sweep.
+Budget3,010,560 training steps,2-hour train cap,6-hour queue cap; final checkpoint
+fixed in advance. Guards ignore KL only through430080 and retain sustainedKL/
+nonfinite checks. Fixed48 original screen rows include stand AND forward; own
+checkpoint0 untrained reference. Full180 still conditional on BOTH original
+screen passes; expected movement loss cannot be hidden or counted as success.
+Record all stand rows,forward rows and videos. Specialist capability criterion:
+all4 nominal stand rows survive500,height>.6,linear/yaw<=.15; all4 randomized
+stand rows survive500,height>.6,linear/yaw<=.35. These are prerequisite criteria
+ONLY, not substituted full gates. If met but movement fails, the only permitted
+next direction is a prospectively frozen joint-controller/transition feasibility
+study with original full evaluation; no deployment or automatic switch. If unmet,
+close this specialist probe with no unchanged extension; use learning curve and
+failure evidence to reassess before additional compute. No inevitable success
+claim. Final recipe must independently train every component for three fresh
+predetermined seeds and fresh held-out tests and pass all original numeric,
+control-superiority,standing,gait and visual gates. Nothing is waived.
+S01 verification: plan validation, fixed checkpoint/monitor/initialization assertions and output-video path checks passed; no runner/model logic changed.
+
+
+## S01 prerequisite fails; A07 frozen temporal-control diagnostic
+S01 all4 nominal stand rows survive500,height>=.75495,linear.02686-.02771,
+single-support fraction0, but yaw.18969-.20972 fails. All4 randomized stand rows
+terminate at34/24/44/41 (6000/6001/6002/6014),minheight.69081/.65808/.63081/.56666;
+linear.492-.726,yaw.413-.585. Forward rows also fail; full jobs skipped. Sampled
+nominal stand frames show planted feet,random forward frames show backwards fall.
+No specialist promotion or controller switch. Close3.01M probe, no unchanged
+extension. Internal evaluation mean lengths53,39,29,35,41,66,121,99 show incomplete
+recovery,not convergence or proof standing cannot be learned. Final checkpoint
+retained; do not pick earlier internal peak. S01 differs qualitatively from
+walking-in-place B07, yet yaw precision remains unresolved.
+Existing B07 A05 nominal last250 yaw spectrum(Hann,demeaned,50Hz) has54.8% power
+above5Hz; B04 A04 has44.6%. Action per-channel delta RMS .20093/.15943. These
+are correlations,not established causes. Need same trace for planted-foot S01.
+A07 freezes TWO zero-training unmodified deterministic S01 final3010560 stand
+trajectories: nominal6000/random6002,500steps cap,original resets and terminal
+rules. Existing compare script saves actions,gyro,positions,contacts,reward and
+terminal signals. No phase intervention,filter,oracle or completed training rerun.
+Plan Documentation/Research/queues/post_f1_a07.json;90-minute queue cap,40-minute stage caps.
+Review terminal causes,whole/first100/last250 errors; shortened traces are not
+settled windows. Compare settled nominal yaw mean/variance,single-support,action
+first-difference RMS,Hann spectral power above5Hz and dominant frequency against
+saved B07/B04 traces (no reruns). High-frequency action/body motion while feet
+remain planted motivates testing temporal actuator-target regularization with
+matched training/evaluation; it does not justify an inference-only filter.
+Prospective evidence rule: S01 nominal500steps,support fraction<.1,>50% demeaned
+yaw spectral power above5Hz and action delta RMS>.1 supports ONE bounded matched
+temporal-control experiment. If absent, do not add smoothing speculatively;
+use measured failure cause to select a different specific diagnostic/design.
+Randomized terminal evidence must inform recovery risks of any added latency.
+Original full gates and three fresh independent seeds/held-out tests unchanged.
+
+
+## A07 evidence met; T01 matched temporal-control freeze
+A07 completed Sept24 at21:10UTC and awaited review; no training ran during that
+review gap. Nominal S01 survives500,minimumheight.75495,support0,linear/yaw
+.02746/.20577. First100 linear/yaw.02989/.19463;last250 .02717/.20933.
+Settled Hann demeaned yaw power97.56% above5Hz,peak23.8Hz,action difference
+RMS.49118 meets ALL frozen evidence conditions. Whole500 power97.66%,peak23.9Hz.
+B07/B04 saved settled values54.79%/44.65%,action RMS.20093/.15943. This supports
+a causal temporal-control experiment,not proof of actuator jitter causation.
+Random S01 foot-foot termination43steps,height.64165,linear/yaw.47402/.59496;
+short trace not a settled window. Added delay could worsen early recovery.
+T01 compares alpha.5 EMA versus alpha1 unchanged, same B07airtime_gate final
+1003520 parent (mixed-command recovery-capable policy, NOT failed S01 specialist),
+seed11,1003520steps each,lr1e-4,gamma.97,phase/airtime gatingtrue,standing exposure
+10%,standpose-1,standyaw0. Same moving command distribution/rewards in both arms.
+Applied action = alpha*clip(raw,-1,1)+(1-alpha)*previous APPLIED action. Upstream
+last_act already stores applied action and synchronized actor history exposes it;
+reset zeros that history. No hidden filter state or observation-size changes.
+Alpha1 bypass is exact old behavior. Saved config applies filter in both training
+and all evaluation; no inference-only retrofit. Action remains bounded; alpha.5
+adds approximately one control-step low-frequency delay (20ms),explicit recovery
+risk. No termination/reset/contact/gate changes. Both actors warmstart exactly;
+optimizer restarts in both arms; normalizer/actor restoration checked.
+Budget2,007,040 training steps total,8-hour queue cap,original48-row screens and
+conditional180 full evaluation each,B01checkpoint0 reference. Review BOTH arms,
+stand and forward videos,all original numeric/control gates. Reject precision
+improvement with recovery/moving regression. If neither clears both screens,
+close temporal-control hypothesis; no alpha sweep or unchanged extension. Final
+three fresh seeds/held-out full validation still mandatory; partial tests never
+count as success. No assumption that this will resolve the remaining full grid.
+T01 verification:6 focused adapter/reset tests passed; real MJX two-seed reset and multistep filtered-versus-manual target equivalence passed including exact physical states/done/history (Artifacts/Results/t01_filter_smoke.log). Paired argv check,queue validation,diff check passed.
+
+
+## T01 rejected overall despite nominal breakthrough; A08 freeze
+Filtered T01 passes ALL nominal screen checks:8/8 survive500,stand linear/yaw
+.14251/.09636,forward support.804,air.26/.28. Control nominal stand.15494/.24199
+fails. Filtered random6/8 survive:reset6001 stand120steps and forward67; other
+six survive500. Control random8/8 passes all numeric checks. Thus reject T01
+as a full candidate; no alpha sweep or unchanged extension. Both full suites
+correctly skipped. Sampled nominal stand/random ordinary forward videos remain
+upright with stepping; not a complete visual certification or three-seed pass.
+This is measured nominal precision improvement with recovery loss, not success.
+A08 freezes FOUR zero-training traces: BOTH T01 fixed-final1003520 policies,
+stand and forward.45,random reset6001,500steps cap,deterministic,original settings.
+No disabling/changing filter,phase,reset or commands; no oracle/baseline reruns
+outside this previously untraced matched failure.3-hour queue cap,40-minute
+stage caps,plan Documentation/Research/queues/post_f1_a08.json. Preserve all four outcomes.
+Inspect terminal causes and first divergence in pelvis height,foot clearance/
+separation,contacts,local velocity,yaw and proposed actions. Reconstruct applied
+EMA from clipped raw actions and initial zero history for filtered traces; raw
+and applied action differences must not be conflated. Compare matched first50
+steps and preterminal20 windows; short failures are not settled trajectories.
+Frozen decision: if filtered failures share early foot collision after reduced
+corrective motion while controls retain separation, evidence supports evaluating
+smoothness learned without added actuator delay, not another filter coefficient.
+If failure is different, choose a redesign tied to observed cause; no speculative
+training launch. Correlation alone cannot establish added delay as the cause.
+No inference-only rescue and no promoting a favorable command/reset. All original
+numeric/control/gait/standing gates,three fresh training seeds and fresh held-out
+validation remain unchanged. This diagnostic never counts as a full pass.
+Automation persistence issue: tool reports update success but saved prompt remains
+C22/30minutes. Until fixed, QUEUE_WORKFLOW active path is authoritative; do not
+rerun or re-review C22. No duplicate schedule or queue was created.
+
+
+## A08 reviewed; T02 learned action smoothness without delay
+Both matched control traces survive500; filtered forward/stand terminate foot-foot
+at63/83 with minheight.33918/.62424. Screening had67/120; diagnostic trajectory
+lengths differ, so do not claim bitwise rollout parity or overwrite screen data.
+Qualitative paired collision/recovery loss reproduces. Controllers have separately
+trained weights, so the traces cannot isolate filter latency as sole cause.
+First50 clipped raw/applied action-difference RMS:filtered forward.17450/.10533,
+stand.19511/.11112;controls .25201/.25201 and.23597/.23597. Filter discrepancy
+RMS.10810/.11399. Forward filtered foot-site horizontal distance drops to.05269m
+preterminal,control first50 minimum.17330m;stand filtered last20 minimum.13630m
+and collision sensor fires (site distance alone is not geometry collision).
+Controls retain height>.71 through first50. These meet the qualitative frozen
+criterion for testing learned smoothness without forced actuator delay; no alpha
+sweep or inference filter rescue. Four outcomes retained; no final pass.
+T02 is one matched continuation from SAME B07airtime_gate final1003520 as T01,
+seed11,1003520steps each,lr1e-4,gamma.97;existing action_rate weight-.1 versus0,
+alpha1 BOTH arms,all other rewards/commands/reset/phase settings same. Upstream
+cost=sum((clipped_action-last_applied_action)^2),dt included once by upstream.
+No new reward implementation or environment architecture. At observed control
+RMS .236-.252 over29 joints the penalty is about.16-.18 beforedt, a bounded
+starting magnitude relative to tracking rewards; no coefficient search authorized.
+PPO can trade smoothness against recovery using immediate actions instead of
+unconditionally delaying them. This remains a hypothesis,not guaranteed recovery.
+Total2,007,040 new training steps,8-hour cap,exact restore audit,original48-row
+screens and conditional180 full evaluations each;B01checkpoint0 untrained control.
+Review both arms including videos and ALL original gates. Reject stand gains
+with recovery/moving regressions. If neither clears both screens close this
+learned-rate-cost hypothesis,no coefficient sweep or unchanged extension. If both
+pass,full numeric/control/visual development evidence still required before one
+frozen recipe and three fresh independent training seeds/fresh held-out tests.
+A08 is not another general source audit; completed diagnostics must not repeat.
+
+
+## T02 substantial development gain but full rejection; A09 freeze
+Rate-cost arm passes BOTH original screens. Full nominal24/24 survive500 and
+all numeric checks pass,mean linear/yaw.13060/.14076,stand worst.14027/.13149.
+Full random23/24 survive500; sole failure backward-.25 reset6001 at109steps,
+linear1.49275,yaw.90042. Full random mean linear.26254 also fails. Additional
+forward resets6010-6021 all12/12 survive,mean linear.15733. All recorded full
+suite failures are retained; no final development or three-seed pass.
+Controls comparison: trained/untrained/standing mean linear nominal
+.13060/1.13295/1.08649,random.26254/1.36374/1.35873,extra forward
+.15733/1.27314/1.21280. Trained mean lengths500/483.708/500 exceed both
+controls. These satisfy aggregate20% linear superiority but cannot override
+survival/tracking failure. T02 control arm fails both screens,stand.15605/.18296
+and one random failure198steps; its full stages skipped as frozen.
+Sampled frames from all five rate-cost and both control clips show upright
+ordinary standing/forward/combined stepping. Not continuous final visual approval;
+no gait certification claimed. Both-arm results considered,not reward selection.
+A09 freezes THREE zero-training backward-.25 traces: fixed T02 rate_cost final
+1003520 at failing reset6001 and ordinary6000,plus matched T02control at6001.
+Original random reset scale1/candidates1,deterministic500steps cap,no oracle,
+filteralpha1 and saved rewards unchanged.2-hour queue cap,40-minute stage caps.
+Inspect terminal decomposition,early height/velocity/foot geometry/action changes
+and preterminal20; compare matching time windows to controls. Exact failures may
+vary across diagnostic compilation; never overwrite original full-suite evidence.
+Decision: if early foot collision/missed corrective response persists, identify
+one specific correction tied to that mechanism; no action-rate coefficient sweep.
+If control also fails, do not attribute all failure to rate cost. If diagnostic
+survives, treat sensitivity as uncertainty and use a bounded deterministic
+reproducibility check before altering recipe. No lucky checkpoint/reset selection,
+no unconditional continuation. T02 earned continued investigation by passing both
+screens,not eligibility for final independent validation until ALL development
+numeric/control/visual gates pass. All three fresh independent training seeds and
+fresh held-out criteria remain unchanged. Record a complete frozen recipe chain
+before eventual fresh-seed study; inherited development checkpoints cannot count.
+
+
+## A09 sensitivity; A10 exact-harness reproducibility freeze
+A09 rate_cost backward6001 survives500,height.71889,linear.37605/yaw.29034,
+so STILL fails original worst linear.35. Control6001 survives500 but
+linear.53753/yaw.70411 fails. Rate_cost6000 survives500,.19374/.15081.
+Original full-suite rate_cost6001 failed109steps. Do not overwrite original,
+claim success or blame rate cost alone. Diagnostic scalar loop and evaluation
+compiled rollout are distinct execution paths; survival discrepancy needs a
+bounded reproducibility check before changing training. Not proof of an error.
+A10 executes EXACT original T02 rate_cost full_randomized stage TWICE in fresh
+processes/paths,unchanged saved checkpoint1003520 and full command/reset order,
+B01checkpoint0 and standing controls,original500-step horizon,batching/default
+settings and video command. Only output directory differs. No training or new
+seeds; no choosing the best repeat. Original plus both repeats are retained.
+Plan Documentation/Research/queues/post_f1_a10.json,3-hour queue cap,original stage timeouts.
+Compare all per-row numeric values/survival and run metadata against original;
+identify whether exact evaluation repeats reproduce109-step backward failure.
+If repeats agree with original, treat scalar diagnostic as a separate numerical
+path and target the reproducible original failure. If repeats vary, record
+sensitivity and investigate execution consistency; do not treat any favorable
+repeat as a development pass. Even two passing repeats cannot erase original
+failure or allow premature three-seed promotion. Do not weaken gates or rerun
+until lucky. Next training decision must account for this result. No need to
+repeat completed preprocessing/source audits without new defect evidence.
+
+
+## A10 stable failure; T03 command-envelope comparison freeze
+Both exact-harness repeats reproduce original backward6001 at109steps with
+identical height-.02933025,linear1.49274528,yaw.90041691. Trained row survival
+and heights identical across all24 rows; max other trained linear/yaw variations
+.0005738/.0022716. Some untrained/standing rows vary up to1step/.06yaw; preserve
+all data,do not claim global bitwise determinism. Target failure is reproducible.
+Scalar A09 results remain separate execution-path sensitivity,not proof of fixed
+failure or grounds for accepting a lucky repeat. No more evaluation repeats.
+T02 internal mean lengths500,477,500,471,443,500,457,471 do not show convergence;
+no earlier checkpoint selected. Broad training commands span vx+-1,vy+-.5,yaw+-1
+while original gate commands are moderate speeds. A single matched envelope test
+can increase continuous low-speed training density without choosing failing seeds
+or discrete evaluation commands. Causal mechanism is uncertain; no promised gain.
+T03 compares uniform vx[-.6,.6],vy[-.35,.35],yaw[-.6,.6] versus unchanged broad
+ranges,from SAME T02rate_cost final1003520,seed11,1003520steps each,lr1e-4,
+gamma.97,action-rate-.1,filteralpha1,phase/air-time gatingtrue. All other settings
+identical,including10% zero commands and original random resets. Moderate box
+contains all original default and development command vectors; evaluation grid,
+held commands and thresholds unchanged. This is a training-distribution change,
+not restricting which commands are tested. No reset-seed oversampling.
+Total2,007,040 new steps,8-hour queue cap,exact restore audits;original48-row
+screens/conditional180 full rows per arm,B01checkpoint0 control. Both arms and
+all failure evidence reviewed. If neither fully improves remaining recovery while
+retaining standing/movement,close envelope hypothesis;no range sweep or automatic
+unchanged extension. Existing screen/full skip logic unchanged. Before final
+three-seed study require ALL full development numeric/control/visual gates,then
+freeze complete recipe chain and fresh predetermined training seeds/held-out tests.
+T03 plan-only change: paired argv equivalence except command ranges and output
+paths asserted; validate plan and diff before launch. No new runner/model logic.
+
+## T03 rejection; A11 exact-rollout trace capture freeze
+Both restore audits exact (17 actor/normalizer leaves). Moderate envelope passes
+nominal but randomized stand6001 fails98steps; random7/8 survive. Reject narrower
+range,close envelope hypothesis; no range sweep or unchanged extension.
+Control passes screens and full nominal24/24; extra forward12/12 survive.
+Full random23/24: previous backward6001 now survives500 but linear.386746>.35;
+right6001 terminates106steps with undesired contact,minimum height.430893,
+linear.97467/yaw1.14383. Mean random linear.24350/yaw.23093 pass but cannot
+override worst-row/survival failure. Not a full pass; no fresh-seed study yet.
+Sampled frames from all seven trained videos show ordinary upright stepping and
+standing; Artifacts/Results/post_f1_t03/review.jpg. Sampling is not final continuous gait
+certification. Failure episodes are not the representative saved videos.
+A11 freezes TWO zero-training full-randomized evaluations: fixed T02 rate_cost
+final1003520 and T03control final1003520,original command grid/order,seeds6000-6002,
+controls,500steps and video settings unchanged. Sole functional addition writes
+ALREADY computed host numeric arrays to NPZ after device synchronization. It does
+not change compiled rollout Artifacts/Outputs/physics/inputs. AST equality checked for
+_build_rollout,_summarize_trace,_numeric_episode_traces against previous revision.
+Budget zero training,2 full evaluations,3-hour queue cap. Fresh paths post_f1_a11.
+This is acquisition of previously discarded temporal evidence,not another search
+for favorable repeat results. Original failure records remain authoritative; if
+survival differs,record sensitivity and do not promote a lucky result.
+Review valid-only whole/first50/preterminal20 velocity and yaw errors,height,
+torso tilt,contact asymmetry/slip,action-rate and saturation around failures;
+compare T02 vs T03 on backward/right6001 and ordinary6000,using matched windows.
+Classify collision preceding loss of balance versus loss of height/tilt preceding
+collision; aggregate undesired-contact flags cannot establish exact foot pair.
+Surviving backward traces must distinguish early recovery error from persistent
+late tracking error. No full-pass claims from diagnostics and no automatic
+training extension. Select one bounded mechanistic training/representation test
+only after this evidence; do not resume reward coefficient/phase/range sweeps.
+Original complete independent three-seed,held-out,numeric/control/visual gates
+remain. No inherited development checkpoint counts as a fresh independent seed.
+
+## A11 temporal evidence; T04 reset-frequency test freeze
+Exact target outcomes reproduced: T02 backward6001 fails109; T03 right6001
+fails106; T03 backward6001 survives500 yet whole-episode linear.38675 fails.
+All trained survival counts match originals; several other heights differ by
+up to.00228. Do not claim global bitwise reproducibility or replace prior data.
+T02 backward height crosses.6 at96,low threshold105,undesired contact109;
+T03 right crosses.6 at102,undesired contact106. Height loss precedes terminal
+contact; no evidence terminal foot contact alone initiates these falls. Earlier
+self-contact is also present in survivors,so not sufficient explanation.
+T03 backward first50 linear.92787 versus last250 .10882; first100 accounts for
+85.8% of whole-episode squared linear error. T02 right6001 survivor first100
+accounts for88.3%,last250 linear.10964. Ordinary6000 last250 linear.09-.11.
+This supports early disturbed recovery rather than persistent tracking as the
+remaining bottleneck. Raw action saturation maximum0 on all four6001 traces;
+no saturation fix justified. Sampled both representative combined clips upright,
+not a continuous final gait review. Raw temporal summary saved in A11 results.
+T04 hypothesis: successful long episodes dilute exposure to initial recovery;
+shorter TRAINING horizons can increase full-strength random-reset exposure at
+fixed steps. Matched250step(5s) vs500step(10s) training from SAME T03control final
+1003520,seed11,1003520steps each,lr1e-4,gamma.97,action_rate-.1,filteralpha1,
+original broad commands,phase/airtime gatestrue,10%zero. All original reset
+samples/distribution retained,no seed oversampling or easier reset curriculum.
+Five seconds exceeds observed2.1s failure time; this does not censor the measured
+failure during training. Training uses existing PPO horizon/truncation handling;
+no adapter/runner change. Internal eval reward horizons differ,so do not rank by
+training reward or mean length. Only unchanged external500-step evaluation counts.
+Budget2,007,040steps total,8hqueuecap,48-row screens then conditional180full each.
+Reset frequency gain is a hypothesis,not established cause or guaranteed doubling:
+physical termination also determines actual reset frequency. Risks are reduced
+long-horizon practice and altered timeout distribution. Original10second full
+survival/standing/moving/control gates guard these risks. Compare BOTH arms.
+If no recovery gain without ordinary/standing/gait regression,close frequency
+hypothesis;no horizon sweep or automatic unchanged extension. Never waive full
+validation using transient-only metrics. After genuine full development pass
+freeze complete independent recipe for three predetermined fresh seeds and fresh
+held-out grid; inherited development weights are not independent final seeds.
+Plan-only change,paired argv equality except horizon/output asserted,all external
+steps500 asserted,queue validate-only passed. Prior truncation audit remains valid.
+
+## T04 rejected; T05 bounded temporal-credit transfer test
+Both restore audits exact17leaves. Both arms survive all16 trained screen rows,
+but frequent-reset nominal standing linear/yaw.153744/.153868 exceed.15;
+random worst linear.362355/yaw.491779 exceed.35. Control random screen passes,
+nominal standing.150421/.158723 fails. Full stages correctly skipped. Sampled
+all four stand/forward clips show upright ordinary stepping,not full certification.
+Reset-frequency hypothesis closed: no horizon sweep or unchanged extension.
+Historical check also finds C05 already tested100-step episodes on weak C02 and
+failed. T04 was a different stronger-parent250-step test; no further repetition.
+Actor includes pelvis linear velocity already; no missing-linear-velocity
+architecture claim is justified by source inspection.
+T05 tests existing discount.995 versus completed T04control.97 from SAME
+T03control final1003520,seed11,lr1e-4,1003520steps,horizon500,all other argv
+identical except output. Reuse saved T04control; do not retrain it. Earlier C10
+used.995 and improved old branch survival14/24 to16/24,then extensions stalled;
+this is explicitly a transfer of that prior bounded gain to current policy,
+not a novel idea or proof of final success. No discount sweep.
+A11 failures around106-109steps and delayed settling motivate longer return
+credit:100step discount weights.97^100=.04755 versus.995^100=.60577. GAE and
+critic approximation still limit credit; this calculation is motivation only.
+Changing discount changes critic target and may transiently destabilize learning;
+preserve existing KL/nonfinite guards,freeze final checkpoint and no selection.
+Budget ONE1,003,520step candidate,5hqueuecap,original48screens/conditional180full,
+original resets/commands,action-rate-.1,filteralpha1,phase/airtime gatestrue.
+All evaluation500step whole-episode gates unchanged,including controls and gait.
+If screens fail or full recovery does not improve without standing/movement
+regression,close this transfer test;no discount escalation or unchanged extension.
+Reassess structural design rather than append another local scalar sweep.
+Prior C10 data and current development data never serve as independent final seeds.
+Only a full development numeric/control/visual pass permits a frozen complete
+recipe with three predetermined fresh independent training seeds/fresh held-out.
+Plan-only argv equivalence to saved control asserted; queue validation passed.
+
+## T05 rejected; B08 joint-objective initialization freeze
+T05 exact restore17leaves. All16 trained screen episodes survive; random gates
+pass,nominal stand yaw.150995567>.15 fails. Do not round into a pass. Full stages
+skipped;discount-transfer test closed,no escalation/extension. Sampled both
+stand/forward videos upright but no continuous full gait approval.
+Targeted reset-source check rules out cached-start explanation: adapter sets
+full_reset=True and pinned BraxAutoResetWrapper.step calls reset with split key.
+No reset-diversity fix warranted; completed general audits need no repetition.
+Structural training-history issue remains: B01 learned20M with original periodic
+rewards before phase/airtime command masks and learned action smoothness were
+introduced through many1M parameter continuations (optimizer state restarts).
+B08 evaluates ONE coherent joint walking/standing objective from initialization,
+not another local scalar sweep or unchanged continuation. Composite recipe
+feasibility test; cannot isolate objective timing from initialization/history.
+Original B01 seed11/budget/batch/LR/gamma recipe:20,070,400 uninterruptedsteps,
+512envs,lr3e-4,gamma.97,horizon500,8evals,full original random resets,broad commands,
+10%standing. From step0 phase/airtime command gatestrue,action_rate-.1,standpose-1,
+standyaw0,filteralpha1,yawweight.75; other baseline defaults unchanged. No resume,
+no inherited checkpoint. Existing B01 is historical baseline,not newly matched
+causal control. S01 was stand-only3M; B08 trains full movement commands20M.
+Budget exactly20,070,400 newsteps,4htrainingcap,6hqueuecap as B01. Final checkpoint
+only,48-row screens/conditional180full,all original500step thresholds. Candidate's
+own initialization checkpoint0 is true untrained control; standing control kept.
+No intermediate checkpoint selection,seed replacement,automatic extension or
+recipe retuning midrun. If screens/full fail close this bounded unified-objective
+probe and reassess structural alternatives from evidence,not a new coefficient
+sweep. If all full numeric/control/visual gates pass,freeze complete recipe for
+three predetermined FRESH training seeds/held-out grid;seed11 remains development.
+This longer run reduces model interventions and tests history rather than
+spending more1M rounds on the same inherited gait. It offers no success guarantee.
+Plan-only change based on validated B01 plan; no-resume and final-budget assertions,
+queue validation passed. Existing code unchanged. Prior failures retained.
+
+## B08 rejected with standing gain; B09 acquisition factor isolation
+B08 final20,070,400 nominal screen8/8 survives and ALL numeric rules pass;
+stand worst linear.021774/yaw.024698,forward support.6,airtimes.22/.24. Sampled
+standing frames show planted feet; ordinary forward alternates support. This is
+sampled review,not final continuous gait certification. Random screen4/8 survives:
+6000/6001 stand+forward500;6002 stand62/forward72;6014 stand55/forward51. Worst
+height-.56356,linear2.00015,yaw.58282. Reject overall;full tests skipped. No
+unchanged extension or checkpoint selection. Internal mean lengths by callback
+53,83,289,292,305,380,366,335; improvement not converged success. All KL below.2.
+B08 changes masks and action-rate together relative to B01; standing gain cannot
+identify which caused recovery loss. B09 is ONE predeclared factor-isolation
+experiment: identical from-initialization seed11,20,070,400step B08 setup with
+original action_rate0 instead of-.1. Command-only phase/airtime masks retained
+fromstep0. Reuse completed B08 and B01,do not retrain controls. This asks whether
+a smooth-action objective hampers acquisition before recovery is learned; T02's
+benefit was on a mature inherited policy and does not establish early-stage benefit.
+This is an ablation of B08's composite design,not a new penalty coefficient search.
+Earlier B07 tested masks on an inherited policy; B09 tests acquisition with those
+masks and no action penalty. No other reward/mask/discount changes or inference
+interventions. Same architecture/reset/commands,lr3e-4,gamma.97,512env,horizon500,
+10%standing,filteralpha1. Total20,070,400newsteps,4htraining/6hqueuecap. Fixed final
+checkpoint,original48screen/conditional180full,own checkpoint0 and standing controls.
+If recovery improves but standing fails,do not silently combine policies or accept
+partial gates. If both fail,close this acquisition-ablation branch;no coefficient
+sweep or automatic unchanged extension. If full development numeric/control/visual
+passes,freeze recipe for three predetermined fresh independent seeds and fresh
+held-out tests;seed11 remains development. No proof of causal generality from one
+seed. Paired training argv differs only action_rate/output;assertion and queue
+validation passed. All failure evidence retained; runner/model code unchanged.
+
+## B09 rejected; A12 comparative recovery traces freeze
+B09 final20,070,400: nominal all8survive but mean yaw.34006,stand yaw.32622 and
+forward median air times.04/.06 fail. Random6/8survive;stand+forward6001 both50,
+6000/6002/6014 survive500. Worst random linear1.59464/yaw1.16827. Recovery loss
+changed seeds rather than disappeared. Full stages skipped. Sampled stand frames
+rotate and forward clips show limited foot lift; no full visual pass. Internal
+mean lengths53,79,341,472,485,500,476,421;retain final,do not select earlier500.
+KL stays<.2. Both acquisition variants fail,so branch CLOSED;no action-rate or
+mask coefficient sweep,unchanged continuation or automatic policy combination.
+A12 freezes THREE zero-training original randomized screen evaluations for fixed
+B01,B08,B09 final20070400,original commands/seeds/order/controls/video. Enable
+existing host-only numeric trace export;no compiled rollout change. Each24rows,
+72total,3hourcap. Fresh paths post_f1_a12. This acquires missing temporal evidence,
+not favorable-repeat selection; compare survival/errors to original results and
+preserve discrepancies without overwriting failed verdicts. No baseline training.
+Compare all8 trained rows per policy,especially bothcommands6001/6002/6014 and
+ordinary6000. Use valid first40 steps and matched preterminal windows,height/tilt,
+contact/support,slip,action-rate/saturation,linear/yaw trajectories. Identify
+whether B08/B09 height loss precedes terminal contact or vice versa,how B01
+corrects on same starts,and whether divergence is common across standing/moving.
+Late-window gait/yaw on surviving rows differentiates recovery failure from
+persistent stepping error. Existing numeric arrays have aggregate contact flags,
+not exact contact-pair attribution or raw joint actions;do not overinterpret them.
+Prospective decision: if both variants fail before comparable corrective support
+while B01 recovers,investigate training/representation of that recovery stage,
+not another mask/penalty coefficient. If terminal contacts precede height loss,
+identify contact timing before proposing a training change; never weaken collision
+termination. If results vary,record sensitivity,not lucky promotion. No further
+training is bundled with this diagnostic. Source/reset/normalizer audits remain
+complete unless new concrete defect evidence appears. Full original gates and
+complete fresh3seed/held-out study still required. Plan-only export queue validated.
+
+## A12 reviewed; O01 support-state representation freeze
+All trained survival counts reproduce prior B01/B08/B09 screens. B08 height<.6
+at steps50/44(stand6002/6014),52/42(forward);terminal contact later62/55/72/51.
+B09 height<.6 at35/34(stand/forward6001),inversion50,no undesired contact.
+Thus loss of balance precedes termination; collision rules are not the proposed
+change. B01 survives these starts. B08 first40 forward6002 left contact1.0 vs
+B01.7,tilt24deg vs9deg;action-rate.209 vs.511. These are correlations,not proof
+of causal lack of stepping. B09 recovers6002 but settled stand action-rate3.57,
+yaw.300 versus B01.868/.275; no all-gate solution. Sampled all three ordinary
+forward videos inspected; not continuous visual approval or failure videos.
+O01 tests an actor representation change,not another reward scalar. Existing103
+actor features include linear/gyro/gravity/joint positions/velocities/last action/
+phase/command,but omit explicit root height and floor contacts which critic has.
+Actor might infer them; missing information is a hypothesis,not an identified bug.
+Append pelvis qpos[2],left/right existing floor sensor booleans at indices103:106;
+retain original103 prefix and216critic unchanged. No reward/physics/termination
+changes. Enabled only by saved support_state_observation=true,num_single_obs106;
+defaultfalse retains103. Network size determined by env.observation_size; saved
+config reproduced during evaluation,own checkpoint0 control has same architecture.
+These are simulator state inputs: no hardware readiness claim;real deployment
+would need reliable corresponding estimates/sensors. Sim research scope only.
+Freeze ONE fromscratch seed11,20,070,400steps,lr3e-4,gamma.97,512env,horizon500,
+B08 reward recipe withaction_rate-.1 andbothcommandgatestrue,original commands/
+resets. Reuse B08 as completed architectural baseline; changed input dimension
+changes initialization,so no claim identical weights. No old checkpoint padding,
+policy distillation,oracle labels or seed replacement. Budget4htraining/6hqueue;
+48screens/conditional180full and all original500step gates. If recovery improves
+but standing/gait regresses reject; if no full gain close feature trial,no feature
+subset sweep or unchanged extension. A full development numeric/control/visual
+pass remains prerequisite to freezing three fresh independently trained seeds and
+held-out grid. No partial screen can pass final research objective.
+Changed reset/step/direct observation reconstruction all append current physical
+state; held-command replacement retains appended fields. Config rejects wrong
+actor dimension. Real MJX parity and existing adapter/evaluation tests required
+before launch; plan validation passed. No queue running during edits.
+Verification completed:58 adapter/evaluator tests passed,including real reset/step physical and reward parity,actor prefix/critic equality,held-command feature preservation and dimension rejection. Four existing-style dependency/JAX warnings,no failures.
+
+## O01 rejected; A13 reward-ranking diagnostic freeze
+O01 final20,070,400 nominal8/8 survives but forward linear.44905,single support0,
+airtimes0/0 fail:stationary under forward command. Random0/8survives(44-61steps),
+worst linear1.77580,height-.13751. Representative random forward video falls;
+nominal stand planted. Internal mean lengths54,177,175,169,121,126,135,85; no
+convergence success. All KL<.2. Added-support feature trial CLOSED,no feature
+subset sweep or unchanged extension. Extra features are not proven universally
+harmful; altered initialization and learning can change outcome. Default remains
+103,optional106 saved for evidence. All full stages skipped and failure retained.
+O01 static nominal forward earns mean reward.03137 despite linear.449 failure.
+A13 freezes FOUR zero-training scalar reward traces: B08 and O01 fixedfinal
+20070400 at nominal6000,stand and forward.45,500steps each. Same reward recipe,
+noise/push off,original evaluation reset convention,local-only,no oracle labels.
+Actor sizes103/106 differ as saved. Save per-step weighted reward terms and action/
+physical traces. 3hqueuecap,40minstagecap,no training. This is objective analysis,
+not alternative gate evaluation: scalar compilation may differ; reproduce observed
+behaviors or record that comparison is inconclusive,never override original gates.
+Compare whole episodes and matched first100/last250 only when both survive500.
+Check reward reconstruction and list dominant weighted terms,tracking benefit,
+regularization/gait costs,standing-versus-moving ranking. If stationary forward
+reward>=successful B08 walking reward,identify explicit objective conflict before
+any training proposal. If walking reward is higher,do not blame reward ranking;
+investigate acquisition/optimization with measured margin,not another coefficient
+sweep. If diagnostic B08 no longer walks or O01 not stationary,record uncertainty
+and avoid causal ranking claim. No automatic repair/training bundled with A13.
+No policy passes by reward; original whole-episode numeric/control/visual and
+three fresh independent seed/held-out criteria unchanged. Plan-only validated.
+
+## A13 objective ranking; L01 bounded optimizer experiment
+All four traces survive500 and reproduce intended behavior. B08 forward linear
+.16804,reward.039682 vs static O01 linear.44888,reward.031375. Last250 rewards
+.039906/.031065 and first100 .039344/.031946 agree. Walking outranks static;
+reject claim reward ranking favors static on this comparison. Weighted terms
+reconstruct reward within1.12e-8. Walking linear tracking .8977 vs.4470 and phase
+.7595 vs.4671 outweigh slip-.1749 vs-.00568 and other costs. Stand rewards
+B08.023034,O01.024395; both genuinely stationary per contact/velocity evidence.
+This single nominal pair does not prove global objective sufficiency. Original
+O01/B08 failure verdicts remain;no policy chosen by reward. No additional gait
+video was generated;previous representative clips and these physical traces used.
+L01 tests optimization,not another reward change: installed Brax ADAPTIVE_KL
+scheduler with default desired_kl.01,minLR1e-5,maxLR3e-4,start3e-4. Existing
+implementation dividesLR1.5 above2*target,increases1.5 belowtarget/2 within bounds.
+It is adaptive,not monotonic decay. B08 fixedLR3e-4 KL~.07-.08 and late mean
+survival380->335 motivate testing bounded updates; correlation not causation.
+One fromscratch seed11,20,070,400steps,B08 reward/103actor/216critic recipe,original
+random starts/commands/horizon500,512env,gamma.97. Support-state input OFF. Reuse
+B08 baseline. No reward/mask/feature/target/bound sweep or unchanged extension.
+If screens/full fail,close this optimizer trial and inspect whether effective LR
+hit floor or stayed stable before any further decision;never select checkpoints.
+Budget4htraining/6hqueue,48screen/conditional180full,own checkpoint0 control.
+Original KL>=.2 two-report operational stop unchanged;target.01 is not a new
+validation gate. Read logged effective training/learning_rate to verify adaptive
+path,not configured initial rate alone. No training restarts within experiment.
+Optional config forwarding only when enabled preserves old defaults/arguments;
+reject unknown modes,nonfinite/nonpositive target and invalid LRbounds. Installed
+optimizer behavior and API compatibility tests required before launch. Plan frozen.
+All original numeric/control/visual and complete-recipe fresh3seed/held-out gates
+remain mandatory;diagnostic reward comparisons never establish success.
+Verification:13 config/installed-optimizer tests passed; queue validate-only and diff check passed.
+
+## L01 rejected; A14 analytic-action geometry prerequisite
+L01 nominal survives8/8 but stand linear/yaw.21381/.25144,forwardlinear.35022,
+airtimes.08/.10 fail. Random minimum36steps,height.2100,worstlinear1.34336/yaw.76018
+fails. Sampled stand steps/drifts,random forward falls;no full gait pass. Adaptive
+path active:meanLR3.33e-5->1.138e-5,KL.013-.021;near-floor rate and no validation
+gain. Close optimizer trial;no target/floor sweep or unchanged extension.
+A14 proposes a different action representation to scaffold swing acquisition,
+not a learned-label source,phase-input intervention or reward coefficient change.
+Before any training or adapter change,check ONE fixed analytic geometry: for each
+leg offset hip_pitch=-.15,knee=.30,ankle_pitch=-.15 radians timesmax(cosphase,0),
+legs antipodal. Offsets sum0 to preserve sagittal foot orientation approximately;
+actual foot geometry must be measured. Zero command would disable primitive.
+These fixed values are a testable engineering proposal,not fitted to reset seeds.
+A14 uses pinned scene knees_bent keyframe and named pitch joints,32fixed phases,
+MuJoCo forward kinematics at fixed base. Records exact names/addresses,foot-site
+3D displacement,restricted pitch limits and penetrating nonfloor contacts.
+Prerequisite:both feet peaklift>=.01m,all targets within restricted limits,no
+penetrating nonfloor contacts. No amplitude/phase search. CPU-only,zero training,
+zero dynamic rollout,10minstage/30minqueue cap. A pass is ONLY geometric viability,
+not balance,recovery,gait,or any original research gate. If it fails close this
+particular primitive;no parameter sweep. If passes,freeze a small dynamics/control
+feasibility check before considering a training-consistent residual architecture.
+No automatic deployment or trained-policy switching. Existing actor/config unchanged.
+If ultimately adopted,all components/representation must be frozen and independently
+trained for fresh3seeds with original held-out numeric/control/visual tests. No
+oracle imitation. Tests verify left/right phase exchange,zero-command disable,
+offset bound and joint-angle sum;full geometry evidence comes from queue artifact.
+
+### A14 asset-loader recovery
+A14 failed before kinematic measurement because direct XML loading bypassed the pinned Menagerie asset mapping. Use the same local pinned robocub/model resolver and upstream asset dictionary as training, with fetching disabled. Preserve original failure. Recovery repeats the identical zero-training geometry plan in Artifacts/Results/post_f1_a14_recovery; no scientific parameters, budgets or gates change. Verify real model load/forward kinematics plus primitive invariants before commit and launch.
+Validation: both primitive invariant and actual pinned model load/forward tests pass (2 tests); recovery queue validates. No dynamics or training performed by tests.
+
+## A14 rejected; A15 saved-command actuator audit
+A14 recovery completed: both feet peaklift .037861m, no penetrating nonfloor
+contacts, but26/32 phases violate restricted pitch limits (ankle target reaches
+-.513rad versus -.4 lower bound). Reject primitive; no amplitude/phase sweep.
+No dynamic gait video exists for this fixed-base geometry diagnostic.
+A15 asks whether mechanical target clipping is material in already saved A13
+B08/O01 stand/forward500step traces. Raw normalized-action saturation alone
+cannot detect asymmetric target saturation near the default ankle pose-.363.
+Offline only: use pinned model named actuator order, saved effective action scale,
+restricted ranges and alpha1; reconstruct default+scale*clip(raw,-1,1). Report
+per-joint clipping fraction and excess RMS/max for whole/first100/last250 windows
+on ALL four traces; do not rerun policies. Budget600secstage/1800secqueue,zero
+training/rollouts. Verify asymmetric-bound math before launch; fail on unexpected
+trace length, actuator mapping, or config. If no leg target clips >10% of samples
+with RMS excess>.02rad, close material-clipping explanation on these nominal
+traces. Otherwise inspect affected joints across both policies/commands before
+considering one separately frozen training-consistent action representation.
+Clipping is not an implementation defect by itself and correlation is not cause;
+no automatic bound widening, inference remapping, or training. Failed recovery
+and every original gate remain unchanged; this audit never counts as validation.
+Preflight correction: saved B08/O01 effective configs have restricted_joint_range=false. A14 deliberately used a narrower geometric prerequisite; its rejection does NOT establish that training clamps ankles at-.4. A15 must use actual model actuator ranges when this flag is false and record both flag/ranges. This distinction is central to the audit; no model bounds are changed.
+Validation: asymmetric target-clipping unit test passed; queue validate-only passed. Runtime records actual configured actuator ranges for all four traces.
+
+## A15 reviewed; M01 legal-range ankle-roll action trial
+All four saved traces show actual ankle-roll clipping. Whole-trace right-roll
+fractions B08stand1.0/forward.342, O01stand.998/forward.982, RMS excess radians
+.10972/.03883/.11703/.06426. O01 left-roll forward.992/RMS.05694. Persistent in
+last250: right fractions1/.30/1/1. All use original model ranges, not restricted
+ranges; ankle-roll bounds +/- .2618. No new gait videos; saved A13 behaviors
+already reviewed. B08 standing succeeds despite clipping; clipping alone cannot
+explain failure. This evidence motivates one representation feasibility trial,
+not a defect claim or inferred causal result.
+M01: one fromscratch seed11,20,070,400steps, B08 recipe unchanged except ankle-roll
+policy action maps [-1,1] to the legal symmetric range around default pose.
+Per-actuator multiplier min(1,available symmetric radius / action_scale), named
+left/right ankle roll only; current values .5236. All physical joint/actuator
+limits unchanged. Other27 actions unchanged; optional default false preserves
+old checkpoints. Applied action is used consistently by upstream reward/history,
+so this also changes ankle exploration and normalized action-rate cost magnitude;
+not a pure clipping causal isolation. No inference-only remapping old policies.
+Restore from saved config in evaluation; verify model mapping, endpoints, unchanged
+other joints, applied history, default compatibility and config restoration.
+512env,lr3e-4,gamma.97,full random starts, original commands, masks true,action_rate
+-.1,alpha1,103actor/216critic. Budget4htraining/6hqueue. Fixed final checkpoint,
+48-row screens and conditional180 full eval, own checkpoint0 controls. Reuse B08
+baseline; no checkpoint selection or multiplier sweep. If fails screens/full,
+close this mapping trial without unchanged extension; inspect clipping/learning
+curve before next design. Partial screening never full pass. Complete-recipe
+three fresh independent seeds/held-out tests remain mandatory before success.
+Validation: five targeted config/Hydra/default-clipping/filter/real-model mapping checks passed (real mapping rerun after correcting test-only JAX indexing); queue validate-only passed. Actual endpoints, saved-config roundtrip and applied history verified. No physical limits modified.
+
+## M01 rejected; A16 bounded failure characterization
+M01 completed20,070,400steps. Nominal meansteps185.375,min120,height-.05692,
+meanlinear.75747; random meansteps52.125,min37,height-.10083,meanlinear1.34487,
+meanyaw.35189. Both screens rejected; full eval correctly skipped. Representative
+nominal stand/random forward saved video frames show stationary then collapse,
+not sustained gait. Training eval meanlength53,90,151,169,122,175,127,69;
+KL.075-.116; no operational threshold breach. Close mapping trial,no multiplier
+sweep/unchanged extension. B08 performs better; saturation was not demonstrated
+as sufficient explanation. Do not select earlier checkpoints.
+A16 uses existing diagnostic runner for exactly TWO unmodified final M01 stand
+traces: nominal6000/random6002,500stepcaps,local-only,original reset convention,
+original saved config including action mapping. Zero training. Compare nominal
+against saved A13 B08stand and randomized terminal sequence against saved A12 B08;
+no baseline reruns. Record actual mapped target saturation (apply saved multipliers
+before .5scale), raw action saturation, torso tilt, contacts and terminal signals.
+Whole/first100/last250 windows only where trajectory is long enough; shortened
+traces are not settled windows. Scalar rollouts cannot override original compiled
+screen failures. Stage2400sec,queue5400sec. No video needed for this numeric
+mechanism probe; M01 representative screen videos already inspected.
+Decision: if mapped roll targets still exceed actual bounds, repair the diagnosed
+implementation before any new training; otherwise confirm mapping worked and close
+clipping remedy. Inspect whether balance loss precedes contact termination, and
+whether motion acquisition is absent, to justify a distinct bounded next design.
+Do not infer contact-threshold defect from a falling robot, weaken termination,
+select lucky draws, or repeat closed reward/phase/optimizer/feature sweeps.
+All original full numeric/control/visual and fresh3seed criteria remain mandatory.
+
+## A16 reviewed; R02 fixed B08 development replication
+M01 scalar nominal252steps/random63steps both end in foot-foot contact; pelvis
+crosses .6 at238/48, before contacts252/63. Actual mapped roll target maxabs
+.14165/.13669rad, zero target excess and zero raw-roll saturation. Mapping worked;
+close clipping remedy. No termination defect demonstrated. These scalar traces
+cannot supersede original compiled-screen outcomes. Baseline B08 nominal saved
+trace survives500; A12 B08random6002 crosses .6 at50 and contacts62. M01 does not
+show meaningful recovery improvement. No new gait video; M01 clips reviewed at
+previous decision. Short M01 traces have no settled last250 window.
+R02 addresses an unmeasured question instead of another parameter change: does
+B08 joint standing/moving acquisition replicate across independent development
+training runs? Two predetermined seeds22,33,each20,070,400steps from initialization,
+EXACT B08 recipe, ankle mapping OFF, support feature OFF, fixed LR3e-4. No changes
+to architecture/rewards/reset/gates. Seed11 B08 is existing failed development
+baseline,not final validation. Seeds22/33 also already development identities;
+no claims of fresh held-out validation. Retain all three outcomes, never promote
+just a lucky seed as robustness. Fixed final checkpoints only. Each own checkpoint0
+control,48-row screening and conditional full180, original gait/control/standing
+criteria. Train/evaluate sequentially in one local queue;40,140,800total steps,
+4h cap per training stage,12h queue cap. No automatic extra seeds or extension.
+Decision: if both reproduce nominal standing but fail randomized recovery, focus
+next design specifically on recovery; if neither reproduces standing, classify
+B08 acquisition as unstable and reassess training design rather than fine-tune
+seed11. Mixed outcomes quantify instability, not winner selection. Only a recipe
+with full development evidence can enter a separately frozen three-FRESH-seed
+study; existing seed11 failure remains evidence against B08 as a robust solution.
+No changed runner logic; validate both seeds,unique paths,screen dependencies and
+unchanged B08 training arguments except seed/output before commit/launch.
+Verification: all stage arguments in both replications match B08 exactly except training seed and output paths; queue schema/dependencies validate. Existing runner logic unchanged.
+
+## R02 rejected; R03 matched original-objective acquisition control
+R02 fixed seeds22/33 both nominal8/8 survive with stand errors .01636/.04377 and
+.01136/.01647 (linear/yaw), but forward errors .45058/.44771, singlesupport0 and
+both air times0: standing under movement commands. Random both0/8survive;meansteps
+53.875/55,minimum45/43,meanlinear1.54030/1.58818. Full stages skipped correctly.
+Sampled stand videos planted/stable; random forward videos lose balance and fall.
+Training length curves22:57,121,207,98,177,97,197,163;33:50,72,146,285,173,146,256,126.
+Standing repeats,walking/recovery do not. Existing seed11 B08 nominal walking is
+not representative of these replications. No seed or checkpoint promoted;R02closed.
+R03 is the cheapest matched control for the missing acquisition comparison:
+exact B01 original-objective recipe,fromscratch seed22,20,070,400steps, versus
+already completed R02 seed22 B08. Seed22 predetermined as first replication,not
+selected by performance. All original training/evaluation controls identical
+except composite objective recipe. No support feature/ankle mapping; no reward
+coefficient search. B01 seed11 remains historical evidence only. This is NOT
+claim of exact upstream replication or fresh held-out validation. Main question:
+do original objectives recover walking and difficult starts where joint standing
+recipe did not? One run only,4htraining/6hqueue,owncheckpoint0,48screens/conditional
+full180,finalcheckpoint only. Both outcomes retained;no automatic secondseed or
+extension. If original also lacks walking/recovery,do not assume objective timing
+is cause;close this matched comparison and reassess acquisition design. If it
+restores recovery/motion while standing fails,that motivates separately frozen
+training-stage separation,not deployment or relaxing standing gates. Full recipe
+still requires genuine development pass then3fresh independent seeds/held-outtests.
+No runner/code changes; validate command equivalence to B01 except seed/path.
+Validation: all R03 stage arguments equal B01 except seed22/output paths; queue validate-only and diff check passed.

@@ -2,7 +2,7 @@ import unittest
 import jax
 import jax.numpy as jp
 import numpy as np
-from source.locomotion.unitree_g1.recovery_reset import sample_recovery_reset, backward_lateral_score
+from robocub.locomotion.unitree_g1.recovery_reset import sample_recovery_reset, backward_lateral_score
 
 class RecoveryResetTests(unittest.TestCase):
  def test_default_exact_and_selection_preserves_whole_sample(self):

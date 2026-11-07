@@ -6,8 +6,8 @@ from types import SimpleNamespace
 from omegaconf import OmegaConf
 import pytest
 
-from source.config.agents import G1PPOCorrectiveConfig, PPOConfig
-from source.utils.ppo_config import trainer_runtime_controls
+from robocub.config.agents import G1PPOCorrectiveConfig, PPOConfig
+from robocub.utils.ppo_config import trainer_runtime_controls
 
 
 def test_repository_runtime_controls_override_brax_defaults():

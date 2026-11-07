@@ -10,14 +10,14 @@ import numpy as np
 from omegaconf import OmegaConf
 import pytest
 
-import source.config  # noqa: F401 - imports register structured Hydra configs.
-from source.config.g1 import G1MJXConfig
-from source.locomotion import get_env_class
-from source.locomotion.unitree_g1.joystick import Joystick
-from source.robots import make_robot
-from source.robots.unitree_g1 import MENAGERIE_COMMIT, UnitreeG1Model
-from source.robots.unitree_g1.model import resolve_unitree_g1_model
-from source.robots.unitree_g1.metadata import (
+import robocub.config  # noqa: F401 - imports register structured Hydra configs.
+from robocub.config.g1 import G1MJXConfig
+from robocub.locomotion import get_env_class
+from robocub.locomotion.unitree_g1.joystick import Joystick
+from robocub.robots import make_robot
+from robocub.robots.unitree_g1 import MENAGERIE_COMMIT, UnitreeG1Model
+from robocub.robots.unitree_g1.model import resolve_unitree_g1_model
+from robocub.robots.unitree_g1.metadata import (
     ACTUATOR_JOINT_NAMES,
     CROSS_CONTACT_FOOT_GEOMS,
     DEFAULT_KEYFRAME,
@@ -88,7 +88,7 @@ def test_metadata_serialization_is_deterministic(g1_robot):
 
 
 def test_g1_assets_are_not_duplicated_in_source_tree():
-    package_dir = Path("source/robots/unitree_g1")
+    package_dir = Path("robocub/robots/unitree_g1")
     copied_assets = [
         path
         for path in package_dir.rglob("*")

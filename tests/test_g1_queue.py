@@ -8,7 +8,7 @@ import tempfile
 import time
 import unittest
 
-from source.scripts.run_g1_queue import assess_gate, execute_stage, local_path, metrics_health, source_is_clean, validate_plan, screening_allows
+from robocub.scripts.run_g1_queue import assess_gate, execute_stage, local_path, metrics_health, source_is_clean, validate_plan, screening_allows
 
 
 class QueueTests(unittest.TestCase):
@@ -32,7 +32,7 @@ class QueueTests(unittest.TestCase):
         self.assertTrue(screening_allows(job, [{'id': 'screen', 'status': 'screening_passed'}]))
 
     def test_screen_rejects_future_or_non_screen_dependency(self):
-        plan=json.loads((Path(__file__).resolve().parents[1]/'research/queues/c16_balance.json').read_text())
+        plan=json.loads((Path(__file__).resolve().parents[1]/'Documentation/Research/queues/c16_balance.json').read_text())
         plan['jobs'][0]['requires_screening']=['missing']
         with self.assertRaises(ValueError): validate_plan(plan,self.root)
 
@@ -63,7 +63,7 @@ class QueueTests(unittest.TestCase):
         p=self.root/'episodes.csv'
         with p.open('w', newline='') as f:
             writer=csv.DictWriter(f, fieldnames=rows[0].keys());writer.writeheader();writer.writerows(rows)
-        plan=json.loads((Path(__file__).resolve().parents[1]/'research/queues/c16_balance.json').read_text())
+        plan=json.loads((Path(__file__).resolve().parents[1]/'Documentation/Research/queues/c16_balance.json').read_text())
         return assess_gate(p,plan['jobs'][0]['gate'])
 
     def test_balance_pass_still_requires_visual_review(self):
@@ -120,35 +120,35 @@ class QueueTests(unittest.TestCase):
     @unittest.skipUnless(sys.platform=='linux', 'Full queue executes on Linux/WSL')
     def test_full_queue_records_result_and_refuses_second_launch(self):
         project=Path(__file__).resolve().parents[1]
-        runner=self.root/'source/scripts/run_g1_queue.py'
+        runner=self.root/'robocub/scripts/run_g1_queue.py'
         runner.parent.mkdir(parents=True)
-        runner.write_text((project/'source/scripts/run_g1_queue.py').read_text())
-        (self.root/'.gitignore').write_text('results/\n__pycache__/\n')
+        runner.write_text((project/'robocub/scripts/run_g1_queue.py').read_text())
+        (self.root/'.gitignore').write_text('Artifacts/Results/\n__pycache__/\n')
         (self.root/'crlf_fixture.txt').write_bytes(b'unchanged content\n')
-        plan=json.loads((project/'research/queues/c16_balance.json').read_text())
-        plan['output_dir']='results/queue'
+        plan=json.loads((project/'Documentation/Research/queues/c16_balance.json').read_text())
+        plan['output_dir']='Artifacts/Results/queue'
         job=plan['jobs'][0]
-        job['episodes_csv']='results/eval/episodes.csv'
+        job['episodes_csv']='Artifacts/Results/eval/episodes.csv'
         job['stages']=[dict(id='smoke', argv=['-c',
-            "from pathlib import Path;import csv;Path('results/eval').mkdir();"
-            "f=open('results/eval/episodes.csv','w');"
+            "from pathlib import Path;import csv;Path('Artifacts/Results/eval').mkdir();"
+            "f=open('Artifacts/Results/eval/episodes.csv','w');"
             f"rows={self.rows()!r};w=csv.DictWriter(f,fieldnames=rows[0].keys());"
             "w.writeheader();w.writerows(rows);f.close()"],
-            fresh_paths=['results/eval'],required_paths=['results/eval/episodes.csv'],timeout_seconds=30)]
+            fresh_paths=['Artifacts/Results/eval'],required_paths=['Artifacts/Results/eval/episodes.csv'],timeout_seconds=30)]
         plan['jobs'].append(dict(id='diagnostic', hypothesis='fixture', evidence='fixture',
-            review_artifact='results/diagnostic.json', stages=[dict(id='diagnostic',
-            argv=['-c', "from pathlib import Path;Path('results/diagnostic.json').write_text('{}')"],
-            fresh_paths=['results/diagnostic.json'], required_paths=['results/diagnostic.json'], timeout_seconds=30)]))
+            review_artifact='Artifacts/Results/diagnostic.json', stages=[dict(id='diagnostic',
+            argv=['-c', "from pathlib import Path;Path('Artifacts/Results/diagnostic.json').write_text('{}')"],
+            fresh_paths=['Artifacts/Results/diagnostic.json'], required_paths=['Artifacts/Results/diagnostic.json'], timeout_seconds=30)]))
         import copy
         screen=copy.deepcopy(job)
         screen['id']='screen';screen['screening_only']=True
-        screen['episodes_csv']='results/screen/episodes.csv'
-        screen['stages']=json.loads(json.dumps(screen['stages']).replace('results/eval','results/screen'))
+        screen['episodes_csv']='Artifacts/Results/screen/episodes.csv'
+        screen['stages']=json.loads(json.dumps(screen['stages']).replace('Artifacts/Results/eval','Artifacts/Results/screen'))
         screen['gate']['outcomes']['pass']=[dict(name='forced rejection',aggregate='min',metric='episode_steps',min=501)]
         plan['jobs'].append(screen)
         blocked=copy.deepcopy(plan['jobs'][1]);blocked['id']='blocked'
         blocked['requires_screening']=['screen']
-        blocked=json.loads(json.dumps(blocked).replace('results/diagnostic.json','results/blocked.json'))
+        blocked=json.loads(json.dumps(blocked).replace('Artifacts/Results/diagnostic.json','Artifacts/Results/blocked.json'))
         plan['jobs'].append(blocked)
         p=self.root/'plan.json';p.write_text(json.dumps(plan))
         for args in (['init','-q'],['add','.'],['-c','user.name=Queue Test','-c','user.email=test@example.invalid','commit','-qm','fixture']):
@@ -158,7 +158,7 @@ class QueueTests(unittest.TestCase):
         command=[sys.executable,str(runner),'--plan',str(p)]
         first=subprocess.run(command,cwd=self.root,capture_output=True,text=True,timeout=75)
         self.assertEqual(first.returncode,0,first.stderr)
-        status_path=self.root/'results/queue/status.json'
+        status_path=self.root/'Artifacts/Results/queue/status.json'
         before=status_path.read_bytes()
         status=json.loads(before)
         self.assertEqual(status['status'],'needs_review')
@@ -167,7 +167,7 @@ class QueueTests(unittest.TestCase):
         self.assertEqual(status['jobs'][2]['status'],'screening_rejected')
         self.assertFalse(status['jobs'][2]['assessment']['full_validation'])
         self.assertEqual(status['jobs'][3]['status'],'skipped_screening')
-        self.assertFalse((self.root/'results/blocked.json').exists())
+        self.assertFalse((self.root/'Artifacts/Results/blocked.json').exists())
         self.assertEqual(status['jobs'][1]['status'], 'needs_review')
         self.assertFalse(status['jobs'][1]['assessment']['numeric_gate_evaluated'])
         second=subprocess.run(command,cwd=self.root,capture_output=True,text=True,timeout=10)

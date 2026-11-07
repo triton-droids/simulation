@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from source.scripts.report_g1_baseline import (
+from robocub.scripts.report_g1_baseline import (
     EXPECTED_COMMANDS,
     EXPECTED_SEEDS,
     _best_checkpoint,

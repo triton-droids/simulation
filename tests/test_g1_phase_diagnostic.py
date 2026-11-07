@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jp
 import numpy as np
-from source.utils.g1_phase_diagnostic import replace_policy_phase
+from robocub.utils.g1_phase_diagnostic import replace_policy_phase
 
 
 def test_phase_intervention_is_local_and_nonmutating():

@@ -1,0 +1,8 @@
+[
+  {
+    "sim.commands.zero_probability": 0.1
+  },
+  {
+    "sim.commands.zero_probability": 0.2
+  }
+]

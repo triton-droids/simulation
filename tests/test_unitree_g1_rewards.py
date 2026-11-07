@@ -5,8 +5,8 @@ from __future__ import annotations
 import jax.numpy as jp
 import numpy as np
 
-from source.config.g1 import G1MJXConfig
-from source.locomotion.unitree_g1 import rewards
+from robocub.config.g1 import G1MJXConfig
+from robocub.locomotion.unitree_g1 import rewards
 
 
 def test_signed_aggregation_does_not_erase_termination_penalty():

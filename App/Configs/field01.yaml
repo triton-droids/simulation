@@ -1,0 +1,10 @@
+backend: isaaclab
+isaaclab_version: 3.0.0
+field: medium_14x9
+num_envs: 256
+physics_dt: 0.005
+control_decimation: 4
+gravity: [0, 0, -9.81]
+geometry_randomization: false
+robot: g1
+randomization: mild

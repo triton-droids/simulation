@@ -2,7 +2,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from source.utils.checkpoint_staging import save_staged_checkpoint
+from robocub.utils.checkpoint_staging import save_staged_checkpoint
 
 
 class CheckpointStagingTests(unittest.TestCase):

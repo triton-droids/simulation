@@ -2,7 +2,7 @@
 
 import pytest
 
-from source.utils.checkpoints import inference_params_from_training_params
+from robocub.utils.checkpoints import inference_params_from_training_params
 
 
 def test_current_brax_three_item_layout():

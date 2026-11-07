@@ -1,7 +1,7 @@
 import unittest
 from types import SimpleNamespace
 import numpy as np
-from source.utils.g1_terminal_diagnostic import terminal_signals
+from robocub.utils.g1_terminal_diagnostic import terminal_signals
 
 class TerminalDiagnosticTests(unittest.TestCase):
  def test_all_causes_and_sensor_addresses(self):

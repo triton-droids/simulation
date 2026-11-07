@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 import jax
 import jax.numpy as jp
-from source.locomotion.unitree_g1.foot_separation import narrow_foot_cost
+from robocub.locomotion.unitree_g1.foot_separation import narrow_foot_cost
 class FootSeparationTests(unittest.TestCase):
  def test_geometry_and_heading_invariance(self):
   fn=jax.jit(narrow_foot_cost)

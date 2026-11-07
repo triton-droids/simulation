@@ -6,7 +6,7 @@ import builtins
 from datetime import datetime
 import json
 
-from source.utils.experiment_logging import create_metric_logger
+from robocub.utils.experiment_logging import create_metric_logger
 
 
 def test_local_logger_writes_jsonl_without_importing_wandb(tmp_path, monkeypatch):

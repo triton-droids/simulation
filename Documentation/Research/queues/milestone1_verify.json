@@ -1,0 +1,99 @@
+{
+  "max_wall_seconds": 7200,
+  "version": 1,
+  "output_dir": "Artifacts/Results/milestone1/queue",
+  "jobs": [
+    {
+      "hypothesis": "Existing T02 supports documented nominal simulation commands and continuous move-turn-stop",
+      "id": "fixed",
+      "stages": [
+        {
+          "id": "demo",
+          "timeout_seconds": 2400,
+          "argv": [
+            "robocub/scripts/demo_g1_controller.py",
+            "--profile",
+            "fixed",
+            "--output-dir",
+            "Artifacts/Results/milestone1/fixed01",
+            "--video"
+          ],
+          "required_paths": [
+            "Artifacts/Results/milestone1/fixed01/summary.json"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/milestone1/fixed01"
+          ]
+        }
+      ],
+      "evidence": "Historical nominal24/24; restored interface smoke passes. No training.",
+      "review_artifact": "Artifacts/Results/milestone1/fixed01/summary.json"
+    },
+    {
+      "hypothesis": "Existing T02 supports documented nominal simulation commands and continuous move-turn-stop",
+      "id": "transitions",
+      "stages": [
+        {
+          "id": "demo",
+          "timeout_seconds": 2400,
+          "argv": [
+            "robocub/scripts/demo_g1_controller.py",
+            "--profile",
+            "transitions",
+            "--output-dir",
+            "Artifacts/Results/milestone1/transitions01",
+            "--video"
+          ],
+          "required_paths": [
+            "Artifacts/Results/milestone1/transitions01/summary.json"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/milestone1/transitions01"
+          ]
+        }
+      ],
+      "evidence": "Historical nominal24/24; restored interface smoke passes. No training.",
+      "review_artifact": "Artifacts/Results/milestone1/transitions01/summary.json"
+    },
+    {
+      "hypothesis": "Fixed T02 artifacts are portable with explicit pinned external caches",
+      "id": "package",
+      "stages": [
+        {
+          "id": "package",
+          "timeout_seconds": 300,
+          "argv": [
+            "robocub/scripts/package_g1_controller.py",
+            "--output-dir",
+            "Artifacts/Results/milestone1/package01"
+          ],
+          "required_paths": [
+            "Artifacts/Results/milestone1/package01/manifest.json"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/milestone1/package01"
+          ]
+        },
+        {
+          "id": "clean_verify",
+          "timeout_seconds": 1800,
+          "argv": [
+            "robocub/scripts/verify_g1_handoff.py",
+            "--package",
+            "Artifacts/Results/milestone1/package01",
+            "--output-dir",
+            "Artifacts/Results/milestone1/clean01"
+          ],
+          "required_paths": [
+            "Artifacts/Results/milestone1/clean01/summary.json"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/milestone1/clean01"
+          ]
+        }
+      ],
+      "evidence": "Verified checkpoint restore and saved source pins",
+      "review_artifact": "Artifacts/Results/milestone1/clean01/summary.json"
+    }
+  ]
+}

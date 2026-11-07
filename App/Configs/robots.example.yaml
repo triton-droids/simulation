@@ -1,0 +1,10 @@
+# Template only, not authorization to identify a model as team hardware.
+identity: "REPLACE with verified hardware/model/revision"
+units: m
+license: "REPLACE with asset license and source"
+initial_height: 0.8
+nominal_joints: {}  # MUST specify every controlled hinge/slide joint by name
+kp: 20.0  # engineering placeholders; replace with hardware metadata
+kd: 1.0
+effort_limit: 10.0
+# --robot_metadata takes a JSON object containing these fields.

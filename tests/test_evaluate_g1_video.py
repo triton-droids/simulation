@@ -15,7 +15,7 @@ import pytest
 if sys.platform == "win32":
     os.environ["MUJOCO_GL"] = "glfw"
 
-from source.scripts import evaluate_g1
+from robocub.scripts import evaluate_g1
 
 
 @pytest.mark.parametrize("batch_size", [1, 2, 4, 8])
@@ -414,7 +414,7 @@ def test_video_falls_back_to_opencv_when_ffmpeg_is_missing(
 
 
 def test_c16_recovery_queue_uses_actual_evaluator_cli(monkeypatch):
-    plan_path = Path(__file__).resolve().parents[1] / "research/queues/c16_evaluation_recovery.json"
+    plan_path = Path(__file__).resolve().parents[1] / "Documentation/Research/queues/c16_evaluation_recovery.json"
     job = json.loads(plan_path.read_text())["jobs"][0]
     assert len(job["stages"]) == 1
     monkeypatch.setattr(sys, "argv", job["stages"][0]["argv"])
@@ -428,7 +428,7 @@ def test_c16_recovery_queue_uses_actual_evaluator_cli(monkeypatch):
 
 @pytest.mark.parametrize("filename,checkpoint", [("c17_gait.json",2007040), ("c18_yaw.json",1003520)])
 def test_gait_queues_use_actual_evaluator_cli(monkeypatch, filename, checkpoint):
-    path = Path(__file__).resolve().parents[1] / "research/queues" / filename
+    path = Path(__file__).resolve().parents[1] / "Documentation/Research/queues" / filename
     job = json.loads(path.read_text())["jobs"][0]
     stage = next(s for s in job["stages"] if s["id"] == "evaluate")
     monkeypatch.setattr(sys, "argv", stage["argv"])
@@ -441,7 +441,7 @@ def test_gait_queues_use_actual_evaluator_cli(monkeypatch, filename, checkpoint)
 
 @pytest.mark.parametrize("filename,checkpoint,first_stage", [("c19_commands.json",2007040,"prepare"), ("c20_linear.json",1003520,"train")])
 def test_command_queues_use_actual_evaluator_cli(monkeypatch, filename, checkpoint, first_stage):
-    path = Path(__file__).resolve().parents[1] / "research/queues" / filename
+    path = Path(__file__).resolve().parents[1] / "Documentation/Research/queues" / filename
     job = json.loads(path.read_text())["jobs"][0]
     stage = next(s for s in job["stages"] if s["id"] == "evaluate")
     monkeypatch.setattr(sys, "argv", stage["argv"])
@@ -454,7 +454,7 @@ def test_command_queues_use_actual_evaluator_cli(monkeypatch, filename, checkpoi
 
 
 def test_c20_randomized_queue_cli(monkeypatch):
-    path = Path(__file__).resolve().parents[1] / "research/queues/c20_randomized.json"
+    path = Path(__file__).resolve().parents[1] / "Documentation/Research/queues/c20_randomized.json"
     job = json.loads(path.read_text())["jobs"][0]
     assert len(job["stages"]) == 1
     monkeypatch.setattr(sys, "argv", job["stages"][0]["argv"])
@@ -467,7 +467,7 @@ def test_c20_randomized_queue_cli(monkeypatch):
 
 
 def test_c21_evaluation_clis(monkeypatch):
-    path = Path(__file__).resolve().parents[1] / "research/queues/c21_recovery.json"
+    path = Path(__file__).resolve().parents[1] / "Documentation/Research/queues/c21_recovery.json"
     jobs = json.loads(path.read_text())["jobs"]
     assert len(jobs) == 2
     for job, seeds, randomized in zip(jobs, ["4000", "5000,5001"], [False, True]):
@@ -482,7 +482,7 @@ def test_c21_evaluation_clis(monkeypatch):
 
 
 def test_c21_backward_diagnostic_video_cli(monkeypatch):
-    path = Path(__file__).resolve().parents[1] / "research/queues/c21_backward_diagnostic.json"
+    path = Path(__file__).resolve().parents[1] / "Documentation/Research/queues/c21_backward_diagnostic.json"
     stage = json.loads(path.read_text())["jobs"][0]["stages"][-1]
     monkeypatch.setattr(sys, "argv", stage["argv"])
     args = evaluate_g1.parse_args()
@@ -492,7 +492,7 @@ def test_c21_backward_diagnostic_video_cli(monkeypatch):
 
 
 def test_c22_candidate_queue_clis(monkeypatch):
-    path = Path(__file__).resolve().parents[1] / "research/queues/c22_learning_rates.json"
+    path = Path(__file__).resolve().parents[1] / "Documentation/Research/queues/c22_learning_rates.json"
     jobs = json.loads(path.read_text())["jobs"]
     assert len(jobs) == 4
     for i, job in enumerate(jobs):
@@ -511,13 +511,13 @@ def test_c22_candidate_queue_clis(monkeypatch):
 
 def test_final_f1_external_untrained_control_cli(monkeypatch):
     root = Path(__file__).resolve().parents[1]
-    plan = json.loads((root / "research/queues/final_f1.json").read_text())
+    plan = json.loads((root / "Documentation/Research/queues/final_f1.json").read_text())
     for job in plan["jobs"][:-1]:
         stage = next(s for s in job["stages"] if s["id"].startswith("evaluate_"))
         monkeypatch.setattr(sys, "argv", stage["argv"])
         args = evaluate_g1.parse_args()
         seed = job["id"].split("_")[0]
-        assert args.reference_run_dir == Path("results/final_f1") / seed / "balance"
+        assert args.reference_run_dir == Path("Artifacts/Results/final_f1") / seed / "balance"
         assert args.reference_label == "untrained" and args.untrained_checkpoint == 0
         assert args.seeds == "6000,6001,6002"
         assert args.command_grid_entries is not None and len(args.command_grid_entries) == 8

@@ -12,22 +12,22 @@ import jax.numpy as jp
 import pytest
 from omegaconf import OmegaConf
 
-import source.config  # noqa: F401 - register structured Hydra configs.
-from source.config.g1_playground import G1PlaygroundMJXConfig
-from source.locomotion import get_env_class
-from source.locomotion.unitree_g1.playground_joystick import (
+import robocub.config  # noqa: F401 - register structured Hydra configs.
+from robocub.config.g1_playground import G1PlaygroundMJXConfig
+from robocub.locomotion import get_env_class
+from robocub.locomotion.unitree_g1.playground_joystick import (
     Joystick,
     contact_phase_reward,
     synchronize_transition_observation,
 )
-from source.locomotion.unitree_g1.playground_source import (
+from robocub.locomotion.unitree_g1.playground_source import (
     PLAYGROUND_COMMIT,
     REQUIRED_PATHS,
     load_playground_g1_modules,
     resolve_playground_source,
 )
-from source.robots.unitree_g1 import UnitreeG1Model
-from source.locomotion.unitree_g1.training_wrapper import wrap_for_brax_training
+from robocub.robots.unitree_g1 import UnitreeG1Model
+from robocub.locomotion.unitree_g1.training_wrapper import wrap_for_brax_training
 
 
 def test_playground_config_matches_pinned_g1_defaults_and_round_trips() -> None:
@@ -364,7 +364,7 @@ def test_command_only_phase_reward_removes_exact_term_only_when_stopped():
 
 
 def test_standing_command_sampler_preserves_moving_samples():
-    from source.locomotion.unitree_g1.playground_joystick import standing_command_sampler
+    from robocub.locomotion.unitree_g1.playground_joystick import standing_command_sampler
     import jax
     import jax.numpy as jp
     import numpy as np
@@ -447,7 +447,7 @@ def test_action_filter_clips_before_mixing_and_tracks_applied_history():
 
 def test_support_observation_real_reset_step_and_held_command():
     import numpy as np
-    from source.scripts.evaluate_g1 import _replace_command
+    from robocub.scripts.evaluate_g1 import _replace_command
     cfg = OmegaConf.structured(G1PlaygroundMJXConfig())
     cfg.playground.fetch_source = False
     cfg.noise.add_noise = False

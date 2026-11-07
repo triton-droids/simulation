@@ -1,0 +1,313 @@
+{
+  "date": "2026-10-25",
+  "scope": "G1 soccer infrastructure; scripted smoke only, no learned soccer",
+  "benchmarks": [
+    {
+      "backend": "isaaclab3-newton-mjwarp",
+      "num_envs": 1,
+      "control_steps": 100,
+      "wall_seconds": 1.6958360000280663,
+      "setup_seconds": 14.03133600007277,
+      "aggregate_env_steps_per_second": 58.96796624104276,
+      "aggregate_physics_steps_per_second": 235.87186496417104,
+      "isolation": {
+        "checked": false
+      },
+      "fall_resets": 0,
+      "config_hash": "8a98139042c826a57c43874ac86590355364994d425bbdc2977480435b47196f",
+      "source_manifest": {
+        "files": {
+          "robocub.soccer\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\backends\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\backends\\isaaclab.py": "d3dae8ea800eb9e6882dd38212ce6ad0433eddeee551a71a4ed5e67836f4e937",
+          "robocub.soccer\\cli.py": "a689e2e814b419fa05cec97832872219eb676cb02bbc60a2c73d3e2ec981b3b3",
+          "robocub.soccer\\doctor.py": "641be972b3871cfdb3c7f662968b880f57e7ed89b83f5241bb56010fa6bdef4d",
+          "robocub.soccer\\envs\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\envs\\task.py": "4e1434a3099a4f29c04ff8d72a9583d0719e7aa839816054302c8145acdcc00f",
+          "robocub.soccer\\evaluation\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\evaluation\\baseline.py": "4a61ba11f38ddcad4ded7cd88a849a870f52d9c63df710a511bb19271b9f5fb0",
+          "robocub.soccer\\evaluation\\gpu_physics.py": "c82c748c36f50990c8ca7463b77b968d620112254c32b6e6683fff7054d6c6a2",
+          "robocub.soccer\\evaluation\\provenance.py": "1ded954a158a623c2e7053eac5ab4ab9c6a26c13b5c8ae34ebdad4fbc9141f66",
+          "robocub.soccer\\field\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\field\\geometry.py": "5ee7681704a3162316c27bde3f3b5e6814d812a6ad7889f644ba0c98b643e3d9",
+          "robocub.soccer\\field\\scene.py": "c2ac35cca1424d76ed006365a5f49d2e09a6118ed9401e65e943ffba912f7514",
+          "robocub.soccer\\field\\usd.py": "5026c4f55390fc68262311e9a5df650107a9b5f1722f3483f8ade9aec8120a53",
+          "robocub.soccer\\randomization\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\randomization\\isaac_runtime.py": "8184869a2330edb34de68fdbd52d91d7f5aa7635e6e26858d0a45a311aa92d29",
+          "robocub.soccer\\randomization\\registry.py": "4b782a63b9dd52c48830ff99cb9016aa3c303a7857327e9269b942a6a250fbe2",
+          "robocub.soccer\\randomization\\sampler.py": "f3d160a867f85ac7db5b8b05d25f681d814a441d37a52e2b54765e0b209fa5aa",
+          "robocub.soccer\\robots\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\robots\\g1.py": "1390a0493e673789946de46d7b3c79b3c8931e39de9076d8ff44ffaa9065a3bb",
+          "robocub.soccer\\robots\\importer.py": "a0d5f155abe7f6175de3af31a1a3a72650e92f6e7628b79d67a661955b10c4ef",
+          "robocub.soccer\\robots\\validator.py": "e5cdeef4155a6638977d2ed6fdefbde90b6d53c00f18acaef1960d3b5820ee05",
+          "robocub.soccer\\viewer\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\viewer\\app.py": "2f122479cd5798f4b4fd1d7fe6fb6f3b0cafa1f0eaf6d1faea4d53ceef5730c4",
+          "robocub.soccer\\viewer\\isaac_panel.py": "9987e913a32fc1d91c620239e713c35e1255cb597d3f0cec53db071bbcb6c725",
+          "configs\\field_profiles\\large_22x14.yaml": "dad4a1ed89cf08656de4cda6904e4973053cb5e79592e075385c0b7f3909ad4b",
+          "configs\\field_profiles\\medium_14x9.yaml": "cff869190e4d647abcd1489738633311b8da58d680bd901b0700b3d973b3a1bb",
+          "App/Configs/field01.yaml": "2ed043138506f0a5537e76fab9685a0cd034512b92a7729345798667b8532ab9",
+          "App/Configs/randomization_field01.yaml": "eafc4a120f779f2f83babe9fc8f8bc6fa458f99ee723e345322e42e43afe8522"
+        },
+        "tree_sha256": "0a802dbf0c1a6317e4f1486c41064ebec813588767a3e1b476ebea2bc91d4162"
+      },
+      "command": [
+        "C:\\Users\\brand\\PycharmProjects\\Robocub\\.cache\\field01_venv\\Scripts\\python.exe",
+        "scripts/field01",
+        "smoke",
+        "--robot",
+        "g1",
+        "--num_envs",
+        "1",
+        "--steps",
+        "100",
+        "--randomization",
+        "mild",
+        "--run_dir",
+        "results\\field01\\gpu_g1_final01\\n1"
+      ],
+      "exit_code": 0,
+      "whole_gpu_sampled_peak_mib": 185,
+      "memory_scope": "Whole GPU, includes desktop and other processes; not per-process peak"
+    },
+    {
+      "backend": "isaaclab3-newton-mjwarp",
+      "num_envs": 16,
+      "control_steps": 100,
+      "wall_seconds": 3.1505490998970345,
+      "setup_seconds": 13.741021299967542,
+      "aggregate_env_steps_per_second": 507.84798118280105,
+      "aggregate_physics_steps_per_second": 2031.3919247312042,
+      "isolation": {
+        "checked": true,
+        "reset_zero_preserves_other_balls": true
+      },
+      "fall_resets": 0,
+      "config_hash": "8a98139042c826a57c43874ac86590355364994d425bbdc2977480435b47196f",
+      "source_manifest": {
+        "files": {
+          "robocub.soccer\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\backends\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\backends\\isaaclab.py": "d3dae8ea800eb9e6882dd38212ce6ad0433eddeee551a71a4ed5e67836f4e937",
+          "robocub.soccer\\cli.py": "a689e2e814b419fa05cec97832872219eb676cb02bbc60a2c73d3e2ec981b3b3",
+          "robocub.soccer\\doctor.py": "641be972b3871cfdb3c7f662968b880f57e7ed89b83f5241bb56010fa6bdef4d",
+          "robocub.soccer\\envs\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\envs\\task.py": "4e1434a3099a4f29c04ff8d72a9583d0719e7aa839816054302c8145acdcc00f",
+          "robocub.soccer\\evaluation\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\evaluation\\baseline.py": "4a61ba11f38ddcad4ded7cd88a849a870f52d9c63df710a511bb19271b9f5fb0",
+          "robocub.soccer\\evaluation\\gpu_physics.py": "c82c748c36f50990c8ca7463b77b968d620112254c32b6e6683fff7054d6c6a2",
+          "robocub.soccer\\evaluation\\provenance.py": "1ded954a158a623c2e7053eac5ab4ab9c6a26c13b5c8ae34ebdad4fbc9141f66",
+          "robocub.soccer\\field\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\field\\geometry.py": "5ee7681704a3162316c27bde3f3b5e6814d812a6ad7889f644ba0c98b643e3d9",
+          "robocub.soccer\\field\\scene.py": "c2ac35cca1424d76ed006365a5f49d2e09a6118ed9401e65e943ffba912f7514",
+          "robocub.soccer\\field\\usd.py": "5026c4f55390fc68262311e9a5df650107a9b5f1722f3483f8ade9aec8120a53",
+          "robocub.soccer\\randomization\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\randomization\\isaac_runtime.py": "8184869a2330edb34de68fdbd52d91d7f5aa7635e6e26858d0a45a311aa92d29",
+          "robocub.soccer\\randomization\\registry.py": "4b782a63b9dd52c48830ff99cb9016aa3c303a7857327e9269b942a6a250fbe2",
+          "robocub.soccer\\randomization\\sampler.py": "f3d160a867f85ac7db5b8b05d25f681d814a441d37a52e2b54765e0b209fa5aa",
+          "robocub.soccer\\robots\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\robots\\g1.py": "1390a0493e673789946de46d7b3c79b3c8931e39de9076d8ff44ffaa9065a3bb",
+          "robocub.soccer\\robots\\importer.py": "a0d5f155abe7f6175de3af31a1a3a72650e92f6e7628b79d67a661955b10c4ef",
+          "robocub.soccer\\robots\\validator.py": "e5cdeef4155a6638977d2ed6fdefbde90b6d53c00f18acaef1960d3b5820ee05",
+          "robocub.soccer\\viewer\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\viewer\\app.py": "2f122479cd5798f4b4fd1d7fe6fb6f3b0cafa1f0eaf6d1faea4d53ceef5730c4",
+          "robocub.soccer\\viewer\\isaac_panel.py": "9987e913a32fc1d91c620239e713c35e1255cb597d3f0cec53db071bbcb6c725",
+          "configs\\field_profiles\\large_22x14.yaml": "dad4a1ed89cf08656de4cda6904e4973053cb5e79592e075385c0b7f3909ad4b",
+          "configs\\field_profiles\\medium_14x9.yaml": "cff869190e4d647abcd1489738633311b8da58d680bd901b0700b3d973b3a1bb",
+          "App/Configs/field01.yaml": "2ed043138506f0a5537e76fab9685a0cd034512b92a7729345798667b8532ab9",
+          "App/Configs/randomization_field01.yaml": "eafc4a120f779f2f83babe9fc8f8bc6fa458f99ee723e345322e42e43afe8522"
+        },
+        "tree_sha256": "0a802dbf0c1a6317e4f1486c41064ebec813588767a3e1b476ebea2bc91d4162"
+      },
+      "command": [
+        "C:\\Users\\brand\\PycharmProjects\\Robocub\\.cache\\field01_venv\\Scripts\\python.exe",
+        "scripts/field01",
+        "smoke",
+        "--robot",
+        "g1",
+        "--num_envs",
+        "16",
+        "--steps",
+        "100",
+        "--randomization",
+        "mild",
+        "--run_dir",
+        "results\\field01\\gpu_g1_final01\\n16"
+      ],
+      "exit_code": 0,
+      "whole_gpu_sampled_peak_mib": 185,
+      "memory_scope": "Whole GPU, includes desktop and other processes; not per-process peak"
+    },
+    {
+      "backend": "isaaclab3-newton-mjwarp",
+      "num_envs": 256,
+      "control_steps": 100,
+      "wall_seconds": 7.818358600023203,
+      "setup_seconds": 14.923241300042719,
+      "aggregate_env_steps_per_second": 3274.344566380471,
+      "aggregate_physics_steps_per_second": 13097.378265521884,
+      "isolation": {
+        "checked": true,
+        "reset_zero_preserves_other_balls": true
+      },
+      "fall_resets": 0,
+      "config_hash": "8a98139042c826a57c43874ac86590355364994d425bbdc2977480435b47196f",
+      "source_manifest": {
+        "files": {
+          "robocub.soccer\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\backends\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\backends\\isaaclab.py": "d3dae8ea800eb9e6882dd38212ce6ad0433eddeee551a71a4ed5e67836f4e937",
+          "robocub.soccer\\cli.py": "a689e2e814b419fa05cec97832872219eb676cb02bbc60a2c73d3e2ec981b3b3",
+          "robocub.soccer\\doctor.py": "641be972b3871cfdb3c7f662968b880f57e7ed89b83f5241bb56010fa6bdef4d",
+          "robocub.soccer\\envs\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\envs\\task.py": "4e1434a3099a4f29c04ff8d72a9583d0719e7aa839816054302c8145acdcc00f",
+          "robocub.soccer\\evaluation\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\evaluation\\baseline.py": "4a61ba11f38ddcad4ded7cd88a849a870f52d9c63df710a511bb19271b9f5fb0",
+          "robocub.soccer\\evaluation\\gpu_physics.py": "c82c748c36f50990c8ca7463b77b968d620112254c32b6e6683fff7054d6c6a2",
+          "robocub.soccer\\evaluation\\provenance.py": "1ded954a158a623c2e7053eac5ab4ab9c6a26c13b5c8ae34ebdad4fbc9141f66",
+          "robocub.soccer\\field\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\field\\geometry.py": "5ee7681704a3162316c27bde3f3b5e6814d812a6ad7889f644ba0c98b643e3d9",
+          "robocub.soccer\\field\\scene.py": "c2ac35cca1424d76ed006365a5f49d2e09a6118ed9401e65e943ffba912f7514",
+          "robocub.soccer\\field\\usd.py": "5026c4f55390fc68262311e9a5df650107a9b5f1722f3483f8ade9aec8120a53",
+          "robocub.soccer\\randomization\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\randomization\\isaac_runtime.py": "8184869a2330edb34de68fdbd52d91d7f5aa7635e6e26858d0a45a311aa92d29",
+          "robocub.soccer\\randomization\\registry.py": "4b782a63b9dd52c48830ff99cb9016aa3c303a7857327e9269b942a6a250fbe2",
+          "robocub.soccer\\randomization\\sampler.py": "f3d160a867f85ac7db5b8b05d25f681d814a441d37a52e2b54765e0b209fa5aa",
+          "robocub.soccer\\robots\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\robots\\g1.py": "1390a0493e673789946de46d7b3c79b3c8931e39de9076d8ff44ffaa9065a3bb",
+          "robocub.soccer\\robots\\importer.py": "a0d5f155abe7f6175de3af31a1a3a72650e92f6e7628b79d67a661955b10c4ef",
+          "robocub.soccer\\robots\\validator.py": "e5cdeef4155a6638977d2ed6fdefbde90b6d53c00f18acaef1960d3b5820ee05",
+          "robocub.soccer\\viewer\\__init__.py": "710d1151cbf3e54789124911c3b3e1c9a5dccc84b5f9c1ca48be2397053882e4",
+          "robocub.soccer\\viewer\\app.py": "2f122479cd5798f4b4fd1d7fe6fb6f3b0cafa1f0eaf6d1faea4d53ceef5730c4",
+          "robocub.soccer\\viewer\\isaac_panel.py": "9987e913a32fc1d91c620239e713c35e1255cb597d3f0cec53db071bbcb6c725",
+          "configs\\field_profiles\\large_22x14.yaml": "dad4a1ed89cf08656de4cda6904e4973053cb5e79592e075385c0b7f3909ad4b",
+          "configs\\field_profiles\\medium_14x9.yaml": "cff869190e4d647abcd1489738633311b8da58d680bd901b0700b3d973b3a1bb",
+          "App/Configs/field01.yaml": "2ed043138506f0a5537e76fab9685a0cd034512b92a7729345798667b8532ab9",
+          "App/Configs/randomization_field01.yaml": "eafc4a120f779f2f83babe9fc8f8bc6fa458f99ee723e345322e42e43afe8522"
+        },
+        "tree_sha256": "0a802dbf0c1a6317e4f1486c41064ebec813588767a3e1b476ebea2bc91d4162"
+      },
+      "command": [
+        "C:\\Users\\brand\\PycharmProjects\\Robocub\\.cache\\field01_venv\\Scripts\\python.exe",
+        "scripts/field01",
+        "smoke",
+        "--robot",
+        "g1",
+        "--num_envs",
+        "256",
+        "--steps",
+        "100",
+        "--randomization",
+        "mild",
+        "--run_dir",
+        "results\\field01\\gpu_g1_final01\\n256"
+      ],
+      "exit_code": 0,
+      "whole_gpu_sampled_peak_mib": 315,
+      "memory_scope": "Whole GPU, includes desktop and other processes; not per-process peak"
+    }
+  ],
+  "evaluations": [
+    {
+      "run": "isaac_train_final01",
+      "backend": "isaaclab3-newton-mjwarp",
+      "num_envs": 16,
+      "steps": 80,
+      "fall_resets": 0,
+      "seed": 42,
+      "enabled_families": [
+        "ball_mass",
+        "ball_rolling_loss",
+        "ball_spawn_xy",
+        "ball_velocity",
+        "control_latency",
+        "external_push",
+        "observation_delay",
+        "proprio_noise",
+        "robot_spawn_xy",
+        "robot_spawn_yaw"
+      ],
+      "effective_mass_range_kg": [
+        0.42408424615859985,
+        0.4369235932826996
+      ]
+    },
+    {
+      "run": "isaac_nominal_final01",
+      "backend": "isaaclab3-newton-mjwarp",
+      "num_envs": 16,
+      "steps": 80,
+      "fall_resets": 0,
+      "seed": 12345,
+      "enabled_families": [
+        "ball_spawn_xy",
+        "robot_spawn_xy",
+        "robot_spawn_yaw"
+      ],
+      "effective_mass_range_kg": [
+        0.4300000071525574,
+        0.4300000071525574
+      ]
+    },
+    {
+      "run": "isaac_heldout_final01",
+      "backend": "isaaclab3-newton-mjwarp",
+      "num_envs": 16,
+      "steps": 80,
+      "fall_resets": 0,
+      "seed": 54321,
+      "enabled_families": [
+        "ball_mass",
+        "ball_rolling_loss",
+        "ball_spawn_xy",
+        "ball_velocity",
+        "control_latency",
+        "external_push",
+        "observation_delay",
+        "proprio_noise",
+        "robot_spawn_xy",
+        "robot_spawn_yaw"
+      ],
+      "effective_mass_range_kg": [
+        0.4157797396183014,
+        0.4443647563457489
+      ]
+    }
+  ],
+  "physics": {
+    "drop_min_height": 0.08878789097070694,
+    "drop_final_height": 0.10944971442222595,
+    "roll_distance": 1.43902587890625,
+    "post_max_x": 6.897017478942871,
+    "final_positions": [
+      [
+        0.0,
+        0.0,
+        0.10944971442222595
+      ],
+      [
+        1.43902587890625,
+        0.0,
+        0.10944971442222595
+      ],
+      [
+        6.695560932159424,
+        1.2899999618530273,
+        0.10944971442222595
+      ]
+    ],
+    "passed": true
+  },
+  "ui": {
+    "reset": true,
+    "place_ball": true,
+    "place_robot": true,
+    "pause_resume": true,
+    "camera_options": [
+      "Overhead",
+      "Orbit",
+      "Follow"
+    ],
+    "browser": "headless Edge software WebGL; simulation CUDA"
+  },
+  "invalidated": "gpu_g1_benchmark01 XPBD: ball readbacks not advancing; gpu_g1_mjwarp01 Euler: G1 nonfinite. Retained, never accepted throughput."
+}

@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from source.scripts.evaluate_playground_onnx import _is_terminal
+from robocub.scripts.evaluate_playground_onnx import _is_terminal
 
 
 def test_oracle_termination_uses_positive_upvector_as_upright() -> None:

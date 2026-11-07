@@ -1,5 +1,5 @@
 import numpy as np
-from source.scripts.audit_g1_target_clipping import clipping_stats
+from robocub.scripts.audit_g1_target_clipping import clipping_stats
 
 
 def test_distinguishes_raw_action_from_asymmetric_target_clipping():

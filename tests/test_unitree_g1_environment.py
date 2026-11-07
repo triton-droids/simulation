@@ -9,10 +9,10 @@ import numpy as np
 from omegaconf import OmegaConf
 import pytest
 
-from source.config.g1 import G1MJXConfig
-from source.locomotion.unitree_g1 import rewards
-from source.locomotion.unitree_g1.joystick import Joystick, rigid_body_point_velocity
-from source.robots.unitree_g1 import UnitreeG1Model
+from robocub.config.g1 import G1MJXConfig
+from robocub.locomotion.unitree_g1 import rewards
+from robocub.locomotion.unitree_g1.joystick import Joystick, rigid_body_point_velocity
+from robocub.robots.unitree_g1 import UnitreeG1Model
 
 
 def _make_g1_env(*, randomize: bool = False, resample_time: float = 10.0):

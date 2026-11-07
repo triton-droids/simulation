@@ -8,18 +8,24 @@ env/
 # Local IDE settings
 .idea/
 .vscode/
+.env
 
 # Downloaded robot models and local caches
 .cache/
 mujoco_menagerie/
 
 # Generated outputs
-exports/
+Artifacts/Exports/
 logs/
-outputs/
-results/
+Artifacts/Outputs/
+Artifacts/Results/
 wandb/
 runs/
+App/Models/T02/
+Artifacts/Runs/
+Artifacts/Sweeps/
+Scripts/Outputs/
+Scripts/.sweep_counter
 
 # Python/tool caches
 __pycache__/
@@ -28,6 +34,7 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.pytest_tmp/
 
 # Temporary files and generated media
 *.log

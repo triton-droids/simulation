@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from source.scripts.report_g1_final_study import build_report, validate_evaluation
+from robocub.scripts.report_g1_final_study import build_report, validate_evaluation
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -15,7 +15,7 @@ class FinalStudyTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
-        self.protocol = json.loads((ROOT / 'research/queues/final_f1_protocol.json').read_text())
+        self.protocol = json.loads((ROOT / 'Documentation/Research/queues/final_f1_protocol.json').read_text())
         self.plan = json.loads((ROOT / self.protocol['queue_plan']).read_text())
 
     def write(self, path, value):
@@ -36,7 +36,7 @@ class FinalStudyTests(unittest.TestCase):
                 self.write(run + '/resolved_config.json', {'agent':{'seed':seed,'num_timesteps':training['steps']}})
                 self.write(run + f"/logs/checkpoints/{training['steps']}/policy", {})
                 if i:self.write(run + '/restore_parity.json', {'exact_actor_normalizer_match':True,'leaves':17})
-            self.write(f'results/final_f1/seed{seed}/command_prior/audit.json',
+            self.write(f'Artifacts/Results/final_f1/seed{seed}/command_prior/audit.json',
                        {'max_old_subspace_action_difference':0,'max_full_checkpoint_round_trip_difference':0})
             for entry in family['evaluations']:
                 summary={'commands':self.protocol['commands'],'reset_seeds':self.protocol['reset_seeds'],

@@ -1,0 +1,9 @@
+{
+  "legacy_sha": "87829b1cc23a7474608cb8494e30d96c7bec879b",
+  "rules_sha": "06c44d4b0ea2fd3cd4fdcc2a7cb907f6ace400dc",
+  "isaaclab": {
+    "sha": "e3f7d9ff1f5d7f8280de3ece9000b7117f66bcf4",
+    "type": "commit",
+    "url": "https://api.github.com/repos/isaac-sim/IsaacLab/git/commits/e3f7d9ff1f5d7f8280de3ece9000b7117f66bcf4"
+  }
+}

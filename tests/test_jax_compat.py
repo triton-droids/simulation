@@ -4,7 +4,7 @@ import jax
 import jax.numpy as jp
 import numpy as np
 
-from source.utils.jax_compat import install_brax_pmap_compatibility
+from robocub.utils.jax_compat import install_brax_pmap_compatibility
 
 
 def test_brax_replication_helper_is_available_and_preserves_leading_device_axis():

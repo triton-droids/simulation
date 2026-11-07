@@ -1,5 +1,5 @@
 import pytest
-from source.locomotion.unitree_g1.simulation_controller import validate_command,SimulationController
+from robocub.locomotion.unitree_g1.simulation_controller import validate_command,SimulationController
 
 @pytest.mark.parametrize('command',[(0,0,0),(.45,0,0),(-.25,.25,.4)])
 def test_valid_commands(command):

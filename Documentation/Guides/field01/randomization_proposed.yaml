@@ -1,0 +1,69 @@
+# Triton Droids Test Field 01 — proposal to be integrated/tested by the implementation agent
+# This is a specification/config scaffold, NOT a verified Isaac Lab runnable config.
+version: 1
+simulator:
+  framework: isaac_lab
+  version: '3.0.0'
+  backend: auto_benchmark_and_pin
+field:
+  id: medium_14x9
+  length_m: 14.0
+  width_m: 9.0
+  fixed_geometry_v1: true
+  goal_width_m: 2.5
+  goal_height_m: 1.7
+  goal_depth_m: 1.0
+  goal_area_depth_m: 1.0
+  goal_area_width_m: 4.0
+  penalty_area_depth_m: 3.0
+  penalty_area_width_m: 6.0
+  center_circle_diameter_m: 3.0
+  penalty_mark_distance_m: 2.0
+  line_width_m: 0.05
+  ball_type: fifa_size_5
+parallel:
+  default_num_envs: 256
+  smoke_num_envs: [1, 16, 256]
+  benchmark_num_envs: [1024, 4096]
+  env_spacing_m: auto_sufficient_to_prevent_collisions
+randomization:
+  preset: mild
+  master_seed: 42
+  enabled: true
+  always_sample:
+    - robot_spawn_xy
+    - robot_spawn_yaw
+    - ball_spawn_xy
+  additional_sampled_families_per_episode: [2, 4]
+  constraints:
+    dynamic_friction_lte_static: true
+    disallow_invalid_collisions_and_spawns: true
+    randomize_field_geometry: false
+    randomize_gravity: false
+    log_backend_effective_values: true
+  candidate_families:
+    foot_turf_static_friction_multiplier: [0.90, 1.10]
+    ball_rolling_loss_multiplier: [0.85, 1.15]
+    ball_restitution_multiplier: [0.90, 1.10]
+    motor_strength_multiplier: [0.95, 1.05]
+    actuator_gain_multiplier: [0.95, 1.05]
+    joint_damping_multiplier: [0.90, 1.10]
+    control_delay_steps: [0, 1]
+    ball_mass_multiplier: [0.98, 1.02]
+    # Sensors and visual families require robot-specific calibrated specs.
+  presets:
+    nominal: {extra_families: 0}
+    mild: {extra_families: [2, 4]}
+    robust: {extra_families: [5, 8]}
+    stress: {separate_heldout_config_required: true}
+viewer:
+  default_num_envs: 1
+  preferred: browser_viser_or_rerun_if_supported
+  views: [orbit, overhead, follow_robot]
+  proxy_must_be_labeled: true
+evaluation:
+  train_seed: 42
+  validation_seed: 12345
+  heldout_seed: 54321
+  nominal_baseline_required: true
+  record_configuration_and_asset_hashes: true

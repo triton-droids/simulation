@@ -1,0 +1,37 @@
+version: 1
+nominals:
+  sliding_friction: 0.8
+  dynamic_friction: 0.64
+  rolling_loss: 0.02
+  restitution: 0.5
+  ball_mass: 0.43
+  motor_strength: 1.0
+  actuator_gain: 1.0
+  joint_damping: 1.0
+ranges:
+  foot_turf_static_friction: [0.90, 1.10]
+  foot_turf_dynamic_friction: [0.90, 1.10]
+  ball_rolling_loss: [0.85, 1.15]
+  ball_restitution: [0.90, 1.10]
+  ball_mass: [0.98, 1.02]
+  motor_strength: [0.95, 1.05]
+  actuator_gain: [0.95, 1.05]
+  joint_damping: [0.90, 1.10]
+  control_latency: [0, 1]
+  proprio_noise: [0.0, 0.005]
+  observation_delay: [0, 1]
+  ball_velocity: [0.0, 0.25]
+  external_push: [0.0, 3.0]
+  lighting: [0.9, 1.1]
+  camera_jitter: [0.0, 0.005]
+  com_offset: [-0.002, 0.002]
+  opponent: [0, 1]
+presets:
+  disabled: [0, 0]
+  nominal: [0, 0]
+  mild: [2, 4]
+  robust: [5, 8]
+  stress: [7, 9]
+stress_range_scale: 2.0
+fixed_gravity: [0, 0, -9.81]
+fixed_geometry: true
