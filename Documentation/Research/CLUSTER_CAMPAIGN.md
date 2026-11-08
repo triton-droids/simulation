@@ -11,7 +11,7 @@ the pinned Playground research adapter; the Isaac field is a separate integratio
 Plans: `Documentation/Research/queues/cluster_rc01_control.json` and
 `Documentation/Research/queues/cluster_rc01_rate.json`.
 Receipts: `Artifacts/Results/cluster_research/RC01_control/submission.json` and
-`Artifacts/Results/cluster_research/RC01_rate/submission.json`.
+`Artifacts/Results/cluster_research/RC01_rate_r1/submission.json`.
 Monitor each once with `cluster_research.py status --run RC01_control` / `RC01_rate`.
 Review BOTH arms together; a finished arm does not authorize advancing while its
 matched partner is still running. At most two concurrent one-GPU jobs.
@@ -134,3 +134,10 @@ Final3-seed confirmation still requires a separately frozen from-initialization
 recipe for every component; these two dependent development arms cannot count.
 Plan validation and exact argv comparison passed: only intended coefficient differs
 apart from paths. No runner logic was changed for this experiment.
+
+RC01_rate job7526 failed before training with nvidia-smi reporting GPU0 device
+handle Unknown Error / No devices found. Evidence retained. One fresh allocation
+RC01_rate_r1 is authorized as infrastructure recovery with identical plan; no
+training completed in the failed allocation. RC01_control job7524 is already running
+and remains untouched. If allocation failures recur, investigate scheduler/device
+health rather than cycling allocations indefinitely.
