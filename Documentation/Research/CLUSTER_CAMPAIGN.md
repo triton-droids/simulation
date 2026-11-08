@@ -150,3 +150,32 @@ arm. Next wake: compact checks only while control healthy; once complete preserv
 its results and diagnose available healthy allocation without changing recipe or
 masking out devices outside Slurm permissions. Notify user once about faulty GPU;
 no repeated unchanged-blocker notifications.
+
+## Completed control / allocation blocker review - 2026-11-08 17:05 UTC
+
+Control7524 completed in22m54s. Exact parent actor/normalizer restore passed.
+All16 trained screen episodes survived500steps. Random screening now passes
+(mean linear.19683/yaw.20679; worst.28223/.29954; min pelvis.71792m).
+Nominal standing yaw.24764 remains above.15 despite standing linear.14372 passing;
+full stages correctly skipped. Six frames each from standing and random forward
+videos show upright in-place stepping and forward alternating gait, without visible
+collapse. This is sampled review, not full validation. Saved all row-level metrics,
+restore audit and videos under RC01_control/review. No winning comparison can be
+made until the frozen rate arm actually trains. Do not repeat the completed control.
+
+No account jobs remain active. Scheduler still advertises zixian as MIXED with
+8 RTX2080Ti, no drain reason; BootTime2026-11-06T02:24:39, SlurmdStartTime
+2026-11-06T02:25:05. Three GPUs are allocated to other work; these counts do not
+identify healthy free devices. Neither failed allocation is evidence of a bad
+recipe. Ordinary Slurm GPU-count requests do not identify a particular PCI device;
+do not use GPU binding/visibility to access an unallocated GPU. No further blind
+allocations submitted. Ask administrator to repair/exclude PCI0000:B1:00.0 from
+zixian's allocatable GRES or provide an approved healthy allocation path.
+
+Next scheduled wakes must not reread finished training logs/videos. Read local
+cluster_recovery.json then a single scheduler health query. Unchanged boot/slurmd/
+GRES/drain state with no user/admin repair evidence: quiet exit, no retries. Changed
+health configuration or explicit repair confirmation permits one bounded GPU
+preflight before a fresh identical rate-arm snapshot; keep all failed evidence.
+Do not infer GPU repair merely from changing free/allocated counts. Continue once
+usable allocation is established; preserve matched recipe and original gates.
