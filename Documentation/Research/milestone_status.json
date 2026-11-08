@@ -5,12 +5,15 @@
   "scope": "Authorized Atlantis research until three fresh independent seeds pass original full gates",
   "candidate": "Artifacts/Results/post_f1_t02/rate_cost/train/logs/checkpoints/1003520/policy",
   "verification_queue": "Artifacts/Results/milestone1/queue/status.json",
-  "next_action": "Monitor repaired RB01r1 startup; RB01 failed before training (missing pip)",
+  "next_action": "Review both RC01 arms together after compact status indicates completion; RB01r1 failed yaw gates",
   "completion_report": "Documentation/Research/MILESTONE_1_REPORT.md",
   "milestone_2": "active on Atlantis",
   "milestone_3": "deferred",
   "stop_after_milestone": 2,
   "training_allowed": true,
-  "active_cluster_receipt": "Artifacts/Results/cluster_research/RB01r1/submission.json",
-  "milestone_1": "complete; existing T02 preserved"
+  "milestone_1": "complete; existing T02 preserved",
+  "active_cluster_receipts": [
+    "Artifacts/Results/cluster_research/RC01_control/submission.json",
+    "Artifacts/Results/cluster_research/RC01_rate/submission.json"
+  ]
 }
