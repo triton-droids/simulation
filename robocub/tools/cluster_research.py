@@ -18,6 +18,9 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from robocub.user_cli.cluster_dashboard import parse_env, windows_path
 
+# uv-created environments need not contain pip. Query installed metadata directly.
+PACKAGE_VERSIONS_CODE = "import importlib.metadata as m; print('\\n'.join(sorted(d.metadata['Name']+'=='+d.version for d in m.distributions() if d.metadata['Name'])))"
+
 
 def ssh(settings, command, payload=None, timeout=60):
     args = ['ssh', '-o', 'BatchMode=yes', '-o', 'IdentitiesOnly=yes',
@@ -107,7 +110,7 @@ export PYTHONPATH="$PWD"
 export JAX_COMPILATION_CACHE_DIR="$PWD/.cache/jax_compilation_cache"
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
 {q(shared+'/.venv-atlantis/bin/python')} -c "import jax; assert len(jax.devices('gpu')) == 1; print(jax.devices('gpu'))"
-{q(shared+'/.venv-atlantis/bin/python')} -m pip freeze > {q(remote+'/runtime_versions.txt')}
+{q(shared+'/.venv-atlantis/bin/python')} -c {q(PACKAGE_VERSIONS_CODE)} > {q(remote+'/runtime_versions.txt')}
 exec_queue() {{ {q(shared+'/.venv-atlantis/bin/python')} -u robocub/scripts/run_g1_queue.py --plan {q(args.plan)}; }}
 exec_queue
 '''

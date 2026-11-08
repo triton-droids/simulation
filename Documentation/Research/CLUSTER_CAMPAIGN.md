@@ -6,11 +6,11 @@ the September M1-only stop instructions. M1/T02 and all failed M2 evidence stay 
 Soccer skills and hardware are not part of this campaign. Training uses MJX/Brax and
 the pinned Playground research adapter; the Isaac field is a separate integration.
 
-## Active baseline RB01
+## Active baseline RB01r1
 
 Plan: `Documentation/Research/queues/cluster_rb01.json`.
-Launch receipt: `Artifacts/Results/cluster_research/RB01/submission.json`.
-Monitor: `.venv/Scripts/python.exe robocub/tools/cluster_research.py status --run RB01`.
+Launch receipt: `Artifacts/Results/cluster_research/RB01r1/submission.json`.
+Monitor: `.venv/Scripts/python.exe robocub/tools/cluster_research.py status --run RB01r1`.
 The receipt names the isolated remote snapshot, job ID and queue output directory.
 
 Hypothesis: re-establish B01's demonstrated recovery on Atlantis after migration,
@@ -82,3 +82,11 @@ dependencies. No GitHub push, hardware access or credentials in uploads.
 Keep notification quiet for unchanged state. Notify meaningful findings, a blocker
 requiring attention, or validated completion. A timer cannot guarantee discovery;
 scientific failures must be reported honestly without weakening acceptance criteria.
+
+## Startup repair — 2026-11-08
+
+RB01 job7501 failed in 3 seconds before the queue or training started: the uv-created
+remote environment has no pip. GPU discovery passed. Preserve its isolated directory
+and local launcher_failure.log. RB01r1 keeps the same frozen queue/recipe/budget,
+but records installed packages using Python importlib.metadata instead of pip freeze.
+This is an execution repair, not a scientific failure or training extension.
