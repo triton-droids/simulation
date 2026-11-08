@@ -1,14 +1,16 @@
 {
-  "active_milestone": 1,
-  "status": "complete",
-  "updated_at": "2026-09-28",
-  "scope": "Existing T02 simulation controller handoff only; zero training",
+  "active_milestone": 2,
+  "status": "active",
+  "updated_at": "2026-11-07",
+  "scope": "Authorized Atlantis research until three fresh independent seeds pass original full gates",
   "candidate": "Artifacts/Results/post_f1_t02/rate_cost/train/logs/checkpoints/1003520/policy",
   "verification_queue": "Artifacts/Results/milestone1/queue/status.json",
-  "next_action": "STOP. Milestone 1 complete; no new research or training. Milestones 2/3 require new user authorization.",
+  "next_action": "Monitor RB01 compact remote status per CLUSTER_CAMPAIGN.md; no duplicate jobs",
   "completion_report": "Documentation/Research/MILESTONE_1_REPORT.md",
-  "milestone_2": "deferred; preserved in Documentation/Research/MILESTONE_2_RESUME.md",
+  "milestone_2": "active on Atlantis",
   "milestone_3": "deferred",
-  "stop_after_milestone": 1,
-  "training_allowed": false
+  "stop_after_milestone": 2,
+  "training_allowed": true,
+  "active_cluster_receipt": "Artifacts/Results/cluster_research/RB01/submission.json",
+  "milestone_1": "complete; existing T02 preserved"
 }
