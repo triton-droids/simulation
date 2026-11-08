@@ -1,6 +1,13 @@
 # Unattended G1 milestone delivery
 
-## Current authority — Milestone 1 only (2026-09-27)
+## Current authority — Atlantis Milestone 2 (2026-11-07)
+
+The user reauthorized research through three independent passing seeds. Follow
+CLUSTER_CAMPAIGN.md and the cluster launch receipt. Check every four hours; preserve
+all M1/M2 evidence. The M1-only scope in the following historical section is superseded.
+Use isolated cluster source snapshots, not a mutable shared training checkout.
+
+## Historical authority — Milestone 1 only (2026-09-27)
 
 The user superseded open-ended three-seed research with **Milestone 1: package,
 verify and report the existing simulation controller**, then STOP and pause the

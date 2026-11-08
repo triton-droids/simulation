@@ -237,8 +237,8 @@ def main():
     if sys.platform != 'linux':
         raise SystemExit('Run the queue inside WSL/Linux using the training virtualenv.')
     import fcntl
-    lock_path = ROOT / 'results' / 'g1_queue.lock'
-    lock_path.parent.mkdir(exist_ok=True)
+    lock_path = ROOT / 'Artifacts' / 'Results' / 'g1_queue.lock'
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
     with lock_path.open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         revision = git_output(ROOT, 'rev-parse', 'HEAD')

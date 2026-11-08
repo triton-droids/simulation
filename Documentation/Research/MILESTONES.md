@@ -2,7 +2,9 @@
 
 Effective 2026-09-27 by explicit user request. This plan supersedes older
 "continue until three seeds pass" instructions and historical active-queue notes.
-Milestone 1 is complete; no milestone is active. Milestones 2 and 3 require a new user go-ahead.
+Milestone 1 is complete. On 2026-11-07 the user explicitly reactivated Milestone 2
+on Atlantis until three independent seeds pass. Follow CLUSTER_CAMPAIGN.md and its
+active launch receipt; the September no-training scope below applies to M1 only.
 
 ## Milestone 1 — usable simulation controller handoff (COMPLETE — 2026-09-28)
 
@@ -55,7 +57,7 @@ GPU-hours of evaluation/demo runtime (zero training), excluding fixing genuine
 execution errors. If the prototype cannot meet basic handoff requirements, report
 an honest blocker and stop expansion; never silently start Milestone 2.
 
-## Milestone 2 — reproducible validated locomotion recipe (DEFERRED)
+## Milestone 2 — reproducible validated locomotion recipe (ACTIVE — 2026-11-07)
 
 Preserve all existing work in place; see `MILESTONE_2_RESUME.md`.
 When separately authorized: audit differences from the pinned upstream baseline,
