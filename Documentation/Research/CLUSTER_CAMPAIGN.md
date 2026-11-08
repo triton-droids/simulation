@@ -141,3 +141,12 @@ RC01_rate_r1 is authorized as infrastructure recovery with identical plan; no
 training completed in the failed allocation. RC01_control job7524 is already running
 and remains untouched. If allocation failures recur, investigate scheduler/device
 health rather than cycling allocations indefinitely.
+
+RC01_rate_r1 job7528 repeated the identical GPU PCI0000:B1:00.0 failure in1s.
+Stop allocation retries. Rate arm is infrastructure-blocked pending a healthy GPU
+assignment/admin repair; not scientific rejection. Control7524 was still RUNNING
+on zixian, allocated GPU index3. Do not cancel it or promote it without its matched
+arm. Next wake: compact checks only while control healthy; once complete preserve
+its results and diagnose available healthy allocation without changing recipe or
+masking out devices outside Slurm permissions. Notify user once about faulty GPU;
+no repeated unchanged-blocker notifications.
