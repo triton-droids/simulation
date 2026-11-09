@@ -83,10 +83,12 @@ def main():
         normalize_observations=cfg.agent.normalize_observations)
     params = model.load_params(args.run_dir / "logs/checkpoints" / str(args.checkpoint) / "policy")
     policy = jax.jit(networks.make_inference_fn(net)(params, deterministic=not args.stochastic_policy))
-    path = oracle._default_policy_path()
-    assert oracle._sha256(path) == oracle.EXPECTED_ONNX_SHA256
     session = None
+    oracle_sha256 = None
     if not args.local_only:
+        path = oracle._default_policy_path()
+        oracle_sha256 = oracle._sha256(path)
+        assert oracle_sha256 == oracle.EXPECTED_ONNX_SHA256
         import onnxruntime as ort
         session = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
     command = jp.array(args.command)
@@ -208,7 +210,7 @@ def main():
         "reset_ablation": args.reset_ablation,
         "reset_config": OmegaConf.to_container(cfg.sim.reset, resolve=True),
         "results": rows,
-        "oracle_sha256": oracle.EXPECTED_ONNX_SHA256, "git": ev._git_record(),
+        "oracle_sha256": oracle_sha256, "git": ev._git_record(),
         "wall_time_seconds": time.perf_counter() - start}
     (args.output_dir / "summary.json").write_text(json.dumps(result, indent=2) + "\n")
 

@@ -241,3 +241,10 @@ RD01/job7538 stopped before any trace: optional onnxruntime was imported even
 for local-only policies. Move that import into the oracle-only branch; no package
 installation or numerical changes. Preserve failure; fresh RD01r1 plan/output
 keeps all four traces and budgets. No training repeated.
+
+RD01r1/job7540 failed in24seconds before traces: local-only mode still hashed
+an unused oracle ONNX asset. Complete isolation of oracle path lookup, checksum
+and runtime initialization inside oracle mode. Local-only summary now reports
+null oracle hash rather than implying verification. Preserve both failed traces.
+Fresh RD01r2 uses unchanged four diagnostic trajectories and budgets; no training.
+Verification:16 tests passed,5 platform skips; local-only skips oracle asset access and reference mode still rejects a wrong checksum. Fresh plan validation passed.
