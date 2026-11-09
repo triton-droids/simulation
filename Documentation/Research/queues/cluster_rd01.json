@@ -21,7 +21,9 @@
           ],
           "timeout_seconds": 300
         }
-      ]
+      ],
+      "hypothesis": "Prepare pinned source for unmodified matched diagnostic",
+      "evidence": "RC01 both survive but fail nominal standing yaw; mechanism is not established by aggregate screening."
     },
     {
       "id": "control_nominal",
@@ -60,7 +62,8 @@
           ],
           "timeout_seconds": 2400
         }
-      ]
+      ],
+      "evidence": "RC01 both survive but fail nominal standing yaw; mechanism is not established by aggregate screening."
     },
     {
       "id": "control_random",
@@ -100,7 +103,8 @@
           ],
           "timeout_seconds": 2400
         }
-      ]
+      ],
+      "evidence": "RC01 both survive but fail nominal standing yaw; mechanism is not established by aggregate screening."
     },
     {
       "id": "rate_nominal",
@@ -139,7 +143,8 @@
           ],
           "timeout_seconds": 2400
         }
-      ]
+      ],
+      "evidence": "RC01 both survive but fail nominal standing yaw; mechanism is not established by aggregate screening."
     },
     {
       "id": "rate_random",
@@ -179,7 +184,8 @@
           ],
           "timeout_seconds": 2400
         }
-      ]
+      ],
+      "evidence": "RC01 both survive but fail nominal standing yaw; mechanism is not established by aggregate screening."
     }
   ]
 }
