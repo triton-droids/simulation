@@ -193,3 +193,20 @@ action_rate-.1,original screening/full gates and resource limits. Control7524
 is already reviewed and must not repeat. Compare both arms after completion.
 If the hardware fault recurs, preserve evidence and stop allocation retries.
 No runner logic changed; existing verified plan and runner are reused.
+
+## Compiler-cache recovery - 2026-11-09 09:08 UTC
+
+RC01_rate_r2/job7534 failed after94seconds before training progress, during
+initial evaluation reset compilation. XLA autotune cache insertion under the
+shared source .cache directory raised Device or resource busy. This is distinct
+from GPU discovery failure; preserve the remote stage log and local failure tail.
+Small repair: cluster launcher creates a unique /tmp JAX cache per allocation
+with mktemp, inherited by all stages. Recipe, parent, training budget and gates
+remain identical. No shared cache deletion or dependency changes. Freeze one
+fresh RC01_rate_r3 submission of the existing rate plan after shell/cache and
+runner tests. Full training execution remains unverified until job results.
+The completed control is untouched.
+
+Validation: queue/archive tests14passed,5platform skips. Authorized remote
+login-shell probe verified exact mktemp/export expression plus file creation and
+atomic rename in /tmp. This is filesystem validation, not a GPU training pass.

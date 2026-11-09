@@ -107,7 +107,7 @@ cd {q(remote+'/source')}
 trap 'printf "%s\\n" "$?" > {q(remote+'/exit_code')}' EXIT
 export PYTHONUNBUFFERED=1 MUJOCO_GL=egl XLA_PYTHON_CLIENT_PREALLOCATE=false
 export PYTHONPATH="$PWD"
-export JAX_COMPILATION_CACHE_DIR="$PWD/.cache/jax_compilation_cache"
+export JAX_COMPILATION_CACHE_DIR="$(mktemp -d /tmp/g1-jax-cache.XXXXXXXXXX)"
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
 {q(shared+'/.venv-atlantis/bin/python')} -c "import jax; assert len(jax.devices('gpu')) == 1; print(jax.devices('gpu'))"
 {q(shared+'/.venv-atlantis/bin/python')} -c {q(PACKAGE_VERSIONS_CODE)} > {q(remote+'/runtime_versions.txt')}
