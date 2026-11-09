@@ -23,7 +23,6 @@ import jax
 import jax.numpy as jp
 import numpy as np
 from omegaconf import OmegaConf
-import onnxruntime as ort
 
 
 def _policy_label(value: str) -> str:
@@ -86,7 +85,10 @@ def main():
     policy = jax.jit(networks.make_inference_fn(net)(params, deterministic=not args.stochastic_policy))
     path = oracle._default_policy_path()
     assert oracle._sha256(path) == oracle.EXPECTED_ONNX_SHA256
-    session = None if args.local_only else ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+    session = None
+    if not args.local_only:
+        import onnxruntime as ort
+        session = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
     command = jp.array(args.command)
     def diagnostic_reset(state):
         if args.reset_ablation == "full":

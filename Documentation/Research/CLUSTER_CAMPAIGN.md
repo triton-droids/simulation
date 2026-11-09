@@ -236,3 +236,8 @@ Do not tune phase constants/reward coefficients or apply inference-only filters.
 Short traces have no settled window. Partial diagnostics never constitute gates.
 Command: cluster_research.py submit --run RD01 --plan
 Documentation/Research/queues/cluster_rd01.json. No runner logic changed.
+
+RD01/job7538 stopped before any trace: optional onnxruntime was imported even
+for local-only policies. Move that import into the oracle-only branch; no package
+installation or numerical changes. Preserve failure; fresh RD01r1 plan/output
+keeps all four traces and budgets. No training repeated.
