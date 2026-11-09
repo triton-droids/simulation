@@ -248,3 +248,29 @@ and runtime initialization inside oracle mode. Local-only summary now reports
 null oracle hash rather than implying verification. Preserve both failed traces.
 Fresh RD01r2 uses unchanged four diagnostic trajectories and budgets; no training.
 Verification:16 tests passed,5 platform skips; local-only skips oracle asset access and reference mode still rejects a wrong checksum. Fresh plan validation passed.
+
+## RD01 evidence and RD02 freeze - 2026-11-09 21:08 UTC
+RD01r2 completed5m14s (0.0872 GPU-h), all4 trajectories500steps, no terminal
+causes. Saved summaries/traces and temporal_review.json locally. Nominal control
+whole/first100/last250 yaw .20681/.20514/.20487; rate .16129/.16081/.16222.
+Settled nominal support fractions .828/.852, heights .7516/.7548. Settled yaw
+power above5Hz48.20%/55.51%, action differences .13376/.10012; dominant1.4Hz.
+BOTH-arms prerequisite fails: no temporal-filter training authorized. Random
+traces survive; late yaw .21767/.17930, linear .12270/.11032. Persistent stepping,
+not mere settling. Historical T01 filter improved precision but lost recovery
+(6/8 random survivors vs8/8 control); do not revive that failed filter branch.
+
+RD02: zero-training command-discrimination diagnostic, same two final policies,
+nominal original reset6000, commands(.05,0,0) and(.15,0,0),500steps each. Reuse
+RD01 zero-command traces;4new trajectories,2000steps,3h queue cap,40min each.
+No phase, observation, reward or action intervention. Compare mean signed forward
+velocity and support/phase patterns, whole and last250, to corresponding zero.
+Frozen rule: both policies must survive all tested commands,height>.6 and exhibit
+late mean vx(.15)-vx(0)>=.05 with monotonic mean vx across0/.05/.15 to count as
+clear low-speed command discrimination. Failure motivates a separate command
+encoding/conditioning audit, not reward tuning. If met, command blindness is
+unsupported; investigate why recognized zero commands retain periodic stepping
+before freezing an architecture experiment. Correlation is diagnostic, not proof
+of cause. No automatic training or additional speed sweep. Original full gates
+and fresh three-seed criteria unchanged. No runner changes; validate frozen plan
+and launch RD02 via cluster_research.py.
