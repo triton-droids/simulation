@@ -39,3 +39,56 @@ The reviewed checkpoint is committed as
 `checkpoints/humanoid_legs_5_ppo_candidate_1200.pt`. The complete TensorBoard
 event data and the other periodic checkpoints remain in the local ignored
 directory `outputs/locomotion_upright_v1/`.
+
+## Follow-up fine-tune, 2026-11-09
+
+Resumed from the local `outputs/locomotion_gait_v2/humanoid_legs_5_latest.pt`
+checkpoint for 500 additional PPO iterations on Antioch. The training reset
+pose was widened slightly by setting the hip abduction joints to -0.05 and
++0.05 rad; the packaged CAD geometry was not changed. Periodic checkpoints,
+evaluation files, and the full TensorBoard log are in the ignored local
+directory `outputs/locomotion_gait_v2_wide_finetune_cont/`.
+
+The run improved survival but did not produce useful walking. Its best tested
+checkpoint was `model_1025.pt`: a deterministic 10-second evaluation with a
+0.35 m/s body-Y command averaged 0.0066 m/s body-Y velocity, 0.3434 m/s
+horizontal velocity error, 0.885 upright cosine, and 3.69 mean absolute raw
+actor output before action clipping. The final checkpoint performed similarly.
+The separate fixed-command result does not support treating this as a walking
+policy, despite intermittent training success metrics. The video
+[`locomotion_preview_wide_finetune.mp4`](locomotion_preview_wide_finetune.mp4)
+shows the selected checkpoint under that command.
+
+## Current walking candidate, 2026-11-09
+
+Further PPO-only attempts on Antioch either kept the stable standing policy,
+learned unstable lurching, or returned to standing during fine-tuning. A useful
+step emerged by combining the standing-capable checkpoint with a slow gait
+reference on the two hip swing and knee joints. The balance policy still
+controls the other joints.
+
+The current hybrid preview uses `humanoid_legs_5_balance_stage21.pt`, a 0.35 Hz
+alternating hip/knee reference (0.10/0.08 rad), and a 0.515 blend between the
+policy and reference actions. In a 10-second, one-environment Antioch preview
+under a 0.12 m/s body-Y command, it averaged 0.129 m/s COM velocity during the
+final half and had one fall/reset event. A 32-environment, six-second sweep of
+the same setting averaged 0.081 m/s COM velocity, 0.974 upright cosine, and
+five reset events total. The robot takes alternating steps and translates in
+the saved video [`locomotion_hybrid_gait_012_stable.mp4`](locomotion_hybrid_gait_012_stable.mp4).
+
+A distilled neural actor is also included at
+`checkpoints/humanoid_legs_5_gait_imitation_012.pt`. In a fixed 0.12 m/s test
+across 64 environments, it averaged 0.105 m/s COM velocity; the median
+environment reached 0.137 m/s and 78% exceeded 0.05 m/s. Mean upright cosine
+was 0.936, but environments averaged 0.86 fall/reset events over ten seconds.
+It is therefore a gait candidate, not a robust walking policy. PPO refinement
+currently erases the gait and returns to standing.
+
+These results establish stepping and translation in Isaac Lab/PhysX, but not
+reliable long-duration locomotion. Keep the task in simulation. The next work
+is to reduce fall resets, test multiple command speeds and stopping, and
+continue PPO from the distilled gait without losing the step pattern. Hardware
+calibration and motor/linkage validation remain separate requirements.
+
+The new weights, videos, training code, and evaluation files are local and
+have not been pushed.

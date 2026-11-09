@@ -1,0 +1,67 @@
+{
+  "checkpoint": "outputs/locomotion_gait_imitation_012/humanoid_legs_5_gait.pt",
+  "command_mps_radps": {
+    "vx": 0.0,
+    "vy": 0.12,
+    "yaw_rate": 0.0
+  },
+  "duration_s": 10.0,
+  "num_envs": 64,
+  "mean_horizontal_velocity_error_mps": 0.17842632275819778,
+  "mean_com_velocity_yaw_xy_mps": {
+    "vx": -0.014587353149196134,
+    "vy": 0.10516175575833768
+  },
+  "per_environment_summary": {
+    "com_vy_mps_quantiles_p10_p50_p90": [
+      0.0055824508890509605,
+      0.13734564185142517,
+      0.14107251167297363
+    ],
+    "horizontal_error_mps_quantiles_p10_p50_p90": [
+      0.1150319054722786,
+      0.18731531500816345,
+      0.19560475647449493
+    ],
+    "upright_cosine_quantiles_p10_p50_p90": [
+      0.9205538630485535,
+      0.9384088516235352,
+      0.9488139748573303
+    ],
+    "fraction_com_vy_above_0_05_mps": 0.78125,
+    "fraction_upright_above_0_8": 1.0,
+    "mean_fall_resets_per_environment": 0.859375,
+    "mean_foot_height_std_m": {
+      "left": 0.033202122896909714,
+      "right": 0.03586085885763168
+    }
+  },
+  "mean_absolute_policy_action": 1.473543927192688,
+  "mean_yaw_rate_error_radps": 0.11238563954457641,
+  "mean_upright_cosine": 0.9358307683467865,
+  "mean_root_height_m": 0.040521806999109684,
+  "articulation_body_names": [
+    "hip",
+    "left_leg1",
+    "right_leg1",
+    "left_leg2",
+    "right_leg2",
+    "left_leg3",
+    "right_leg3",
+    "left_leg4",
+    "right_leg4",
+    "left_foot",
+    "left_ankle_crank",
+    "right_foot",
+    "right_ankle_crank",
+    "left_heel_linkage",
+    "right_heel_linkage"
+  ],
+  "mean_foot_body_height_m": {
+    "left": 0.031642748333513736,
+    "right": -0.028512684043031186
+  },
+  "terminated_env_steps": 55,
+  "hardware_ready": false,
+  "scope": "fixed-command Isaac Lab PhysX evaluation; not hardware validation"
+}

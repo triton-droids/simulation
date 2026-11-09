@@ -1,0 +1,31 @@
+{
+  "model": "humanoid_legs_5",
+  "environment": "Antioch Isaac Lab 3.0 / PhysX",
+  "controller": "stage21 PPO balance checkpoint plus a sinusoidal hip/knee overlay",
+  "command": {
+    "body_y_mps": 0.12,
+    "body_x_mps": 0.0,
+    "yaw_radps": 0.0
+  },
+  "gait_overlay": {
+    "frequency_hz": 0.35,
+    "hip_amplitude_rad": 0.1,
+    "knee_amplitude_rad": 0.08,
+    "balance_action_blend": 0.515,
+    "policy_rate_hz": 50
+  },
+  "single_environment_video_run": {
+    "duration_s": 10.0,
+    "com_velocity_y_mps_final_half": 0.1288,
+    "fall_or_reset_events": 1
+  },
+  "parallel_sweep_run": {
+    "num_envs": 32,
+    "duration_s": 6.0,
+    "mean_com_velocity_y_mps": 0.08055,
+    "mean_upright_cosine": 0.97418,
+    "fall_or_reset_events": 5
+  },
+  "hardware_ready": false,
+  "scope": "simulation candidate; not a robust PPO-only policy or hardware validation"
+}

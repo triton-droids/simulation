@@ -95,3 +95,23 @@ directory.
 The reproducible source builder and original Fusion export are on the
 `codex/hardware-retrain-local` development branch under `cad/`. This portable
 bundle is intended for a smaller deployment branch.
+
+## Latest simulation candidate
+
+Later Antioch work produced a slow hybrid walking candidate. It combines the
+standing PPO checkpoint `checkpoints/humanoid_legs_5_balance_stage21.pt` with
+an alternating 0.35 Hz hip/knee reference. The recorded preview is
+[`locomotion_hybrid_gait_012_stable.mp4`](locomotion_hybrid_gait_012_stable.mp4).
+The controller commanded 0.12 m/s along body Y and moved in a 10-second,
+single-environment preview, with one fall/reset event. The companion neural
+gait imitation checkpoint is `checkpoints/humanoid_legs_5_gait_imitation_012.pt`.
+The hybrid preview metrics are in
+[`locomotion_hybrid_gait_eval_012.json`](locomotion_hybrid_gait_eval_012.json).
+
+This is a simulation walking candidate, not a reliable PPO-only policy. The
+64-environment fixed-command test for the distilled actor averaged 0.105 m/s
+COM speed with a 0.936 upright cosine, but also averaged 0.86 fall/reset events
+per environment over ten seconds. See
+[`locomotion_training_assessment.md`](locomotion_training_assessment.md) for
+the evaluation details and remaining work. Neither checkpoint is ready for
+hardware.
