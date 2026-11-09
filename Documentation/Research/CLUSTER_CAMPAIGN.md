@@ -210,3 +210,29 @@ The completed control is untouched.
 Validation: queue/archive tests14passed,5platform skips. Authorized remote
 login-shell probe verified exact mktemp/export expression plus file creation and
 atomic rename in /tmp. This is filesystem validation, not a GPU training pass.
+
+## RC01 closed and RD01 diagnostic freeze - 2026-11-09
+Rate job7536 completed22m44s (0.379 GPU-hours allocated). Cache repair worked;
+actor/normalizer restoration exact. All16 screen episodes survive500. Nominal
+standing yaw.19012 improves versus control.24764 but fails.15; linear.12497 passes.
+Random screen passes:mean linear.20128/yaw.20059,worst.30185/.29807,height.72213.
+Full evaluation skipped correctly. Six distributed frames each show upright
+in-place stepping and alternating forward gait, no visible collapse. This is
+sampled visual evidence, not full gait certification. Neither arm passes:
+close action-rate comparison; no coefficient escalation or unchanged extension.
+
+RD01 is zero training: four unmodified final-policy stand traces, BOTH matched
+arms, nominal6000/random6002,500steps each. Existing diagnostic runner saves
+actions,contacts,velocities and terminal causes. OneGPU,3h queue cap,40min/trace,
+source fetch5min; unchanged Slurm8h outer limit. No new policy selection. Compare
+whole/first100/last250 yaw and linear errors, support, height, action-difference
+RMS and demeaned Hann yaw spectrum at50Hz. If BOTH nominal policies survive500,
+height>.6,>50% settled yaw power above5Hz and action-difference RMS>.1, this
+supports separately freezing a training-consistent temporal-control comparison
+on this recovery-capable baseline; first reconcile historical T01 failures and
+recovery-latency risks. Otherwise reject jitter justification and identify whether
+settling or sustained stepping dominates before choosing a structural change.
+Do not tune phase constants/reward coefficients or apply inference-only filters.
+Short traces have no settled window. Partial diagnostics never constitute gates.
+Command: cluster_research.py submit --run RD01 --plan
+Documentation/Research/queues/cluster_rd01.json. No runner logic changed.

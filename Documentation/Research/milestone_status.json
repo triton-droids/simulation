@@ -5,7 +5,7 @@
   "scope": "Authorized Atlantis research until three fresh independent seeds pass original full gates",
   "candidate": "Artifacts/Results/post_f1_t02/rate_cost/train/logs/checkpoints/1003520/policy",
   "verification_queue": "Artifacts/Results/milestone1/queue/status.json",
-  "next_action": "Monitor identical RC01_rate_r3 with job-local compiler cache; compare preserved control",
+  "next_action": "Review RD01 matched standing mechanism traces; RC01 closed without full pass",
   "completion_report": "Documentation/Research/MILESTONE_1_REPORT.md",
   "milestone_2": "active on Atlantis",
   "milestone_3": "deferred",
@@ -13,7 +13,6 @@
   "training_allowed": true,
   "milestone_1": "complete; existing T02 preserved",
   "active_cluster_receipts": [
-    "Artifacts/Results/cluster_research/RC01_control/submission.json",
-    "Artifacts/Results/cluster_research/RC01_rate_r3/submission.json"
+    "Artifacts/Results/cluster_research/RD01/submission.json"
   ]
 }
