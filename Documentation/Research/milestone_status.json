@@ -1,11 +1,11 @@
 {
   "active_milestone": 2,
-  "status": "blocked",
-  "updated_at": "2026-11-08",
+  "status": "active",
+  "updated_at": "2026-11-09",
   "scope": "Authorized Atlantis research until three fresh independent seeds pass original full gates",
   "candidate": "Artifacts/Results/post_f1_t02/rate_cost/train/logs/checkpoints/1003520/policy",
   "verification_queue": "Artifacts/Results/milestone1/queue/status.json",
-  "next_action": "RC01_control complete/reviewed; rate arm needs repaired/excluded GPU PCI0000:B1:00.0 or approved healthy allocation; preserve all work",
+  "next_action": "Submit identical RC01_rate_r2 after successful reboot-triggered GPU preflight7532; preserve reviewed control",
   "completion_report": "Documentation/Research/MILESTONE_1_REPORT.md",
   "milestone_2": "active on Atlantis",
   "milestone_3": "deferred",
@@ -14,6 +14,6 @@
   "milestone_1": "complete; existing T02 preserved",
   "active_cluster_receipts": [
     "Artifacts/Results/cluster_research/RC01_control/submission.json",
-    "Artifacts/Results/cluster_research/RC01_rate_r1/submission.json"
+    "Artifacts/Results/cluster_research/RC01_rate_r2/submission.json"
   ]
 }

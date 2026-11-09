@@ -179,3 +179,17 @@ health configuration or explicit repair confirmation permits one bounded GPU
 preflight before a fresh identical rate-arm snapshot; keep all failed evidence.
 Do not infer GPU repair merely from changing free/allocated counts. Continue once
 usable allocation is established; preserve matched recipe and original gates.
+
+## Reboot-triggered recovery - 2026-11-09
+
+zixian BootTime changed to2026-11-08T18:54:29 and SlurmdStartTime to
+18:54:56; GRES remains8 RTX2080Ti with no drain reason. One frozen preflight
+job7532 (debug,oneGPU,2CPU,4GB,5min limit) completed in3seconds: nvidia-smi
+and a JAX64x64 GPU matrix multiply passed on assigned PCI3D:00.0. This proves
+a usable allocation, not repair of every GPU or specifically B1.
+Authorize one fresh RC01_rate_r2 isolated submission with the unchanged
+cluster_rc01_rate.json plan: same parent/hash,seed11,1,003,520steps,lr1e-4,
+action_rate-.1,original screening/full gates and resource limits. Control7524
+is already reviewed and must not repeat. Compare both arms after completion.
+If the hardware fault recurs, preserve evidence and stop allocation retries.
+No runner logic changed; existing verified plan and runner are reused.
