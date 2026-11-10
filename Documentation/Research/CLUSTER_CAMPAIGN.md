@@ -294,3 +294,32 @@ hypothesis is justified. Otherwise close state-dependent stopping explanation;
 structural stand/walk separation requires design review,not further speed/phase
 sweeps. Neither outcome is a full gate pass. No inference filter or training here.
 Validation: exact switch boundary and no-switch checks passed;13 regression tests passed,5 platform skips;plan validated. Existing command state/observation synchronization helper reused.
+
+## User-directed parallel replications RP01 - Nov9 local time
+User explicitly requested three independent runs after latest job and maximum
+parallelization. RD03/job7548 completed3m04s;both survive500 but final150 stand
+yaw .20915/.16050 and support .833/.847 fail frozen stopping rule. No transition
+training justified. Persistent stepping remains; no development full pass.
+RP01 is a user-directed bounded DEVELOPMENT replication,not final validation:
+predetermined seeds101,202,303,each from initialization with exact RB01 original
+20,070,400step stage then own-parent RC01-rate1,003,520step parameter continuation.
+Total63,221,760 steps;3 independent oneGPU jobs submitted together (maximum ready
+parallelism). Each7h queue/8h allocation limit; nominal expected~75min per seed
+based on prior runs; Slurm availability determines actual concurrency. No shared
+trained ancestor;each own baseline checkpoint0 controls. Original development
+screens and conditional full suites unchanged. Seed11 failure remains evidence;
+no lucky replacement,coefficient change,extension or early-checkpoint selection.
+No claim of three-seed success from this batch; all results retained. Review all
+three together and report distributions. If all full development gates pass,
+still freeze fresh final seeds AND held-out tests before final validation.
+Freshness: no101/202/303 matches found in prior frozen queue files before creating
+these plans; now reserve them as development seeds.
+Validation:all3 plans pass schema;asserted independent initialization,own parent
+restore paths and own untrained reference controls. Runner logic unchanged.
+
+Parallel scheduling policy now supersedes old two-alternative concurrency limit:
+submit ALL ready independent jobs in each approved frozen bounded batch together,
+oneGPU/job,never serialize separate seeds. Keep within-step train/eval dependencies
+and matched reviews; no extra seeds or speculative experiments merely to fill GPUs.
+Use Slurm allocation limits and existing per-job budgets;do not bypass assignments
+or alter cluster configuration. Monitor all active receipts once per hourly wake.
