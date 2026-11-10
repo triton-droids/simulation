@@ -31,6 +31,10 @@ def _policy_label(value: str) -> str:
     return value
 
 
+def _scheduled_command(initial, index, switch_at):
+    return jp.zeros_like(initial) if switch_at is not None and index >= switch_at else initial
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-dir", type=Path, required=True)
@@ -51,7 +55,10 @@ def main():
                         help="Use evaluate_g1's split reset key and sampled gait frequency.")
     parser.add_argument("--reset-ablation", choices=("full", "no_velocity", "no_linear", "no_angular", "no_horizontal", "no_vertical", "nominal_joints"), default="full",
                         help="Diagnostic only: remove one reset perturbation; never a final validation gate.")
+    parser.add_argument("--switch-to-stand-at", type=int, default=None)
     args = parser.parse_args()
+    if args.switch_to_stand_at is not None and not 0 < args.switch_to_stand_at < args.steps:
+        parser.error("Switch must lie strictly inside the trajectory")
     if not np.isfinite(args.command).all():
         parser.error("--command values must be finite")
     if args.policy_phase_angle is not None and (not np.isfinite(args.policy_phase_angle) or not args.local_only):
@@ -122,7 +129,7 @@ def main():
         return state.replace(data=data, obs=obs, info=info)
     reset = jax.jit(diagnostic_reset)
     unmodified_reset = jax.jit(env.reset)
-    step = jax.jit(lambda state, action: ev._step_with_held_command(env, state, action, command))
+    step = jax.jit(lambda state, action, held: ev._step_with_held_command(env, state, action, held))
     rows = {}
     initial_states = {}
     for controller in ((args.policy_label,) if args.local_only else (args.policy_label, "oracle")):
@@ -158,13 +165,15 @@ def main():
         }
         trace = []
         for index in range(args.steps):
+            held = _scheduled_command(command, index, args.switch_to_stand_at)
+            state = ev._replace_command(state, held)
             if controller != "oracle":
                 action_key = jax.random.fold_in(jax.random.PRNGKey(args.policy_seed), index) if args.stochastic_policy else jax.random.PRNGKey(index)
                 action = policy(replace_policy_phase(state.obs, args.policy_phase_angle, args.policy_double_stance), action_key)[0]
             else:
                 action = jp.asarray(session.run(None, {"obs": np.asarray(state.obs["state"])[None]})[0][0])
-            state = step(state, action)
-            sample = {"action": action, "qpos": state.data.qpos,
+            state = step(state, action, held)
+            sample = {"command": held, "action": action, "qpos": state.data.qpos,
                 "foot_positions": state.data.site_xpos[env._feet_site_id],
                 "velocity": env.get_local_linvel(state.data, "pelvis"),
                 "gyro": env.get_gyro(state.data, "pelvis"),
@@ -185,10 +194,10 @@ def main():
             "terminal_causes": [k.removeprefix("terminal/") for k, v in arrays.items() if k.startswith("terminal/") and bool(v[-1])],
             "first_trigger_step": {k.removeprefix("terminal/"): int(np.flatnonzero(v)[0])+1 if np.any(v) else None for k, v in arrays.items() if k.startswith("terminal/")},
             "mean_velocity": arrays["velocity"].mean(0).tolist(),
-            "linear_rmse": float(np.sqrt(np.mean(np.sum((arrays["velocity"][:, :2] - np.asarray(args.command[:2])) ** 2, axis=1)))),
+            "linear_rmse": float(np.sqrt(np.mean(np.sum((arrays["velocity"][:, :2] - arrays["command"][:, :2]) ** 2, axis=1)))),
             "mean_yaw_rate": float(arrays["gyro"][:, 2].mean()),
             "yaw_rate_std": float(arrays["gyro"][:, 2].std()),
-            "yaw_rmse": float(np.sqrt(np.mean((arrays["gyro"][:, 2] - args.command[2]) ** 2))),
+            "yaw_rmse": float(np.sqrt(np.mean((arrays["gyro"][:, 2] - arrays["command"][:, 2]) ** 2))),
             "minimum_pelvis_height": float(arrays["qpos"][:, 2].min()),
             "single_support_fraction": float(np.mean(contact.sum(1) == 1)),
             "foot_transitions": np.sum(contact[1:] != contact[:-1], axis=0).tolist(),
@@ -201,7 +210,7 @@ def main():
         }
         print(controller, json.dumps(rows[controller]), flush=True)
     result = {"kind": "same_MJX_reward_diagnostic", "command": args.command,
-        "policy_phase_angle": args.policy_phase_angle, "policy_double_stance": args.policy_double_stance, "full_validation": False,
+        "switch_to_stand_at": args.switch_to_stand_at, "policy_phase_angle": args.policy_phase_angle, "policy_double_stance": args.policy_double_stance, "full_validation": False,
         "run_dir": str(args.run_dir), "checkpoint": args.checkpoint,
         "policy_label": args.policy_label, "stochastic_policy": args.stochastic_policy, "policy_seed": args.policy_seed, "local_only": args.local_only,
         "phase_frequency_hz": float(np.asarray(state.info["phase_dt"])[0] / (2 * np.pi * env.dt)),

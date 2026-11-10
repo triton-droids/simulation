@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "output_dir": "Artifacts/Results/cluster_rd03/queue",
+  "max_wall_seconds": 5400,
+  "jobs": [
+    {
+      "id": "source",
+      "review_artifact": "Artifacts/Results/cluster_rd03/source.json",
+      "stages": [
+        {
+          "id": "fetch_pinned",
+          "argv": [
+            "-c",
+            "from robocub.locomotion.unitree_g1.playground_source import resolve_playground_source;from pathlib import Path;import json;s=resolve_playground_source(fetch=True);p=Path('Artifacts/Results/cluster_rd03/source.json');p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps({'source':str(s)}))"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd03/source.json"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd03/source.json"
+          ],
+          "timeout_seconds": 300
+        }
+      ],
+      "hypothesis": "Prepare pinned source for unmodified matched diagnostic",
+      "evidence": "RC01 both survive but fail nominal standing yaw; mechanism is not established by aggregate screening."
+    },
+    {
+      "id": "control_stop",
+      "hypothesis": "Does persistent stepping persist after deceleration, or depend on starting in stand?",
+      "review_artifact": "Artifacts/Results/cluster_rd03/control_slow15/summary.json",
+      "stages": [
+        {
+          "id": "trace",
+          "argv": [
+            "robocub/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "{root}/../../RC01_control/source/Artifacts/Results/cluster_rc01_control/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "Artifacts/Results/cluster_rd03/control_slow15",
+            "--steps",
+            "500",
+            "--policy-label",
+            "control",
+            "--command",
+            "0.15",
+            "0",
+            "0",
+            "--seed",
+            "6000",
+            "--evaluation-reset",
+            "--local-only",
+            "--switch-to-stand-at",
+            "250"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd03/control_slow15"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd03/control_slow15/summary.json",
+            "Artifacts/Results/cluster_rd03/control_slow15/control_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ],
+      "evidence": "RD02 both policies discriminate commands; static standing still steps."
+    },
+    {
+      "id": "rate_stop",
+      "hypothesis": "Does persistent stepping persist after deceleration, or depend on starting in stand?",
+      "review_artifact": "Artifacts/Results/cluster_rd03/rate_slow15/summary.json",
+      "stages": [
+        {
+          "id": "trace",
+          "argv": [
+            "robocub/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "{root}/../../RC01_rate_r3/source/Artifacts/Results/cluster_rc01_rate/train",
+            "--checkpoint",
+            "1003520",
+            "--output-dir",
+            "Artifacts/Results/cluster_rd03/rate_slow15",
+            "--steps",
+            "500",
+            "--policy-label",
+            "rate",
+            "--command",
+            "0.15",
+            "0",
+            "0",
+            "--seed",
+            "6000",
+            "--evaluation-reset",
+            "--local-only",
+            "--switch-to-stand-at",
+            "250"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd03/rate_slow15"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd03/rate_slow15/summary.json",
+            "Artifacts/Results/cluster_rd03/rate_slow15/rate_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ],
+      "evidence": "RD02 both policies discriminate commands; static standing still steps."
+    }
+  ]
+}

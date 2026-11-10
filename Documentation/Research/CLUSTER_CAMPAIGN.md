@@ -274,3 +274,23 @@ before freezing an architecture experiment. Correlation is diagnostic, not proof
 of cause. No automatic training or additional speed sweep. Original full gates
 and fresh three-seed criteria unchanged. No runner changes; validate frozen plan
 and launch RD02 via cluster_research.py.
+
+## RD02 reviewed; RD03 stopping diagnostic
+RD02/job7544 completed5m24s (0.09 GPU-h). Both policies survive all commands
+500steps,height>.749. Late vx at0/.05/.15: control-.03140/.02798/.14378;
+rate .04827/.09981/.19635. Both monotonic, increments .17518/.14808 exceed.05.
+Command-blindness hypothesis unsupported. Support stays .828-.860 (persistent
+stepping). Saved reward audit shows standing phase rewards .6133/.6216 and
+stand penalties-1.069/-1.103; association,not causal proof. Prior mask tests
+remain closed; do not repeat reward tuning.
+RD03 tests state dependence before choosing an architecture: each same final
+policy nominal6000 starts at(.15,0,0), switches to zero BEFORE action250,
+ends500. TWO trajectories,zero training,90min queue,40min each. Reuse RD02
+constant.15 and RD01 zero traces. Saved command trace and command-relative RMSE
+prevent mixing moving/standing scores. Synchronize state AND observation command.
+If both survive,height>.6 and final150steps have yaw/linear<=.15 and support<.1,
+standing acquisition is state-dependent and a separately frozen transition-training
+hypothesis is justified. Otherwise close state-dependent stopping explanation;
+structural stand/walk separation requires design review,not further speed/phase
+sweeps. Neither outcome is a full gate pass. No inference filter or training here.
+Validation: exact switch boundary and no-switch checks passed;13 regression tests passed,5 platform skips;plan validated. Existing command state/observation synchronization helper reused.
