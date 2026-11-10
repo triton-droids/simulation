@@ -323,3 +323,13 @@ oneGPU/job,never serialize separate seeds. Keep within-step train/eval dependenc
 and matched reviews; no extra seeds or speculative experiments merely to fill GPUs.
 Use Slurm allocation limits and existing per-job budgets;do not bypass assignments
 or alter cluster configuration. Monitor all active receipts once per hourly wake.
+
+RP01 jobs7559/7561/7563 submitted together. Account cap16CPU/96GB; another
+user job reserves6CPU/40GB. Running7559 reserves8CPU/32GB. To fit all3 GPUs,
+updated pending7561/7563 to1CPU/12GB each (Slurm accepted); recipe unchanged.
+Prior baseline MaxRSS7472776K and late7472244K support12GB budget. Compilation
+may slow with1CPU; retain limits and report performance confound. Original and
+updated resources preserved in receipts. No shared configuration or running-job
+changes. Initial memory suffix syntax rejected without submission; numeric MB
+update accepted. Scheduler may take time to dispatch;do not duplicate.
+Also lowered retained MinCPUsNode8 to1 on both pending jobs; accepted by Slurm, queue reason cleared to None. Dispatch remains scheduler-controlled.
