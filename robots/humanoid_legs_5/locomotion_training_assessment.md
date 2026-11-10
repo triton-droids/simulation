@@ -90,5 +90,42 @@ is to reduce fall resets, test multiple command speeds and stopping, and
 continue PPO from the distilled gait without losing the step pattern. Hardware
 calibration and motor/linkage validation remain separate requirements.
 
-The new weights, videos, training code, and evaluation files are local and
-have not been pushed.
+The gait checkpoints, videos, training code, and evaluation files are included
+in this branch.
+
+## Follow-up checkpoint tuning, 2026-11-10
+
+The most recent tuning runs changed the PPO reward and reset settings; they did
+not change the USD, MJCF, meshes, or linkage constraints. The long gait
+imitation checkpoint remained the only recent policy that translated
+consistently, but it was fragile: in a 64-environment, ten-second test at a
+0.12 m/s body-Y command, it averaged 0.106 m/s body-Y velocity, 0.945 upright
+cosine, and 0.48 m forward displacement. Only 23 of 64 trials finished without
+a fall/reset; average valid time was 7.73 seconds.
+
+PPO fine-tuning exposed two reward failures. With weak progress reward, the
+policy returned to standing: the latest ten-second preview had no resets but
+moved only 0.089 m forward and averaged 0.003 m/s body-Y velocity in its final
+half. Raising progress pressure produced faster lurches rather than a stable
+gait: the tested checkpoint averaged 0.265 m/s body-Y velocity but all 64
+trials fell within 3.33 seconds. A stronger upright/fall penalty restored
+survival but also returned the actor to standing.
+
+Action-scale checks showed the same tradeoff. At scales 0.16–0.20, all 32
+trials survived but forward velocity was about 0.005–0.006 m/s. At 0.22, mean
+body-Y velocity reached 0.119 m/s, but only 9 of 32 trials survived ten
+seconds. At 0.24, only 3 of 32 survived. The 36-setting balance/gait overlay
+sweep also found no setting with both useful forward speed and low falls.
+
+The latest preview is
+[`locomotion_latest_episode_teacher_stability_v3.mp4`](locomotion_latest_episode_teacher_stability_v3.mp4),
+with trajectory and foot-contact telemetry beside it. It shows the latest
+PPO checkpoint standing rather than walking. The measurement bundle is
+[`locomotion_tuning_2026-11-10.json`](locomotion_tuning_2026-11-10.json).
+
+The drop from stepping to standing came from PPO optimizing a fixed, low-speed
+command whose tracking reward was already high while standing; stronger
+progress shaping then destabilized the gait. It was not caused by repairing
+the ankle linkage. Keep the long gait-imitation checkpoint as the walking
+baseline, and tune rewards/actuation against fixed-command displacement,
+survival, contact, and foot-swing metrics before extending training.

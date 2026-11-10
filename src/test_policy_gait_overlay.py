@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import math
 from pathlib import Path
@@ -20,6 +21,7 @@ def main() -> None:
     parser.add_argument("--command-y", type=float, default=0.16)
     parser.add_argument("--action-scale", type=float, default=0.22)
     parser.add_argument("--tracking-std", type=float, default=0.15)
+    parser.add_argument("--output", default=None, help="Optional JSON path for the sweep report")
     args = parser.parse_args()
 
     antioch.start_simulation()
@@ -31,14 +33,11 @@ def main() -> None:
 
     cfg = build_env_cfg(
         args.num_envs,
+        standing_pose="legacy_gait",
+        reward_profile="stepping_wide",
         action_scale=args.action_scale,
-        command_min=args.command_y,
-        command_max=args.command_y,
-        tracking_std=args.tracking_std,
-        privileged_critic=True,
         actor_base_velocity=True,
-        phase_observation=True,
-        gait_cycle_hz=0.35,
+        gait_period=1.0 / 0.35,
     )
     cfg.commands.base_velocity.resampling_time_range = (10000.0, 10000.0)
     cfg.commands.base_velocity.ranges.lin_vel_x = (0.0, 0.0)
@@ -49,22 +48,29 @@ def main() -> None:
     train_cfg = {
         "seed": 42, "device": str(env.device), "num_steps_per_env": 24,
         "max_iterations": 1, "save_interval": 1, "empirical_normalization": True,
-        "obs_groups": {"actor": ["policy"], "critic": ["critic"]},
+        "obs_groups": {"actor": ["policy"], "critic": ["policy"]},
         "actor": {"class_name": "MLPModel", "hidden_dims": [256, 128, 128], "activation": "elu", "obs_normalization": True, "distribution_cfg": {"class_name": "GaussianDistribution", "init_std": 0.8, "std_type": "scalar"}},
         "critic": {"class_name": "MLPModel", "hidden_dims": [256, 128, 128], "activation": "elu", "obs_normalization": True, "distribution_cfg": None},
         "algorithm": {"class_name": "PPO", "value_loss_coef": 1.0, "use_clipped_value_loss": True, "clip_param": 0.2, "entropy_coef": 0.01, "num_learning_epochs": 5, "num_mini_batches": 4, "learning_rate": 3e-4, "schedule": "adaptive", "gamma": 0.99, "lam": 0.95, "desired_kl": 0.01, "max_grad_norm": 1.0},
         "logger": "tensorboard", "experiment_name": "gait_overlay_eval", "run_name": "eval", "log_dir": None,
     }
     runner = OnPolicyRunner(wrapped, train_cfg, log_dir=None, device=str(env.device))
-    runner.load(str(Path(args.checkpoint)), map_location=str(env.device))
+    runner.load(
+        str(Path(args.checkpoint)),
+        load_cfg={"actor": True, "critic": False, "optimizer": False, "iteration": False},
+        map_location=str(env.device),
+    )
     policy = runner.get_inference_policy(device=str(env.device))
     robot = env.scene["robot"]
 
-    variants = [
-        (0.10, 0.08, 0.35, 1.0, 0.0, 0.51),
-        (0.10, 0.08, 0.35, 1.0, 0.0, 0.515),
-        (0.10, 0.08, 0.35, 1.0, 0.0, 0.525),
-    ]
+    variants = list(itertools.product(
+        (0.30, 0.35, 0.40),  # cycle frequency
+        (1.0, -1.0),          # hip swing sign
+        (0.0, math.pi / 2),   # knee flexion phase
+        (0.45, 0.515, 0.58), # balance action blend
+    ))
+    variants = [(0.10, 0.08, freq, sign, knee_phase, blend)
+                for freq, sign, knee_phase, blend in variants]
     reports = []
     ticks = round(args.seconds / 0.02)
     with torch.inference_mode():
@@ -118,7 +124,15 @@ def main() -> None:
                 "mean_abs_raw_action": float(sums[6] / samples),
                 "terminated_env_steps": done_count,
             })
-    print(json.dumps({"checkpoint": args.checkpoint, "variants": reports}, indent=2))
+    result = {"checkpoint": args.checkpoint, "command_y_mps": args.command_y,
+              "duration_s": args.seconds, "num_envs": args.num_envs,
+              "variants": reports}
+    encoded = json.dumps(result, indent=2)
+    if args.output:
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(encoded + "\n")
+    print(encoded)
     env.close()
 
 

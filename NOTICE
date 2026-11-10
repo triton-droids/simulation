@@ -8,3 +8,10 @@ Portions of this software were developed by Triton Droids at the University of
 California, San Diego.
 
 This software contains code derived from Google Deepmind.
+
+The contact-phase reward in src/locomotion_rewards.py is adapted from
+unitreerobotics/unitree_rl_lab, tasks/locomotion/mdp/rewards.py (feet_gait),
+revision 4960b84732b0c2ec593dccbfe963fda1bcd7b1e3, licensed under Apache-2.0.
+Source: https://github.com/unitreerobotics/unitree_rl_lab
+The implementation has been modified for separate foot sensors, normalized
+matching, upright gating, and this robot's observation and geometry conventions.

@@ -30,18 +30,9 @@ def main() -> None:
     scale = 0.22
     cfg = build_env_cfg(
         args.num_envs,
+        standing_pose="legacy_gait",
+        reward_profile="stepping_wide",
         action_scale=scale,
-        command_min=0.16,
-        command_max=0.16,
-        standing_envs=0.0,
-        actor_base_velocity=True,
-        privileged_critic=True,
-        upright_weight=6.0,
-        termination_weight=100.0,
-        phase_observation=True,
-        gait_cycle_hz=args.cycle_hz,
-        gait_hip_amplitude=args.hip_amp,
-        gait_knee_amplitude=args.knee_amp,
     )
     cfg.commands.base_velocity.resampling_time_range = (10000.0, 10000.0)
     env = ManagerBasedRLEnv(cfg=cfg)

@@ -1,0 +1,158 @@
+{
+  "date": "2026-11-07",
+  "controller": "Fixed joint position targets; no learned policy; no automatic resets",
+  "summary": {
+    "max_tilt_deg": 0.8069710093135919,
+    "max_ankle_torque_Nm": 2.0146329402923584,
+    "settings": {
+      "ankle_stiffness": 100.0,
+      "ankle_damping": 5.0,
+      "seconds": 30.0,
+      "hold_seconds": 0.0,
+      "knee_angle": -0.4,
+      "hip_angle": 0.2,
+      "ankle_angle": 0.2,
+      "ramp_seconds": 2.0,
+      "video": "outputs/crouch_review/standing_crouch.mp4",
+      "record_start": 22.0,
+      "report": "outputs/crouch_review/standing_crouch.json"
+    }
+  },
+  "settled_metrics_after_s": 3,
+  "min_com_support_polygon_margin_m": 0.103650948658437,
+  "sole_corner_height_range_m": [
+    -6.146728992462158e-07,
+    2.1997839212417603e-06
+  ],
+  "foot_vertical_force_range_N": [
+    77.93424224853516,
+    78.91487121582031
+  ],
+  "final_sample": {
+    "t_s": 30.0,
+    "tilt_deg": 0.49574558920739903,
+    "com_world_m": [
+      -0.004981309175491333,
+      0.0021780510433018208,
+      0.4139043688774109
+    ],
+    "sole_corners_world_m": [
+      [
+        0.1100803092122078,
+        -0.10199974477291107,
+        1.239590346813202e-06
+      ],
+      [
+        0.11008019745349884,
+        0.108000248670578,
+        7.832422852516174e-07
+      ],
+      [
+        0.19008031487464905,
+        -0.10199970752000809,
+        2.551823854446411e-07
+      ],
+      [
+        0.1900801956653595,
+        0.10800028592348099,
+        -2.0116567611694336e-07
+      ],
+      [
+        -0.20035097002983093,
+        -0.10199952870607376,
+        1.1790543794631958e-06
+      ],
+      [
+        -0.20035097002983093,
+        0.10800046473741531,
+        7.105991244316101e-07
+      ],
+      [
+        -0.12035095691680908,
+        -0.10199952870607376,
+        1.7508864402770996e-07
+      ],
+      [
+        -0.12035095691680908,
+        0.10800046473741531,
+        -2.9243528842926025e-07
+      ]
+    ],
+    "sole_corner_z_m": {
+      "left": [
+        1.239590346813202e-06,
+        7.832422852516174e-07,
+        2.551823854446411e-07,
+        -2.0116567611694336e-07
+      ],
+      "right": [
+        1.1790543794631958e-06,
+        7.105991244316101e-07,
+        1.7508864402770996e-07,
+        -2.9243528842926025e-07
+      ]
+    },
+    "foot_forces_world_N": {
+      "left": [
+        1.0572774044703692e-05,
+        0.0,
+        78.6905746459961
+      ],
+      "right": [
+        1.0543439202592708e-05,
+        0.0,
+        78.47224426269531
+      ]
+    },
+    "root_xyz_m": [
+      0.15050718188285828,
+      0.016755249351263046,
+      -0.0001990795135498047
+    ],
+    "root_quat_xyzw": [
+      0.004318898543715477,
+      -1.864737271262129e-07,
+      5.348516879166709e-06,
+      0.9999906420707703
+    ],
+    "joint_pos": [
+      0.20003633201122284,
+      0.2000443935394287,
+      1.0461129022587556e-05,
+      1.0663211469363887e-05,
+      1.2975532627024222e-05,
+      -1.311607047682628e-05,
+      -0.428536981344223,
+      -0.4285399615764618,
+      0.21986106038093567,
+      0.21689049899578094,
+      0.2198561578989029,
+      0.21688388288021088,
+      -0.21975861489772797,
+      -0.21975411474704742
+    ],
+    "pin_gap_m": {
+      "left": 3.3876102595264166e-13,
+      "right": 3.3958565223662457e-13
+    }
+  },
+  "original_policy": {
+    "path": "checkpoints/humanoid_legs_5_ppo_candidate_1200.pt",
+    "saved_iteration": 1200,
+    "replay_video": "original_policy_replay.mp4",
+    "mean_body_y_velocity_final_half_mps": 0.0044,
+    "scope": "Original locomotion candidate that mostly stands, not a separate validated standing policy"
+  },
+  "limitations": [
+    "No push/disturbance or walking validation.",
+    "Physics and transmission parameters remain simulation estimates.",
+    "USD-derived pin-gap samples are not independent dynamic loop validation.",
+    "Contact forces and collider geometry do not establish a sole pressure distribution."
+  ],
+  "direct_task_reset_check": {
+    "seconds": 30.0,
+    "num_envs": 8,
+    "resets": 0,
+    "max_tilt_deg": 1.5827612345029054
+  }
+}

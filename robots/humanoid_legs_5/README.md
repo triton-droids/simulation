@@ -50,7 +50,7 @@ was 0.0062 rad, and the sampled ankle pin pairs stayed coincident. This
 validates the imported joint drives and loop setup only; it does not test
 ground contact or balance.
 
-The free-root grounded zero pose is **not stable** with the MJCF-authored
+The free-root grounded zero pose is **not stable** with the original MJCF-authored
 actuator gains: it tips past 90 degrees by 3 seconds. The knees start fully
 straight at their limit, and a standing/crouched reference pose plus actuator
 behavior still need validation. See `isaaclab_physx_check.json` for the test
@@ -68,18 +68,25 @@ contract still need calibration before hardware use. See
 packaged USD. The actor sees 39 values: base angular velocity, projected
 gravity, body velocity command, 10 motor-joint positions and velocities, and
 the previous 10 actions. It outputs targets for the 10 motor joints at 50 Hz;
-the four linkage joints remain passive. The knee reset is flexed by 0.1 rad.
+the four linkage joints remain passive. The knee reset is neutral (0 rad) following the standing check.
 The initial command curriculum assumes forward is body Y, inferred from the
 mesh and joint-axis layout; confirm the robot convention against CAD/hardware.
 It commands 0.2–0.5 m/s along that axis, with 10% standing commands.
+
+The current simulation baseline instead uses ankle gains 100/5 and a neutral
+reset pose. A ten-second single-robot check stayed upright, and the task's
+five-second eight-environment check had zero resets. See
+`standing_validation.json` for the controlled comparison; these results do
+not validate full sole contact or hardware gains.
 
 The task is an experiment, not a successful walking setup. A 500-iteration
 continuation on 256 environments reached about 504 of 600 policy steps per
 episode on average in the final 100 updates, but command success averaged only
 8.9%. A separate deterministic test requested 0.35 m/s along body Y and
-measured about 0.004 m/s, so the saved actor mostly stood still. Contact
-sensing currently selects the hip root; the task uses a gravity-vector tilt
-termination and has no foot-contact reward. See the [full
+measured about 0.004 m/s, so the saved actor mostly stood still. That experiment used contact
+sensing that selected only the hip root. The current task explicitly senses
+both feet; it still uses gravity-vector tilt termination and no foot-contact
+reward. See the [full
 assessment](locomotion_training_assessment.md).
 
 [`locomotion_preview.mp4`](locomotion_preview.mp4) shows the selected PPO

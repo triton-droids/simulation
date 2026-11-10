@@ -1,0 +1,676 @@
+{
+  "model": "humanoid_legs_5",
+  "environment": "Antioch Isaac Lab 3.0 / PhysX",
+  "date": "2026-11-10",
+  "command_mps": {
+    "body_y": 0.12,
+    "body_x": 0.0,
+    "yaw_rate": 0.0
+  },
+  "scope": "Simulation-only PPO and controller tuning; no USD, MJCF, mesh, or linkage changes were made.",
+  "gait_imitation_long_baseline": {
+    "num_envs": 64,
+    "duration_s": 10,
+    "action_scale": 0.22,
+    "reset_noise_scale": 0.5,
+    "mean_velocity_body_xy_mps": {
+      "vx": -0.0197593362,
+      "vy": 0.1059199419
+    },
+    "mean_horizontal_velocity_error_mps": 0.2047862248,
+    "mean_upright_cosine": 0.9450465343,
+    "terminated_env_steps": 45,
+    "survived_full_trial": 23,
+    "mean_valid_seconds": 7.7265734673,
+    "mean_forward_displacement_m": 0.4804611206,
+    "mean_lateral_displacement_m": 0.1658034921
+  },
+  "ppo_finetune_checkpoints": {
+    "teacher_stability_v1_model_2175": {
+      "command_mps": {
+        "vx": 0.0,
+        "vy": 0.12,
+        "yaw_rate": 0.0
+      },
+      "duration_s": 10.0,
+      "num_envs": 64,
+      "mean_velocity_body_xy_mps": {
+        "vx": -0.0022160590500279794,
+        "vy": 0.004838656945765251
+      },
+      "mean_horizontal_velocity_error_mps": 0.11543738275766373,
+      "mean_upright_cosine": 0.9577965402603149,
+      "mean_sole_spacing_m": 0.3341078791618347,
+      "terminated_env_steps": 54,
+      "survived_full_trial": 10,
+      "mean_valid_seconds": 3.335942506790161,
+      "mean_forward_displacement_m": -0.21458780765533447,
+      "mean_lateral_displacement_m": 0.07820993661880493
+    },
+    "teacher_stability_v2_model_2125": {
+      "command_mps": {
+        "vx": 0.0,
+        "vy": 0.12,
+        "yaw_rate": 0.0
+      },
+      "duration_s": 10.0,
+      "num_envs": 64,
+      "mean_velocity_body_xy_mps": {
+        "vx": -0.10782041180552915,
+        "vy": 0.26456444086879494
+      },
+      "mean_horizontal_velocity_error_mps": 0.2804252265319228,
+      "mean_upright_cosine": 0.9505071256160736,
+      "mean_sole_spacing_m": 0.3731578325033188,
+      "terminated_env_steps": 134,
+      "survived_full_trial": 0,
+      "mean_valid_seconds": 3.330622673034668,
+      "mean_forward_displacement_m": 0.6955292820930481,
+      "mean_lateral_displacement_m": 0.21941056847572327
+    }
+  },
+  "latest_recorded_episode": {
+    "video": "locomotion_latest_episode_teacher_stability_v3.mp4",
+    "trajectory": {
+      "tracked_point": "hip center of mass",
+      "scope": "first episode only; terminal/reset transitions excluded",
+      "survived_full_trial": 1,
+      "num_envs": 1,
+      "mean_valid_seconds": 10.000039100646973,
+      "mean_forward_displacement_m": 0.08934571593999863,
+      "mean_abs_lateral_displacement_m": 0.10841923207044601,
+      "mean_max_abs_lateral_displacement_m": 0.11352252215147018,
+      "mean_world_path_length_m": 0.27010107040405273,
+      "mean_abs_final_heading_drift_deg": 0.0480654276907444,
+      "mean_max_abs_heading_drift_deg": 2.6873621940612793,
+      "max_abs_heading_drift_deg": 2.6873621940612793
+    },
+    "resets": 0,
+    "mean_body_y_velocity_final_half_mps": 0.0026
+  },
+  "action_scale_sweep": {
+    "0.16": {
+      "action_scale": 0.16,
+      "mean_velocity_body_xy_mps": {
+        "vx": -5.803216045023874e-05,
+        "vy": 0.005293606431630906
+      },
+      "mean_horizontal_velocity_error_mps": 0.11480085203051567,
+      "mean_upright_cosine": 0.9613127267360687,
+      "terminated_env_steps": 0,
+      "survived_full_trial": 32,
+      "mean_valid_seconds": 10.000039100646973,
+      "mean_forward_displacement_m": -0.05523448437452316,
+      "mean_lateral_displacement_m": 0.05401960760354996
+    },
+    "0.18": {
+      "action_scale": 0.18,
+      "mean_velocity_body_xy_mps": {
+        "vx": -0.000363626730395481,
+        "vy": 0.005692368014133535
+      },
+      "mean_horizontal_velocity_error_mps": 0.11461145454645157,
+      "mean_upright_cosine": 0.9660810496807098,
+      "terminated_env_steps": 0,
+      "survived_full_trial": 32,
+      "mean_valid_seconds": 10.000039100646973,
+      "mean_forward_displacement_m": 0.004930253140628338,
+      "mean_lateral_displacement_m": 0.060962703078985214
+    },
+    "0.20": {
+      "action_scale": 0.2,
+      "mean_velocity_body_xy_mps": {
+        "vx": -0.0006300737516721711,
+        "vy": 0.006127266785886604
+      },
+      "mean_horizontal_velocity_error_mps": 0.1145786899626255,
+      "mean_upright_cosine": 0.9714170415401459,
+      "terminated_env_steps": 0,
+      "survived_full_trial": 32,
+      "mean_valid_seconds": 10.000039100646973,
+      "mean_forward_displacement_m": 0.06576164811849594,
+      "mean_lateral_displacement_m": 0.06753681600093842
+    },
+    "0.22": {
+      "action_scale": 0.22,
+      "mean_velocity_body_xy_mps": {
+        "vx": -0.024199127616360783,
+        "vy": 0.11929783610068262
+      },
+      "mean_horizontal_velocity_error_mps": 0.213255491822958,
+      "mean_upright_cosine": 0.947649952173233,
+      "terminated_env_steps": 24,
+      "survived_full_trial": 9,
+      "mean_valid_seconds": 7.855010509490967,
+      "mean_forward_displacement_m": 0.523322343826294,
+      "mean_lateral_displacement_m": 0.17936627566814423
+    },
+    "0.24": {
+      "action_scale": 0.24,
+      "mean_velocity_body_xy_mps": {
+        "vx": -0.003912237805314362,
+        "vy": 0.130984796050936
+      },
+      "mean_horizontal_velocity_error_mps": 0.2624777792990208,
+      "mean_upright_cosine": 0.8841875593662262,
+      "terminated_env_steps": 66,
+      "survived_full_trial": 3,
+      "mean_valid_seconds": 5.1518754959106445,
+      "mean_forward_displacement_m": 0.707942008972168,
+      "mean_lateral_displacement_m": 0.01502324640750885
+    }
+  },
+  "balance_gait_overlay_sweep": {
+    "num_variants": 36,
+    "num_envs": 32,
+    "duration_s": 8.0,
+    "variants": [
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.3,
+        "hip_sign": 1.0,
+        "knee_phase": 0.0,
+        "balance_blend": 0.45,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.017321376129984856,
+          0.08040843904018402
+        ],
+        "mean_upright_cosine": 0.9176863431930542,
+        "terminated_env_steps": 39
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.3,
+        "hip_sign": 1.0,
+        "knee_phase": 0.0,
+        "balance_blend": 0.515,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.008079519495368004,
+          0.022951094433665276
+        ],
+        "mean_upright_cosine": 0.9612954258918762,
+        "terminated_env_steps": 7
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.3,
+        "hip_sign": 1.0,
+        "knee_phase": 0.0,
+        "balance_blend": 0.58,
+        "mean_com_velocity_yaw_xy_mps": [
+          -9.82227866188623e-05,
+          0.006635269150137901
+        ],
+        "mean_upright_cosine": 0.9570747017860413,
+        "terminated_env_steps": 2
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.3,
+        "hip_sign": 1.0,
+        "knee_phase": 1.5707963267948966,
+        "balance_blend": 0.45,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.0027719824574887753,
+          0.022304195910692215
+        ],
+        "mean_upright_cosine": 0.8896014094352722,
+        "terminated_env_steps": 50
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.3,
+        "hip_sign": 1.0,
+        "knee_phase": 1.5707963267948966,
+        "balance_blend": 0.515,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.00585215212777257,
+          0.015136624686419964
+        ],
+        "mean_upright_cosine": 0.9662492871284485,
+        "terminated_env_steps": 3
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.3,
+        "hip_sign": 1.0,
+        "knee_phase": 1.5707963267948966,
+        "balance_blend": 0.58,
+        "mean_com_velocity_yaw_xy_mps": [
+          0.0022838350851088762,
+          0.004062328953295946
+        ],
+        "mean_upright_cosine": 0.9552359580993652,
+        "terminated_env_steps": 0
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.3,
+        "hip_sign": -1.0,
+        "knee_phase": 0.0,
+        "balance_blend": 0.45,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.017387282103300095,
+          0.09489209949970245
+        ],
+        "mean_upright_cosine": 0.9438992738723755,
+        "terminated_env_steps": 26
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.3,
+        "hip_sign": -1.0,
+        "knee_phase": 0.0,
+        "balance_blend": 0.515,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.006022225599735975,
+          0.015481486916542053
+        ],
+        "mean_upright_cosine": 0.9585544466972351,
+        "terminated_env_steps": 6
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.3,
+        "hip_sign": -1.0,
+        "knee_phase": 0.0,
+        "balance_blend": 0.58,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.01505910325795412,
+          0.06544596701860428
+        ],
+        "mean_upright_cosine": 0.9064584970474243,
+        "terminated_env_steps": 37
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.3,
+        "hip_sign": -1.0,
+        "knee_phase": 1.5707963267948966,
+        "balance_blend": 0.45,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.021100113168358803,
+          0.09431634098291397
+        ],
+        "mean_upright_cosine": 0.9380971789360046,
+        "terminated_env_steps": 27
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.3,
+        "hip_sign": -1.0,
+        "knee_phase": 1.5707963267948966,
+        "balance_blend": 0.515,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.001702696899883449,
+          0.003941020462661982
+        ],
+        "mean_upright_cosine": 0.9708364605903625,
+        "terminated_env_steps": 2
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.3,
+        "hip_sign": -1.0,
+        "knee_phase": 1.5707963267948966,
+        "balance_blend": 0.58,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.014469072222709656,
+          0.06483641266822815
+        ],
+        "mean_upright_cosine": 0.9067098498344421,
+        "terminated_env_steps": 37
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.35,
+        "hip_sign": 1.0,
+        "knee_phase": 0.0,
+        "balance_blend": 0.45,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.028637582436203957,
+          0.07981807738542557
+        ],
+        "mean_upright_cosine": 0.9144701957702637,
+        "terminated_env_steps": 40
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.35,
+        "hip_sign": 1.0,
+        "knee_phase": 0.0,
+        "balance_blend": 0.515,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.0316806323826313,
+          0.04794345423579216
+        ],
+        "mean_upright_cosine": 0.9183208346366882,
+        "terminated_env_steps": 35
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.35,
+        "hip_sign": 1.0,
+        "knee_phase": 0.0,
+        "balance_blend": 0.58,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.007399477064609528,
+          0.004089474678039551
+        ],
+        "mean_upright_cosine": 0.9582094550132751,
+        "terminated_env_steps": 2
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.35,
+        "hip_sign": 1.0,
+        "knee_phase": 1.5707963267948966,
+        "balance_blend": 0.45,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.0378318689763546,
+          0.12469310313463211
+        ],
+        "mean_upright_cosine": 0.9298926591873169,
+        "terminated_env_steps": 32
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.35,
+        "hip_sign": 1.0,
+        "knee_phase": 1.5707963267948966,
+        "balance_blend": 0.515,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.013006113469600677,
+          0.024303097277879715
+        ],
+        "mean_upright_cosine": 0.951065182685852,
+        "terminated_env_steps": 14
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.35,
+        "hip_sign": 1.0,
+        "knee_phase": 1.5707963267948966,
+        "balance_blend": 0.58,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.008495232090353966,
+          0.0016225160798057914
+        ],
+        "mean_upright_cosine": 0.9591771364212036,
+        "terminated_env_steps": 0
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.35,
+        "hip_sign": -1.0,
+        "knee_phase": 0.0,
+        "balance_blend": 0.45,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.00793533120304346,
+          0.038580238819122314
+        ],
+        "mean_upright_cosine": 0.9410156011581421,
+        "terminated_env_steps": 20
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.35,
+        "hip_sign": -1.0,
+        "knee_phase": 0.0,
+        "balance_blend": 0.515,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.0006323913112282753,
+          0.010840603150427341
+        ],
+        "mean_upright_cosine": 0.9579795598983765,
+        "terminated_env_steps": 4
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.35,
+        "hip_sign": -1.0,
+        "knee_phase": 0.0,
+        "balance_blend": 0.58,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.00035410732380114496,
+          0.06139035150408745
+        ],
+        "mean_upright_cosine": 0.8976506590843201,
+        "terminated_env_steps": 40
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.35,
+        "hip_sign": -1.0,
+        "knee_phase": 1.5707963267948966,
+        "balance_blend": 0.45,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.00537072541192174,
+          0.029846778139472008
+        ],
+        "mean_upright_cosine": 0.9560331702232361,
+        "terminated_env_steps": 11
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.35,
+        "hip_sign": -1.0,
+        "knee_phase": 1.5707963267948966,
+        "balance_blend": 0.515,
+        "mean_com_velocity_yaw_xy_mps": [
+          0.001245709485374391,
+          0.005285461898893118
+        ],
+        "mean_upright_cosine": 0.9686271548271179,
+        "terminated_env_steps": 0
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.35,
+        "hip_sign": -1.0,
+        "knee_phase": 1.5707963267948966,
+        "balance_blend": 0.58,
+        "mean_com_velocity_yaw_xy_mps": [
+          0.0003188338305335492,
+          0.060933616012334824
+        ],
+        "mean_upright_cosine": 0.9019400477409363,
+        "terminated_env_steps": 37
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.4,
+        "hip_sign": 1.0,
+        "knee_phase": 0.0,
+        "balance_blend": 0.45,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.02778799459338188,
+          0.09618180990219116
+        ],
+        "mean_upright_cosine": 0.9019286036491394,
+        "terminated_env_steps": 45
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.4,
+        "hip_sign": 1.0,
+        "knee_phase": 0.0,
+        "balance_blend": 0.515,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.02059381641447544,
+          0.07213558256626129
+        ],
+        "mean_upright_cosine": 0.907673180103302,
+        "terminated_env_steps": 41
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.4,
+        "hip_sign": 1.0,
+        "knee_phase": 0.0,
+        "balance_blend": 0.58,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.008116872049868107,
+          0.026905527338385582
+        ],
+        "mean_upright_cosine": 0.9450425505638123,
+        "terminated_env_steps": 10
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.4,
+        "hip_sign": 1.0,
+        "knee_phase": 1.5707963267948966,
+        "balance_blend": 0.45,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.024116158485412598,
+          0.10419870913028717
+        ],
+        "mean_upright_cosine": 0.9155153632164001,
+        "terminated_env_steps": 34
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.4,
+        "hip_sign": 1.0,
+        "knee_phase": 1.5707963267948966,
+        "balance_blend": 0.515,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.0010099475039169192,
+          0.011171423830091953
+        ],
+        "mean_upright_cosine": 0.9622037410736084,
+        "terminated_env_steps": 3
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.4,
+        "hip_sign": 1.0,
+        "knee_phase": 1.5707963267948966,
+        "balance_blend": 0.58,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.005951359868049622,
+          0.01349844690412283
+        ],
+        "mean_upright_cosine": 0.9535652995109558,
+        "terminated_env_steps": 6
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.4,
+        "hip_sign": -1.0,
+        "knee_phase": 0.0,
+        "balance_blend": 0.45,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.013960963115096092,
+          0.04779603332281113
+        ],
+        "mean_upright_cosine": 0.956480860710144,
+        "terminated_env_steps": 15
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.4,
+        "hip_sign": -1.0,
+        "knee_phase": 0.0,
+        "balance_blend": 0.515,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.005341548006981611,
+          0.006326933857053518
+        ],
+        "mean_upright_cosine": 0.9724546074867249,
+        "terminated_env_steps": 1
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.4,
+        "hip_sign": -1.0,
+        "knee_phase": 0.0,
+        "balance_blend": 0.58,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.0033999686129391193,
+          0.01814522221684456
+        ],
+        "mean_upright_cosine": 0.8919196128845215,
+        "terminated_env_steps": 47
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.4,
+        "hip_sign": -1.0,
+        "knee_phase": 1.5707963267948966,
+        "balance_blend": 0.45,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.012763339094817638,
+          0.024587882682681084
+        ],
+        "mean_upright_cosine": 0.9671988487243652,
+        "terminated_env_steps": 10
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.4,
+        "hip_sign": -1.0,
+        "knee_phase": 1.5707963267948966,
+        "balance_blend": 0.515,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.004473515786230564,
+          0.001501549151726067
+        ],
+        "mean_upright_cosine": 0.9718375205993652,
+        "terminated_env_steps": 0
+      },
+      {
+        "hip_amp": 0.1,
+        "knee_amp": 0.08,
+        "cycle_hz": 0.4,
+        "hip_sign": -1.0,
+        "knee_phase": 1.5707963267948966,
+        "balance_blend": 0.58,
+        "mean_com_velocity_yaw_xy_mps": [
+          -0.00594855472445488,
+          0.022044915705919266
+        ],
+        "mean_upright_cosine": 0.9245304465293884,
+        "terminated_env_steps": 23
+      }
+    ]
+  },
+  "conclusion": "The imitation checkpoint steps and translates but falls often. PPO fine-tunes tested either stood nearly still or moved quickly and fell. Linkage repair was not the cause of this change.",
+  "hardware_ready": false
+}
