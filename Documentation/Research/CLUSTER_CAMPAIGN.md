@@ -513,3 +513,43 @@ final independent seeds and held-out grid. No lucky checkpoint/seed promotion.
 Validation: three argv comparisons assert discount/output only; all queue plans
 validate. No runner logic changed. Estimated50-65min per run from RB02, so retain
 hourly compact checks, no active model waiting for training.
+
+## RB03 rejected; RD06 action-distribution diagnostic
+RB03 jobs7697/7695/7693 completed50m35/51m25/49m04 =2.5178 GPU-hours.
+Nominal survivors101/202/303=4/8,8/8,1/8;random=4/8,6/8,2/8.
+Ordered stand6000/6001/6002/6014 then forward same resets:
+nominal101 steps16,17,16,17,500,500,500,500;
+202 all500;303=55,50,14,46,16,16,16,500.
+Random101=48,90,13,98,500,500,500,500;
+202=500,22,500,500,500,46,500,500;
+303=81,43,62,54,48,500,53,500.
+All screens rejected/full suites skipped. Nominal worst linear/yaw .2362/1.5941,
+.2243/.3600,1.0270/3.8448. No development pass or seed winner. Initialization
+credit hypothesis CLOSED;no further discount values or unchanged extension.
+Six evenly spaced video frames per nominal/random forward6000 clip reviewed:
+101/202 upright ordinary gait frames,303 short abrupt asymmetric gait/contact;
+representative successful clips do not supersede failed rows or certify gait.
+
+Saved late internal eval lengths RB02=475.44/473.06/474.75, RB03=413.81/500/334.31.
+Final KL RB02=.06166/.05778/.06292;RB03=.03323/.03588/.03296. No KL-stop trigger.
+Final entropy_loss RB02=.01685/.01261/.01710 versus RB03=-.04192/-.04032/-.04260.
+Entropy cost unchanged .005, so learned distribution changed substantially;
+this is a clue, not proof mean-action evaluation caused failure. Internal eval
+is configured deterministic and passed through train.py; no defect asserted.
+
+RD06 freezes ZERO-training nominal stand6000 at each RB03 final20070400,500step
+cap, three predetermined policy RNG keys17/29/43 PER seed101/202/303. Nine total
+trajectories, reuse saved deterministic baseline16/500/55 steps, no baseline
+reruns. Existing stochastic-policy diagnostic code; no physics/command/phase
+intervention. Source prep then3traces per job,2hqueue,40min/trace,oneGPU3CPU16GB,
+submit all three together. Plans cluster_rd06_SEED.json specify all commands.
+Historical A03 C10 difficult-start sampling0/6 remains failed; this probes a NEW
+observed high-entropy nominal failure,not reopening or rerunning that audit.
+Decision: only if all3 draws for EACH policy survive500 with height>.6 supports
+further investigation of mean-versus-distribution failure; any failed draw
+rejects robust sampling explanation and closes this branch without more keys.
+Record linear/yaw/gait metrics too; sampled survival NEVER passes final gates.
+No choosing lucky draws,seeds or checkpoints;no inference sampling deployment.
+No automatic entropy tuning; justify/freeze any later training-consistent design
+separately. Original deterministic full evaluation and held-out3seed contract
+remain. No runner logic changed; all plans validated and fixed RNG grids checked.

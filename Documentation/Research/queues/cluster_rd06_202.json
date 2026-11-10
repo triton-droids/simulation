@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "output_dir": "Artifacts/Results/cluster_rd06_202/queue",
+  "max_wall_seconds": 7200,
+  "jobs": [
+    {
+      "id": "source",
+      "review_artifact": "Artifacts/Results/cluster_rd06_202/source.json",
+      "stages": [
+        {
+          "id": "fetch_pinned",
+          "argv": [
+            "-c",
+            "from robocub.locomotion.unitree_g1.playground_source import resolve_playground_source;from pathlib import Path;import json;s=resolve_playground_source(fetch=True);p=Path('Artifacts/Results/cluster_rd06_202/source.json');p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps({'source':str(s)}))"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd06_202/source.json"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd06_202/source.json"
+          ],
+          "timeout_seconds": 300
+        }
+      ],
+      "hypothesis": "Prepare pinned source for unmodified matched diagnostic",
+      "evidence": "RC01 both survive but fail nominal standing yaw; mechanism is not established by aggregate screening."
+    },
+    {
+      "id": "draw17",
+      "hypothesis": "Test deterministic-mean versus sampled-policy failure on nominal stand, retaining all fixed draws.",
+      "evidence": "RB03 entropy loss remains about -.04 while RB02 reaches +.01; deterministic nominal stand101/303 collapses.",
+      "review_artifact": "Artifacts/Results/cluster_rd06_202/draw17/summary.json",
+      "stages": [
+        {
+          "id": "trace",
+          "argv": [
+            "robocub/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "{root}/../../RB03_202/source/Artifacts/Results/cluster_rb03_202/train",
+            "--checkpoint",
+            "20070400",
+            "--output-dir",
+            "Artifacts/Results/cluster_rd06_202/draw17",
+            "--steps",
+            "500",
+            "--policy-label",
+            "rb03_202",
+            "--command",
+            "0",
+            "0",
+            "0",
+            "--seed",
+            "6000",
+            "--evaluation-reset",
+            "--local-only",
+            "--stochastic-policy",
+            "--policy-seed",
+            "17"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd06_202/draw17"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd06_202/draw17/summary.json",
+            "Artifacts/Results/cluster_rd06_202/draw17/rb03_202_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "draw29",
+      "hypothesis": "Test deterministic-mean versus sampled-policy failure on nominal stand, retaining all fixed draws.",
+      "evidence": "RB03 entropy loss remains about -.04 while RB02 reaches +.01; deterministic nominal stand101/303 collapses.",
+      "review_artifact": "Artifacts/Results/cluster_rd06_202/draw29/summary.json",
+      "stages": [
+        {
+          "id": "trace",
+          "argv": [
+            "robocub/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "{root}/../../RB03_202/source/Artifacts/Results/cluster_rb03_202/train",
+            "--checkpoint",
+            "20070400",
+            "--output-dir",
+            "Artifacts/Results/cluster_rd06_202/draw29",
+            "--steps",
+            "500",
+            "--policy-label",
+            "rb03_202",
+            "--command",
+            "0",
+            "0",
+            "0",
+            "--seed",
+            "6000",
+            "--evaluation-reset",
+            "--local-only",
+            "--stochastic-policy",
+            "--policy-seed",
+            "29"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd06_202/draw29"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd06_202/draw29/summary.json",
+            "Artifacts/Results/cluster_rd06_202/draw29/rb03_202_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "draw43",
+      "hypothesis": "Test deterministic-mean versus sampled-policy failure on nominal stand, retaining all fixed draws.",
+      "evidence": "RB03 entropy loss remains about -.04 while RB02 reaches +.01; deterministic nominal stand101/303 collapses.",
+      "review_artifact": "Artifacts/Results/cluster_rd06_202/draw43/summary.json",
+      "stages": [
+        {
+          "id": "trace",
+          "argv": [
+            "robocub/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "{root}/../../RB03_202/source/Artifacts/Results/cluster_rb03_202/train",
+            "--checkpoint",
+            "20070400",
+            "--output-dir",
+            "Artifacts/Results/cluster_rd06_202/draw43",
+            "--steps",
+            "500",
+            "--policy-label",
+            "rb03_202",
+            "--command",
+            "0",
+            "0",
+            "0",
+            "--seed",
+            "6000",
+            "--evaluation-reset",
+            "--local-only",
+            "--stochastic-policy",
+            "--policy-seed",
+            "43"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd06_202/draw43"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd06_202/draw43/summary.json",
+            "Artifacts/Results/cluster_rd06_202/draw43/rb03_202_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    }
+  ]
+}
