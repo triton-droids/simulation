@@ -2,10 +2,8 @@
 
 import os
 import jax
-import mediapy as media
 from brax.io import model
 from brax.training.agents.ppo import networks as ppo_networks
-from moviepy import VideoFileClip, clips_array
 from robocub.utils.IO_utils import SuppressOutput
 
 def get_rollout(policy_path, env, make_networks_factory, num_steps):
@@ -61,6 +59,10 @@ def render_video(
     """
    
     
+    # Video dependencies are optional until rendering is requested.
+    import mediapy as media
+    from moviepy import VideoFileClip, clips_array
+
     # Define paths for each camera's video
     video_paths = []
 

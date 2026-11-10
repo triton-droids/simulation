@@ -593,3 +593,23 @@ component independently in parallel. No altered-reset diagnostics as validation.
 Validation:all3 argv equality except length/batch/output checked;40960 transitions
 per batch and exact final-step divisibility verified;plans validate. No runner
 logic changed. Keep hourly compact checks until measured runtimes justify change.
+
+## RB04 seed202 execution repair
+RB04_202/job7734 failed13seconds before training at unconditional rollouts.py
+mediapy import: matplotlib stylelib/seaborn-v0_8-notebook.mplstyle unavailable.
+Relevant stage log preserved locally RB04_202/failure_recovery_train.log.
+This repeats the shared-file import fault class,not scientific failure. Current
+read-only stat finds382byte file with Nov7 timestamps and mediapy import succeeds;
+root shared-filesystem cause remains unproven. Do NOT blindly retry unchanged.
+Small repair: rollouts.py loads mediapy/moviepy only within render_video; this
+training plan has video disabled,so optional video data cannot abort its import.
+Rendering behavior retained,not disabled. No package install/shared mutation.
+Two regression tests passed: real non-video module import with media/moviepy
+blocked, and rendering imports/calls its writer and compositor. Actual remote
+repaired module also imported successfully with both video dependencies blocked.
+This isolates training's unnecessary dependency; evaluation still needs video
+packages and must be recovered separately if it fails. Never repeat completed
+training for evaluation recovery. Fresh RB04_202r1 uses SAME frozen202 plan,
+seed,budget,gates. Completed101/job7733 and303/job7730 remain untouched;review
+all3 together after replacement. No winner or full-pass claim. Original failed
+receipt/output preserved. No repeated blind allocation/package retries.

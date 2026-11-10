@@ -5,7 +5,7 @@
   "scope": "Authorized Atlantis research until three fresh independent seeds pass original full gates",
   "candidate": "Artifacts/Results/post_f1_t02/rate_cost/train/logs/checkpoints/1003520/policy",
   "verification_queue": "Artifacts/Results/milestone1/queue/status.json",
-  "next_action": "Review all three fixed-transition longer-fragment RB04 runs against saved RB02; no discount or rollout-length sweep",
+  "next_action": "Complete repaired seed202, then review all three RB04 outcomes together; preserve completed101/303",
   "completion_report": "Documentation/Research/MILESTONE_1_REPORT.md",
   "milestone_2": "active on Atlantis",
   "milestone_3": "deferred",
@@ -14,7 +14,7 @@
   "milestone_1": "complete; existing T02 preserved",
   "active_cluster_receipts": [
     "Artifacts/Results/cluster_research/RB04_101/submission.json",
-    "Artifacts/Results/cluster_research/RB04_202/submission.json",
+    "Artifacts/Results/cluster_research/RB04_202r1/submission.json",
     "Artifacts/Results/cluster_research/RB04_303/submission.json"
   ]
 }
