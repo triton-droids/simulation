@@ -21,6 +21,13 @@ def main() -> None:
     parser.add_argument("--command-y", type=float, default=0.16)
     parser.add_argument("--action-scale", type=float, default=0.22)
     parser.add_argument("--tracking-std", type=float, default=0.15)
+    parser.add_argument("--reset-noise-scale", type=float, default=0.35)
+    parser.add_argument("--hip-amp", type=float)
+    parser.add_argument("--knee-amp", type=float)
+    parser.add_argument("--frequency", type=float)
+    parser.add_argument("--hip-sign", type=float, choices=(-1.0, 1.0))
+    parser.add_argument("--knee-phase", type=float)
+    parser.add_argument("--balance-blend", type=float)
     parser.add_argument("--output", default=None, help="Optional JSON path for the sweep report")
     args = parser.parse_args()
 
@@ -38,6 +45,7 @@ def main() -> None:
         action_scale=args.action_scale,
         actor_base_velocity=True,
         gait_period=1.0 / 0.35,
+        reset_noise_scale=args.reset_noise_scale,
     )
     cfg.commands.base_velocity.resampling_time_range = (10000.0, 10000.0)
     cfg.commands.base_velocity.ranges.lin_vel_x = (0.0, 0.0)
@@ -62,15 +70,25 @@ def main() -> None:
     )
     policy = runner.get_inference_policy(device=str(env.device))
     robot = env.scene["robot"]
+    from trajectory_metrics import TrajectoryMetrics
+    body_names = list(robot.body_names)
+    hip_body_id = body_names.index("hip")
 
-    variants = list(itertools.product(
-        (0.30, 0.35, 0.40),  # cycle frequency
-        (1.0, -1.0),          # hip swing sign
-        (0.0, math.pi / 2),   # knee flexion phase
-        (0.45, 0.515, 0.58), # balance action blend
-    ))
-    variants = [(0.10, 0.08, freq, sign, knee_phase, blend)
-                for freq, sign, knee_phase, blend in variants]
+    specified = (args.hip_amp, args.knee_amp, args.frequency, args.hip_sign,
+                 args.knee_phase, args.balance_blend)
+    if any(value is not None for value in specified):
+        if any(value is None for value in specified):
+            parser.error("single-variant mode requires all six gait parameters")
+        variants = [specified]
+    else:
+        variants = list(itertools.product(
+            (0.30, 0.35, 0.40),  # cycle frequency
+            (1.0, -1.0),          # hip swing sign
+            (0.0, math.pi / 2),   # knee flexion phase
+            (0.45, 0.515, 0.58), # balance action blend
+        ))
+        variants = [(0.10, 0.08, freq, sign, knee_phase, blend)
+                    for freq, sign, knee_phase, blend in variants]
     reports = []
     ticks = round(args.seconds / 0.02)
     with torch.inference_mode():
@@ -78,18 +96,22 @@ def main() -> None:
             if variant_i:
                 env.reset()
             obs = wrapped.get_observations()
+            trajectory = TrajectoryMetrics(
+                robot.data.body_com_pos_w[:, hip_body_id], robot.data.root_quat_w
+            )
             sums = torch.zeros(7, device=env.device)
             done_count = 0
             samples = 0
             for step in range(ticks):
                 actions = policy(obs)
-                phase = 2.0 * math.pi * freq * step * 0.02
-                s = math.sin(phase)
-                left_knee = -knee_amp * max(0.0, math.sin(phase + knee_phase))
-                right_knee = -knee_amp * max(0.0, -math.sin(phase + knee_phase))
+                phase = 2.0 * math.pi * freq * env.episode_length_buf * env.step_dt
+                swing = torch.sin(phase)
+                knee_swing = torch.sin(phase + knee_phase)
+                left_knee = -knee_amp * knee_swing.clamp_min(0.0)
+                right_knee = -knee_amp * (-knee_swing).clamp_min(0.0)
                 offsets = {
-                    "left_hip1_joint": hip_sign * hip_amp * s,
-                    "right_hip1_joint": -hip_sign * hip_amp * s,
+                    "left_hip1_joint": hip_sign * hip_amp * swing,
+                    "right_hip1_joint": -hip_sign * hip_amp * swing,
                     "left_knee_joint": left_knee,
                     "right_knee_joint": right_knee,
                 }
@@ -101,6 +123,12 @@ def main() -> None:
                     actions[:, jid] = balance_blend * actions[:, jid] + (1.0 - balance_blend) * ref_action
                 obs, _, done, _ = wrapped.step(actions)
                 done_count += int(done.sum())
+                trajectory.update(
+                    robot.data.body_com_pos_w[:, hip_body_id],
+                    robot.data.root_quat_w,
+                    done,
+                    env.step_dt,
+                )
                 if step >= ticks // 2:
                     com_vel_yaw = quat_apply_inverse(
                         yaw_quat(robot.data.root_quat_w.torch), robot.data.body_com_lin_vel_w.torch[:, 0]
@@ -123,9 +151,11 @@ def main() -> None:
                 "mean_foot_body_height_m": (sums[4:6] / samples).tolist(),
                 "mean_abs_raw_action": float(sums[6] / samples),
                 "terminated_env_steps": done_count,
+                "trajectory": trajectory.summary(),
             })
     result = {"checkpoint": args.checkpoint, "command_y_mps": args.command_y,
               "duration_s": args.seconds, "num_envs": args.num_envs,
+              "reset_noise_scale": args.reset_noise_scale,
               "variants": reports}
     encoded = json.dumps(result, indent=2)
     if args.output:
