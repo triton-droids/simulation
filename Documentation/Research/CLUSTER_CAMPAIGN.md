@@ -371,3 +371,33 @@ validation remain mandatory. Source prep then2screens; frozen plans
 cluster_re01_101/202/303.json. Added bounded CPU/memory CLI options so submissions
 fit account caps immediately; defaults8/32 preserved. Invalid bounds rejected
 before network. No active dependencies or cluster settings modified.
+
+## RE01 rejected; RB02 matched acquisition batch-size hypothesis
+RE01 base evaluations completed9m34/10m14/9m24 (0.4867 GPU-hours total).
+101/303 already fail nominal walking at base:forward errors .44808/.44799,
+support/airtimes0,standing yaw .03099/.03443.202 walks (error.14871,support.818)
+but stand yaw.17471 fails. Random base survivors4/8,7/8,3/8 vs late4/8,6/8,2/8.
+Thus acquisition failure precedes fine-tuning in101/303;202 also loses recovery
+during late adaptation. No blanket retention-only explanation. Six sampled
+frames from each new clip confirm planted nominal101/303 and randomized falls;
+202 visible alternating gait. Saved all row metrics/videos;not full certification.
+
+RB02 freezes ONE acquisition hypothesis across SAME development seeds101/202/303:
+PPO batch_size128 instead of32, everything else exact original RB01 acquisition
+recipe,including512env,16minibatches,4updates,lr3e-4,entropy.005,original rewards,
+20,070,400steps from initialization. Larger on-policy batches may reduce noisy
+updates and standing-only convergence;this is a hypothesis,not established cause.
+It also reduces update frequency at fixed steps,so cannot attribute effects to
+variance alone. No late fine-tune. Compare each to own saved RE01 base results;
+no repeated controls/training.3 independent GPUs,3CPU/16GB each,4htraining/6hqueue
+per job;60,211,200steps total. Final checkpoint only,unchanged screens and
+conditional full suites/own untrained controls. Submit all3 together.
+Decision: if101/303 fail to acquire moving gait or202 loses walking/recovery,
+close larger-batch hypothesis,no batch-size sweep/unchanged extension. Progress
+requires original nominal forward gait gates and no lower per-seed randomized
+survival than4/7/3. This intermediate improvement is NOT full development pass.
+Only full original numeric/control/visual development success allows freezing
+new final seeds/held-out grid. Retain seed11 and all3 failures;no seed shopping.
+Validation:argv differs ONLY seed/output/batch_size;128*16 divisible512 and
+final step exact across7training evaluation intervals. No runner logic changed.
+Monitoring now supports status --compact:preserves status/errors/stage/heartbeat/steps/Slurm,omits full gate arrays.17 tests passed,5 platform skips. Use compact checks to reduce routine tokens;full evidence stays on disk.

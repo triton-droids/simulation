@@ -48,11 +48,24 @@ def validate_archive(data):
                 raise ValueError('Private/local material must not be uploaded')
 
 
+def compact_status(raw):
+    text = raw.lstrip()
+    try:
+        data, end = json.JSONDecoder().raw_decode(text)
+    except json.JSONDecodeError:
+        return {'status': 'unknown', 'scheduler': text[-1600:]}
+    keys = ('id', 'status', 'stage', 'heartbeat_at', 'last_training_step')
+    return {'status': data.get('status', 'unknown'), 'error': data.get('error'),
+            'jobs': [{k: j[k] for k in keys if k in j} for j in data.get('jobs', [])],
+            'scheduler': text[end:].strip()}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=['submit', 'status'])
     parser.add_argument('--run', required=True)
     parser.add_argument('--plan')
+    parser.add_argument('--compact', action='store_true')
     parser.add_argument('--cpus', type=int, default=8)
     parser.add_argument('--memory-gb', type=int, default=32)
     args = parser.parse_args()
@@ -73,7 +86,8 @@ def main():
         if job:
             cmd += f"squeue -h -j {job} -o '%i %T %M %R'; sacct -n -X -j {job} --format=JobID,State,Elapsed,ExitCode; "
         cmd += "printf '\nLAUNCH_EXIT\n'; cat exit_code 2>/dev/null || true"
-        print(ssh(settings, cmd)); return
+        raw = ssh(settings, cmd)
+        print(json.dumps(compact_status(raw)) if args.compact else raw); return
     if manifest.exists():
         raise FileExistsError('Submission already attempted; reconcile saved remote directory/job before retrying')
     plan_path = (ROOT/args.plan).resolve()

@@ -35,3 +35,18 @@ class ResourceArgumentTests(unittest.TestCase):
                 result = subprocess.run([sys.executable,str(script),'status','--run','unused',option,value],capture_output=True,text=True)
                 self.assertEqual(result.returncode,2)
                 self.assertIn('Resources must be',result.stderr)
+
+
+class CompactStatusTests(unittest.TestCase):
+    def test_preserves_failure_and_scheduler_without_gate_details(self):
+        from robocub.tools.cluster_research import compact_status
+        result = compact_status('{"status":"error","error":"stage failed","jobs":[{"id":"train","status":"error","heartbeat_at":"now","assessment":{"large":"details"}}]}\nSLURM FAILED')
+        self.assertEqual(result['error'], 'stage failed')
+        self.assertEqual(result['jobs'][0]['heartbeat_at'], 'now')
+        self.assertNotIn('assessment', result['jobs'][0])
+        self.assertIn('FAILED', result['scheduler'])
+
+    def test_missing_status_keeps_scheduler(self):
+        from robocub.tools.cluster_research import compact_status
+        self.assertEqual(compact_status('SLURM PENDING')['status'], 'unknown')
+        self.assertIn('PENDING', compact_status('SLURM PENDING')['scheduler'])
