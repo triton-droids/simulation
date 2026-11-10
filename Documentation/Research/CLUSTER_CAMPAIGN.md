@@ -430,3 +430,9 @@ phase constants, filtering or reward coefficient sweeps. This does not relax
 collision, termination or any final gates. No diagnostic counts as full pass.
 Require full development success before new unused final seeds/held-out grid.
 No runner logic changed; plans use existing terminal instrumentation.
+
+RD04_202 upload timed out at60s before runner setup/submission; remote reconciliation
+found only RD04_101/job7683 and RD04_303/job7681 active, no202 run script/job.
+Preserve partial202 snapshot/receipt. Archive upload alone now allows180s;
+all normal SSH/status timeouts unchanged. One fresh RD04_202r1 snapshot uses
+identical frozen plan, no training repeated and active snapshots untouched.

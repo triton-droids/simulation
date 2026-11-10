@@ -14,7 +14,7 @@
   "milestone_1": "complete; existing T02 preserved",
   "active_cluster_receipts": [
     "Artifacts/Results/cluster_research/RD04_101/submission.json",
-    "Artifacts/Results/cluster_research/RD04_202/submission.json",
+    "Artifacts/Results/cluster_research/RD04_202r1/submission.json",
     "Artifacts/Results/cluster_research/RD04_303/submission.json"
   ]
 }

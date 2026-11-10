@@ -108,7 +108,7 @@ def main():
     save(manifest,meta)
     q = shlex.quote
     # mkdir is exclusive: an ambiguous previous submission can never be duplicated.
-    ssh(settings, f'mkdir -p {q(settings["SSH_DIRECTORY"]+"/research_runs")}; mkdir {q(remote)} && mkdir {q(remote+"/source")} && tar -xf - -C {q(remote+"/source")}', archive)
+    ssh(settings, f'mkdir -p {q(settings["SSH_DIRECTORY"]+"/research_runs")}; mkdir {q(remote)} && mkdir {q(remote+"/source")} && tar -xf - -C {q(remote+"/source")}', archive, timeout=180)
     shared = settings['SSH_DIRECTORY']
     setup = f'''set -eu
 cd {q(remote+'/source')}
