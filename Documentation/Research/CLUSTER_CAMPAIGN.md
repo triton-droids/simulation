@@ -333,3 +333,15 @@ updated resources preserved in receipts. No shared configuration or running-job
 changes. Initial memory suffix syntax rejected without submission; numeric MB
 update accepted. Scheduler may take time to dispatch;do not duplicate.
 Also lowered retained MinCPUsNode8 to1 on both pending jobs; accepted by Slurm, queue reason cleared to None. Dispatch remains scheduler-controlled.
+
+## Seed303 infrastructure recovery - Nov9 local time
+All3 allocations started concurrently. At03:15UTC seed101 completed base20,070,400
+and entered late stage;202 healthy at11,468,800 base steps.303/job7563 failed13s
+before training: mediapy import hit missing matplotlib stylelib/seaborn-v0_8-paper.
+mplstyle. Failure tail preserved. Read-only follow-up finds asset present and
+mediapy import succeeds (matplotlib3.11.1). Transient file availability suspected,
+not proven; no packages modified. One identical fresh RP01_303r1 submission using
+original seed303 plan/output paths inside NEW isolated snapshot. Preserve7563;
+no seed substitution or scientific changes. Retain1CPU/12GB request for recovery
+to fit concurrent account budget; other active jobs untouched. If repeats, stop
+blind retries and diagnose shared environment stability. No runner changes needed.
