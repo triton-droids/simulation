@@ -1,11 +1,11 @@
 {
   "active_milestone": 2,
   "status": "active",
-  "updated_at": "2026-11-09",
+  "updated_at": "2026-11-10",
   "scope": "Authorized Atlantis research until three fresh independent seeds pass original full gates",
   "candidate": "Artifacts/Results/post_f1_t02/rate_cost/train/logs/checkpoints/1003520/policy",
   "verification_queue": "Artifacts/Results/milestone1/queue/status.json",
-  "next_action": "Compare parallel larger-batch acquisition runs to all saved RE01 baselines",
+  "next_action": "Review six RD04 reset6001 terminal traces together before any further training",
   "completion_report": "Documentation/Research/MILESTONE_1_REPORT.md",
   "milestone_2": "active on Atlantis",
   "milestone_3": "deferred",
@@ -13,8 +13,8 @@
   "training_allowed": true,
   "milestone_1": "complete; existing T02 preserved",
   "active_cluster_receipts": [
-    "Artifacts/Results/cluster_research/RB02_101/submission.json",
-    "Artifacts/Results/cluster_research/RB02_202/submission.json",
-    "Artifacts/Results/cluster_research/RB02_303/submission.json"
+    "Artifacts/Results/cluster_research/RD04_101/submission.json",
+    "Artifacts/Results/cluster_research/RD04_202/submission.json",
+    "Artifacts/Results/cluster_research/RD04_303/submission.json"
   ]
 }

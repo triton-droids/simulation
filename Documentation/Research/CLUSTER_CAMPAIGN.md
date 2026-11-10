@@ -401,3 +401,32 @@ new final seeds/held-out grid. Retain seed11 and all3 failures;no seed shopping.
 Validation:argv differs ONLY seed/output/batch_size;128*16 divisible512 and
 final step exact across7training evaluation intervals. No runner logic changed.
 Monitoring now supports status --compact:preserves status/errors/stage/heartbeat/steps/Slurm,omits full gate arrays.17 tests passed,5 platform skips. Use compact checks to reduce routine tokens;full evidence stays on disk.
+
+## RB02 rejected; RD04 shared disturbed-start failure diagnostic
+RB02 jobs7603/7607/7605 completed61m58/50m35/50m45:2.7217 allocated
+GPU-hours. All three nominal screens pass; randomized survivors6/8 each.
+All failures are reset6001, stand/forward respectively:101=41/45 steps,
+202=55/59,303=59/50. Other six trained random rows per seed survive500.
+Full suites skipped. Seed202 regresses from7/8 to6/8, violating the frozen
+no-survival-loss rule. Close larger-batch candidate; no unchanged extension
+or batch-size sweep. Nominal acquisition improved but no full pass or winner.
+Six sampled frames per nominal/random forward6000 video were inspected for
+all3: upright stepping on these successful starts. Sampled review cannot
+certify complete gait or explain reset6001 failure; evidence retained locally.
+
+RD04 freezes three parallel ZERO-training jobs, one per saved RB02 final
+checkpoint20070400, each original randomized reset6001 at stand and forward
+0.45,500step caps. Six trajectories total; no interventions or baseline reruns.
+Plans cluster_rd04_101/202/303.json contain executable argv; launch each with
+cluster_research.py submit --run RD04_SEED --plan PLAN --cpus 3 --memory-gb 16.
+OneGPU/job,3CPU/16GB,90min queue,40min/trace; launch all ready jobs together.
+Compare terminal causes, earliest height/foot-separation/contact divergence,
+first50 and preterminal20 samples. Short traces are not settled windows.
+Decision: if scalar diagnostic reproduces all failures with a common physical
+precursor, freeze one bounded mechanism-directed redesign; if causes differ,
+retain per-seed accounting; if failures do not reproduce, reconcile scalar and
+vector evaluation/reset contracts before training. No automatic retraining,
+phase constants, filtering or reward coefficient sweeps. This does not relax
+collision, termination or any final gates. No diagnostic counts as full pass.
+Require full development success before new unused final seeds/held-out grid.
+No runner logic changed; plans use existing terminal instrumentation.
