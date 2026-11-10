@@ -436,3 +436,37 @@ found only RD04_101/job7683 and RD04_303/job7681 active, no202 run script/job.
 Preserve partial202 snapshot/receipt. Archive upload alone now allows180s;
 all normal SSH/status timeouts unchanged. One fresh RD04_202r1 snapshot uses
 identical frozen plan, no training repeated and active snapshots untouched.
+
+## RD04 terminal evidence; RD05 causal disturbance diagnostic
+All six original-reset traces terminate on foot-foot contact, with loss of height
+BEFORE collision. Scalar steps stand/forward:101=41/45,202=55/69,303=60/56;
+screen steps were41/45,55/59,59/50. All reproduce failure, not bitwise timing.
+Pelvis below.6 first at33/37,45/58,48/45; foot horizontal separation below.1
+first at41/45,55/68,59/55. Minimum heights.315/.313,.211/.167,.041/.120.
+First20 mean forward velocity .55-.62 despite zero/.45 command. First50 mean
+heights .652/.657,.692/.722,.686/.673; last20 .569/.573,.537/.505,.458/.499.
+These shortened traces have no settled window. No nonfinite/inverted/shin
+termination. Thus contact is terminal, not evidence that foot spacing caused
+initial balance loss. RD04 costs2m44/2m54/2m44=0.1394 allocated GPU-hours.
+Saved summaries/NPZ under each receipt/review; no new videos produced by this
+numeric trace diagnostic. Prior RB02 video review remains sampled only.
+
+RD05 freezes ONE zero-training causal ablation on all six matching cases:
+remove ONLY original horizontal root velocity, retain sampled qpos, vertical/
+angular/joint velocity and phase; existing assertions and recomputed physics/
+observations verify intervention. Same fixed RB02 checkpoints,commands,6001,
+500steps. Reuse saved RD04 full-reset baselines; no reruns or new seeds.
+Historical C02/D05 showed horizontal sensitivity on6002; do NOT assume transfer
+across these independently trained RB02 policies/reset6001. Do not repeat old
+baseline/oracle audits. This six-case test checks transfer before any redesign.
+Plans cluster_rd05_101/202/303.json; same submit command/resources asRD04,
+3CPU/16GB/oneGPU each,90min queue,40min/trace,all three submitted together.
+Frozen decision: only if ALL6 survive500 and keep pelvis>.6 does removal
+support a shared horizontal-recovery explanation. Mixed outcomes retain every
+case and reject a blanket explanation; no further velocity-component sweep.
+Any redesign must reconcile prior failed C04-C06 pushes/short horizons and
+P01 curriculum, not repeat them unchanged. No automatic training or inference
+intervention. Original evaluation keeps full random velocity,scale1,candidates1;
+modified-reset diagnostics NEVER count as development/final passes. All full
+gates, independent fresh seeds/held-out criteria preserved. Existing runner
+logic only; validate all plans and assert only ablation/output differ fromRD04.
