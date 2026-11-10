@@ -53,7 +53,11 @@ def main():
     parser.add_argument('action', choices=['submit', 'status'])
     parser.add_argument('--run', required=True)
     parser.add_argument('--plan')
+    parser.add_argument('--cpus', type=int, default=8)
+    parser.add_argument('--memory-gb', type=int, default=32)
     args = parser.parse_args()
+    if not 1 <= args.cpus <= 8 or not 8 <= args.memory_gb <= 32:
+        parser.error('Resources must be 1-8 CPUs and 8-32 GB')
     if not re.fullmatch(r'[a-zA-Z0-9_-]+', args.run):
         raise ValueError('Invalid run identifier')
     local = ROOT/'Artifacts/Results/cluster_research'/args.run
@@ -86,7 +90,7 @@ def main():
     meta = dict(run=args.run, remote_dir=remote, local_commit=revision,
                 archive_sha256=hashlib.sha256(archive).hexdigest(), output_dir=plan['output_dir'],
                 plan=args.plan, status='submission_preparing', job_id=None,
-                resources={'gpus':1,'cpus':8,'memory':'32G','partition':'long','time':'08:00:00'})
+                resources={'gpus':1,'cpus':args.cpus,'memory':str(args.memory_gb)+'G','partition':'long','time':'08:00:00'})
     save(manifest,meta)
     q = shlex.quote
     # mkdir is exclusive: an ambiguous previous submission can never be duplicated.
@@ -117,7 +121,7 @@ exec_queue
     ssh(settings, f'cat > {q(remote+"/run.sh")}', runner.encode())
     sbatch = ['sbatch','--parsable','--account='+settings['SLURM_ACCOUNT'],
               '--partition=long','--time=08:00:00','--gres=rtx2080ti:1',
-              '--cpus-per-task=8','--mem=32G','--job-name=g1-'+args.run,
+              '--cpus-per-task='+str(args.cpus),'--mem='+str(args.memory_gb)+'G','--job-name=g1-'+args.run,
               '--output='+remote+'/launcher.log',remote+'/run.sh']
     # Scheduler validation allocates nothing; only the next command submits.
     ssh(settings, ' '.join(q(x) for x in sbatch[:1]+['--test-only']+sbatch[2:]))

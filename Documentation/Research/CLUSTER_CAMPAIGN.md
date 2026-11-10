@@ -345,3 +345,29 @@ original seed303 plan/output paths inside NEW isolated snapshot. Preserve7563;
 no seed substitution or scientific changes. Retain1CPU/12GB request for recovery
 to fit concurrent account budget; other active jobs untouched. If repeats, stop
 blind retries and diagnose shared environment stability. No runner changes needed.
+
+## RP01 rejected; RE01 pre-continuation localization - Nov9 local time
+All3 full recipes completed. Costs101:58m55s,202:87m17s,303:85m26s;
+total3.8606 allocated GPU-hours plus13s failed303 allocation. Restore parity
+passes all3. Nominal all survive;101/303 stand linear .00875/.00743,yaw
+.02715/.02965 but forward error .44770/.44821 and support/airtime0 (no walking).
+202 passes nominal incl stand .12770/.13659,forward error .15733,support .84.
+All random screens fail:mean steps274.125/397/182,min40/67/41 respectively.
+All full stages skipped. Six distributed frames per stand/random-forward clip
+reviewed across all3:101/303 planted nominal posture and randomized collapse;
+202 upright alternating forward gait on saved seed6000,not evidence all resets
+pass. Sampled review only,not continuous final certification. No winner chosen.
+
+RE01 freezes three PARALLEL evaluation-only jobs using EVERY saved base final
+checkpoint20070400 (own untrained0 controls),original nominal/random screens
+and videos. No training;do not evaluate/select intermediate checkpoints. Budget
+2h queue each,oneGPU,3CPU,16GB each;all3 fit prior account headroom. Determine
+whether base already lacks motion/recovery or late stage loses them. If base
+fails the same checks,focus acquisition redesign;if base passes those checks
+and late fails,focus retention during precision adaptation. Mixed outcomes
+require per-seed accounting;no promoting a lucky seed or accepting base as final.
+Closed recipe is not extended. Full original gates and fresh held-out3seed
+validation remain mandatory. Source prep then2screens; frozen plans
+cluster_re01_101/202/303.json. Added bounded CPU/memory CLI options so submissions
+fit account caps immediately; defaults8/32 preserved. Invalid bounds rejected
+before network. No active dependencies or cluster settings modified.

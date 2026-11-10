@@ -23,3 +23,15 @@ class SnapshotTests(unittest.TestCase):
 
     def test_symlink_rejected(self):
         with self.assertRaises(ValueError): validate_archive(self.archive('link',True))
+
+
+class ResourceArgumentTests(unittest.TestCase):
+    def test_invalid_resources_rejected_before_network(self):
+        import subprocess, sys
+        from pathlib import Path
+        script = Path(__file__).resolve().parents[1] / 'robocub/tools/cluster_research.py'
+        for option, value in [('--cpus','0'),('--cpus','9'),('--memory-gb','7'),('--memory-gb','33')]:
+            with self.subTest(option=option, value=value):
+                result = subprocess.run([sys.executable,str(script),'status','--run','unused',option,value],capture_output=True,text=True)
+                self.assertEqual(result.returncode,2)
+                self.assertIn('Resources must be',result.stderr)

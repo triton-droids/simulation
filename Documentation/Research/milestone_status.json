@@ -5,7 +5,7 @@
   "scope": "Authorized Atlantis research until three fresh independent seeds pass original full gates",
   "candidate": "Artifacts/Results/post_f1_t02/rate_cost/train/logs/checkpoints/1003520/policy",
   "verification_queue": "Artifacts/Results/milestone1/queue/status.json",
-  "next_action": "Review all three parallel development replications together; no final validation claim",
+  "next_action": "Compare every saved base checkpoint with failed late counterpart; evaluation only",
   "completion_report": "Documentation/Research/MILESTONE_1_REPORT.md",
   "milestone_2": "active on Atlantis",
   "milestone_3": "deferred",
@@ -13,8 +13,8 @@
   "training_allowed": true,
   "milestone_1": "complete; existing T02 preserved",
   "active_cluster_receipts": [
-    "Artifacts/Results/cluster_research/RP01_101/submission.json",
-    "Artifacts/Results/cluster_research/RP01_202/submission.json",
-    "Artifacts/Results/cluster_research/RP01_303r1/submission.json"
+    "Artifacts/Results/cluster_research/RE01_101/submission.json",
+    "Artifacts/Results/cluster_research/RE01_202/submission.json",
+    "Artifacts/Results/cluster_research/RE01_303/submission.json"
   ]
 }
