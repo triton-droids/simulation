@@ -737,3 +737,21 @@ DEVELOPMENT gates before new unused finalseeds/freshheldout;all3 trainedindepend
 No partial screen/single-seed or sampled-video success claims. All failures retained.
 Plan-only changes:pair argv equivalence exceptLR/output,exact budget,unchanged
 evaluation thresholds/referencecontrol paths checked;validate all6 before launch.
+
+## RC02 submission recovery - Nov10 local/Nov11 UTC
+Prior six simultaneous transfers encountered SSH resets/abort. Only202low/job7769
+submitted and completed;five others stopped before sbatch (101control at run.sh
+write,others during archive upload). Prior attempt to record this was blocked by
+automatic-approval usage limit;no recovery launch occurred then. This wake read
+all receipts/statuses and reconciled squeue/sacct sinceNov10:only7769 exists for
+RC02,no active jobs. All five partial source directories exist but no run.sh or
+exit_code. Reconciliation shell returned1 solely because ls found missing files;
+SSH succeeded,output retained in session. Preserve all partial directories and
+local per-run submission_failure.json;do not overwrite/delete or resubmit originals.
+Five fresh run names appendr1,identical existing plans/seeds/parents/budgets.
+Serialize snapshot transfers/setup to avoid simultaneous SSH bursts,submit each
+ready GPU job immediately;do NOT wait for training to finish before submitting
+next. GPU jobs remain independent/concurrent as scheduler permits.202low remains
+untouched and no winner selected before all six complete. No code/dependency or
+scientific recipe changes;source snapshots differ only documentation/status.
+If connection fails again preserve and reconcile next wake,not blind retries.

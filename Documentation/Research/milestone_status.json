@@ -5,7 +5,7 @@
   "scope": "Authorized Atlantis research until three fresh independent seeds pass original full gates",
   "candidate": "Artifacts/Results/post_f1_t02/rate_cost/train/logs/checkpoints/1003520/policy",
   "verification_queue": "Artifacts/Results/milestone1/queue/status.json",
-  "next_action": "Review all six paired RC02 continuations together; no seed winners or learning-rate sweep",
+  "next_action": "Recover five unsubmitted RC02 jobs with serialized uploads, then review all six matched outcomes",
   "completion_report": "Documentation/Research/MILESTONE_1_REPORT.md",
   "milestone_2": "active on Atlantis",
   "milestone_3": "deferred",
@@ -13,11 +13,11 @@
   "training_allowed": true,
   "milestone_1": "complete; existing T02 preserved",
   "active_cluster_receipts": [
-    "Artifacts/Results/cluster_research/RC02_101_control/submission.json",
-    "Artifacts/Results/cluster_research/RC02_101_low/submission.json",
-    "Artifacts/Results/cluster_research/RC02_202_control/submission.json",
+    "Artifacts/Results/cluster_research/RC02_101_controlr1/submission.json",
+    "Artifacts/Results/cluster_research/RC02_101_lowr1/submission.json",
+    "Artifacts/Results/cluster_research/RC02_202_controlr1/submission.json",
     "Artifacts/Results/cluster_research/RC02_202_low/submission.json",
-    "Artifacts/Results/cluster_research/RC02_303_control/submission.json",
-    "Artifacts/Results/cluster_research/RC02_303_low/submission.json"
+    "Artifacts/Results/cluster_research/RC02_303_controlr1/submission.json",
+    "Artifacts/Results/cluster_research/RC02_303_lowr1/submission.json"
   ]
 }
