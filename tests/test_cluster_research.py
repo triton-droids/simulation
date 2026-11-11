@@ -50,3 +50,20 @@ class CompactStatusTests(unittest.TestCase):
         from robocub.tools.cluster_research import compact_status
         self.assertEqual(compact_status('SLURM PENDING')['status'], 'unknown')
         self.assertIn('PENDING', compact_status('SLURM PENDING')['scheduler'])
+
+
+class RuntimeProfileTests(unittest.TestCase):
+    def test_profile_is_explicit_and_legacy_is_unchanged(self):
+        from robocub.tools.cluster_research import runtime_setup, RUNTIME_PROFILES
+        self.assertEqual(runtime_setup('legacy'), '')
+        self.assertEqual(RUNTIME_PROFILES['reproducible'], '--xla_gpu_autotune_level=0')
+        with self.assertRaises(KeyError): runtime_setup('unrecognized')
+
+    def test_invalid_profile_rejected_before_network(self):
+        import subprocess, sys
+        from pathlib import Path
+        script = Path(__file__).resolve().parents[1] / 'robocub/tools/cluster_research.py'
+        result = subprocess.run([sys.executable,str(script),'status','--run','unused',
+                                 '--runtime-profile','unrecognized'],capture_output=True,text=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('invalid choice', result.stderr)

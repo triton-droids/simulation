@@ -21,6 +21,19 @@ from robocub.user_cli.cluster_dashboard import parse_env, windows_path
 # uv-created environments need not contain pip. Query installed metadata directly.
 PACKAGE_VERSIONS_CODE = "import importlib.metadata as m; print('\\n'.join(sorted(d.metadata['Name']+'=='+d.version for d in m.distributions() if d.metadata['Name'])))"
 
+RUNTIME_PROFILES = {'legacy': None, 'reproducible': '--xla_gpu_autotune_level=0'}
+
+
+def runtime_setup(profile):
+    """Set a recorded job-local profile before any JAX import; reject conflicts."""
+    flags = RUNTIME_PROFILES[profile]
+    if flags is None:
+        return ''
+    quoted = shlex.quote(flags)
+    return (f'if [[ -n "${{XLA_FLAGS:-}}" && "${{XLA_FLAGS}}" != {quoted} ]]; then\n'
+            '  echo "Conflicting inherited XLA_FLAGS" >&2; exit 2\nfi\n'
+            f'export XLA_FLAGS={quoted}\n')
+
 
 def ssh(settings, command, payload=None, timeout=60):
     args = ['ssh', '-o', 'BatchMode=yes', '-o', 'IdentitiesOnly=yes',
@@ -68,6 +81,7 @@ def main():
     parser.add_argument('--compact', action='store_true')
     parser.add_argument('--cpus', type=int, default=8)
     parser.add_argument('--memory-gb', type=int, default=32)
+    parser.add_argument('--runtime-profile', choices=RUNTIME_PROFILES, default='legacy')
     args = parser.parse_args()
     if not 1 <= args.cpus <= 8 or not 8 <= args.memory_gb <= 32:
         parser.error('Resources must be 1-8 CPUs and 8-32 GB')
@@ -104,6 +118,7 @@ def main():
     meta = dict(run=args.run, remote_dir=remote, local_commit=revision,
                 archive_sha256=hashlib.sha256(archive).hexdigest(), output_dir=plan['output_dir'],
                 plan=args.plan, status='submission_preparing', job_id=None,
+                runtime_profile=args.runtime_profile, xla_flags=RUNTIME_PROFILES[args.runtime_profile],
                 resources={'gpus':1,'cpus':args.cpus,'memory':str(args.memory_gb)+'G','partition':'long','time':'08:00:00'})
     save(manifest,meta)
     q = shlex.quote
@@ -126,7 +141,8 @@ trap 'printf "%s\\n" "$?" > {q(remote+'/exit_code')}' EXIT
 export PYTHONUNBUFFERED=1 MUJOCO_GL=egl XLA_PYTHON_CLIENT_PREALLOCATE=false
 export PYTHONPATH="$PWD"
 export JAX_COMPILATION_CACHE_DIR="$(mktemp -d /tmp/g1-jax-cache.XXXXXXXXXX)"
-nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
+{runtime_setup(args.runtime_profile)}
+nvidia-smi --query-gpu=uuid,pci.bus_id,name,memory.total,driver_version --format=csv
 {q(shared+'/.venv-atlantis/bin/python')} -c "import jax; assert len(jax.devices('gpu')) == 1; print(jax.devices('gpu'))"
 {q(shared+'/.venv-atlantis/bin/python')} -c {q(PACKAGE_VERSIONS_CODE)} > {q(remote+'/runtime_versions.txt')}
 exec_queue() {{ {q(shared+'/.venv-atlantis/bin/python')} -u robocub/scripts/run_g1_queue.py --plan {q(args.plan)}; }}

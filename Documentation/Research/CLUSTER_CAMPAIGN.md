@@ -1032,3 +1032,47 @@ or automatic training. Measure runtime. Do not choose a numerical path because
 it passes;the decision rule is reproducibility,not favorable behavior.
 Command:cluster_research.py submit --run RD12 --plan
 Documentation/Research/queues/cluster_rd12.json --cpus 2 --memory-gb 12.
+
+
+## RD12 verified repair; RE02 saved-policy evaluation restart (Nov11)
+RD12/job7834 completed4m34=.07611GPUh. With ONLY job-local
+XLA_FLAGS=--xla_gpu_autotune_level=0, both fresh processes/private caches have
+IDENTICAL lowered AND compiled text hashes. All within/across-process stand and
+forward numeric trace fields are finite and bitwise exact (also allclose).
+Initial states, policy hash, effective configuration and GPU query match.
+Stand500/forward132 in every repeat: failed walking remains failed, not a
+favorable-path selection. Compiled SHA1bd834aca957cfd58b77bc666fc91a442ffe24fb07807d116819f4c0b57d1c8d.
+Artifacts: cluster_research/RD12/review/cross_process.json and raw summaries/NPZ.
+This verifies the repair for this graph/device/test; not universal determinism
+or a three-seed policy. Cross-device behavior and other graphs remain unproven.
+
+Launcher now exposes explicit --runtime-profile reproducible; legacy default
+preserves old recipes. Profile/flags recorded in submission receipt, installed
+before JAX preflight, inherited by evaluation subprocesses, conflicting inherited
+flags fail closed. No shared environment changes. GPU UUID/PCI now recorded in
+launcher output. Ten local tests pass; actual remote bash verifies unset/matching
+flags succeed and conflicting flag exits2. Existing diagnostics isolated and
+completed; no mutation of active source snapshots. No precision or gate change.
+
+Freeze RE02_101_control,RE02_101_low,RE02_202_control,RE02_202_low,
+RE02_303_control,RE02_303_low: ZERO training, all six saved RC02 final1146880
+checkpoints, own genuine RB05 untrained0 controls. Original nominal/random
+screens, conditional full suites, extra forward reset grid and videos unchanged.
+All gate objects and screening dependencies equality-checked against RC02 plans;
+all six queue schemas validated. Source-run policy hash recorded before eval.
+OneGPU2CPU12GB each,4h queue limit,2h maximum per evaluation stage; submit all ready
+jobs with paced SSH uploads, no waiting for another job to finish. No new seeds,
+checkpoints, reward/optimizer changes or repeats of training. This one bounded
+re-evaluation is justified by the verified runtime repair, not an RC02 extension.
+Review all six together against preserved legacy outcomes; do not mix arm winners
+or certify from partial screens. Runtime-profile-specific passes must retain all
+original numeric/control AND visual gates. Even complete development success
+requires a separately frozen complete recipe and unused fresh training seeds plus
+fresh held-out tests, every component independently trained in parallel.
+If profiles change outcomes, report all changes, including regressions. No attempt
+to choose per-policy flags or favorable evaluator. Use reproducible profile for
+this full batch consistently. Original failures remain in the record.
+Commands for each TAG=101_control,101_low,202_control,202_low,303_control,303_low:
+.venv/Scripts/python.exe robocub/tools/cluster_research.py submit --run RE02_TAG
+--plan Documentation/Research/queues/cluster_re02_TAG.json --cpus 2 --memory-gb 12
+--runtime-profile reproducible
