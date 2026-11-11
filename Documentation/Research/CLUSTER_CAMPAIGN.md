@@ -929,3 +929,34 @@ gates remain. Submit isolated committed source via cluster_research.py submit
 --run RD09 --plan Documentation/Research/queues/cluster_rd09.json --cpus2 --memory-gb12
 (spaced CLI options as usual). Only this bounded diagnostic is ready;no invented
 work to fill GPUs. Preserve all evidence and avoid shared configuration changes.
+
+## RD09 same-executable exact; RD10 isolates compilation from device
+RD09/job7801 completed2m24=.040GPUh. Both stand traces500 and forward132,
+all saved numeric fields bitwise identical and finite within each pair;initial
+qpos/qvel exactly identical. Assigned RTX2080Ti PCI3D UUIDa0f9bb2a-c3bd-24f7-fe8b-
+4bad488aa5b8,driver610.43.02. Policy SHA256c5fe29d6edb7513c3eaa1ade910b6254c2c89482672f1b453d3832c484fdb4c4.
+XLA_FLAGS unset;job-local JAX cache. This supports execution repeatability for
+this one executable/device,not general solver correctness or full root cause.
+No numeric failure is replaced by a passing diagnostic;training remains deferred.
+
+RD10 freezes ONE job with TWO sequential fresh Python processes/compilations on
+its SAME assigned GPU. Each invokes unchanged RD09 diagnostic with a unique
+job-local tempfile JAX cache created before importing JAX;all other settings
+unchanged. Each process compiles once and executes stand/forward twice,8traces
+total;same saved202controlfinal1146880,original6001reset,500steps,zero training.
+OneGPU2CPU12GB,25minstage each/60minqueue. Sequential stages are necessary to
+hold the allocated physical GPU fixed,not serialization of independent seeds.
+Compare within-process exactness first,initial states/policyhash/effectiveconfig
+and GPU UUID equality. Then compare a/b first traces fieldwise exact/allclose
+rtol1e-5,atol1e-6. If within pairs exact but across processes differ with matched
+provenance,variability exists across fresh-process/compilation paths on one GPU;
+autotuning still unproven. If all exact,cross-job device/other-context explanation
+remains unresolved,not ruled out;do not launch more blind repeats or training.
+If within pairs differ,retain evidence and investigate execution-level behavior.
+No precision/autotune flag change,shared cache mutation,Slurm bypass or new GPU
+selection. Temporary caches stay private;all failures/trace evidence retained.
+Plan-only change;validate queue and both wrapper argv before committed isolated
+launch. Existing comparison tests cover exact/allclose/NaN/schema logic. No new
+training,video reruns,gate changes or final-seed claims. No invented parallel work.
+Command:cluster_research.py submit --run RD10 --plan
+Documentation/Research/queues/cluster_rd10.json --cpus 2 --memory-gb 12.
