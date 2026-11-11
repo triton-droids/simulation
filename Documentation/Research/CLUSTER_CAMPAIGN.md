@@ -692,3 +692,48 @@ Validation:all3 training argv differ ONLY num_envs/output from RB02;batch intege
 compatibility/final-step divisibility and queue schemas checked. No runner logic
 changed. Hourly firstcheck;adjust cadence only using measured run progress/runtime,
 not startup throughput or Slurm walltime. No active model waiting for training.
+
+## RB05 partial gains, rejected recipe; RC02 paired precision test
+RB05 costs43m35/57m47/43m38=2.4167GPUhours;MaxRSS7.6-7.8GiB host.
+101 all16 screen episodes survive;nominal standyaw.2102-.2283 fails. Random
+stand6001linear.3526>.35.202 passes both screens;full nominal24/24 survives
+and numeric/control gates pass,full random24/24 survives but backward6001linear
+.4230>.35 fails. Extra12forward resets all500,maxlinear.2873/yaw.2425.
+303 nominal passes but random6/8,stand/forward6001 terminate62/63steps.
+Thus frozen ALL3 rule fails. No environment-count sweep or unchanged extension;
+no full development pass or promoting202 alone. Partial recovery gain in101/202
+is preserved as evidence. Nine representative videos sampled6frames each show
+ordinary upright moving gait;not continuous certification or evidence failed
+reset/standing rows pass. All numeric failures retained;101/303 full suites skipped.
+Final KL .05988/.06417/.06246,entropy_loss .01498/.01862/.01748,internal mean
+length473.25/500/500. Precision/recovery failures persist despite finite updates.
+
+RC02 freezes ONE paired late learning-rate test across ALL three parents:
+lr1e-4 versus matched unchanged3e-4,each1,146,880steps (4*40960*7 exactly),
+2048env,batch128,unroll20,original gamma.97/rewards/full resets. Six independent
+jobs,6,881,280new steps total. This is not automatic unchanged extension: control
+arms exist only to discriminate smaller updates from extra training/restarts.
+Same seed and own fixed RB05 final20070400 parent within each pair;no shared
+trained ancestor BETWEEN seed families. Parameter/normalizer warmstarts,NOT exact
+optimizer/critic/PRNG resumes;both arms have identical restart semantics.
+Hypothesis:smaller late updates improve precision while preserving acquired
+recovery. Final KL around.06 motivates checking,not proof learning-rate cause.
+Historical adaptive L01 from initialization failed;no adaptive target/floor sweep.
+RC01 tested action-rate reward at fixedlr1e-4,not this matched learning-rate pair;
+its failed recipe remains closed. No reward/mask/discount/phase/filter changes.
+Parent SHA256 frozen in each plan;exact initial actor/normalizer parity required.
+Untrained control remains each RB05 checkpoint0,NOT the warmstarted checkpoint0.
+Fixed final1146880 only,original screens/conditionalfull gates and videos.
+Six ready jobs submitted together,oneGPU2CPU12GB each (measured hostpeak<8GiB),
+1htrain/4hqueue each;Slurm account limits determine simultaneous execution.
+Commands:cluster_research.py submit --run RC02_SEED_ARM --plan
+Documentation/Research/queues/cluster_rc02_SEED_ARM.json --cpus 2 --memory-gb 12.
+Decision:compare BOTH arms for every seed,no mixing winners across seeds. LowLR
+must retain parent survival8/8,8/8,6/8 and acquire both6001survivors for303,pass
+nominal screening all3,and improve101 standingyaw versus matchedcontrol without
+new gait regression to support hypothesis. Otherwise close,no LR sweep/extension.
+Either complete recipe still needs ALL original full numeric/control/visual
+DEVELOPMENT gates before new unused finalseeds/freshheldout;all3 trainedindependently.
+No partial screen/single-seed or sampled-video success claims. All failures retained.
+Plan-only changes:pair argv equivalence exceptLR/output,exact budget,unchanged
+evaluation thresholds/referencecontrol paths checked;validate all6 before launch.
