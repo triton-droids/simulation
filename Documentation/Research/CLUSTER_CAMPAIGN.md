@@ -755,3 +755,68 @@ next. GPU jobs remain independent/concurrent as scheduler permits.202low remains
 untouched and no winner selected before all six complete. No code/dependency or
 scientific recipe changes;source snapshots differ only documentation/status.
 If connection fails again preserve and reconcile next wake,not blind retries.
+
+## RC02 rejected; RD07 matched recovery-response diagnostic
+All six finished successfully. Costs control101/low101/control202/low202/
+control303/low303=33m03/32m59/33m00/44m16/33m12/30m45,3.4542 GPU-hours.
+All nominal episodes survive. Control nominal stand worst yaw .18741/.16080/
+.15196 fails all three; low .20972/.12938/.15472 passes only202.
+Random survivors control8/7/8,low7/8/6.101low stand6001 falls98steps;
+202control forward6001 falls132;303low stand/forward falls66/67.303control
+now survives both but random standyaw.37146 fails.101low does not improve
+standyaw versus control and loses recovery. Frozen hypothesis rejected;no
+LR sweep/unchanged extension or mixing per-seed winners.
+202low passes original full nominal/random numeric-control gates,24/24 each,
+worst linear/yaw .12540/.22614 and .20572/.29745;extra12forward resets all500,
+worstlinear.19716/yaw.22100. This is useful single-seed development evidence,
+NOT a full three-seed or held-out success. All other full suites skipped.
+All actor/normalizer parity stages pass. Final low KL .01827/.01833/.01859
+versuscontrol .06044/.06349/.06149:small updates do not uniformly preserve
+recovery. CSV,metrics,manifests,statuses and videos saved in each run/review.
+Six random-forward clips sampled six frames each,plus202low full combined
+nominal/random and extra-forward samples:ordinary upright stepping visible.
+These are samples,not continuous certification;existing screen plans rendered
+forward only,not standing videos. Numeric failures preclude promotion anyway.
+
+Cheap saved-parameter check:normalizer mean max shift .0154-.0354 parent std,
+RMS .0051-.0076;std ratios .9776-1.0146. No evidence of gross normalization
+reset;small effects not excluded,does not justify normalization intervention.
+Runtime Brax restore_value_fn default is TRUE,training forwards no override:
+correct earlier prompt wording 'fresh critic'. Saved value parameters are restored;
+optimizer/step/PRNG are not. Actor/normalizer parity alone did not verify critic.
+No scientific result is relabeled an exact resume. Evidence:
+Artifacts/Results/cluster_research/rc02_normalizer_drift.txt.
+
+RD07 freezes twelve ZERO-training original-reset6001 traces,stand and forward.45
+for BOTH RC02 final1146880 arms across ALL101/202/303. Six independent jobs,
+oneGPU2CPU12GB each,two500step caps,90minqueue each;unchanged deterministic
+physics/rewards/phase/normalization/reset,candidates1/scale1. No new screening
+or baseline training. Unlike RD04's all-failing RB02 traces,this contrasts
+successful/failed matched RC02 policies;do not repeat the already resolved
+question whether initial horizontal velocity matters.
+Hypothesis:failed recoveries show delayed horizontal-error braking relative to
+matched successes BEFORE height loss. Verify equal initial qpos/qvel/phase;
+record terminal causes,first50 and preterminal20 contact,height,foot separation,
+actions/saturation. Trace velocity is pelvis-local;rotate velocity minus held
+command into world coordinates using qpos quaternion before comparison. Project
+onto initial world horizontal velocity error,divide by its norm;initial projected
+normalized error is1. Freeze early metric as mean at steps11-20. Require initial
+error norm>.1,all compared trajectories still alive and height>.6 through20.
+Four prespecified screen-divergent pairs:101stand,202forward,303stand/forward.
+Braking-lag explanation supported ONLY if all four scalar pairs reproduce the
+success/failure split,successful members survive500 withheight>.6,and every
+success early ratio<=.75 while its failed mate>=.90. Otherwise reject blanket
+lag explanation,retain per-case evidence;scalar/vector disagreement must be
+reconciled before training. Correlation is not proof of causation. Remaining
+four trajectories are fixed context,not discarded. No extra reset/command sweep.
+No automatic smoothing/filter/reward/phase intervention or training. Review
+results before separately freezing a mechanistic redesign;closed branches stay
+closed. Short traces are not settled windows. Diagnostic thresholds never replace
+original validation gates. No seed/checkpoint selection or promoting202 alone.
+Commands:cluster_research.py submit --run RD07_SEED_ARM --plan
+Documentation/Research/queues/cluster_rd07_SEED_ARM.json --cpus 2 --memory-gb 12.
+Pace SSH uploads/setup but submit every ready job without waiting for others'
+training;Slurm controls useful concurrency. Validate all6 plans and frozen argv,
+commit before launch. No runner changes;original full gates remain untouched.
+Only full development success permits separately frozen unused finalseeds and
+held-out grid,all3 training every component independently in parallel.

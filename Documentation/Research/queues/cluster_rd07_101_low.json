@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "output_dir": "Artifacts/Results/cluster_rd07_101_low/queue",
+  "max_wall_seconds": 5400,
+  "jobs": [
+    {
+      "id": "source",
+      "review_artifact": "Artifacts/Results/cluster_rd07_101_low/source.json",
+      "stages": [
+        {
+          "id": "fetch_pinned",
+          "argv": [
+            "-c",
+            "from robocub.locomotion.unitree_g1.playground_source import resolve_playground_source;from pathlib import Path;import json;s=resolve_playground_source(fetch=True);p=Path('Artifacts/Results/cluster_rd07_101_low/source.json');p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps({'source':str(s)}))"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd07_101_low/source.json"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd07_101_low/source.json"
+          ],
+          "timeout_seconds": 300
+        }
+      ],
+      "hypothesis": "Prepare pinned source for matched recovery-response diagnostic",
+      "evidence": "RC02 matched controls and low learning rates have divergent recovery outcomes."
+    },
+    {
+      "id": "stand",
+      "hypothesis": "Compare early horizontal tracking-error braking in matched successful and failed original-reset trajectories; zero training.",
+      "evidence": "RC02 has four divergent seed-command pairs at6001; prior RD05 removal of initial horizontal velocity prevented all six RB02 collapses.",
+      "review_artifact": "Artifacts/Results/cluster_rd07_101_low/stand/summary.json",
+      "stages": [
+        {
+          "id": "trace",
+          "argv": [
+            "robocub/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "{root}/../../RC02_101_lowr1/source/Artifacts/Results/cluster_rc02_101_low/train",
+            "--checkpoint",
+            "1146880",
+            "--output-dir",
+            "Artifacts/Results/cluster_rd07_101_low/stand",
+            "--steps",
+            "500",
+            "--policy-label",
+            "rc02_101_low",
+            "--command",
+            "0",
+            "0",
+            "0",
+            "--seed",
+            "6001",
+            "--evaluation-reset",
+            "--local-only",
+            "--randomized-reset",
+            "--reset-ablation",
+            "full"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd07_101_low/stand"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd07_101_low/stand/summary.json",
+            "Artifacts/Results/cluster_rd07_101_low/stand/rc02_101_low_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    },
+    {
+      "id": "forward",
+      "hypothesis": "Compare early horizontal tracking-error braking in matched successful and failed original-reset trajectories; zero training.",
+      "evidence": "RC02 has four divergent seed-command pairs at6001; prior RD05 removal of initial horizontal velocity prevented all six RB02 collapses.",
+      "review_artifact": "Artifacts/Results/cluster_rd07_101_low/forward/summary.json",
+      "stages": [
+        {
+          "id": "trace",
+          "argv": [
+            "robocub/scripts/compare_g1_gait_rewards.py",
+            "--run-dir",
+            "{root}/../../RC02_101_lowr1/source/Artifacts/Results/cluster_rc02_101_low/train",
+            "--checkpoint",
+            "1146880",
+            "--output-dir",
+            "Artifacts/Results/cluster_rd07_101_low/forward",
+            "--steps",
+            "500",
+            "--policy-label",
+            "rc02_101_low",
+            "--command",
+            "0.45",
+            "0",
+            "0",
+            "--seed",
+            "6001",
+            "--evaluation-reset",
+            "--local-only",
+            "--randomized-reset",
+            "--reset-ablation",
+            "full"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd07_101_low/forward"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd07_101_low/forward/summary.json",
+            "Artifacts/Results/cluster_rd07_101_low/forward/rc02_101_low_trace.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    }
+  ]
+}
