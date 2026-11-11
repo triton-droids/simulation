@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "output_dir": "Artifacts/Results/cluster_rp02_capacity/queue",
+  "max_wall_seconds": 2700,
+  "jobs": [
+    {
+      "id": "train",
+      "hypothesis": "Bounded one-GPU capacity check for2048 independent environments at fixed40960 transition optimizer batch.",
+      "evidence": "Recovery remains unstable across seeds; distinguish more independent concurrent histories from closed batch-size/unroll tests before spending full budgets.",
+      "stages": [
+        {
+          "id": "recovery_train",
+          "argv": [
+            "robocub/scripts/train.py",
+            "--logger",
+            "local",
+            "--seed",
+            "11",
+            "env=unitree_g1_playground",
+            "robot=unitree_g1",
+            "sim=unitree_g1_playground",
+            "agent=ppo_g1_corrective",
+            "robot.fetch_model=false",
+            "sim.playground.fetch_source=true",
+            "sim.reset.randomize=true",
+            "sim.noise.add_noise=false",
+            "sim.push.add_push=false",
+            "sim.domain_rand.add_domain_rand=false",
+            "sim.commands.lin_vel_x=[-1.0,1.0]",
+            "sim.commands.lin_vel_y=[-0.5,0.5]",
+            "sim.commands.ang_vel_yaw=[-1.0,1.0]",
+            "agent.num_timesteps=81920",
+            "agent.num_evals=2",
+            "agent.num_eval_envs=16",
+            "agent.episode_length=500",
+            "hydra.run.dir={root}/Artifacts/Results/cluster_rp02_capacity/train",
+            "hydra.job.chdir=true",
+            "agent.learning_rate=0.0003",
+            "agent.discounting=0.97",
+            "agent.batch_size=128",
+            "agent.num_envs=2048"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rp02_capacity/train"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rp02_capacity/train/run_manifest.json",
+            "Artifacts/Results/cluster_rp02_capacity/train/logs/checkpoints/0/policy",
+            "Artifacts/Results/cluster_rp02_capacity/train/logs/checkpoints/81920/policy"
+          ],
+          "timeout_seconds": 1800,
+          "monitor": {
+            "path": "Artifacts/Results/cluster_rp02_capacity/train/logs/metrics.jsonl",
+            "ignore_kl_through_step": 81920,
+            "consecutive_kl_limit": 2,
+            "kl_limit": 0.2,
+            "final_step": 81920
+          }
+        }
+      ],
+      "review_artifact": "Artifacts/Results/cluster_rp02_capacity/train/run_manifest.json"
+    }
+  ]
+}

@@ -613,3 +613,46 @@ training for evaluation recovery. Fresh RB04_202r1 uses SAME frozen202 plan,
 seed,budget,gates. Completed101/job7733 and303/job7730 remain untouched;review
 all3 together after replacement. No winner or full-pass claim. Original failed
 receipt/output preserved. No repeated blind allocation/package retries.
+
+## RB04 rejected; RP02 independent-environment capacity prerequisite
+Completed101/202r1/303 costs51m04/49m15/50m36=2.5153 GPU-hours,plus preserved
+13second failed202 import. All trained full suites skipped. Nominal survivors8/8
+all3 but only101 passes gates;202 forward error~.447 fails motion;303 yaw fails.
+Nominal worst linear/yaw101=.1599/.2915,202=.4473/.0350,303=.0999/.2221.
+Random survivors6/8,4/8,6/8. Ordered stand6000/6001/6002/6014 then forward same:
+101 steps500,60,500,500,500,98,500,500;
+202=56,40,500,500,58,41,500,500;
+303=500,53,500,500,500,63,500,500.
+Random worst linear/yaw1.7360/.7680,1.6001/.3330,1.9239/1.7089.
+Reject temporal-fragment hypothesis:nominal regressions and6001 failures. No
+longer unroll sweep/extension. Six sampled frames per nominal/random forward
+clip inspected for all3:101/303 visible ordinary upright gait,202 nominal planted
+and randomized fall. Samples not full visual certification. All CSV/videos saved.
+
+Next separately bounded hypothesis is independent-environment diversity per
+optimizer batch,not increasing batch transitions or repeating longer fragments.
+RB02 uses512 environments*4 sequential20step unrolls;2048 environments*1 unroll
+would retain40960 transitions,batch128*16,20step length,4updates,gamma.97 and
+same total steps. More independent histories may help unstable recovery;not proven,
+and age/correlation of collected trajectories changes. No reset-ID selection,
+rare-seed oversampling,altered gates or larger nominal training-step budget.
+Before a full campaign,RP02_capacity runs ONE2048env81920step seed11 capability
+probe on oneGPU3CPU16GB,30min train/45minqueue. Original RB02 reward/config,
+2 internal evaluations,checkpoint0 and81920 required;no external pass claims.
+It exercises actual training/compilation/checkpoint saving at proposed shape.
+No shared dependencies/settings changed. Existing post-first KL guard retained;
+this two-update capability probe cannot judge convergence or policy quality.
+Commands:cluster_research.py submit --run RP02_capacity --plan
+Documentation/Research/queues/cluster_rp02_capacity.json --cpus 3 --memory-gb 16.
+On completion inspect runtime,finite metrics,final checkpoint/manifest and memory
+accounting where available. Successful completion proves only that this bounded
+workload fits allocation;do not claim measured GPU headroom without telemetry.
+If OOM/timeout,close2048-on-current-allocation path,no environment-count sweep or
+blind retries. If successful,freeze one matched20,070,400step-per-seed2048env
+study for existing development101/202/303 versus saved RB02 BEFORE launch;all3
+ready jobs together. No warmstart from capacity probe. Retain original full
+gates and full development prerequisite for unused final seeds/held-out tests.
+Only one capacity task is ready now;do not duplicate it just to occupy GPUs.
+Prior discount/fragment/sampling/push/curriculum/reward/phase branches closed.
+Plan-only change,integer batch/env/timestep compatibility and queue validation
+checked. No runner logic changed;lazy optional-video import repair preserved.
