@@ -5,7 +5,7 @@
   "scope": "Authorized Atlantis research until three fresh independent seeds pass original full gates",
   "candidate": "Artifacts/Results/post_f1_t02/rate_cost/train/logs/checkpoints/1003520/policy",
   "verification_queue": "Artifacts/Results/milestone1/queue/status.json",
-  "next_action": "Compare two fresh compilations on the same GPU in RD10; no training before reconciliation",
+  "next_action": "Inspect two compilation IR artifacts without rollout/training; reconcile before numerical setting changes",
   "completion_report": "Documentation/Research/MILESTONE_1_REPORT.md",
   "milestone_2": "active on Atlantis",
   "milestone_3": "deferred",
@@ -13,6 +13,6 @@
   "training_allowed": true,
   "milestone_1": "complete; existing T02 preserved",
   "active_cluster_receipts": [
-    "Artifacts/Results/cluster_research/RD10/submission.json"
+    "Artifacts/Results/cluster_research/RD11/submission.json"
   ]
 }

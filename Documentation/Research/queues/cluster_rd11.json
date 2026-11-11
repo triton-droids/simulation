@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "output_dir": "Artifacts/Results/cluster_rd11/queue",
+  "max_wall_seconds": 3600,
+  "jobs": [
+    {
+      "id": "source",
+      "review_artifact": "Artifacts/Results/cluster_rd11/source.json",
+      "stages": [
+        {
+          "id": "fetch_pinned",
+          "argv": [
+            "-c",
+            "from robocub.locomotion.unitree_g1.playground_source import resolve_playground_source;from pathlib import Path;import json;s=resolve_playground_source(fetch=True);p=Path('Artifacts/Results/cluster_rd11/source.json');p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps({'source':str(s)}))"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd11/source.json"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd11/source.json"
+          ],
+          "timeout_seconds": 300
+        }
+      ],
+      "hypothesis": "Prepare pinned source for matched recovery-response diagnostic",
+      "evidence": "RC02 matched controls and low learning rates have divergent recovery outcomes."
+    },
+    {
+      "id": "compile_a",
+      "hypothesis": "Inspect lowered and optimized compiler text across two fresh processes on one assigned GPU; no rollout execution.",
+      "evidence": "RD10 within-process exact but across processes141vs132 forward,matching policy/config/initialstate/GPUUUID.",
+      "review_artifact": "Artifacts/Results/cluster_rd11/compile_a/summary.json",
+      "stages": [
+        {
+          "id": "fresh_process",
+          "argv": [
+            "-c",
+            "import os,tempfile,sys,runpy;os.environ['JAX_COMPILATION_CACHE_DIR']=tempfile.mkdtemp(prefix='g1-rd11-');sys.argv=['robocub/scripts/diagnose_g1_repeatability.py', '--run-dir', '{root}/../../RC02_202_controlr1/source/Artifacts/Results/cluster_rc02_202_control/train', '--output-dir', 'Artifacts/Results/cluster_rd11/compile_a'];sys.argv+=['--capture-compiler-ir','--compile-only'];runpy.run_path(sys.argv[0],run_name='__main__')"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd11/compile_a"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd11/compile_a/summary.json",
+            "Artifacts/Results/cluster_rd11/compile_a/lowered.txt",
+            "Artifacts/Results/cluster_rd11/compile_a/compiled.txt"
+          ],
+          "timeout_seconds": 1500
+        }
+      ]
+    },
+    {
+      "id": "compile_b",
+      "hypothesis": "Inspect lowered and optimized compiler text across two fresh processes on one assigned GPU; no rollout execution.",
+      "evidence": "RD10 within-process exact but across processes141vs132 forward,matching policy/config/initialstate/GPUUUID.",
+      "review_artifact": "Artifacts/Results/cluster_rd11/compile_b/summary.json",
+      "stages": [
+        {
+          "id": "fresh_process",
+          "argv": [
+            "-c",
+            "import os,tempfile,sys,runpy;os.environ['JAX_COMPILATION_CACHE_DIR']=tempfile.mkdtemp(prefix='g1-rd11-');sys.argv=['robocub/scripts/diagnose_g1_repeatability.py', '--run-dir', '{root}/../../RC02_202_controlr1/source/Artifacts/Results/cluster_rc02_202_control/train', '--output-dir', 'Artifacts/Results/cluster_rd11/compile_b'];sys.argv+=['--capture-compiler-ir','--compile-only'];runpy.run_path(sys.argv[0],run_name='__main__')"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd11/compile_b"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd11/compile_b/summary.json",
+            "Artifacts/Results/cluster_rd11/compile_b/lowered.txt",
+            "Artifacts/Results/cluster_rd11/compile_b/compiled.txt"
+          ],
+          "timeout_seconds": 1500
+        }
+      ]
+    }
+  ]
+}

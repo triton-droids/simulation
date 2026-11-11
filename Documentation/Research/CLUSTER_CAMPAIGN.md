@@ -960,3 +960,41 @@ launch. Existing comparison tests cover exact/allclose/NaN/schema logic. No new
 training,video reruns,gate changes or final-seed claims. No invented parallel work.
 Command:cluster_research.py submit --run RD10 --plan
 Documentation/Research/queues/cluster_rd10.json --cpus 2 --memory-gb 12.
+
+## RD10 isolates fresh-process variability; RD11 compiler-artifact capture
+RD10/job7816 completed4m37=.07694GPUh. In each fresh process all fields repeat
+bitwise exactly;across a/b neither command is allclose. a stand500/forward141,
+b stand500/forward132. Initial states,policyhash,effective config and physical
+GPU UUID all match (same PCI3D as RD09). Cross-process deviations reproduce
+RD08 patterns. This excludes different physical GPU identity as necessary for
+this observed discrepancy. It does not prove autotuning is the cause.
+Measurements:cluster_research/rd10_analysis.json and all raw traces preserved.
+No training or acceptance-gate changes;no favorable evaluator selection.
+
+Official references consulted Nov11:
+https://openxla.org/xla/determinism describes compilation variability from GPU
+autotuning and determinism options;these remain hypotheses/options,not applied.
+https://docs.jax.dev/en/latest/jax.stages.html documents Lowered.as_text and
+Compiled.as_text as debugging representations,NOT portable serialization or
+proof of semantic identity. No precision/autotune flags are changed.
+
+RD11 freezes ONE job with two fresh processes/private caches on same assigned GPU,
+now COMPILATION ONLY. Same savedpolicy/reset/input shapes and official lowered
+rollout graph. Export lowered.txt and compiled.txt plus hashes,effectiveconfig,
+policyhash,GPU UUID/driver;execute ZERO episodes. No robot trajectory repeats.
+OneGPU2CPU12GB,25minstage/60minqueue. New diagnostic flags capture compiler text
+and suppress the execution loop;default RD09 behavior remains unchanged. Missing
+compiler text fails rather than silently pretending coverage. 2 existing trace
+comparison tests pass;script syntax and wrapper/queue schemas verified. Actual
+GPU compiler-text capture remains to be verified by this bounded job.
+Compare raw/debug-normalized text;separate path/module/source-location changes
+from operation/layout/fusion/backend_config/kernel-choice differences. Equal
+lowered IR with differing optimized IR supports compiler-path divergence;locate
+specific differences before proposing numerical controls. Different lowered IR
+requires source/Python graph-order investigation. If text identical,do not infer
+binary equality or rerun blindly;investigate available metadata/artifacts. Text
+hash differences alone are not proof of autotuning. No automatic training or
+flag change;closed scientific branches/gates remain unchanged. Preserve captures
+and report uncertainty. RD08-10 completed:do not rerun their trajectories.
+Command:cluster_research.py submit --run RD11 --plan
+Documentation/Research/queues/cluster_rd11.json --cpus 2 --memory-gb 12.

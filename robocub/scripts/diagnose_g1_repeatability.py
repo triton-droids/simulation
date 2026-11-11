@@ -15,7 +15,11 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--run-dir',type=Path,required=True)
     p.add_argument('--output-dir',type=Path,required=True)
+    p.add_argument('--capture-compiler-ir',action='store_true')
+    p.add_argument('--compile-only',action='store_true')
     args=p.parse_args()
+    if args.compile_only and not args.capture_compiler_ir:
+        p.error('--compile-only requires --capture-compiler-ir')
     from robocub.scripts import evaluate_g1 as ev
     import jax
     import jax.numpy as jp
@@ -42,9 +46,17 @@ def main():
     params=ev.model.load_params(path)
     f=ev._build_rollout(env,net,500)
     seed=jp.asarray(6001,dtype=jp.int32);use=jp.asarray(True)
-    compiled=f.lower(params,use,seed,jp.asarray([0.,0.,0.])).compile()
+    lowered=f.lower(params,use,seed,jp.asarray([0.,0.,0.]))
+    compiled=lowered.compile()
+    compiler_ir={}
+    if args.capture_compiler_ir:
+        for name,text in [('lowered',lowered.as_text()),('compiled',compiled.as_text())]:
+            if not isinstance(text,str) or not text:
+                raise RuntimeError('Compiler text unavailable: '+name)
+            (args.output_dir/(name+'.txt')).write_text(text)
+            compiler_ir[name]={'sha256':hashlib.sha256(text.encode()).hexdigest(),'bytes':len(text.encode())}
     traces={};initial={};steps={}
-    for repeat in range(2):
+    for repeat in range(0 if args.compile_only else 2):
         for name,cmd in [('stand',[0.,0.,0.]),('forward',[.45,0.,0.])]:
             data,trace=compiled(params,use,seed,jp.asarray(cmd))
             jax.block_until_ready(trace['reward'])
@@ -55,8 +67,9 @@ def main():
             steps[tag]=int(host['valid'].sum());traces[tag]=host
     gpu=subprocess.run(['nvidia-smi','--query-gpu=uuid,pci.bus_id,name,driver_version','--format=csv'],capture_output=True,text=True)
     summary={'kind':'same_compiled_executable_diagnostic','full_validation':False,
+        'compile_only':args.compile_only,'compiler_ir':compiler_ir,
         'checkpoint_sha256':hashlib.sha256(path.read_bytes()).hexdigest(),
-        'comparisons':{name:compare_traces(traces[name+'_0'],traces[name+'_1']) for name in ['stand','forward']},
+        'comparisons':{name:compare_traces(traces[name+'_0'],traces[name+'_1']) for name in ([] if args.compile_only else ['stand','forward'])},
         'steps':steps,'initial_states':initial,'jax_devices':[str(x) for x in jax.devices()],
         'gpu_query':gpu.stdout,'gpu_query_returncode':gpu.returncode,
         'environment':{k:os.environ.get(k) for k in ['CUDA_VISIBLE_DEVICES','XLA_FLAGS','JAX_COMPILATION_CACHE_DIR']},
