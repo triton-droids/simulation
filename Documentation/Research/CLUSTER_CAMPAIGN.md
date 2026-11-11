@@ -820,3 +820,58 @@ training;Slurm controls useful concurrency. Validate all6 plans and frozen argv,
 commit before launch. No runner changes;original full gates remain untouched.
 Only full development success permits separately frozen unused finalseeds and
 held-out grid,all3 training every component independently in parallel.
+
+## RD07 rejects early-braking rule; evaluation-path discrepancy requires RD08
+All12 traces completed; six jobs3m24/3m14/3m14/3m24/3m24/3m04 =.3289GPUh.
+Initial qpos/qvel/phase_dt exactly equal across all12 saved initial states.
+Scalar steps stand/forward:101control500/500,101low93/500,202control163/500,
+202low500/500,303control500/500,303low64/64. All failures terminal foot-foot.
+101low/303low lose height below.6 before terminal collision;202control stand
+collides while height remains>.66,so not one shared collapse mechanism.
+First50 raw action saturation0 all12; successful and failed traces overlap in
+foot separation/support/action-rate. Preterminal failed foot separation minima
+.0735/.0813/.0472/.0552m; no inference-only clipping/filter/reward conclusion.
+Early normalized world horizontal error ratios stand/forward:
+101control1.197/-.579,101low1.239/-.629;202control1.307/-.190,
+202low1.118/-.262;303control1.318/-.500,303low1.462/-.373.
+All first20 heights>.68. Successful standing does not meet<=.75 rule;failed303
+forward already brakes/overshoots. Reject blanket early-braking-lag hypothesis.
+No automatic smoothing or new training. Full per-window measurements/terminal
+causes:Artifacts/Results/cluster_research/rd07_analysis.json;raw traces retained.
+
+Material discrepancy:screen202control stand/forward500/132 versusRD07 163/500.
+Other failures differ modestly in timing(10198vs93;30366/67vs64/64),but202 flips
+both survival labels. Do NOT substitute the passing diagnostic for official
+failures or select evaluation paths. Source inspection corrects terminology:
+evaluate_g1 main uses scalar fused lax.scan,not its optional vmap helper;
+compare_g1_gait_rewards uses separately jitted policy/physics in a Python loop.
+Both split reset keys and hold commands;resample_time differs10vs10.02 but held
+commands and500step cap should prevent resampling impact. Both use original
+reset scale1/candidates1/no noise/push;source assets and actual numerical path
+still need runtime reconciliation. Contact sensitivity/numerical fusion is a
+hypothesis,not a confirmed defect. No pipeline rewrite or gate change yet.
+
+RD08 freezes TWO independent identical official evaluator repetitions a/b,
+RC02_202_controlr1 fixedfinal1146880,original random6001,stand/forward.45,
+500steps,existing genuine RB05_202 checkpoint0 and standing controls. ZERO
+training. Use unmodified evaluate_g1 --save-numeric-traces,which exports existing
+host arrays without changing compiled rollout;no video/reward/physics changes.
+Two oneGPU2CPU12GB jobs,40minstage/60minqueue caps,6episodes perjob. This repeat
+is specifically a reproducibility test,not evaluation recovery or winner search.
+No extra seeds/checkpoints. Reuse saved RC02 screen and RD07 traces;do not rerun
+training or already reviewed videos. Compare both official repeats row-by-row
+and numeric arrays (finite/allclose rtol1e-5,atol1e-6;also report exact equality),
+including valid/done and height/local tracking-error/contact. Both must retain
+original official stand500/forward132 to establish cross-run reproducibility.
+If repeats agree with original but differ from RD07,localize first divergence
+against saved stepwise arrays and review graph/config differences before proposing
+a fix;do not claim root cause merely from endpoint disagreement. If they differ
+from each other/original,investigate runtime/device/source provenance and stop
+training,not additional blind repeats. A threshold-crossing difference is material
+regardless of small initial floating-point differences. Neither repeat can count
+as new validation. Original frozen gates remain;all historical failures preserved.
+Commands:cluster_research.py submit --run RD08_a/b --plan
+Documentation/Research/queues/cluster_rd08_a/b.json --cpus 2 --memory-gb 12.
+Plan-only change;pair argv equality except output verified,queue validation and
+diff checks required before commit/isolated launch. All ready jobs submitted with
+paced transfers,without waiting for another job. Campaign awaits reconciliation.
