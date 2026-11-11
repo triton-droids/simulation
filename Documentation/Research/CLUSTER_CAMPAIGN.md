@@ -998,3 +998,37 @@ flag change;closed scientific branches/gates remain unchanged. Preserve captures
 and report uncertainty. RD08-10 completed:do not rerun their trajectories.
 Command:cluster_research.py submit --run RD11 --plan
 Documentation/Research/queues/cluster_rd11.json --cpus 2 --memory-gb 12.
+
+## RD11 substantive compiler difference; user-authorized RD12 repair verification
+RD11/job7830 completed3m54=.065GPUh;runtime IR capture succeeded. Lowered IR
+identical SHA4b248a454830906f431d408c99dca15eb65b1a33435e2177aa2431a1e10a2bda.
+Optimized IR differs in exactly4lines:one fingerprint metadata and THREE
+cuBLAS-Lt matmul selected_algorithm fields (1 versus0),in forward/fwd_position
+physics calculations. Line counts78177 match. Policy/config/GPUUUID identical;
+assigned PCIDA. Local review/summaries.json and compiler_diff.json preserve facts.
+This is substantive compiler-choice divergence,not mere file metadata. RD11
+had no rollouts,so causal attribution of prior trajectory differences needs test.
+
+User now explicitly says FIX/VERIFY/get moving;authorizes this bounded job-local
+numerical-runtime repair test, superseding prior RD11 prohibition on flag changes
+for its observation-only scope. RD12 changes ONLY XLA_FLAGS to documented
+--xla_gpu_autotune_level=0 before JAX import;no precision setting,physics,
+termination,reward,policy,reset or gate changes. Ref:https://openxla.org/xla/determinism
+(disabling live benchmarks chooses default configurations;may reduce performance).
+Two fresh processes/private caches within oneGPU allocation;existing RD09 script
+captures IR AND runs stand/forward twice each,8trajectories total. Same202control
+final1146880,original6001,500stepcap. OneGPU2CPU12GB,25minstage/60minqueue.
+No new training. Both wrapper environments/argv executed with runpy/tempfile
+mocked to verify flag set before imports,capture enabled,compile-only absent.
+Queue syntax/validation checked before commit. Unexpected preexisting XLA_FLAGS
+fails closed rather than overwritten. Historical outputs untouched.
+Success requires within AND across process numeric traces exact (also report
+frozen allclose),finite,initialstates/policy/config/GPUUUID match;inspect optimized
+algorithm selections for stability apart from harmless metadata. Survival itself
+is NOT repair success/validation;failed policies remain failed. If stable,adopt
+an explicit recorded runtime profile for future jobs and recheck original gates
+without repeating completed training. If unstable,retain evidence,no flag sweep
+or automatic training. Measure runtime. Do not choose a numerical path because
+it passes;the decision rule is reproducibility,not favorable behavior.
+Command:cluster_research.py submit --run RD12 --plan
+Documentation/Research/queues/cluster_rd12.json --cpus 2 --memory-gb 12.
