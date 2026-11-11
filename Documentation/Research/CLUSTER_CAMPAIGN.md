@@ -875,3 +875,13 @@ Documentation/Research/queues/cluster_rd08_a/b.json --cpus 2 --memory-gb 12.
 Plan-only change;pair argv equality except output verified,queue validation and
 diff checks required before commit/isolated launch. All ready jobs submitted with
 paced transfers,without waiting for another job. Campaign awaits reconciliation.
+
+### RD08 transport recovery
+Nov11 09:17UTC wake:SSH available. RD08_a compact status has no queue/job;
+squeue empty and queried sacct no rows. Isolated RD08_a/source exists but no
+run.sh,exit_code,launcher.log;prior setup SSH banner abort occurred before sbatch.
+RD08_ar1 and RD08_b remote directories absent;RD08_b has no local receipt.
+Preserve original partial directory/receipt/submission_failure.json. Fresh
+RD08_ar1 uses unchanged cluster_rd08_a.json;RD08_b uses unchanged b plan.
+No code/recipe/evaluation changes or training. Pace submissions,never wait for
+another GPU job to finish;if transport fails again preserve and reconcile later.

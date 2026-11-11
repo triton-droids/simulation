@@ -5,7 +5,7 @@
   "scope": "Authorized Atlantis research until three fresh independent seeds pass original full gates",
   "candidate": "Artifacts/Results/post_f1_t02/rate_cost/train/logs/checkpoints/1003520/policy",
   "verification_queue": "Artifacts/Results/milestone1/queue/status.json",
-  "next_action": "Reconcile official scan repeats RD08_a/b against RD07 per-step traces before any training",
+  "next_action": "Submit fresh-path RD08_ar1 and untouched RD08_b, then compare both official evaluation repeats",
   "completion_report": "Documentation/Research/MILESTONE_1_REPORT.md",
   "milestone_2": "active on Atlantis",
   "milestone_3": "deferred",
@@ -13,7 +13,7 @@
   "training_allowed": true,
   "milestone_1": "complete; existing T02 preserved",
   "active_cluster_receipts": [
-    "Artifacts/Results/cluster_research/RD08_a/submission.json",
+    "Artifacts/Results/cluster_research/RD08_ar1/submission.json",
     "Artifacts/Results/cluster_research/RD08_b/submission.json"
   ]
 }
