@@ -656,3 +656,39 @@ Only one capacity task is ready now;do not duplicate it just to occupy GPUs.
 Prior discount/fragment/sampling/push/curriculum/reward/phase branches closed.
 Plan-only change,integer batch/env/timestep compatibility and queue validation
 checked. No runner logic changed;lazy optional-video import repair preserved.
+
+## RP02 capacity passed; RB05 fixed-batch environment-diversity freeze
+RP02/job7738 completed9m24 (0.1567GPUhours),training manifest540.07seconds,
+checkpoint0 and81920 exist,two metric records all scalar values finite.
+Slurm MaxRSS6180332K (~5.9GiB host);GPU peak/headroom NOT measured.
+Training/sps606.13 includes startup compilation in this tiny run,not a reliable
+steady-state full-run estimate. Final early KL8.8666 and meanlength55.5 are NOT
+learning success;this was only fit/checkpoint capability. Existing full-run
+post-first two-consecutive KL>=.2 stop rule remains unchanged,not disabled.
+No capacity checkpoint reused; full recipe is independent initialization.
+
+RB05 freezes2048env instead of512, otherwise EXACT saved RB02:batch128,
+unroll20,16minibatches,4updates,gamma.97,lambda.95,lr3e-4,original rewards,
+full random starts,episode500,20,070,400steps and8evals each. Development seeds
+101/202/303 all independent from scratch;60,211,200steps total.40960 transitions
+per optimizer batch unchanged,now one20step fragment per2048 environments
+instead of four sequential fragments per512. Hypothesis:more independent
+histories reduce correlated recovery acquisition failure. It changes trajectory
+age/correlation,not just reset counts; not a proven mechanism. No upstream exact
+replication or final validation claim. No new reward/discount/length experiments.
+Three oneGPU3CPU16GB jobs submitted together;4htraining/6hqueue perjob. Use
+cluster_research.py submit --run RB05_SEED --plan
+Documentation/Research/queues/cluster_rb05_SEED.json --cpus 3 --memory-gb 16.
+All other stage arguments/gates copied unchanged;fixed final20070400,own0control,
+original48screen/conditional180full suites and representative videos. Compare
+ALL3 to saved RB02,not rerunning control training or promoting lucky seeds.
+Decision:ALL3 retain nominal gates,randomsurvival>=6/8 and BOTH6001commands
+survive500 to support targeted improvement. Any regression/missing recovery
+rejects hypothesis;no environment-count sweep or unchanged extension. Even
+improvement needs full original numeric/control/visual development passes before
+unused fresh training seeds AND held-out grid;all3 then independently train every
+component in parallel. Every failure retained. Partial screens never fullpass.
+Validation:all3 training argv differ ONLY num_envs/output from RB02;batch integer
+compatibility/final-step divisibility and queue schemas checked. No runner logic
+changed. Hourly firstcheck;adjust cadence only using measured run progress/runtime,
+not startup throughput or Slurm walltime. No active model waiting for training.
