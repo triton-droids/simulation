@@ -885,3 +885,47 @@ Preserve original partial directory/receipt/submission_failure.json. Fresh
 RD08_ar1 uses unchanged cluster_rd08_a.json;RD08_b uses unchanged b plan.
 No code/recipe/evaluation changes or training. Pace submissions,never wait for
 another GPU job to finish;if transport fails again preserve and reconcile later.
+
+## RD08 fails cross-job numerical reproducibility; RD09 execution isolation
+RD08_ar1/b completed2m14/2m24=.07722GPUh. Both stand500;forward141 versus132
+(original132). Untrained/standing controls terminate40 in both. Neither trained
+command trace is exact or allclose(rtol1e-5,atol1e-6) across jobs. Stand first
+linear discrepancy outside tolerance atstep30;forward at33. Max stand height
+.00399m,yaw.35838;forwardheight.39419m,yaw3.41803. Survival class agrees for
+these two official repeats but termination timing and trajectory do not.
+Against RD07 stepwise trace,official linear/yaw differences begin step1;contact
+switch differences occur by11/17steps. No proven code defect or root cause yet.
+Numeric traces and analysis retained under cluster_research/rd08_analysis.json.
+
+Read-only provenance checks:all four relevant snapshots' evaluator/comparator/
+source-loader hashes match;runtime_versions.txt hashes match. Recorded versions
+Brax.14.2,JAX/JAXlib.11.0,MuJoCo3.10.0. RTX2080Ti/driver610.43.02 same;
+physical GPU UUID was not recorded in old launcher heads,so device identity is
+unknown. Playground revision8a4b4642d8eba8a80ac99ed125cb62c16e1457ad and shared
+Menagerie revision71f066ad0be9cd271f7ed58c030243ef157af9f4 match current read-only
+checks;revision equality alone is not an exhaustive historical asset hash audit.
+Evidence saved rd08_provenance.json. No training,gate changes,or favorable-path
+selection authorized by these discrepancies. Original failures remain binding.
+
+RD09 freezes ONE zero-training same-executable test,not another blind job repeat.
+Reconstruct official evaluator environment/network/config for same202control
+final1146880,reset6001,stand/forward.45,500steps;explicitly lower/compile existing
+_build_rollout ONCE,then call that executable in order stand,forward,stand,forward.
+Same policy/seed/commands/device/process/executable. Save all4 numeric traces,
+initialqpos/qvel,policyhash,effectiveconfig,assignedGPU UUID/PCI/driver and allowed
+JAX environment settings. Do not change precision/autotuning/device assignments.
+OneGPU2CPU12GB,40minstage/60minqueue;no model waiting for completion.
+If both pairs exactly repeat and initial states match,execution repeatability is
+supported for this test;investigate cross-compilation/device/config effects next,
+not claim solver correctness or full root cause. If either differs,report first
+field/time discrepancy and investigate execution-level determinism;no automatic
+training or endless repeats. Same tolerances/exact report,NaNs fail closed.
+No new validation or replacement of official failures even if this path survives.
+Two tests passed for equality/divergence localization,boolean done/valid changes,
+nonfinite and schema fail-closed behavior. Script syntax and queue validated.
+Existing evaluator and its numerical rollout are unmodified;new diagnostic calls
+its compiled function. Full original numeric/control/visual and fresh3seed/heldout
+gates remain. Submit isolated committed source via cluster_research.py submit
+--run RD09 --plan Documentation/Research/queues/cluster_rd09.json --cpus2 --memory-gb12
+(spaced CLI options as usual). Only this bounded diagnostic is ready;no invented
+work to fill GPUs. Preserve all evidence and avoid shared configuration changes.

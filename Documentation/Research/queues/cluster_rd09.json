@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "output_dir": "Artifacts/Results/cluster_rd09/queue",
+  "max_wall_seconds": 3600,
+  "jobs": [
+    {
+      "id": "source",
+      "review_artifact": "Artifacts/Results/cluster_rd09/source.json",
+      "stages": [
+        {
+          "id": "fetch_pinned",
+          "argv": [
+            "-c",
+            "from robocub.locomotion.unitree_g1.playground_source import resolve_playground_source;from pathlib import Path;import json;s=resolve_playground_source(fetch=True);p=Path('Artifacts/Results/cluster_rd09/source.json');p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps({'source':str(s)}))"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd09/source.json"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd09/source.json"
+          ],
+          "timeout_seconds": 300
+        }
+      ],
+      "hypothesis": "Prepare pinned source for matched recovery-response diagnostic",
+      "evidence": "RC02 matched controls and low learning rates have divergent recovery outcomes."
+    },
+    {
+      "id": "same_executable",
+      "hypothesis": "Distinguish execution-level variability from cross-compilation/job differences using one explicitly compiled official rollout.",
+      "evidence": "RD08 official repeats differ beyond tolerances despite matching recorded software/source/assets/GPU model; forward termination141vs132.",
+      "review_artifact": "Artifacts/Results/cluster_rd09/diagnostic/summary.json",
+      "stages": [
+        {
+          "id": "repeat",
+          "argv": [
+            "robocub/scripts/diagnose_g1_repeatability.py",
+            "--run-dir",
+            "{root}/../../RC02_202_controlr1/source/Artifacts/Results/cluster_rc02_202_control/train",
+            "--output-dir",
+            "Artifacts/Results/cluster_rd09/diagnostic"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd09/diagnostic"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd09/diagnostic/summary.json",
+            "Artifacts/Results/cluster_rd09/diagnostic/stand_0.npz",
+            "Artifacts/Results/cluster_rd09/diagnostic/stand_1.npz",
+            "Artifacts/Results/cluster_rd09/diagnostic/forward_0.npz",
+            "Artifacts/Results/cluster_rd09/diagnostic/forward_1.npz"
+          ],
+          "timeout_seconds": 2400
+        }
+      ]
+    }
+  ]
+}
