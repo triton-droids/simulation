@@ -1150,3 +1150,57 @@ Syntax and all6 fresh queue schemas validated. Fresh RD13_TAGr1 plans retain
 identical states,labels,decision rule,budget and reproducible profile; old outputs
 untouched. Six independent2CPU12GB/oneGPU jobs,20minstage30minqueue,uploads paced.
 No training or completed evaluations repeated. Hourly evaluation phase retained.
+
+
+## RD13 rejected optimistic ranking; RN01 numerical-training consistency freeze
+RD13 r1 all6 completed84sec each=.14GPUh;48 finite predictions,actor/normalizer
+parity passes. All FOUR failed states rank BELOW every same-command survivor:
+101low stand -1.976 vs[-.449,-.602,-.269];202control forward .01497 vs
+[.94875,.43421,.62502];303low stand -2.093 vs[-.487,-.513,-.282];303low forward
+-.40564 vs[1.00751,.43622,.71011]. Frozen prerequisite fails0/4. Blanket optimistic
+initial-value explanation CLOSED;no critic-width/discount sweep or return-residual
+followup on that basis. Critic is not a survival classifier;no claim of calibration
+or causal proof. Full48rows,initialstates/config/hashes:rd13_results.json.
+
+Separately justified RN01 tests the VERIFIED numerical-runtime repair during
+TRAINING, not just evaluation. RD10-12 established cross-compilation matmul choices
+can alter physical trajectories; RE02 fixed evaluation but existing RB05/RC02
+weights were acquired without a pinned algorithm choice. Hypothesis: a consistent
+compiler profile across acquisition/continuation/evaluation may improve learning
+and robustness. This remains unproven; not a claim that compiler variability
+explains every failure. User explicitly authorized fixing/verifying and resuming
+research. This is one bounded new numerical-runtime experiment, NOT rerunning
+training to recover evaluation, a learning-rate extension, or reopening critic
+ranking. RE02 already completed;old outcomes preserved as matched comparisons.
+
+RN01_101/202/303 all FROM INITIALIZATION, seed-matched development comparison to
+RB05 + RC02_low (use RE02 low evaluation outcomes under repaired runtime). Only
+intended recipe change is --runtime-profile reproducible through ALL stages.
+Base original RB05 20,070,400steps,2048env,batch128,unroll20,4updates,lr3e-4,
+gamma.97,original rewards/full resets;own-parent late1,146,880steps lr1e-4 as RC02.
+Total21,217,280steps each,63,651,840total. No shared trained ancestor;fresh optimizer/
+step/PRNG at late stage as before,full critic/actor/normalizer parameter warmstart,
+NOT exact resume. Own basecheckpoint0 untrained controls;only fixed late1146880
+counts for candidate assessment. No lucky intermediate checkpoint or seed swap.
+Original screens,conditional full numeric/control suites,forward reset grid/videos
+unchanged. Training argv normalized for paths exactly matches source plans for
+all3;gate objects exactly match RC02;3schemas valid. No runner logic change.
+
+Predeclared targeted gain requires ALL3 nominal screens pass AND8/8 randomized
+survivors per seed (including both6001commands);otherwise reject this recipe-level
+benefit, no flag sweep or unchanged extension. Even targeted gain is NOT a full
+pass:all original numeric/control/visual gates must pass before unused finalseeds
+and freshheldout grid. Report every seed vs7/8,8/8,6/8 RE02 low survivors,nominal
+standing yaw.20972/.12938/.15472,all regressions and compute cost. Preserve default
+runtime history,do not select a favorable per-seed runtime. No gate weakening.
+
+Three ready independent oneGPU3CPU16GB jobs submitted with paced uploads;within
+job base/late/eval dependencies stay sequential.4hbase,1hlate,7hqueue/8hSlurm caps.
+Existing post-first two-consecutiveKL>=.2 stop retained. OOM/runtime errors require
+relevant-stage diagnosis;never blind allocation/algorithm retries. Training under
+new profile throughput/headroom not yet measured;prior similar complete pipeline
+~1-1.5h,so initial hourly phase until measured >=2h justifies actual4h recurrence.
+No active model waiting for training. Command per SEED=101,202,303:
+cluster_research.py submit --run RN01_SEED --plan
+Documentation/Research/queues/cluster_rn01_SEED.json --cpus 3 --memory-gb 16
+--runtime-profile reproducible.
