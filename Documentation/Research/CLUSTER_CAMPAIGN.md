@@ -1508,3 +1508,22 @@ Plansvalidate beforecommit/launch;actualremoteexecutionpending. Hourly shortchec
 Commands cluster_research.py submit --run RD17_SEED --plan
 Documentation/Research/queues/cluster_rd17_SEED.json --cpus 2 --memory-gb 12
 --runtime-profile reproducible. Alloriginalgates/final3freshseedcriteriaunchanged.
+
+
+## RD17 rejected; explicit budget decision before reopening duration
+RD17 jobs7942/7944/7946 completed14seconds each=.01167GPUh. All12lossreplays
+pass,gradientsfinite. Critic/actor norm ratios .000519-.010364 (far BELOW10),
+sharedclip multipliers .28152-.35618 (above.1). Actor dominates,notcritic.
+No optimizer-coupling redesign,valueweight/clip sweep or newdiagnosticbatches
+on this premise. Rawreports RD17_SEED/review/audit;rd17_summary.json.
+The earlier automation update failed because automatic approval review hit usage
+limit,not because RD17 submissions failed. Allthree receipts/jobs reconciled;
+never resubmit RD16/RD17. There are no newly launched jobs after RD17.
+
+The bounded current mechanism branches are closed. Do not manufacture another
+optimizer tweak from these negatives. Preferred next scientifically distinct
+question is whether the 20M training cap is insufficient;this explicitly reopens
+the previous no-unchanged-extension budget restriction and therefore needs a user
+budget decision. A proposal is saved in NEXT_CAMPAIGN_DECISION.md. It is NOT
+approved or queued;no 400M submission/checkpoint promotion is authorized by it.
+No finalvalidation or success. Existing controls/failures remainunchanged.
