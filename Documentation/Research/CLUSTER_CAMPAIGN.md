@@ -1429,3 +1429,49 @@ All existing closed branches remainclosed. Commands cluster_research.py submit
 --run RD15_SEED --plan Documentation/Research/queues/cluster_rd15_SEED.json
 --cpus 2 --memory-gb 12 --runtime-profile reproducible. Hourly shortchecks.
 Existing official evaluator unchanged;schema/path/arguments checked prelaunch.
+
+
+## RD15 rejects sustained directional bias; RD16 gradient compatibility freeze
+All3 jobs7930/7932/7934 complete284sec each=.23667GPUh. All reproduce RB06
+nominal6000 trained500step,linear/yaw metrics within frozen tolerance (values
+exact). Whole yaw mean101-.03111,202-.05255,303+.08367;last250 means
+-.03503/-.05475/+.08313,RMS.20185/.22781/.23731,ratios.17353/.24034/.35028.
+All fail both signed-bias thresholds. Minimum whole height>.752;last250
+single-support.816/.800/.816. Oscillatory motion dominates;no symmetry followup
+on directional-bias premise. No phase/filter/threshold sweep. Three newstanding
+videos sampled6frames each:upright alternating foot placements,303visible net
+turning;sampling is not continuousvisual certification. Raw rd15_summary.json.
+Cost includes matched controls;no training or validation pass.
+
+Read-only saved returns compare RE03 RN01base vsRB06 standing at all4resetseeds
+for EACH policy family. Quieter RN01base has HIGHER original reward in all12
+matched episodes;1016000return13.3744 versus10.0591,yaw.01060vs.20003.
+2026000return11.0801vs10.4093,30311.9327vs8.9495. Artifact
+rd15_saved_return_comparison.json. This comparison does not justify reward tuning
+or prove global objective alignment;A13 and all closed reward branches remainclosed.
+
+Distinct RD16 hypothesis:local standing and forward PPO policy-loss gradients
+conflict in shared actor parameters. Observed standing/walking acquisition tradeoff
+motivates measurement,NOT a proven shared-network defect. THREE zero-optimizer
+jobs on ALL RB06final20070400,fullsavedcritic/actor/normalizer parity required.
+Each collects64nominal environments forstand0 andforward.45,forBOTH predetermined
+stochastic draws17/29. Percommand/draw100burnin+20collectedsteps,500episode wrapper,
+coherent fullautoreset,original physics/rewards.92160total simulationtransitions
+includingburnin across3jobs,15360lossbatchtransitions. This is command-stratified
+stochastic diagnostic data,NOT original training distribution or validation.
+Record burnin/batch terminalcounts;burnin is not assumed settled afterresets.
+Frozen normalizer/critic/weights,no optimizer,entropyexcluded to isolate PPO policy
+loss;originalgamma.97,GAE.95,clip.1,normalized advantages. Save fullcollectedbatches,
+gradientvectors,losses,norms,cosines,sourcehash/config. Checkallbatchcommands.
+Frozen prerequisite:finite nonzero gradients and cosine<=-.1 for BOTH draws of
+EACH actor (all6pairs). Positive result permits separately frozen architecture
+DESIGN review,not automatic splitcontroller/training. Anyfailure rejects blanket
+shared-actor interference explanation;no extra draws/commands/thresholds.
+No causalclaim from localcosines;critic error and sampling remain confounders.
+OneGPU2CPU12GB each,50minstage/60minqueue,all3ready paceduploads. Originalgates
+unchanged. Reusefullcheckpoint loader previously runtimeverified;2newlocaltests
+pass actualcompiledBraxPPO gradients withoutparameterupdates and cosine/degenerate
+controls. G1batchexecution pending;do not claim runtimepass. Plans validated before
+commit/launch. Hourly shortchecks;no activewaiting. Commands cluster_research.py
+submit --run RD16_SEED --plan Documentation/Research/queues/cluster_rd16_SEED.json
+--cpus 2 --memory-gb 12 --runtime-profile reproducible.

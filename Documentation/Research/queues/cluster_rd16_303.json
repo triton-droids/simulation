@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "output_dir": "Artifacts/Results/cluster_rd16_303/queue",
+  "max_wall_seconds": 3600,
+  "jobs": [
+    {
+      "id": "source",
+      "review_artifact": "Artifacts/Results/cluster_rd16_303/source.json",
+      "stages": [
+        {
+          "id": "fetch_pinned",
+          "argv": [
+            "-c",
+            "from robocub.locomotion.unitree_g1.playground_source import resolve_playground_source;from pathlib import Path;import json;s=resolve_playground_source(fetch=True);p=Path('Artifacts/Results/cluster_rd16_303/source.json');p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps({'source':str(s)}))"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd16_303/source.json"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd16_303/source.json"
+          ],
+          "timeout_seconds": 300
+        }
+      ],
+      "hypothesis": "Prepare pinned source for frozen-policy gradient compatibility audit",
+      "evidence": "RB06 gains walking in101 while standing worsens in all3;quiet saved standing policies earn higher original reward at all12 matched states. Test shared actor local gradient conflict,not presumed causation."
+    },
+    {
+      "id": "gradient_audit",
+      "hypothesis": "Standing and forward policy gradients oppose consistently across two fixed stochastic draws in all3 saved actors.",
+      "evidence": "RB06 gains walking in101 while standing worsens in all3;quiet saved standing policies earn higher original reward at all12 matched states. Test shared actor local gradient conflict,not presumed causation.",
+      "review_artifact": "Artifacts/Results/cluster_rd16_303/audit/summary.json",
+      "stages": [
+        {
+          "id": "collect_and_differentiate",
+          "argv": [
+            "robocub/scripts/audit_g1_gradient_conflict.py",
+            "--run-dir",
+            "{root}/../../RB06_303/source/Artifacts/Results/cluster_rb06_303/train",
+            "--output-dir",
+            "Artifacts/Results/cluster_rd16_303/audit"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd16_303/audit"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd16_303/audit/summary.json",
+            "Artifacts/Results/cluster_rd16_303/audit/gradients.npz",
+            "Artifacts/Results/cluster_rd16_303/audit/stand_17_batch.npz",
+            "Artifacts/Results/cluster_rd16_303/audit/stand_29_batch.npz",
+            "Artifacts/Results/cluster_rd16_303/audit/forward_17_batch.npz",
+            "Artifacts/Results/cluster_rd16_303/audit/forward_29_batch.npz"
+          ],
+          "timeout_seconds": 3000
+        }
+      ]
+    }
+  ]
+}
