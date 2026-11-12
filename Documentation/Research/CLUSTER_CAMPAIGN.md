@@ -1130,3 +1130,23 @@ cluster_research.py submit --run RD13_TAG --plan
 Documentation/Research/queues/cluster_rd13_TAG.json --cpus 2 --memory-gb 12
 --runtime-profile reproducible. Keep hourly diagnostic phase. Final independent
 fresh-three-seed/held-out/full numeric/control/visual requirements unchanged.
+
+
+## RD13 loader repair, no training repeated
+All six original RD13 jobs7861/7863/7865/7867/7869/7871 failed in34seconds each
+before predictions (.05667GPUh total). Root cause: audit opened inference-only
+policy export, which intentionally has normalizer+actor only. The full Orbax
+checkpoint directory DOES contain saved critic weights. This is an audit-loader
+bug, not missing trained critics or scientific failure. Prior critic restore
+statement remains true for full Brax parameter warmstarts.
+Repair uses Brax checkpoint.load(full directory), requires3 components and finite
+nonempty critic, and checks full actor/normalizer EXACTLY against compact export
+before use. No initialized substitute, changed saved weights or new dependency.
+All six failed predict logs and actual remote CPU verification saved together in
+cluster_research/rd13_loader_repair.json. Repaired loader executed against every
+actual checkpoint: all6 exact actor/normalizer parity and finite value-network
+predictions at mean observation passed. Runtime reset-state audit still pending.
+Syntax and all6 fresh queue schemas validated. Fresh RD13_TAGr1 plans retain
+identical states,labels,decision rule,budget and reproducible profile; old outputs
+untouched. Six independent2CPU12GB/oneGPU jobs,20minstage30minqueue,uploads paced.
+No training or completed evaluations repeated. Hourly evaluation phase retained.

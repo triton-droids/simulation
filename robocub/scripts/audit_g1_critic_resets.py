@@ -21,6 +21,28 @@ def rank_failures(rows):
     return result
 
 
+def load_saved_critic(path):
+    """Read full Orbax parameters, verifying parity with the compact actor export."""
+    from brax.io import model
+    from brax.training.agents.ppo import checkpoint
+    import jax
+    import numpy as np
+    from robocub.utils.checkpoints import inference_params_from_training_params
+    params = checkpoint.load(path.parent.resolve())
+    if len(params) != 3:
+        raise ValueError('Saved critic required; no initialized substitute')
+    exported = model.load_params(path)
+    leaves, tree = jax.tree_util.tree_flatten(inference_params_from_training_params(params))
+    other, other_tree = jax.tree_util.tree_flatten(exported)
+    if tree != other_tree or len(leaves) != len(other) or not all(
+            np.array_equal(np.asarray(a), np.asarray(b)) for a, b in zip(leaves, other)):
+        raise ValueError('Full checkpoint actor/normalizer differs from inference export')
+    critic = jax.tree_util.tree_leaves(params[2])
+    if not critic or not all(np.isfinite(np.asarray(x)).all() for x in critic):
+        raise ValueError('Saved critic is empty or nonfinite')
+    return params
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--run-dir',type=Path,required=True)
@@ -50,10 +72,7 @@ def main():
     net=ev._make_evaluation_network(factory,env.observation_size,env.action_size,
         normalize_observations=bool(cfg.agent.normalize_observations))
     path=args.run_dir/'logs/checkpoints/1146880/policy'
-    params=ev.model.load_params(path)
-
-    if len(params)!=3:
-        raise ValueError('Saved critic required; no initialized substitute')
+    params=load_saved_critic(path)
     def predict(seed,command):
         key,_=jax.random.split(jax.random.PRNGKey(seed))
         state=ev._replace_command(env.reset(key),command)
@@ -73,6 +92,7 @@ def main():
                      'episode_steps':int(r['episode_steps']),'episode_return':float(r['episode_return']),
                      'value':float(value),'qpos':qpos.tolist(),'qvel':qvel.tolist()})
     summary={'full_validation':False,'kind':'initial_critic_rank_audit',
+             'full_checkpoint_actor_normalizer_exact':True,
              'checkpoint_sha256':hashlib.sha256(path.read_bytes()).hexdigest(),
              'labels_sha256':hashlib.sha256(args.episodes_csv.read_bytes()).hexdigest(),
              'rows':rows,'failed_state_ranks':rank_failures(rows),

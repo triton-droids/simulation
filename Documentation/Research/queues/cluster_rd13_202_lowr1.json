@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "output_dir": "Artifacts/Results/cluster_rd13_202_lowr1/queue",
+  "max_wall_seconds": 1800,
+  "jobs": [
+    {
+      "id": "source",
+      "review_artifact": "Artifacts/Results/cluster_rd13_202_lowr1/source.json",
+      "stages": [
+        {
+          "id": "fetch_pinned",
+          "argv": [
+            "-c",
+            "from robocub.locomotion.unitree_g1.playground_source import resolve_playground_source;from pathlib import Path;import json;s=resolve_playground_source(fetch=True);p=Path('Artifacts/Results/cluster_rd13_202_lowr1/source.json');p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps({'source':str(s)}))"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd13_202_lowr1/source.json"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd13_202_lowr1/source.json"
+          ],
+          "timeout_seconds": 300
+        },
+        {
+          "id": "record_policy",
+          "argv": [
+            "-c",
+            "import hashlib,json;from pathlib import Path;p=Path('{root}/../../RC02_202_low/source/Artifacts/Results/cluster_rc02_202_low/train/logs/checkpoints/1146880/policy');o=Path('Artifacts/Results/cluster_rd13_202_lowr1/policy_sha256.json');o.write_text(json.dumps({'source_run':'RC02_202_low','checkpoint':1146880,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}))"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd13_202_lowr1/policy_sha256.json"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd13_202_lowr1/policy_sha256.json"
+          ],
+          "timeout_seconds": 60
+        }
+      ],
+      "hypothesis": "Prepare pinned source for matched recovery-response diagnostic",
+      "evidence": "RC02 matched controls and low learning rates have divergent recovery outcomes."
+    },
+    {
+      "id": "critic",
+      "hypothesis": "Test whether initial critic values rank observed failed resets above same-command survivors.",
+      "evidence": "RE02 retains command-specific recovery failures after reproducibility repair; no successful blanket braking/discount explanation.",
+      "review_artifact": "Artifacts/Results/cluster_rd13_202_lowr1/critic/summary.json",
+      "stages": [
+        {
+          "id": "predict",
+          "argv": [
+            "robocub/scripts/audit_g1_critic_resets.py",
+            "--run-dir",
+            "{root}/../../RC02_202_low/source/Artifacts/Results/cluster_rc02_202_low/train",
+            "--episodes-csv",
+            "{root}/../../RE02_202_low/source/Artifacts/Results/cluster_re02_202_low/screen_randomized/episodes.csv",
+            "--output-dir",
+            "Artifacts/Results/cluster_rd13_202_lowr1/critic"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd13_202_lowr1/critic"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd13_202_lowr1/critic/summary.json"
+          ],
+          "timeout_seconds": 1200
+        }
+      ]
+    }
+  ]
+}
