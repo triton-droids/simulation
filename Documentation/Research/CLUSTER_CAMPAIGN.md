@@ -1321,3 +1321,20 @@ Preserveall failureevidence. ActiveRI01,command cluster_research.py submit --run
 --plan Documentation/Research/queues/cluster_ri01.json --cpus 2 --memory-gb 12
 --runtime-profile reproducible. Hourly shortpreflight;actual4h only if unchanged
 infrastructure blocker. No three-seed success or partial winner claim.
+
+
+## RI01 passed; one RB06_202r1 replacement
+RI01/job7920 completed44sec=.01222GPUh. Bothfreshprocessimports pass;all114source
+hashes identical before/after/across,versions match savedCPUverification,seven
+normallytoleratedoptionalimportexceptions each. Rawreports RI01/review.json.
+This satisfies frozen healthyexecutionpath prerequisite,NOT underlyingstorage
+repair or proof intermittentfault cannot recur. No dependencies/settings changed.
+Submit ONE identicalseed202 replacement RB06_202r1 with fresh isolated run/output;
+oldjob7907hadno training. Original101/303completed remain untouched;reviewALL3
+jointly whenreplacement completes. Ifimportfault recurs,stop allocationretries
+and require stable isolatedruntime/adminsupportedrepair;no blindinstallation.
+Plan equality verified after onlyoutputpath replacement;schema validated. Original
+scientificbudget,commands,gates/runtimeprofile unchanged. Commands:
+cluster_research.py submit --run RB06_202r1 --plan
+Documentation/Research/queues/cluster_rb06_202r1.json --cpus 3 --memory-gb 16
+--runtime-profile reproducible. Hourly shortbatch checks;no active trainingwaiting.
