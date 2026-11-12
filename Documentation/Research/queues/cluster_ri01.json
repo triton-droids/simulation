@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "output_dir": "Artifacts/Results/cluster_ri01/queue",
+  "max_wall_seconds": 900,
+  "jobs": [
+    {
+      "id": "a",
+      "hypothesis": "Verify exact failing dependency import under a Slurm allocation while capturing suppressed trimesh.path exceptions.",
+      "evidence": "RB06_202 failed before training;current login imports and114 source hashes pass,intermittent shared environment fault unresolved.",
+      "review_artifact": "Artifacts/Results/cluster_ri01/a.json",
+      "stages": [
+        {
+          "id": "import_only",
+          "argv": [
+            "robocub/tools/probe_cluster_imports.py",
+            "Artifacts/Results/cluster_ri01/a.json"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_ri01/a.json"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_ri01/a.json"
+          ],
+          "timeout_seconds": 300
+        }
+      ]
+    },
+    {
+      "id": "b",
+      "hypothesis": "Verify exact failing dependency import under a Slurm allocation while capturing suppressed trimesh.path exceptions.",
+      "evidence": "RB06_202 failed before training;current login imports and114 source hashes pass,intermittent shared environment fault unresolved.",
+      "review_artifact": "Artifacts/Results/cluster_ri01/b.json",
+      "stages": [
+        {
+          "id": "import_only",
+          "argv": [
+            "robocub/tools/probe_cluster_imports.py",
+            "Artifacts/Results/cluster_ri01/b.json"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_ri01/b.json"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_ri01/b.json"
+          ],
+          "timeout_seconds": 300
+        }
+      ]
+    }
+  ]
+}

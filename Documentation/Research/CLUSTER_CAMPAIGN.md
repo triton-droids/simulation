@@ -1290,3 +1290,34 @@ validated. No runnerlogic change. Command perSEED101/202/303:
 cluster_research.py submit --run RB06_SEED --plan
 Documentation/Research/queues/cluster_rb06_SEED.json --cpus 3 --memory-gb 16
 --runtime-profile reproducible.
+
+
+## RB06_202 startup import failure; RI01 bounded environment preflight
+RB06_101/303 completed;retain them unchanged and defer jointscientific review.
+RB06_202/job7907 failed13sec beforetraining at trimesh/base.py Path3D|None:
+Path3D was ExceptionWrapper after a suppressed .path import exception. Original
+trace did not expose that cause. Evidence in RB06_202/training_failure.txt.
+Shared environment has prior intermittent import/file faults;do not blindlyretry.
+Current CPU import succeeds,114trimesh .py files exactly match package RECORD
+hashes. This does NOT prove rootcause or historicalfile integrity. Optionalshapely
+metadata missing is not itself cause:successful imports tolerate this absence.
+
+RI01 ONE zero-training Slurm allocation,oneGPU2CPU12GB,15minqueue,two sequential
+freshprocess imports,5minstage each. No episodes,packageinstalls,flagchanges or
+sharedconfig modifications. Trace original exceptions specifically in trimesh/path
+before ExceptionWrapper masks them;save all,including normallytolerated missing
+networkx/svg/lxml/shapely. Hash all114trimesh sources before/after,compare and capture
+versions. Exact failing importentry robocub.locomotion thenMJX/Brax;no env creation.
+Diagnostic code actuallyexecuted on remoteCPU:imports pass,hashesmatch,seven
+expected optionalimportexceptions captured. Syntax/queueschema validated.
+Both allocated-process imports must pass,sourcehashes unchanged acrossprocesses,
+versionsmatch recorded environment before ONE identical fresh RB06_202 replacement
+may be submitted. This is verification of a healthy executionpath,NOT a proven
+repair of intermittentstorage. Keep source/recipe/budget/seed202 unchanged;failed
+run had no training torepeat. Completed101/303 remain untouched. If preflight or
+replacementrepeats fault,stop allocation retries and require stableisolatedruntime
+or admin-supported repair;no automatic package modification/adminmessages.
+Preserveall failureevidence. ActiveRI01,command cluster_research.py submit --run RI01
+--plan Documentation/Research/queues/cluster_ri01.json --cpus 2 --memory-gb 12
+--runtime-profile reproducible. Hourly shortpreflight;actual4h only if unchanged
+infrastructure blocker. No three-seed success or partial winner claim.
