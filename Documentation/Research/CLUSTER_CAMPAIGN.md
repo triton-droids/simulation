@@ -1394,3 +1394,38 @@ PPO metrics unchanged. Initial failed unit test retained in development history.
 Real Brax/JAX compiled synthetic-network test passes:identity floor,finite shift,
 unchanged actorweights/normalizer verified. All3 queue schemas validated. Actual
 G1 reset execution remains pending in the allocated jobs;no runtime pass claimed.
+
+
+## RD14 prerequisite rejected; RD15 signed standing-yaw discrimination
+RD14 all3 completed104/124/113seconds =.09472GPUh. Normalizer-only KL
+101 .14235094,202 .13237850,303 .15526584,ALL below frozen .2 threshold.
+Identity logits exactlyequal;KL .00028981/.00028983/.00028978 matches expected
+.00029039 floor within1e-5;all metrics finite. Reports/observations saved under
+Artifacts/Results/cluster_research/RD14_SEED/review/audit. This rejects blanket
+reset-only normalization justification. No first-batch follow-up or normalization
+training change;do not lower threshold/select observation subsets. Does not prove
+normalization has no effect on real rollout batches. No behavior validation.
+
+RD15 freezes a different measured question:RB06 all3 standing RMSE .20-.24 and
+single-support .796-.826 persist, but RMSE cannot distinguish signed directional
+bias from alternating yaw. Existing RB06 clips cover forward only,not standing.
+Do NOT reopen phase/filter/coefficient/sampling hypotheses or repeat RD01 spectra.
+Use UNCHANGED official fused evaluator,deterministic,original nominal6000,stand,
+500steps,each RB06 fixedfinal20070400. Original untrained0 and standing controls
+also captured by evaluator;9 trajectories total,three trained. New standing
+videos/numeric traces,zero training/intervention. OneGPU2CPU12GB perjob,
+40minstage/60minqueue,three independent ready jobs with paced uploads.
+Before interpretation,trained500steps and yaw/linear RMSE must reproduce saved
+screen6000 within rtol1e-5/atol1e-6;otherwise reconcile provenance before training.
+Compute WHOLE and last250 signed yaw mean,RMS,abs(mean)/RMS,contact fractions,
+linear error,height. Never use shortened episodes as settledwindows. Frozen
+sustained-bias prerequisite:ALL3 survive500,height>.6,last250 abs(mean yaw)>=.1
+AND abs(mean)/RMS>=.75. If met permits separately frozen left-right structural
+symmetry audit,NOT automatic augmentation/training or inference correction.
+Otherwise reject blanket directional-bias account;retain per-seed outcomes.
+No threshold/seed/phase sweep. Full original gates unchanged;this is diagnostic,
+not validation or a recipe promotion. Review all3 standing videos/metrics/cost.
+All existing closed branches remainclosed. Commands cluster_research.py submit
+--run RD15_SEED --plan Documentation/Research/queues/cluster_rd15_SEED.json
+--cpus 2 --memory-gb 12 --runtime-profile reproducible. Hourly shortchecks.
+Existing official evaluator unchanged;schema/path/arguments checked prelaunch.
