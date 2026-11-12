@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "output_dir": "Artifacts/Results/cluster_rd14_101/queue",
+  "max_wall_seconds": 1800,
+  "jobs": [
+    {
+      "id": "source",
+      "review_artifact": "Artifacts/Results/cluster_rd14_101/source.json",
+      "stages": [
+        {
+          "id": "fetch_pinned",
+          "argv": [
+            "-c",
+            "from robocub.locomotion.unitree_g1.playground_source import resolve_playground_source;from pathlib import Path;import json;s=resolve_playground_source(fetch=True);p=Path('Artifacts/Results/cluster_rd14_101/source.json');p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps({'source':str(s)}))"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd14_101/source.json"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd14_101/source.json"
+          ],
+          "timeout_seconds": 300
+        }
+      ],
+      "hypothesis": "Prepare pinned source for reset-only normalizer diagnostic",
+      "evidence": "RB06 failed clipping mechanism; verified fixed-rate trainer updates running statistics before SGD."
+    },
+    {
+      "id": "normalizer",
+      "hypothesis": "Fixed actor can change distribution under a normalization update alone. Reset-only prerequisite, not causal training evidence.",
+      "evidence": "RB06 failed clipping mechanism; verified fixed-rate trainer updates running statistics before SGD.",
+      "review_artifact": "Artifacts/Results/cluster_rd14_101/audit/summary.json",
+      "stages": [
+        {
+          "id": "reset_audit",
+          "argv": [
+            "robocub/scripts/audit_g1_normalizer_shift.py",
+            "--run-dir",
+            "{root}/../../RN01_101/source/Artifacts/Results/cluster_rn01_101/base/train",
+            "--seed",
+            "101",
+            "--output-dir",
+            "Artifacts/Results/cluster_rd14_101/audit"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd14_101/audit"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd14_101/audit/summary.json",
+            "Artifacts/Results/cluster_rd14_101/audit/observations.npz"
+          ],
+          "timeout_seconds": 1200
+        }
+      ]
+    }
+  ]
+}
