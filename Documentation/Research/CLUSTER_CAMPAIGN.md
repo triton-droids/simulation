@@ -1240,3 +1240,53 @@ Expected short evaluations:actualhourly cadence retained.
 Command perSEED101/202/303:cluster_research.py submit --run RE03_SEED --plan
 Documentation/Research/queues/cluster_re03_SEED.json --cpus 3 --memory-gb 16
 --runtime-profile reproducible.
+
+
+## RE03 localizes mixed failures; RB06 one PPO clipping comparison
+RE03 completed9m14/23m45/10m04=.7175GPUh. All3 nominalsurvive8;101already static
+(forwardlinear.44665,standyaw.01232),random4/8(falls58/42/59/42 forstand/forward
+6000/6001). Thus101failure acquired BEFORE late stage,not caused by fine-tuning.
+202base screenspass,fullnominalturnyaw.27956/.27414 fail;fullrandomnumericpass24/24,
+extra forward11/12(reset6012fall88,linearworst.36775). Late202 fixed that fall but
+worsened yaw/fullrandom:retain both effects.303base nominalstandyaw.14108 passes,
+random6/8(6001stand64/forward81);late gains2survivors but standyaw.16540 fails.
+Mixed acquisition/retention;no basecheckpointpromotion or mixedseedwinners.
+All rows in re03_summary.json and RE03*/review.15clips sampled at6frames each:
+101nominalstatic/randomcollapse;202/303 stepping;202combinedturning;controlsfall.
+Not continuous visualcertification. No candidate has full3seed success.
+
+Saved RN01 BASE learning curves: first reported training epoch(step2867200)
+KL means101=.2418,202=.4222,303=.2971,then .032-.061. These are EPOCH means,
+NOT proof of a first-update spike; highest earlyKL202 later walks,so no simple
+correlation or causal claim. All show large early distribution changes while
+acquisition is unreliable. Freeze ONE from-initialization PPO ratio clipping
+comparison .1 versus saved .2 (RN01bases measured inRE03),not a sweep. Narrower
+clipped surrogate may reduce harmful update incentives while retaining fixed LR;
+clipping is NOT a hard KL bound and can slow useful learning. Measure both.
+Historical L01 adaptiveLR reachednear-floor and failed;do NOT repeat its scheduler,
+target/floor tuning. This differs:existingfixedlr3e-4,onlyclipping_epsilon changes.
+No reward/entropy/discount/phase/filter/architecture or reset change.
+
+RB06_101/202/303 FROM SCRATCH20,070,400steps EACH,60,211,200total,2048env,batch128,
+unroll20,4updates,gamma.97,originalreward/fullresets,reproducible compiler profile.
+No late stage or inheritedparameters. Fixedfinal20070400,own0controls,alloriginal
+screens/conditionalfullgates/forwardgrid/videos. Existing train.py also appends
+xla_gpu_triton_gemm_any=True for training (same as RN01/earlier);do not claim train
+and evaluation flags are otherwise identical or change that flag in this trial.
+
+Predeclared mechanism support: firstepochKL <=75% matched RN01base value for EACH
+seed. Behavioral prerequisite:101acquiresoriginalforwardgait gates,202/303retain
+nominal gates,all3 nominalscreenspass and randomsurvival no lowerthan4/8,8/8,6/8.
+KL reduction ALONE never progress;failure of either prerequisite closes this
+clipping hypothesis,no epsilon sweep/unchangedextension. Any improvement still
+requiresALL originalfullnumeric/control/visual gates before freshfinalseeds and
+freshheldout tests. Report all3,regressions,cost;no luckycheckpoint orseedselection.
+Training post-firstconsecutiveKL>=.2 stop unchanged. Four-hourtraining/six-hourqueue
+caps,oneGPU3CPU16GB perjob,all3ready submitted with paced uploads. Expected~1h based
+RN01measuredcosts,actualhourlyinitialchecks;no activewaiting. Existing trainer
+forwards configclipping_epsilon;structured override .1 verified;all3trainingargv
+matchRN01base after paths except thatONE addition;gateobjects unchanged,3schemas
+validated. No runnerlogic change. Command perSEED101/202/303:
+cluster_research.py submit --run RB06_SEED --plan
+Documentation/Research/queues/cluster_rb06_SEED.json --cpus 3 --memory-gb 16
+--runtime-profile reproducible.
