@@ -6,7 +6,7 @@ the September M1-only stop instructions. M1/T02 and all failed M2 evidence stay 
 Soccer skills and hardware are not part of this campaign. Training uses MJX/Brax and
 the pinned Playground research adapter; the Isaac field is a separate integration.
 
-## Active batch RC01 — matched late objective (2026-11-08)
+## Active batch RC01 ï¿½ matched late objective (2026-11-08)
 
 Plans: `Documentation/Research/queues/cluster_rc01_control.json` and
 `Documentation/Research/queues/cluster_rc01_rate.json`.
@@ -88,7 +88,7 @@ Keep notification quiet for unchanged state. Notify meaningful findings, a block
 requiring attention, or validated completion. A timer cannot guarantee discovery;
 scientific failures must be reported honestly without weakening acceptance criteria.
 
-## Startup repair — 2026-11-08
+## Startup repair ï¿½ 2026-11-08
 
 RB01 job7501 failed in 3 seconds before the queue or training started: the uv-created
 remote environment has no pip. GPU discovery passed. Preserve its isolated directory
@@ -96,7 +96,7 @@ and local launcher_failure.log. RB01r1 keeps the same frozen queue/recipe/budget
 but records installed packages using Python importlib.metadata instead of pip freeze.
 This is an execution repair, not a scientific failure or training extension.
 
-## RB01r1 review and RC01 decision — 2026-11-08
+## RB01r1 review and RC01 decision ï¿½ 2026-11-08
 
 Job7522 completed in1h01m25s; training stage52m51s, final20,070,400steps.
 Reported final training throughput7638.7steps/s (excludes compilation/evaluation).
@@ -1203,4 +1203,40 @@ new profile throughput/headroom not yet measured;prior similar complete pipeline
 No active model waiting for training. Command per SEED=101,202,303:
 cluster_research.py submit --run RN01_SEED --plan
 Documentation/Research/queues/cluster_rn01_SEED.json --cpus 3 --memory-gb 16
+--runtime-profile reproducible.
+
+
+## RN01 rejected; RE03 acquisition/retention localization
+RN01 all3 completed,51m16/71m16/51m56=2.90778GPUh total. Restore parity passes.
+Nominal all8survive but101 stays nearly static(forwardlinear.44680,standyaw.02102),
+303standyaw.16540 fails;202screenspass. Randomsurvivors4/8,8/8,8/8 versus RE02low
+7/8,8/8,6/8:303gains,101regresses.101fallsstand6000/6001at57/42,forwardat59/42.
+202fullnominal24survivors but turnleft/right yaw.28920/.26618>.25;fullrandom24
+survivors butworstyaw.37829>.35. Extra12forward allsurvive butmaxlinear.43510.
+All original gates remain,no full3seed pass. 15clips sampled at6frames each:
+101nominal plantedfeet,random forwardcollapse;202/303samples alternating steps;
+202combinedturning visible but fails quantitative yaw. Control clipsfall. Sampled
+review NOT continuous visual certification. Metrics/csv/videos/learninglogs saved
+RN01*/review and rn01_review_summary.json. Both fixed-final inference paths retained.
+Frozen targeted-gain rule fails;training-benefit hypothesis CLOSED,no compilerflag
+sweep or unchanged extension. Keep reproducible profile as correctness setting,
+not choose old/new runtime by reward/pass. Stability repair != improved policy.
+
+RE03 ZERO-training localization: evaluate EVERY RN01 base final20070400 before
+late continuation,each against own basecheckpoint0,original nominal/random screens,
+conditional full suites/extra forward grid/videos.Three independent oneGPU3CPU16GB
+jobs,4hqueue/2hstage,allready submitted with paced uploads;reproducible profile.
+Fixed base checkpoint only,not a search across saved intermediates. Record hashes.
+Compare ALL3 against corresponding late results already reviewed. If101walking/
+recovery failures already present atbase,focus acquisition rather than another
+late tweak;ifbase passes andlate loses,focus retention with separate justification.
+For202 quantify whether turn-yaw failures precede late stage;303 same forstandyaw.
+Mixed findings require per-seed accounting. This diagnostic never promotes a base
+checkpoint or mixes seed winners;no automatic extension or training. Prior RE01
+used DIFFERENT policies;do not rerun it. Originalclosedbranchesstayclosed.
+All3 schemas validated,gateobjects exactly equal saved RE02plans;no runner logic
+changed. Full development and unused final3seed/freshheldout requirements unchanged.
+Expected short evaluations:actualhourly cadence retained.
+Command perSEED101/202/303:cluster_research.py submit --run RE03_SEED --plan
+Documentation/Research/queues/cluster_re03_SEED.json --cpus 3 --memory-gb 16
 --runtime-profile reproducible.
