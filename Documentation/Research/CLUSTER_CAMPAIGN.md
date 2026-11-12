@@ -1475,3 +1475,36 @@ controls. G1batchexecution pending;do not claim runtimepass. Plans validated bef
 commit/launch. Hourly shortchecks;no activewaiting. Commands cluster_research.py
 submit --run RD16_SEED --plan Documentation/Research/queues/cluster_rd16_SEED.json
 --cpus 2 --memory-gb 12 --runtime-profile reproducible.
+
+
+## RD16 rejects shared-actor conflict; RD17 saved-batch gradient budget
+All3 complete544/524/524seconds=.44222GPUh. Actor cosine pairs17/29:
+101+.28152/+.35613,202+.46485/+.35884,303+.37122/+.34433;ALLpositive,
+none meet<=-.1 frozen prerequisite. All gradients finite/nonzero,actor norms
+2.821-3.566;all12 batches have ZERO burnin or collected terminations. Full/compact
+checkpoint parity passes. No shared-actor separation on this premise,noextra
+samples/commands/thresholds. Stochastic nominal survival here is not validation.
+Raw batches/gradients preserved,RD16_SEED/review/audit;rd16_summary.json.
+
+Distinct implementation mechanism:installed Brax trainsactor/critic in oneparameter
+pytree and appliesoptax.clip_by_global_norm(1) beforeAdam to total PPOlossgradient.
+RD16 excluded critic/entropy to isolate policy conflict,so did not measure global
+clipping budget. RD17 replays exactly ALL12 saved RD16batches on samefullsaved
+RB06finals,NO newrollouts oroptimizerupdates. Restore normalizer/critic/actor,
+verifycheckpoint matchesbatchhash,reproduce saved policy_loss within1e-6/1e-5.
+Original total PPOloss includesentropy.005,valuecoefficient.5,normalizedadvantages,
+gamma.97,GAE.95,clip.1,rewardscale1. Save actor/critic/global gradientnorms,critic
+actor ratio,and impliedsharedclipmultiplier. NoactualAdamupdateorhistoryclaim.
+Frozen dominance prerequisite:EVERY12batch critic/actor norm>=10 AND sharedclip
+multiplier<=.1,finite nonzeroactor andlossreplaypasses. Ifmet permits separately
+frozen optimizer-coupling DESIGN review,notautomatictraining. Adam maycompensate
+common scaling;gradientdominancealone cannotprove actorupdate starvation.
+Anyfailure rejects blanket critic-dominance mechanism;no valuecoefficient/clip
+threshold sweeps ornewbatches. Priorcritic-ranking branch remainsclosed.
+Three independent oneGPU2CPU12GB jobs,15minstage20minqueue. Noassetfetch/simulator
+required. Fullweights/batches remainread-only. RealBrax localtest checksfull-loss
+gradient norms,globalnormcomposition,clipfactor,policy-lossreplay withoutupdates.
+Plansvalidate beforecommit/launch;actualremoteexecutionpending. Hourly shortchecks.
+Commands cluster_research.py submit --run RD17_SEED --plan
+Documentation/Research/queues/cluster_rd17_SEED.json --cpus 2 --memory-gb 12
+--runtime-profile reproducible. Alloriginalgates/final3freshseedcriteriaunchanged.

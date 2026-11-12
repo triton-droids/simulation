@@ -35,3 +35,13 @@ def test_real_ppo_policy_gradient_without_update():
     assert np.isfinite(float(loss)) and np.isfinite(g).all()
     assert compatibility(g,g)['cosine']==pytest.approx(1.,abs=1e-6)
     assert all(np.array_equal(a,np.asarray(b)) for a,b in zip(before,jax.tree.leaves(actor)))
+
+    from brax.training.agents.ppo.losses import PPONetworkParams
+    from robocub.scripts.audit_g1_gradient_budget import gradient_budget
+    cfg={'entropy_cost':.005,'discounting':.97,'reward_scaling':1.,'gae_lambda':.95,'clipping_epsilon':.1,'max_grad_norm':1.}
+    budget=jax.jit(functools.partial(gradient_budget,net,PPONetworkParams(actor,critic),norm,config=cfg))(batch=data,key=jax.random.PRNGKey(5))
+    b={k:float(v) for k,v in budget.items()}
+    assert all(np.isfinite(v) for v in b.values())
+    assert b['total_norm']==pytest.approx(np.hypot(b['actor_norm'],b['critic_norm']),rel=1e-5)
+    assert b['shared_clip_multiplier']==pytest.approx(min(1.,1./b['total_norm']))
+    assert b['policy_loss']==pytest.approx(float(loss),abs=1e-6)

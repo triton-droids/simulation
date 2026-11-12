@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "output_dir": "Artifacts/Results/cluster_rd17_202/queue",
+  "max_wall_seconds": 1200,
+  "jobs": [
+    {
+      "id": "gradient_budget",
+      "hypothesis": "Check whether critic gradients dominate the shared global-norm clipping on existing RD16 batches.",
+      "evidence": "RD16 standing/forward actor gradients align rather than conflict;installed PPO clips actor and critic gradients jointly at1. Audit actual saved batches before proposing optimizer redesign.",
+      "review_artifact": "Artifacts/Results/cluster_rd17_202/audit/summary.json",
+      "stages": [
+        {
+          "id": "replay",
+          "argv": [
+            "robocub/scripts/audit_g1_gradient_budget.py",
+            "--run-dir",
+            "{root}/../../RB06_202r1/source/Artifacts/Results/cluster_rb06_202r1/train",
+            "--batch-dir",
+            "{root}/../../RD16_202/source/Artifacts/Results/cluster_rd16_202/audit",
+            "--output-dir",
+            "Artifacts/Results/cluster_rd17_202/audit"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/cluster_rd17_202/audit"
+          ],
+          "required_paths": [
+            "Artifacts/Results/cluster_rd17_202/audit/summary.json"
+          ],
+          "timeout_seconds": 900
+        }
+      ]
+    }
+  ]
+}
