@@ -31,13 +31,17 @@ Proposed hard caps:20htraining,22hqueue,24hSlurm perrun,72GPUhours maximum acros
 three jobs. OneGPU/3CPU/16GiB each,allready submitted together with paceduploads;
 actual concurrency is scheduler-dependent. No extra jobs to fill GPUs.
 
-## Why approval is needed
+## Approval and implementation status
 This deliberately exceeds the current20M bounded experiments and8h launcher
 limit and reopens the explicit no-unchanged-extension restriction. It must not
 be launched as an ordinary repair or disguised continuation. User approval of
 this concrete duration/budget change is required before implementation/submission.
-After approval,add a bounded Slurm-duration option with tests,create and validate
-three frozen plans,commit,then submit isolated snapshots. No such jobs exist yet.
+The user explicitly approved the bounded longer-training comparison on Nov12
+Pacific time. RB07 plans implement this approval;all other closed branches remain
+closed. Launcher now accepts explicit1–24hour limits,default8unchanged. Tenlauncher
+tests pass;threeplansvalidate;trainingargv match RN01base except approvedsteps,
+evalcadence andoutputpaths. All evaluationdefinitions match original screens/full
+gates except paths andfixedfinalcheckpoint. No earlycheckpointpromotion.
 
 ## Frozen rejection/progression proposal
 Allthree must retain original nominal gates and not lose randomized survival

@@ -1527,3 +1527,31 @@ the previous no-unchanged-extension budget restriction and therefore needs a use
 budget decision. A proposal is saved in NEXT_CAMPAIGN_DECISION.md. It is NOT
 approved or queued;no 400M submission/checkpoint promotion is authorized by it.
 No finalvalidation or success. Existing controls/failures remainunchanged.
+
+
+## User approved RB07 bounded duration comparison — Nov12 Pacific
+Explicit user answer approves NEXT_CAMPAIGN_DECISION.md. This supersedes the
+pending-decision block and reopens ONLY this duration test. RB07_101/202/303,
+fromscratch401408000steps EACH,1,204,224,000total,unchangedRN01base (clip.2,
+2048env,batch128,unroll20,4updates,lr3e-4,gamma.97,originalrewards/fullresets,
+reproducibleprofile),no late stage. Seeds101/202/303 remainDEVELOPMENT,notfinal.
+Fixedfinal401408000 only;checkpoint0ownuntrained.141evals gives same2867200step
+monitoringinterval asbaseline;nonfinite/post-first2consecutiveKL>=.2stops unchanged.
+20htrain/22hqueue/24hSlurmperrun,72GPUhmaximumtotal;~39GPUhestimate uncertain.
+OneGPU3CPU16GiB each,allreadyindependentjobs submitted with pacedSSHuploads.
+Launcher --slurm-hours24 bounded1..24;default8unchanged;receipt and sbatch share
+samevalidatedtime.10launcher tests pass,3queuesvalidate,fulltrainingargv parity
+withRN01base exceptbudget/cadence/paths,ALL evaluationdefinitions unchanged except
+paths/finalcheckpoint. Scheduler test-only validates24h allocation beforelaunch.
+No paperreplicationclaim (2048env,repositoryadaptations differ). No changes to
+sharedruntime or closedreward/optimizer branches. No more GPU diagnostics queued.
+Frozenprogression:all3nominalgates,randomsurvival>=4/8,8/8,6/8 versusRE03;
+101acquiresoriginalforwardgait,303both6001commands survive500. Elseclose,no longer
+sweep/extension/extra seeds. Evenprerequisitegain requiresALLoriginalfull numeric/
+control/visualdevelopmentgates before newunusedfinalseeds ANDfreshheldout grid.
+ReviewALL3finaloutcomes/videos/cost together,no winner/earlycheckpointselection.
+Recoverevaluation separately,never repeat completedtraining. Commands:
+cluster_research.py submit --run RB07_SEED --plan
+Documentation/Research/queues/cluster_rb07_SEED.json --cpus3 --memory-gb16
+--slurm-hours24 --runtime-profile reproducible (use spaces forCLI options).
+Actualmonitorcadence4h for these expectedlongruns,compactonlywhilehealthy.

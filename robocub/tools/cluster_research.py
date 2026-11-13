@@ -24,6 +24,13 @@ PACKAGE_VERSIONS_CODE = "import importlib.metadata as m; print('\\n'.join(sorted
 RUNTIME_PROFILES = {'legacy': None, 'reproducible': '--xla_gpu_autotune_level=0'}
 
 
+def slurm_time(hours):
+    """Bound explicit per-job walltime; historical default remains eight hours."""
+    if not isinstance(hours, int) or isinstance(hours, bool) or not 1 <= hours <= 24:
+        raise ValueError('Slurm duration must be 1-24 whole hours')
+    return f'{hours:02d}:00:00'
+
+
 def runtime_setup(profile):
     """Set a recorded job-local profile before any JAX import; reject conflicts."""
     flags = RUNTIME_PROFILES[profile]
@@ -81,8 +88,13 @@ def main():
     parser.add_argument('--compact', action='store_true')
     parser.add_argument('--cpus', type=int, default=8)
     parser.add_argument('--memory-gb', type=int, default=32)
+    parser.add_argument('--slurm-hours', type=int, default=8)
     parser.add_argument('--runtime-profile', choices=RUNTIME_PROFILES, default='legacy')
     args = parser.parse_args()
+    try:
+        duration = slurm_time(args.slurm_hours)
+    except ValueError as exc:
+        parser.error(str(exc))
     if not 1 <= args.cpus <= 8 or not 8 <= args.memory_gb <= 32:
         parser.error('Resources must be 1-8 CPUs and 8-32 GB')
     if not re.fullmatch(r'[a-zA-Z0-9_-]+', args.run):
@@ -119,7 +131,7 @@ def main():
                 archive_sha256=hashlib.sha256(archive).hexdigest(), output_dir=plan['output_dir'],
                 plan=args.plan, status='submission_preparing', job_id=None,
                 runtime_profile=args.runtime_profile, xla_flags=RUNTIME_PROFILES[args.runtime_profile],
-                resources={'gpus':1,'cpus':args.cpus,'memory':str(args.memory_gb)+'G','partition':'long','time':'08:00:00'})
+                resources={'gpus':1,'cpus':args.cpus,'memory':str(args.memory_gb)+'G','partition':'long','time':duration})
     save(manifest,meta)
     q = shlex.quote
     # mkdir is exclusive: an ambiguous previous submission can never be duplicated.
@@ -150,7 +162,7 @@ exec_queue
 '''
     ssh(settings, f'cat > {q(remote+"/run.sh")}', runner.encode())
     sbatch = ['sbatch','--parsable','--account='+settings['SLURM_ACCOUNT'],
-              '--partition=long','--time=08:00:00','--gres=rtx2080ti:1',
+              '--partition=long','--time='+duration,'--gres=rtx2080ti:1',
               '--cpus-per-task='+str(args.cpus),'--mem='+str(args.memory_gb)+'G','--job-name=g1-'+args.run,
               '--output='+remote+'/launcher.log',remote+'/run.sh']
     # Scheduler validation allocates nothing; only the next command submits.

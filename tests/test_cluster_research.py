@@ -26,6 +26,23 @@ class SnapshotTests(unittest.TestCase):
 
 
 class ResourceArgumentTests(unittest.TestCase):
+    def test_duration_bounds_and_format(self):
+        from robocub.tools.cluster_research import slurm_time
+        self.assertEqual(slurm_time(8), '08:00:00')
+        self.assertEqual(slurm_time(24), '24:00:00')
+        for value in [0,25,1.5,True]:
+            with self.assertRaises(ValueError): slurm_time(value)
+
+    def test_duration_rejected_before_network(self):
+        import subprocess, sys
+        from pathlib import Path
+        script = Path(__file__).resolve().parents[1] / 'robocub/tools/cluster_research.py'
+        for value in ['0','25']:
+            result = subprocess.run([sys.executable,str(script),'submit','--run','unused',
+                '--slurm-hours',value],capture_output=True,text=True)
+            self.assertEqual(result.returncode,2)
+            self.assertIn('Slurm duration must be',result.stderr)
+
     def test_invalid_resources_rejected_before_network(self):
         import subprocess, sys
         from pathlib import Path
