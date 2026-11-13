@@ -84,3 +84,13 @@ class RuntimeProfileTests(unittest.TestCase):
                                  '--runtime-profile','unrecognized'],capture_output=True,text=True)
         self.assertEqual(result.returncode, 2)
         self.assertIn('invalid choice', result.stderr)
+
+class GPUArgumentTests(unittest.TestCase):
+    def test_unapproved_gpu_rejected_before_network(self):
+        import subprocess, sys
+        from pathlib import Path
+        script = Path(__file__).resolve().parents[1] / 'robocub/tools/cluster_research.py'
+        result = subprocess.run([sys.executable,str(script),'submit','--run','unused',
+                                 '--gpu-type','mi210'],capture_output=True,text=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('invalid choice', result.stderr)

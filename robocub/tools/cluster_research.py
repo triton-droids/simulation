@@ -89,6 +89,7 @@ def main():
     parser.add_argument('--cpus', type=int, default=8)
     parser.add_argument('--memory-gb', type=int, default=32)
     parser.add_argument('--slurm-hours', type=int, default=8)
+    parser.add_argument('--gpu-type', choices=['rtx2080ti', 'p100'], default='rtx2080ti')
     parser.add_argument('--runtime-profile', choices=RUNTIME_PROFILES, default='legacy')
     args = parser.parse_args()
     try:
@@ -131,7 +132,7 @@ def main():
                 archive_sha256=hashlib.sha256(archive).hexdigest(), output_dir=plan['output_dir'],
                 plan=args.plan, status='submission_preparing', job_id=None,
                 runtime_profile=args.runtime_profile, xla_flags=RUNTIME_PROFILES[args.runtime_profile],
-                resources={'gpus':1,'cpus':args.cpus,'memory':str(args.memory_gb)+'G','partition':'long','time':duration})
+                resources={'gpus':1,'gpu_type':args.gpu_type,'cpus':args.cpus,'memory':str(args.memory_gb)+'G','partition':'long','time':duration})
     save(manifest,meta)
     q = shlex.quote
     # mkdir is exclusive: an ambiguous previous submission can never be duplicated.
@@ -162,7 +163,7 @@ exec_queue
 '''
     ssh(settings, f'cat > {q(remote+"/run.sh")}', runner.encode())
     sbatch = ['sbatch','--parsable','--account='+settings['SLURM_ACCOUNT'],
-              '--partition=long','--time='+duration,'--gres=rtx2080ti:1',
+              '--partition=long','--time='+duration,'--gres='+args.gpu_type+':1',
               '--cpus-per-task='+str(args.cpus),'--mem='+str(args.memory_gb)+'G','--job-name=g1-'+args.run,
               '--output='+remote+'/launcher.log',remote+'/run.sh']
     # Scheduler validation allocates nothing; only the next command submits.

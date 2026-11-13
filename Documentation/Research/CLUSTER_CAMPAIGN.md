@@ -1555,3 +1555,36 @@ cluster_research.py submit --run RB07_SEED --plan
 Documentation/Research/queues/cluster_rb07_SEED.json --cpus3 --memory-gb16
 --slurm-hours24 --runtime-profile reproducible (use spaces forCLI options).
 Actualmonitorcadence4h for these expectedlongruns,compactonlywhilehealthy.
+
+## RB07 administrative interruption and RP03 P100 recovery preflight — 2026-11-12
+
+User authorizes continuing saved progress. Slurm jobs7949/7951/7953 were CANCELLED
+by0 after 1:42:19/1:41:13/1:40:06 (5.06056 GPUh total). zixian is IDLE+DRAIN,
+reason "too loud for pi cluster". Queue JSON still says running; scheduler wins.
+No override/undrain/admin message. Latest durable full checkpoints load on CPU:
+101=94617600,202=88883200,303=88883200; original paths and failures preserved.
+Actor/critic/normalizer exist; optimizer/PRNG/environment state do not.
+Recovery is parameter continuation, NEVER exact resume or uninterrupted duration test.
+Original approved 72 GPUh aggregate cap remains; no completed training repeated.
+
+P100 Slurm test-only accepted. RP03_p100 freezes ONE zero-training compatibility
+probe: original RB07_101 checkpoint94617600 and own genuine0/standing controls,
+nominal6000 stand20steps, two fresh official evaluator processes, same assigned
+P100. Six short trajectories total; original evaluator unchanged. Reproducible
+XLA profile; compare all fields finite and bitwise exact using existing comparator.
+No device-equivalence, gate-pass or GPU-memory-headroom claims from this test.
+One P100,2CPU12GB,30min queue,1h Slurm HARD CAP; count up to1 GPUh toward72.
+Existing job-local cache; no shared runtime changes. Failure closes this allocation
+path pending specific repair evidence; no blind retries or GPU/software sweep.
+Launcher supports explicit p100/rtx2080ti only, RTX remains default;11 tests pass,
+probe schema validates. Submit isolated committed snapshot with --gpu-type p100
+--slurm-hours 1 --cpus 2 --memory-gb 12 --runtime-profile reproducible.
+
+On successful preflight freeze fresh recovery plans before launch: own latest
+parent only, remaining steps306790400/312524800/312524800 (cumulative401408000),
+same recipe and original gates/own ORIGINAL RB07 checkpoint0 controls. Full restore
+hash/parity required. Every continuation cap at most21 Slurm hours (63 total);
+5.06056 prior +1 probe +63 <=72 GPUh. No extra steps, lucky checkpoints, or claim
+that optimizer restart/device change is a clean duration comparison. All three
+ready independent recoveries submitted together with paced uploads. If P100 fails,
+preserve checkpoints and wait for authorized healthy compatible allocation.
