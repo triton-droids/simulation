@@ -1588,3 +1588,21 @@ hash/parity required. Every continuation cap at most21 Slurm hours (63 total);
 that optimizer restart/device change is a clean duration comparison. All three
 ready independent recoveries submitted together with paced uploads. If P100 fails,
 preserve checkpoints and wait for authorized healthy compatible allocation.
+
+## RP03 failed before runtime: infrastructure blocker (2026-11-13 UTC)
+
+Job7958 on matthew FAILED9:0 after1second: nvidia-smi could not communicate
+with NVIDIA driver. No JAX, evaluator, trajectories or training executed.
+This is NOT evidence that P100 architecture is incompatible with our runtime.
+No allocation retry. Launcher failure retained remotely and locally under
+RP03_p100/review; compact repair baseline saved in rb07_recovery.json.
+zixian remains IDLE+DRAIN with original root reason "too loud for pi cluster".
+matthew is scheduler-IDLE with unchanged Nov7 boot/slurmd and P100 GRES, but
+that availability does not establish driver health. Other nodes advertise CPU
+or AMD MI210 only; no authorized compatible healthy NVIDIA path established.
+No driver/shared software/admin configuration changes or admin messages.
+Total measured consumed18219seconds=5.060833GPUh; remaining checkpoints intact.
+Four-hour quiet checks compare scheduler boot/slurmd/GRES/drain evidence; do not
+interpret free counts as repair. Meaningful repair evidence permits one frozen
+fresh-path preflight, not immediate long recovery or blind allocation cycling.
+User needs administrator repair/release or another working compatible allocation.
