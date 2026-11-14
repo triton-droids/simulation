@@ -1639,3 +1639,35 @@ Parameter continuation is NOT exact resume;optimizer/PRNG reset and device chang
 remain confounds. Laptop only;no Slurm dependency or admin repair needed locally.
 Update automation to local status/PIDs while local work active;do not launch
 cluster duplicates when nodes recover. Preserve M1/T02 and all original gates.
+
+## LP01 passed; local RB07 recovery batch frozen (2026-11-14)
+
+LP01 completed81920steps with finite metrics and exact full actor/critic/normalizer
+restore parity. Queue1126.72seconds, training manifest697.47seconds. GPU telemetry
+maximum977MiB is a WSL reporting observation, not complete memory-headroom proof.
+Probe throughput includes compilation; no reliable full-run ETA or gate pass.
+Discard probe weights. No architecture change: actor/critic512-256-128; capacity
+has not been established as the bottleneck.
+
+Frozen manifest Documentation/Research/queues/local_rb07_recovery_batch.json.
+Three local_rb07r_SEED plans restore only original saved parents101/202/303,
+94617600/88883200/88883200; remaining306790400/312524800/312524800, cumulative
+401408000each. Original checkpoint0 controls and all screens/full gates preserved.
+Fresh optimizer/PRNG and changed device: parameter continuation, NOT exact resume.
+SingleGPU serial jobs;18htrain/21htotal each,63hbatch. Prior5.060833+LP01reserve.75
++63=68.810833GPUh within approved72h. No silent extension/retry/checkpoint shopping.
+Execution error stops batch and retains completed training; scientific rejection
+still allows remaining predetermined seeds. Keep laptop awake/powered.
+
+Runner tests on actual WSL:21passed, including process-group cleanup, frozen
+hashes/budgets and gate/control preservation. Plans validated before launch.
+Current local handoff supersedes old LP01 automation instructions: FIRST read
+Artifacts/Results/local_rb07_recovery/batch/status.json and launch_receipt.json
+in its parent. Healthy/fresh: end quietly, no duplicate local or cluster work.
+On error reconcile PIDs and active queue before fresh-path recovery. On complete
+review ALL3 outcomes/videos/cost against original development gates. Only full
+success unlocks unused final seeds/fresh held-out tests. Four-hour review cadence
+is appropriate for these long runs. Existing app automation is currently PAUSED;
+this IDE has no automation-update tool, so do not claim it was rescheduled.
+Command (ONCE, fresh paths, committed source):
+.cache/g1_wsl_venv/bin/python robocub/tools/local_recovery_batch.py --manifest Documentation/Research/queues/local_rb07_recovery_batch.json
