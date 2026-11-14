@@ -49,13 +49,28 @@ below predates these gains and reset changes and needs re-evaluation.
 
 For the circling-policy correction, `--reward-profile stepping_straight` adds
 world-vertical yaw-rate tracking (weight 2.0, exponential width 0.5 rad/s) and
-a squared yaw-rate error penalty (weight -0.5). It retains the stepping
-profile's 41 inputs, so a stepping checkpoint can be fine-tuned with it.
+a squared yaw-rate error penalty (weight -0.5). It also adds two heading-error
+observations, for 43 inputs versus the stepping profile's 41.
 The original `stepping` profile remains available for comparisons.
 
+`stepping_straight` and `stepping_wide` also include a fixed-heading alignment
+reward (weight 1.0, Gaussian width 0.25 rad) and squared heading-error penalty
+(weight -0.5). Their desired world yaw is zero: body Y faces world +Y.
+Errors wrap to the shortest angle across +/-pi. Both terms apply while
+standing and walking, and switch off for commanded yaw rates of magnitude
+0.001 rad/s or greater. The positive reward is gated by uprightness.
+The actor and critic receive `[sin(heading_error), cos(heading_error)]`,
+including while standing. These two values become zero during commanded
+turns, matching the reward gating. The circular encoding avoids an input
+jump across +/-pi. Straight and wide profiles now have 43 inputs: existing
+41-input checkpoints (including the 700 fine-tune) cannot load unchanged.
+Train a fresh policy or explicitly convert the checkpoint's networks and
+normalization state before fine-tuning. This change does not convert old
+checkpoints. Heading tracking does not control lateral path position.
+
 `--reward-profile stepping_wide` retains all `stepping_straight` terms and its
-41 inputs, and adds a 0.5-weight spacing reward. It prefers left-to-right sole
-center separation of 0.16–0.20 m along heading-frame X (body Y is forward),
+43 inputs, and adds a 0.5-weight spacing reward. It prefers left-to-right sole
+center separation of 0.29–0.32 m along heading-frame X (body Y is forward),
 with a 0.05 m exponential falloff outside that band. It is active for moving
 commands and upright robots, including swing phases. Signed spacing discourages
 crossing; forward stride length cannot substitute for sideways separation.

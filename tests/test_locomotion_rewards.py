@@ -1,6 +1,7 @@
 """Behavior checks runnable without booting Isaac Sim: python -m unittest discover -s tests."""
 
 import sys
+import math
 import unittest
 from pathlib import Path
 from types import SimpleNamespace as NS
@@ -10,7 +11,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from locomotion_rewards import (
     FOOT_NAMES, SOLE_CENTERS, alternating_contact, feet_slide, gait_phase_observation,
-    lateral_sole_spacing, stance_width_tracking,
+    lateral_sole_spacing, stance_width_tracking, heading_error_l2, heading_tracking, heading_error_observation,
 )
 
 
@@ -32,6 +33,58 @@ def example_env():
 
 
 class RewardBehavior(unittest.TestCase):
+    def heading_env(self, angles):
+        env = example_env()
+        yaw = torch.tensor(angles)
+        env.scene["robot"].data.root_quat_w = torch.stack(
+            (torch.zeros_like(yaw), torch.zeros_like(yaw), (yaw / 2).sin(), (yaw / 2).cos()), dim=-1
+        )
+        env.scene["robot"].data.projected_gravity_b[:, 2] = -1
+        return env
+
+    def test_heading_reward_and_penalty_distinguish_stopped_but_misaligned_robot(self):
+        env = self.heading_env([0., .2, -.2, .5])
+        torch.testing.assert_close(heading_error_l2(env), torch.tensor([0., .04, .04, .25]))
+        scores = heading_tracking(env)
+        torch.testing.assert_close(scores, torch.exp(-torch.tensor([0., .04, .04, .25]) / .25**2))
+        self.assertGreater(float(scores[0]), float(scores[1]))
+        self.assertGreater(float(scores[1]), float(scores[3]))
+        # The third environment is commanded to stand; it must still hold heading.
+        self.assertGreater(float(heading_error_l2(env)[2]), 0.)
+
+    def test_heading_wraps_at_pi_and_accepts_nonzero_target(self):
+        env = self.heading_env([math.radians(-179)] * 4)
+        expected = torch.full((4,), math.radians(2)**2)
+        torch.testing.assert_close(heading_error_l2(env, desired_yaw=math.radians(179)), expected)
+        torch.testing.assert_close(heading_tracking(env, desired_yaw=math.radians(-179)), torch.ones(4))
+
+    def test_heading_observation_encodes_error_direction_and_standing_alignment(self):
+        env = self.heading_env([0., math.pi / 2, -math.pi / 2, math.pi])
+        obs = heading_error_observation(env)
+        self.assertEqual(tuple(obs.shape), (4, 2))
+        torch.testing.assert_close(obs, torch.tensor([[0., 1.], [-1., 0.], [1., 0.], [0., -1.]]), atol=1e-6, rtol=0)
+        # A desired yaw equal to the current yaw must encode perfect alignment.
+        env = self.heading_env([.4] * 4)
+        torch.testing.assert_close(heading_error_observation(env, desired_yaw=.4), torch.tensor([[0., 1.]] * 4))
+
+    def test_heading_observation_is_continuous_at_wrap_and_disabled_only_for_turns(self):
+        env = self.heading_env([math.pi - 1e-5, -math.pi + 1e-5, 0., 0.])
+        obs = heading_error_observation(env)
+        self.assertLess(float(torch.linalg.vector_norm(obs[0] - obs[1])), 3e-5)
+        env.command_manager.get_command = lambda name: torch.tensor([[0., .35, .5], [0., .35, -.5], [0., 0., 0.], [0., .35, 0.]])
+        torch.testing.assert_close(heading_error_observation(env), torch.tensor([[0., 0.], [0., 0.], [0., 1.], [0., 1.]]))
+
+    def test_heading_terms_allow_commanded_turns_and_alignment_reward_requires_upright(self):
+        env = self.heading_env([.2] * 4)
+        env.command_manager.get_command = lambda name: torch.tensor([[0., .35, .5]] * 4)
+        torch.testing.assert_close(heading_error_l2(env), torch.zeros(4))
+        torch.testing.assert_close(heading_tracking(env), torch.zeros(4))
+        env.command_manager.get_command = lambda name: torch.tensor([[0., .35, 0.]] * 4)
+        env.scene["robot"].data.projected_gravity_b[:, 2] = 1
+        torch.testing.assert_close(heading_tracking(env), torch.zeros(4))
+        with self.assertRaises(ValueError):
+            heading_tracking(env, std=0.)
+
     def test_alternating_foot_lifts_score_better_than_standing_or_hopping(self):
         env = example_env()
         torch.testing.assert_close(alternating_contact(env), torch.tensor([1., 1., 0., 0.]))

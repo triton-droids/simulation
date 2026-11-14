@@ -151,8 +151,8 @@ def build_env_cfg(
     differential_gait_reward: bool = False,
     stance_width_weight: float = 0.5,
     stance_width_std: float = 0.05,
-    stance_width_min: float = 0.16,
-    stance_width_max: float = 0.20,
+    stance_width_min: float = 0.29,
+    stance_width_max: float = 0.32,
     action_scale: float = 0.40,
     actor_base_velocity: bool = False,
     forward_speed_min: float = 0.20,
@@ -358,9 +358,20 @@ def build_env_cfg(
             "robot", joint_names=list(POSTURE_JOINTS), preserve_order=True
         )
     if reward_profile in {"stepping_straight", "stepping_wide"}:
-        from locomotion_rewards import yaw_rate_error_l2, yaw_rate_tracking
+        from locomotion_rewards import heading_error_l2, heading_error_observation, heading_tracking, yaw_rate_error_l2, yaw_rate_tracking
         rewards.track_ang_vel_z_exp = RewardTermCfg(func=yaw_rate_tracking, weight=2.0, params={"std": 0.5})
         rewards.yaw_rate_error = RewardTermCfg(func=yaw_rate_error_l2, weight=-0.5)
+        # Fixed world heading: body Y points along world +Y at yaw zero.
+        # Two additional observations give these profiles 43 policy inputs.
+        policy.heading_error = ObservationTermCfg(
+            func=heading_error_observation, params={"desired_yaw": 0.0},
+        )
+        rewards.heading_alignment = RewardTermCfg(
+            func=heading_tracking, weight=1.0, params={"desired_yaw": 0.0, "std": 0.25},
+        )
+        rewards.heading_error = RewardTermCfg(
+            func=heading_error_l2, weight=-0.5, params={"desired_yaw": 0.0},
+        )
     if reward_profile == "stepping_wide":
         from locomotion_rewards import stance_width_tracking
         rewards.stance_width = RewardTermCfg(
@@ -393,8 +404,8 @@ def main() -> None:
     parser.add_argument("--differential-gait-reward", action="store_true", help="Subtract the stationary 0.5 contact-match baseline")
     parser.add_argument("--stance-width-weight", type=float, default=0.5)
     parser.add_argument("--stance-width-std", type=float, default=0.05)
-    parser.add_argument("--stance-width-min", type=float, default=0.16)
-    parser.add_argument("--stance-width-max", type=float, default=0.20)
+    parser.add_argument("--stance-width-min", type=float, default=0.29)
+    parser.add_argument("--stance-width-max", type=float, default=0.32)
     parser.add_argument("--actor-base-velocity", action="store_true", help="Use body linear velocity for 44-input warm-start checkpoints")
     parser.add_argument("--action-scale", type=float, default=0.40)
     parser.add_argument("--forward-speed-min", type=float, default=0.20)
@@ -630,6 +641,7 @@ def main() -> None:
         "driven_joints": DRIVEN_JOINTS,
         "standing_pose": args.standing_pose,
         "reward_profile": args.reward_profile,
+        "heading_direction_terms": ({"desired_world_yaw_rad": 0.0, "std_rad": 0.25, "reward_weight": 1.0, "penalty_weight": -0.5, "disabled_for_commanded_turns": True, "observation": ["sin_heading_error", "cos_heading_error"]} if args.reward_profile in {"stepping_straight", "stepping_wide"} else None),
         "tracking_std": args.tracking_std,
         "progress_weight": args.progress_weight,
         "stall_penalty_weight": args.stall_penalty_weight,

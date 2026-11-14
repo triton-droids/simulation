@@ -121,6 +121,46 @@ def yaw_rate_error_l2(env, command_name="base_velocity"):
     return (measured - commanded).square()
 
 
+def _heading_error(env, desired_yaw):
+    """Shortest signed yaw error in radians; yaw zero faces body Y along world Y."""
+    from trajectory_metrics import yaw_xyzw
+
+    yaw = yaw_xyzw(_tensor(env.scene["robot"].data.root_quat_w))
+    delta = desired_yaw - yaw
+    return torch.atan2(delta.sin(), delta.cos())
+
+
+def heading_error_l2(env, desired_yaw=0.0, command_name="base_velocity"):
+    """Squared fixed-heading error, including standing; use a negative weight.
+
+    Disable fixed-heading tracking when a nonzero yaw rate is commanded.
+    This target is world yaw, not an episode's initial heading.
+    """
+    straight = env.command_manager.get_command(command_name)[:, 2].abs() < 1e-3
+    return _heading_error(env, desired_yaw).square() * straight
+
+
+def heading_error_observation(env, desired_yaw=0.0, command_name="base_velocity"):
+    """[sin(error), cos(error)] for the same fixed yaw used by heading rewards.
+
+    Includes standing commands. Return zeros during commanded turns, when the
+    fixed-heading rewards are disabled. The circular encoding avoids a jump
+    in observations as the shortest heading error crosses +/-pi.
+    """
+    error = _heading_error(env, desired_yaw)
+    straight = env.command_manager.get_command(command_name)[:, 2].abs() < 1e-3
+    return torch.stack((error.sin(), error.cos()), dim=-1) * straight[:, None]
+
+
+def heading_tracking(env, desired_yaw=0.0, std=0.25, command_name="base_velocity"):
+    """Reward upright alignment with a fixed world yaw; std is in radians."""
+    if std <= 0:
+        raise ValueError("Heading tracking standard deviation must be positive")
+    straight = env.command_manager.get_command(command_name)[:, 2].abs() < 1e-3
+    upright = (-_tensor(env.scene["robot"].data.projected_gravity_b)[:, 2]).clamp(0, 1)
+    return torch.exp(-(_heading_error(env, desired_yaw) / std).square()) * straight * upright
+
+
 def yaw_rate_tracking(env, std=0.5, command_name="base_velocity"):
     """Bounded tracking reward plus a separate L2 term for large turning errors."""
     if std <= 0:
