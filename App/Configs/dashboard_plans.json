@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "note": "Only explicitly reviewed unlaunched plans belong here. LP01 is completed and must not be relaunched. Recovery plans await review. Each enabled entry requires id, source (local or atlantis), plan, sha256; Atlantis also requires resources (gpu_type, cpus, memory_gb, hours).",
+  "plans": []
+}

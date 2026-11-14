@@ -184,6 +184,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     commands = parser.add_subparsers(dest="command", required=True)
 
+    dashboard = commands.add_parser("dashboard", help="Open the unified compute and research dashboard.")
+    def open_dashboard(_args):
+        from robocub.user_cli.dashboard import main as dashboard_main
+        return dashboard_main([])
+    dashboard.set_defaults(handler=open_dashboard)
+
     watch = commands.add_parser("watch", help="Open a live MuJoCo camera for the saved T02 walker.")
     watch.add_argument("--scene", choices=("field", "flat"), default="field")
     watch.add_argument("--record", default=None, help="Field mode recording output directory.")

@@ -11,8 +11,11 @@ Read [`START_HERE.md`](START_HERE.md) for the shortest possible instructions.
 The complete beginner manual is
 [`Documentation/Guides/README.md`](Documentation/Guides/README.md).
 
-Atlantis users can open `App/Scripts/cluster_dashboard.py` for a visual job
-queue, resource dropdowns, snapshot downloads, cancellation, and training logs.
+Open `App/Scripts/dashboard.py` or select **6 RoboCup Dashboard** in PyCharm for
+local/Atlantis compute selection, readiness checks, queue progress, results,
+checkpoint-preserving stop requests, and registered frozen-plan launches.
+See [Dashboard guide](Documentation/DASHBOARD.md). The old cluster dashboard
+script now opens this unified interface; the historical implementation is retained.
 
 ```powershell
 # Open the saved T02 walker on the visible RoboCup field.
