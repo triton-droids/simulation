@@ -1606,3 +1606,36 @@ Four-hour quiet checks compare scheduler boot/slurmd/GRES/drain evidence; do not
 interpret free counts as repair. Meaningful repair evidence permits one frozen
 fresh-path preflight, not immediate long recovery or blind allocation cycling.
 User needs administrator repair/release or another working compatible allocation.
+
+## Local fallback authorized — 2026-11-14 Pacific
+
+User says "use that for now": use existing laptop RTX4060 8GiB through WSL,
+not CPU-only Windows Python. Actual WSL JAX detects CudaDevice0; local versions
+JAX/JAXlib0.11.0,Brax0.14.2,MuJoCo3.10.0 match cluster. Driver572.61 differs.
+All three latest complete Orbax directories and genuine checkpoint0 references,
+resolved configs/manifests/.hydra downloaded to Artifacts/Results/local_rb07_parents/
+101,202,303. SHA256 of policy bytes matches previously frozen cluster parents.
+No cluster submission or changes. Old RB07 checkpoints and failed RP03 retained.
+
+LP01 capacity plan freezes81920steps,seed101,2048env,batch128,unroll20,lr3e-4,
+gamma.97,originalreward/fullrandomresets,reproducibleXLA profile. Restore saved
+101 checkpoint94617600 actor/critic/normalizer. Two evaluation callbacks;
+probe weights DISCARDED,not an ancestor or validation. Full three-component
+restore parity checked against saved checkpoint0. Local GPU telemetry every10s.
+30min training stage,45min queue,45min external hard timeout. Reserve.75GPUh
+against original72hcap; prior measured5.060833h. OOM/timeout/runtime error:
+preserve failure,diagnose specifically,no envcount or recipe sweep.
+
+On success review finite metrics,full restore parity,runtime/GPU memory. Short
+probe throughput includes compilation and is not a reliable full-run ETA.
+Freeze original-parent continuations101/202/303,remaining306790400/312524800/
+312524800steps (108/110/110evals). Same original gates/genuineoriginal0 controls,
+no probe weight use. Sequential on ONE8GiB GPU to avoid resource contention;
+user's useful parallelism preference does not justify three competing copies.
+Each continuation total wall/GPU cap<=21h,aggregate63+.75+5.060833<72h.
+If evidence says remaining budget cannot finish,report limitation,do not silently
+extend. Must remain awake/plugged in;do not change system power settings.
+Parameter continuation is NOT exact resume;optimizer/PRNG reset and device change
+remain confounds. Laptop only;no Slurm dependency or admin repair needed locally.
+Update automation to local status/PIDs while local work active;do not launch
+cluster duplicates when nodes recover. Preserve M1/T02 and all original gates.

@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "output_dir": "Artifacts/Results/local_lp01_capacity/queue",
+  "max_wall_seconds": 2700,
+  "jobs": [
+    {
+      "id": "train",
+      "hypothesis": "Local RTX4060 8GiB capability probe for unchanged2048env recovery;discard probe weights,never a validation or recipe ancestor.",
+      "evidence": "User authorized local fallback;three original parents transferred with verified hashes. Windows JAX CPU-only,existing WSL JAX detects CUDA.",
+      "stages": [
+        {
+          "id": "recovery_train",
+          "argv": [
+            "robocub/scripts/train.py",
+            "--logger",
+            "local",
+            "--seed",
+            "101",
+            "env=unitree_g1_playground",
+            "robot=unitree_g1",
+            "sim=unitree_g1_playground",
+            "agent=ppo_g1_corrective",
+            "robot.fetch_model=false",
+            "sim.playground.fetch_source=true",
+            "sim.reset.randomize=true",
+            "sim.noise.add_noise=false",
+            "sim.push.add_push=false",
+            "sim.domain_rand.add_domain_rand=false",
+            "sim.commands.lin_vel_x=[-1.0,1.0]",
+            "sim.commands.lin_vel_y=[-0.5,0.5]",
+            "sim.commands.ang_vel_yaw=[-1.0,1.0]",
+            "agent.num_timesteps=81920",
+            "agent.num_evals=2",
+            "agent.num_eval_envs=16",
+            "agent.episode_length=500",
+            "hydra.run.dir={root}/Artifacts/Results/local_lp01_capacity/train",
+            "hydra.job.chdir=true",
+            "agent.learning_rate=0.0003",
+            "agent.discounting=0.97",
+            "agent.batch_size=128",
+            "agent.num_envs=2048",
+            "--resume",
+            "--checkpoint",
+            "{root}/Artifacts/Results/local_rb07_parents/101/logs/checkpoints/94617600"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/local_lp01_capacity/train"
+          ],
+          "required_paths": [
+            "Artifacts/Results/local_lp01_capacity/train/run_manifest.json",
+            "Artifacts/Results/local_lp01_capacity/train/logs/checkpoints/0/policy",
+            "Artifacts/Results/local_lp01_capacity/train/logs/checkpoints/81920/policy"
+          ],
+          "timeout_seconds": 1800,
+          "monitor": {
+            "path": "Artifacts/Results/local_lp01_capacity/train/logs/metrics.jsonl",
+            "ignore_kl_through_step": 81920,
+            "consecutive_kl_limit": 2,
+            "kl_limit": 0.2,
+            "final_step": 81920
+          }
+        },
+        {
+          "id": "full_restore_parity",
+          "argv": [
+            "-c",
+            "import os;os.environ['JAX_PLATFORMS']='cpu';from pathlib import Path;import json,numpy as np,jax;from brax.training.agents.ppo import checkpoint;a=checkpoint.load(Path('Artifacts/Results/local_rb07_parents/101/logs/checkpoints/94617600').resolve());b=checkpoint.load(Path('Artifacts/Results/local_lp01_capacity/train/logs/checkpoints/0').resolve());la,ta=jax.tree_util.tree_flatten(a);lb,tb=jax.tree_util.tree_flatten(b);ok=ta==tb and len(a)==len(b)==3 and len(la)==len(lb) and all(np.isfinite(np.asarray(x)).all() and np.array_equal(np.asarray(x),np.asarray(y)) for x,y in zip(la,lb));Path('Artifacts/Results/local_lp01_capacity/restore_parity.json').write_text(json.dumps({'full_actor_critic_normalizer_exact':ok}));assert ok"
+          ],
+          "fresh_paths": [
+            "Artifacts/Results/local_lp01_capacity/restore_parity.json"
+          ],
+          "required_paths": [
+            "Artifacts/Results/local_lp01_capacity/restore_parity.json"
+          ],
+          "timeout_seconds": 300
+        }
+      ],
+      "review_artifact": "Artifacts/Results/local_lp01_capacity/train/run_manifest.json"
+    }
+  ]
+}
