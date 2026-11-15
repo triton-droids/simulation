@@ -1,0 +1,13 @@
+{
+  "name": "RB07-202-parent",
+  "status": "Experimental original parent; local continuation not started",
+  "run_dir": "Artifacts/Results/local_rb07_parents/202",
+  "checkpoint": 88883200,
+  "weights": "Artifacts/Results/local_rb07_parents/202/logs/checkpoints/88883200/policy",
+  "configuration": "Artifacts/Results/local_rb07_parents/202/resolved_config.json",
+  "manifest": "Artifacts/Results/local_rb07_parents/202/run_manifest.json",
+  "sha256": "1b192edca02e01567c3057757e57d11090eda9d1f517793c530194edfff9b2f3",
+  "ancestor_steps": null,
+  "exact_resume": false,
+  "storage": "References original files; no copies or automatic selection"
+}

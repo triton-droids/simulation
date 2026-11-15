@@ -1,117 +1,52 @@
-# Triton Droids RoboCup Simulator
+# Triton Droids RoboCup
 
-This project trains, evaluates, and visualizes Unitree G1 locomotion policies
-for Triton Droids RoboCup work. The working locomotion path uses MuJoCo/MJX and
-Brax PPO; the Isaac Lab Field01 soccer environment is a separate integration
-track.
-
-## Start Here
-
-Read [`START_HERE.md`](START_HERE.md) for the shortest possible instructions.
-The complete beginner manual is
-[`Documentation/Guides/README.md`](Documentation/Guides/README.md).
-
-Open `App/Scripts/dashboard.py` or select **6 RoboCup Dashboard** in PyCharm for
-local/Atlantis compute selection, readiness checks, queue progress, results,
-checkpoint-preserving stop requests, and registered frozen-plan launches.
-See [Dashboard guide](Documentation/DASHBOARD.md). The old cluster dashboard
-script now opens this unified interface; the historical implementation is retained.
+**Open the control panel:** run **App/Scripts/dashboard.py** in this project.
+In PyCharm select **6 RoboCup Dashboard**, then Run.
 
 ```powershell
-# Open the saved T02 walker on the visible RoboCup field.
-.venv\Scripts\python.exe App\Scripts\visualize.py
-
-# Verify PPO training, checkpointing, graphs, and run outputs.
-.venv\Scripts\python.exe App\Scripts\train.py --smoke
-
-# Run the example trainer × environment parameter matrix.
-.venv\Scripts\python.exe App\Scripts\sweep.py --smoke
-
-# Print the selected model and exact weights path.
-.venv\Scripts\python.exe App\Scripts\status.py
-
-# Evaluate the canonical T02 checkpoint.
-.venv\Scripts\python.exe App\Scripts\evaluate.py
+.venv\Scripts\python.exe App\Scripts\dashboard.py
 ```
 
-PyCharm exposes the same five operations as numbered shared run configurations.
+The panel provides local/Atlantis compute checks, saved progress, results and the
+saved robot viewer. A compute selection affects a future launch; it does not move
+active work. Starting training requires a registered approved plan.
 
-## Project Layout
+## What do you want to do?
 
-```text
-App/             Things normal users run or edit
-Artifacts/       Generated runs, sweeps, results, outputs, and exports
-Documentation/   Beginner guides and preserved research records
-robocub/         Production Python package and internal developer tools
-tests/           Automated behavior and regression tests
-examples/        Small example programs
-```
+| Goal | Entry point | Guide |
+|---|---|---|
+| Open controls and inspect work | `App/Scripts/dashboard.py` | [Control panel](Documentation/DASHBOARD.md) |
+| Watch the saved G1 on the field | `App/Scripts/visualize.py` | [Viewer](Documentation/Guides/VISUALIZATION.md) |
+| Find the selected weights | `App/Scripts/status.py` | [Models and outputs](Documentation/Guides/OUTPUTS_AND_MODELS.md) |
+| Check installation | `App/robocub.py doctor` | [Setup](Documentation/Guides/SETUP.md) |
+| Understand training/settings | Read before launching | [Training](Documentation/Guides/TRAINING.md) |
 
-Hidden folders such as `.cache/`, `.venv/`, `.run/`, and `.idea/` are local
-infrastructure. See
-[`Documentation/Guides/PROJECT_STRUCTURE.md`](Documentation/Guides/PROJECT_STRUCTURE.md)
-for a detailed map.
+Start with [START_HERE.md](START_HERE.md). The [manual index](Documentation/Guides/README.md)
+separates operator instructions from research evidence.
 
-## Models and Outputs
+## Where things live
 
-The selected model is:
+| Location | Purpose |
+|---|---|
+| [App](App/README.md) | Public buttons, example configs, selected models |
+| `robocub/` | Simulator, trainer and developer utilities |
+| `Artifacts/` | Generated checkpoints, metrics, videos and research results |
+| `Documentation/Guides/` | Operator manual and parameter explanations |
+| `Documentation/Research/` | Contracts, frozen plans and historical decisions |
+| [Scripts](Scripts/README.md) | Legacy remote shell workflows, not the control panel |
+| `tests/`, `examples/` | Regression checks and small developer examples |
 
-```text
-App/Models/T02/logs/checkpoints/1003520/policy
-```
+See [Project structure](Documentation/Guides/PROJECT_STRUCTURE.md).
 
-Single training runs are written under `Artifacts/Runs/`. Parameter sweeps are
-written under `Artifacts/Sweeps/`. Historical research evidence is preserved
-under `Artifacts/Results/` and `Documentation/Research/`.
+## What is demonstrated
 
-The live field demo shows the learned walker inside visible field geometry. It
-does not prove ball interaction, kicking, soccer strategy, Isaac transfer, or
-physical-robot transfer.
+T02 displays a learned G1 walker in a MuJoCo soccer-field scene. It does not
+demonstrate kicking, soccer strategy, physical-robot or Isaac Lab transfer.
+[Isaac Lab Field01](Documentation/Guides/FIELD01.md) is a separate integration track.
+Three-seed certification requires all original numeric, control and visual gates;
+a demo or reward leaderboard is not that certification.
 
-## Sweep Configuration
+Native Windows Python on this machine is not the CUDA training environment.
+Do not launch example training/sweeps alongside the active local GPU batch.
 
-Edit only these files to choose values:
-
-```text
-App/Configs/sweeps/training_hyperparameters.json
-App/Configs/sweeps/environment_hyperparameters.json
-```
-
-The sweep runs every training row against every environment row and writes a
-leaderboard plus a best-trial record.
-
-## Setup
-
-```powershell
-py -3.12 -m venv .venv
-.venv\Scripts\python.exe -m pip install -r requirements.txt
-.venv\Scripts\python.exe App\robocub.py doctor
-```
-
-The Unitree model is resolved from the pinned MuJoCo Menagerie checkout in
-`.cache/mujoco_menagerie/`. Long useful PPO runs require a suitable
-CUDA-enabled JAX environment; the validated native Windows path uses CPU.
-
-## Testing
-
-```powershell
-.venv\Scripts\python.exe -m pytest -q
-```
-
-`pytest.ini` limits discovery to the active tests so copied research snapshots
-under `Artifacts/Results/` are never imported as duplicate tests.
-
-## Research Boundary
-
-Gate 4 has not passed. A corrected historical evaluation balanced for ten
-seconds but stood still under a `0.5 m/s` command. Older normalization-enabled
-evaluations that omitted preprocessing are invalid. Before spending a non-smoke
-training budget, read
-[`Documentation/Research/handoffs/ASTRA_HANDOFF.md`](Documentation/Research/handoffs/ASTRA_HANDOFF.md).
-
-## Attribution
-
-This repository includes Triton Droids simulator work and code derived from
-`toddlerbot`. Unitree G1 assets come from MuJoCo Menagerie at the pinned
-revision recorded by the model resolver. License and attribution details remain
-in `LICENSE` and `NOTICE`.
+Browse [named policies](App/Policies/README.md) and [recordings](Artifacts/Videos/README.md).

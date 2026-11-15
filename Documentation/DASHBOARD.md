@@ -1,48 +1,40 @@
-# RoboCup control center
+# RoboCup control panel
 
-Run `App/Scripts/dashboard.py` with the project interpreter, select **6 RoboCup
-Dashboard** in PyCharm, or use `.venv/Scripts/python.exe App/robocub.py dashboard`.
-The older `App/Scripts/cluster_dashboard.py` button opens this interface too.
-The old sweep dashboard implementation remains available for historical work;
-the new interface never invokes `Scripts/sweep.sh`.
+Run **App/Scripts/dashboard.py**, or choose **6 RoboCup Dashboard** in PyCharm.
 
-Select the laptop or Atlantis for the **next** launch. Selection never migrates
-an active job. **Check compute** verifies local NVIDIA visibility and WSL JAX,
-or queries Atlantis's scheduler. Scheduler availability is not GPU runtime health.
-Every check is timestamped. Unknown, failed and stale states are explicit.
-Saved local progress refreshes every 30 seconds without SSH calls. Use
-**Check selected Slurm job** for current scheduler evidence, shown in Advanced.
-
-**Watch robot on field** uses the existing T02 viewer. **Open results** opens
-the selected run's artifacts. **Inspect selected** shows its saved status or
-receipt. **Stop selected** asks for confirmation, then requests local queue STOP
-or Slurm cancellation. It retains saved checkpoints, not unsaved progress or an
-exact resumable optimizer state. A stale local run must be reconciled first.
-
-## Frozen launch catalog
-
-`App/Configs/dashboard_plans.json` is deliberately empty initially: completed
-LP01 must not be rerun, and the full recovery plans have not yet been registered.
-The disabled launch button explains this. Register a reviewed, committed plan:
-
-```json
-{"version":1,"plans":[{"id":"EXAMPLE","source":"local","enabled":true,
- "plan":"Documentation/Research/queues/EXAMPLE.json","sha256":"EXACT_SHA256"}]}
+```powershell
+.venv\Scripts\python.exe App\Scripts\dashboard.py
 ```
 
-Atlantis entries also require `resources` with `gpu_type` (`rtx2080ti` or `p100`),
-`cpus`, `memory_gb`, and `hours`. Use only the existing authorized research budget.
-The existing snapshot launcher performs schema/resource/clean-commit checks.
-Local launch uses Ubuntu WSL and `.cache/g1_wsl_venv/bin/python`, the queue's lock,
-private compiler cache and explicit reproducible profile. A changed hash, existing
-output, or prior launch attempt blocks resubmission. Failure requires review and
-a fresh path; changing the dropdown does not authorize replaying a finished run.
+`App/Scripts/cluster_dashboard.py` is a compatibility alias for the same panel.
 
-## Additional compute providers
+| Control | Behavior |
+|---|---|
+| Compute selector | Chooses a future launch source; never moves active work |
+| Check compute | Timestamped local NVIDIA/WSL JAX or remote scheduler check; scheduler availability is not GPU health |
+| Refresh saved progress | Reads saved statuses; local display also refreshes every 30 seconds |
+| Check selected Slurm job | Explicit scheduler query; saved remote status may be stale |
+| Inspect selected / Open results | Show saved status/receipt or open output artifacts |
+| Watch robot on field | Saved T02 demo, not the latest selected training checkpoint |
+| Start approved plan | Registered reviewed plan into fresh output paths |
+| Stop selected | Confirmation then local queue STOP or Slurm cancellation |
 
-Add a provider backend with explicit health, launch, status and stop operations,
-then expose its ID in the selector and catalog validation. Do not map an unknown
-provider to Atlantis or claim readiness from SSH connectivity alone. Credentials
-stay outside the catalog in the existing ignored environment configuration.
-Cloud purchasing, automatic GPU discovery/registration, checkpoint migration and
-arbitrary host provisioning are not implemented by this dashboard.
+Saved checkpoints survive stopping; unsaved progress may not. Stop is not exact
+pause/resume. Serial batches also have a supervisor; consult the active contract.
+The panel does not manage Codex scheduled reviews, migrate checkpoints, or resize
+running allocations. Unknown/stale compute evidence must not be treated as ready.
+
+## Disabled launch button
+
+`App/Configs/dashboard_plans.json` may be empty: no new plan is registered.
+Active/completed plans belong in status/history, never in the catalog for replay.
+Maintainers register an approved unlaunched committed plan with `id`, `source`
+(`local` or `atlantis`), `enabled`, project-relative `plan` and exact `sha256`.
+Atlantis also needs `resources`: `gpu_type`, `cpus`, `memory_gb`, `hours`.
+Changed hashes, existing evidence or prior attempts block replay. Reconcile
+failures and use fresh outputs, not button retries.
+
+Local launches use existing Ubuntu WSL, its GPU runtime, queue lock and private
+cache. Additional providers require explicit health/launch/status/stop backends;
+arbitrary provisioning and cloud purchasing are not implemented. This dashboard
+never invokes the legacy `Scripts/sweep.sh`.

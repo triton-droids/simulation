@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Start with `.venv\Scripts\python.exe robocub.py doctor`.
+Start with `.venv\Scripts\python.exe App/robocub.py doctor`.
 
 - **Text but no camera:** wait for compilation, then Alt-Tab to
   `MuJoCo : g1 scene`; PyCharm's Run panel is only the console.

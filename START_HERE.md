@@ -1,91 +1,47 @@
-# Start Here
+# Start here
 
-> Full plain-English manual: [`Documentation/Guides/README.md`](Documentation/Guides/README.md)
+## 1. Open the control panel
 
-This repository follows the same public-script pattern as Pupper. Normal users
-only need the six files in `App/Scripts/`.
+Run **App/Scripts/dashboard.py** from the project. No desktop shortcut or installed application is required.
+In PyCharm choose **6 RoboCup Dashboard** in the run dropdown, then Run.
+The selected configuration determines what starts, not the open editor file.
 
-For Atlantis training, run `App/Scripts/cluster_dashboard.py`. The dashboard
-shows running and finished sweeps, downloads results, displays logs, and lets
-you choose CPU cores, GPU count, GPU type, memory, and time before submission.
-PyCharm also provides the shared **6 Cluster Dashboard** green-button run entry.
-
-Slurm cannot resize a running allocation. To change resources for an active
-sweep, select it in the dashboard and use **Cancel + resubmit**.
-
-## I want to see the robot walk
+Terminal alternative from the project root:
 
 ```powershell
-.venv\Scripts\python.exe Scripts\visualize.py
+.venv\Scripts\python.exe App\Scripts\dashboard.py
 ```
 
-The first launch can spend roughly a minute compiling. A separate window named
-`MuJoCo : g1 scene` then opens. If the console prints commands but no camera is
-visible, use Alt-Tab and select that MuJoCo window.
+If the interpreter is missing, follow [Setup](Documentation/Guides/SETUP.md).
 
-This uses the saved T02 walking policy. The field, goals, and ball are visual in
-this demo; soccer control and kicking are not implemented.
+## 2. Choose an action
 
-## I want to verify training works
+- **Inspect training:** Current work & history, Refresh saved progress, Inspect
+  selected and Open results. Saved state is not always live scheduler state.
+- **Check compute:** choose laptop or Atlantis and click Check compute. This
+  does not transfer an active job. Unknown/stale is not ready.
+- **Watch the robot:** Watch robot on field opens the saved T02 demo, not the
+  latest selected training checkpoint. Avoid extra simulation load during training.
+- **Start training:** Start approved plan only accepts registered reviewed plans.
+  An empty list means nothing new is registered; it is not a broken installation.
+- **Stop:** Stop selected requests a queue/job stop, preserving saved checkpoints.
+  It is not exact pause/resume. Serial research batches have a supervisor; consult
+  the active campaign before stopping them.
 
-```powershell
-.venv\Scripts\python.exe Scripts\train.py --smoke
-```
+See [Control panel](Documentation/DASHBOARD.md) for detailed button behavior.
 
-This is a 1,024-step integration run, not a useful trained policy.
+## 3. Find your files
 
-Each run automatically writes its checkpoints, metrics, final graph, summary,
-and attempted rollout video into a new folder under `Artifacts/Runs/`.
+| Need | Location |
+|---|---|
+| Public launchers | `App/Scripts/` |
+| Example trainer/world settings | `App/Configs/sweeps/` |
+| Named policies and provenance | `App/Policies/` (references original weights) |
+| Browse recordings | `Artifacts/Videos/index.html` |
+| Ordinary training outputs | `Artifacts/Runs/` |
+| Frozen research outputs | `Artifacts/Results/` |
+| Parameter explanations | [Manual index](Documentation/Guides/README.md) |
 
-## I want to compare settings automatically
-
-```powershell
-.venv\Scripts\python.exe Scripts\sweep.py --smoke
-```
-
-Edit `App/Configs/sweeps/training_hyperparameters.json` and
-`App/Configs/sweeps/environment_hyperparameters.json`. Results, a leaderboard, and
-the best-trial record are written under `Artifacts/Sweeps/`.
-
-Full historical-profile training is explicit:
-
-```powershell
-.venv\Scripts\python.exe Scripts\train.py
-```
-
-That profile is not a validated three-seed locomotion recipe.
-
-## I want to know what policy is active
-
-```powershell
-.venv\Scripts\python.exe Scripts\status.py
-```
-
-The selected weights are stored at:
-
-```text
-App/Models/T02/logs/checkpoints/1003520/policy
-```
-
-The matching resolved configuration is:
-
-```text
-App/Models/T02/resolved_config.json
-```
-
-## PyCharm
-
-Use the checked-in run configurations in the top toolbar:
-
-1. `1 Watch Robot`
-2. `2 Train Smoke`
-3. `3 Show Status`
-4. `4 Evaluate T02`
-5. `5 Sweep Smoke`
-
-Internal implementation remains under `robocub/`, `robocub/tools/`, and
-`robocub.soccer/`. Do not run files in `robocub/tools/` unless a development document
-specifically asks for one.
-
-For setup, training values, rewards, field limitations, weights, or common
-failures, use the linked manual instead of guessing from internal scripts.
+The root `Scripts/` holds legacy remote utilities, not the GUI. Do not use its
+sweep script for the active research campaign. No editing `robocub/` is needed
+to open the panel. The field demo is locomotion, not a complete soccer player.

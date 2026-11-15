@@ -241,6 +241,9 @@ class Dashboard:
         ttk.Button(actions, text='Watch robot on field', command=self.watch).pack(side='left')
         ttk.Button(actions, text='Refresh saved progress', command=self.refresh).pack(side='left', padx=8)
         ttk.Button(actions, text='Open results', command=self.open_results).pack(side='left')
+        ttk.Button(actions, text='Policies', command=lambda:self.open_path(ROOT/'App/Policies')).pack(side='left', padx=8)
+        ttk.Button(actions, text='Recordings', command=self.recordings).pack(side='left')
+        ttk.Button(actions, text='Help', command=lambda:self.open_path(ROOT/'START_HERE.md')).pack(side='left', padx=8)
         launch = ttk.Frame(outer); launch.pack(fill='x', pady=(0, 12))
         self.plan = tk.StringVar()
         self.plans = ttk.Combobox(launch, textvariable=self.plan, state='readonly', width=55); self.plans.pack(side='left')
@@ -363,8 +366,17 @@ class Dashboard:
 
     def open_results(self):
         folder = self.selected().folder if self.selected() else ROOT / 'Artifacts/Results'
+        self.open_path(folder)
+
+    def open_path(self, folder):
         if os.name == 'nt': os.startfile(folder)
         else: subprocess.Popen(['xdg-open',str(folder)])
+
+    def recordings(self):
+        # An explicit user action; indexes files only, never loads a simulator.
+        from App.Scripts.index_videos import build_index
+        build_index(ROOT)
+        self.open_path(ROOT/'Artifacts/Videos/index.html')
 
     def watch(self):
         log_path = ROOT / 'Artifacts/Results/dashboard_viewer.log'

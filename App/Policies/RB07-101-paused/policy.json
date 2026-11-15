@@ -1,0 +1,13 @@
+{
+  "name": "RB07-101-paused",
+  "status": "Experimental interrupted parameter continuation; not validated",
+  "run_dir": "Artifacts/Results/local_rb07r_101/train",
+  "checkpoint": 5734400,
+  "weights": "Artifacts/Results/local_rb07r_101/train/logs/checkpoints/5734400/policy",
+  "configuration": "Artifacts/Results/local_rb07r_101/train/resolved_config.json",
+  "manifest": "Artifacts/Results/local_rb07r_101/train/run_manifest.json",
+  "sha256": "ba1919b27ad67f63f8ddf100e3e4bd82168f2b300fdaa45312a07bc4dd2e26a0",
+  "ancestor_steps": 94617600,
+  "exact_resume": false,
+  "storage": "References original files; no copies or automatic selection"
+}

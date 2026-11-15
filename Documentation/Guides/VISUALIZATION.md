@@ -3,7 +3,7 @@
 ## See the robot walk
 
 ```powershell
-.venv\Scripts\python.exe Scripts\visualize.py
+.venv\Scripts\python.exe App\Scripts\visualize.py
 ```
 
 The console first restores checkpoint `1003520` and JAX may compile for about a
@@ -32,13 +32,13 @@ The public script deliberately opens the field. Developers can request the
 flat scene through the CLI:
 
 ```powershell
-.venv\Scripts\python.exe robocub.py watch --scene flat
+.venv\Scripts\python.exe App/robocub.py watch --scene flat
 ```
 
 ## Record a field run
 
 ```powershell
-.venv\Scripts\python.exe robocub.py watch --record runs\field_capture
+.venv\Scripts\python.exe App/robocub.py watch --record runs\field_capture
 ```
 
 Recording behavior and supported output files are controlled by the internal

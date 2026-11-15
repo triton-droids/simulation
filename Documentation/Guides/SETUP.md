@@ -7,7 +7,7 @@ From the repository root:
 ```powershell
 py -3.12 -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
-.venv\Scripts\python.exe robocub.py doctor
+.venv\Scripts\python.exe App/robocub.py doctor
 ```
 
 The doctor command checks Python, the saved T02 artifacts, and every public

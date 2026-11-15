@@ -1,58 +1,42 @@
-# Project Structure
+# Project structure
 
-A normal user does not need to understand the entire repository. The project
-now has six meaningful top-level locations:
-
-```text
-App/             Things normal users run or edit
-Artifacts/       Generated runs, sweeps, results, outputs, and exports
-Documentation/   Beginner guides and preserved research records
-robocub/         Production Python package and internal tools
-tests/           Automated behavior and regression tests
-examples/        Small example programs
-```
-
-## Public Interface
+Public controls live in `App/`, implementation in `robocub/`, generated evidence
+in `Artifacts/`. Operator instructions are separate from research records.
 
 ```text
-App/Scripts/          Watch, train, sweep, evaluate, and status buttons
-App/Configs/sweeps/   JSON lists of parameter values to test
-App/Models/           Named policies selected for normal use
-Artifacts/Runs/       Output from individual training runs
-Artifacts/Sweeps/     Output and leaderboards from parameter sweeps
-Documentation/Guides/ Human instructions
+App/Scripts/dashboard.py  Main GUI launcher
+START_HERE.md              One-page operator instructions
+App/
+  Scripts/                Dashboard, viewer, status, evaluation, example training
+  Configs/                Example parameter bundles and approved launch catalog
+  Policies/               Named policy records and provenance
+  Models/                 Original demo weights (preserved compatibility path)
+robocub/                  Implementation and internal developer utilities
+Artifacts/
+  Runs/                   Ordinary training outputs
+  Sweeps/                 Example matrix outputs
+  Results/                Frozen research runs, reviews and preserved failures
+  Videos/                 Browsable recording index; originals stay with runs
+  Exports/                Generated exports
+Documentation/
+  DASHBOARD.md            Control panel guide
+  Guides/                 Operator manual and parameter explanations
+  Research/               Contracts, frozen plans and experiment history
+Scripts/                  Legacy remote shell workflows; see its README
+tests/                    Regression tests
+examples/                 Small developer examples
 ```
 
-## Internal and Historical Locations
+## Which settings should I edit?
 
-| Folder | Why it exists | Normal users edit it? |
-|---|---|---|
-| `robocub/` | Simulator, PPO, robots, rewards, soccer code, and tools | No |
-| `robocub/user_cli/` | Command orchestration behind `App/Scripts/` | No |
-| `robocub/tools/` | Specialist and legacy developer utilities | No |
-| `robocub/soccer/` | Soccer and Field01 implementation | Only its developers |
-| `Documentation/Research/` | Experiment evidence, decisions, and audits | No |
-| `tests/` | Automated regression checks | No |
-| `.cache/` | Downloaded assets and compilation caches | No |
-| `.venv/` | Installed Python environment | No |
-| `.run/` | Shared PyCharm button definitions | Usually no |
+- Example trainer bundles: `App/Configs/sweeps/training_hyperparameters.json`.
+- Example world bundles: `App/Configs/sweeps/environment_hyperparameters.json`.
+- Approved launch catalog: `App/Configs/dashboard_plans.json`.
+- Research plans: `Documentation/Research/queues/`; never edit active plans or
+  their dependencies. Example sweep settings do not override research queues.
 
-PyCharm excludes `Artifacts/` and cache folders from indexing and its normal
-Project view. If they remain visible, turn off **Show Excluded Files** in the
-Project panel. The files remain on disk; no evidence is deleted.
-
-## Sweep Values
-
-```text
-App/Configs/sweeps/
-|-- training_hyperparameters.json
-`-- environment_hyperparameters.json
-```
-
-Each JSON object is one value bundle. The sweep runs every training bundle
-against every environment bundle. Python contains only validation, the nested
-loop, isolated process launching, and leaderboard generation.
-
-`pytest.ini` prevents copied source snapshots under `Artifacts/Results/` from
-being mistaken for active tests. Without that boundary, Pytest imports duplicate
-modules with identical names and fails during collection.
+Read [Training](TRAINING.md), [PPO](PPO_REFERENCE.md) and [Rewards](REWARDS_REFERENCE.md).
+`.cache/`, `.venv/`, `.idea/` and `.run/` are local infrastructure. PyCharm's
+Show Excluded Files can expose caches/results normally hidden from its project view.
+Hiding them does not delete evidence. `pytest.ini` excludes old source snapshots
+from ordinary test collection. Legacy files remain in place to preserve old paths.

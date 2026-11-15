@@ -1,110 +1,55 @@
-# Training
+# Training: examples versus research
 
-Every public training run now creates one self-contained folder under `Artifacts/Runs/`.
-It automatically records metrics, produces a final graph, attempts a final
-rollout video, and keeps its checkpoints and resolved configuration together.
+| Workflow | Purpose | Results |
+|---|---|---|
+| Smoke test | Check reset, PPO, logging and checkpoint creation | `Artifacts/Runs/` |
+| Historical public trainer | Preserved default profile | `Artifacts/Runs/` |
+| Example parameter matrix | Exercise trainer/world combinations | `Artifacts/Sweeps/` |
+| Frozen research queue | Test a predeclared scientific hypothesis | `Artifacts/Results/` |
 
-## Verify the pipeline first
+A smoke test, high reward or a selected demo is not a three-seed pass. Do not
+start another training job while the local research batch owns the GPU.
 
-```powershell
-.venv\Scripts\python.exe Scripts\train.py --smoke
-```
-
-This runs 1,024 environment steps with a tiny network and writes a checkpoint.
-It answers “can reset, PPO, logging, and checkpointing run?” It does not produce
-a useful walking policy.
-
-The output looks like:
-
-```text
-Artifacts/Runs/run_YYYYMMDD_HHMMSS/
-├── summary.json
-├── progress.json
-├── resolved_config.json
-├── plots/final_progress.png
-├── videos/final_walk-eval.mp4
-└── logs/
-    ├── metrics.jsonl
-    └── checkpoints/
-```
-
-One final best-checkpoint video is automatic by default. If the machine cannot render video,
-training remains valid, prints a warning, and still writes metrics and plots.
-Use `--no-video` only when intentionally running headless or minimizing sweep
-cost.
-
-## Full historical profile
+## Verify the pipeline when compute is free
 
 ```powershell
-.venv\Scripts\python.exe Scripts\train.py
+.venv\Scripts\python.exe App\Scripts\train.py --smoke
 ```
 
-This selects the preserved `ppo_g1` five-million-step profile. The repository
-does not claim that it is a validated three-seed locomotion recipe. Do not start
-it merely to test installation; use `--smoke` instead.
+This runs 1,024 environment steps with a small network, recording checkpoints,
+metrics, configuration and a summary. Plot/video generation depends on runtime;
+inspect outputs rather than assuming a video exists. Without `--smoke`, this
+entry uses the historical profile, not the current research recipe.
+Native Windows JAX on this host uses CPU. GPU research uses verified WSL or an
+approved cluster allocation; selecting a dropdown does not migrate a run.
 
-## What training uses
+## What settings control
 
-- Robot/task: native Unitree G1 velocity task
-- Simulator: MuJoCo XLA (MJX)
-- Trainer: Brax PPO
-- Default logger: local
-- Default seed: `0`
-- Camera: none during the vectorized training loop
+| File | Controls | Explanation |
+|---|---|---|
+| `App/Configs/sweeps/training_hyperparameters.json` | Budget and PPO updates | [PPO](PPO_REFERENCE.md) |
+| `App/Configs/sweeps/environment_hyperparameters.json` | Task/world bundles | [Rewards](REWARDS_REFERENCE.md), [configuration](CONFIGURATION_REFERENCE.md) |
+| Frozen queue JSON | Approved commands, seeds, budgets, checks and outputs | Active research contract |
 
-Training prints metrics, not a live robot window. Many parallel environments
-are stepped for throughput. Watch a saved checkpoint separately with the viewer
-or evaluator.
-
-## Hyperparameter and environment sweeps
-
-The beginner sweep performs the same nested loop used by Pupper:
-
-1. Select one trainer/PPO override bundle.
-2. Pair it with every environment override bundle.
-3. Train each combination in an isolated numbered folder.
-4. Rank completed trials by best evaluation reward.
-
-First verify the complete sweep pipeline with tiny runs:
+The example matrix pairs every trainer bundle with every environment bundle:
 
 ```powershell
-.venv\Scripts\python.exe Scripts\sweep.py --smoke
+.venv\Scripts\python.exe App\Scripts\sweep.py --smoke
 ```
 
-Edit these two files:
+Its leaderboard ranks reward; it does not establish gait quality or permit lucky
+seed/checkpoint selection. It is not a substitute for the bounded investigation.
 
-- `App/Configs/sweeps/training_hyperparameters.json` — PPO/trainer values.
-- `App/Configs/sweeps/environment_hyperparameters.json` — MJX task/world values.
+## Research workflow
 
-The supplied two rows in each file produce four trials. A completed sweep contains:
+Inspect progress/results in the dashboard. Start approved plan only offers
+registered reviewed plans with fresh outputs. An empty catalog is valid.
+The research contract is [CLUSTER_CAMPAIGN.md](../Research/CLUSTER_CAMPAIGN.md);
+current status and continuation handoffs are saved with each run in `Artifacts/Results/`.
+The approved investigation distinguishes replication, training duration,
+implementation defects and architecture limits. No automatic unbounded sweep.
 
-```text
-Artifacts/Sweeps/sweep_YYYYMMDD_HHMMSS/
-├── sweep_config.json
-├── results.json
-├── leaderboard.json
-├── best_trial.json
-├── trial_001/
-├── trial_002/
-└── ...
-```
-
-Run a custom file with:
-
-```powershell
-.venv\Scripts\python.exe Scripts\sweep.py `
-  --training-hyperparameters configs\sweeps\my_training.json `
-  --environment-hyperparameters configs\sweeps\my_environment.json
-```
-
-Use `--no-video` for a large screening sweep, then rerun finalists with video.
-The leaderboard ranks reward; it does not prove walking quality, gait quality,
-or RoboCup readiness. Videos and fixed evaluations still require review.
-
-## Evidence boundary
-
-Gate 4 has not passed. The corrected C06 evaluation in the research record
-balanced for ten seconds but stood still under a `0.5 m/s` forward command.
-Older normalization-enabled evaluations that omitted observation preprocessing
-are invalid and must not be cited. Read `ASTRA_HANDOFF.md` before spending a
-non-smoke training budget.
+Evaluate every prescribed seed/control with the original numeric/control/visual
+gates. Preserve failures. Parameters without optimizer/PRNG/environment state
+support parameter continuation, not exact resume. Recover evaluation from saved
+weights without repeating training. New hypothesis comparisons need approval.
