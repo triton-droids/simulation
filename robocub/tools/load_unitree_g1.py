@@ -38,7 +38,7 @@ def import_mujoco() -> ModuleType:
     except ModuleNotFoundError as error:
         raise SystemExit(
             "MuJoCo is not installed in this Python environment.\n"
-            "Install dependencies with:\n  python -m pip install -r requirements.txt"
+            "Install dependencies with:\n  python -m pip install -r Configs/environments/requirements.txt"
         ) from error
 
 

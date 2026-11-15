@@ -12,4 +12,4 @@ Start with `.venv\Scripts\python.exe Scripts/robocub_cli.py doctor`.
   `Policies/T02/logs/checkpoints/1003520/policy`.
 - **Training only prints numbers:** expected; MJX training has no camera.
 - **`import warp` fails:** use `.venv\Scripts\python.exe` and reinstall
-  `requirements.txt`.
+  `Configs/environments/requirements.txt`.

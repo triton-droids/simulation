@@ -193,7 +193,7 @@ fi
 
 # Keep one reusable Linux GPU environment outside generated sweep folders.
 if [ ! -x ".venv-atlantis/bin/python" ]; then uv venv --python 3.12 .venv-atlantis; fi
-uv pip install --python .venv-atlantis/bin/python -r requirements.txt
+uv pip install --python .venv-atlantis/bin/python -r Configs/environments/requirements.txt
 uv pip install --python .venv-atlantis/bin/python --upgrade 'jax[cuda12]==0.11.0'
 PYTHON="$REPO_DIR/.venv-atlantis/bin/python"
 

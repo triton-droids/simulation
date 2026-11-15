@@ -52,3 +52,17 @@ environment paths. `.run/` is PyCharm's required shared-run-configuration direct
 Both are excluded from the normal IDE project tree. Turn off **Show Excluded Files**
 if your IDE displays them. Pytest temporary files now live under `.cache/pytest/`;
 old temporary files are preserved under `.cache/test-history/`.
+
+## Why these files stay at the root
+
+| File | Purpose |
+|---|---|
+| `README.md` | Main entry point for the project |
+| `.gitignore` | Keeps caches, credentials and generated data out of Git |
+| `.env` | Private local settings used by existing tools; do not commit |
+| `pytest.ini` | Automatic test discovery and cache configuration |
+| `LICENSE`, `NOTICE` | License terms and attribution |
+
+Python dependency lists are organized under
+[Configs/environments](Configs/environments/README.md). No root `START_HERE.md`
+is needed: its instructions were merged here and its old text is archived.

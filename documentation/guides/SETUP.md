@@ -6,7 +6,7 @@ From the repository root:
 
 ```powershell
 py -3.12 -m venv .venv
-.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m pip install -r Configs/environments/requirements.txt
 .venv\Scripts\python.exe Scripts/robocub_cli.py doctor
 ```
 
@@ -30,7 +30,7 @@ robocub/cache directory.
 
 ## Warp
 
-`warp-lang==1.17.0` is pinned in `requirements.txt` and imports as `warp`.
+`warp-lang==1.17.0` is pinned in `Configs/environments/requirements.txt` and imports as `warp`.
 That does not install `mujoco_warp`. The currently pinned MuJoCo version is
 `3.10.0`, while the checked `mujoco_warp` package requires a newer MuJoCo, so
 those packages should not be mixed without a deliberate compatibility update.

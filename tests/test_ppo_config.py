@@ -60,7 +60,7 @@ def test_brax_pmap_reset_axis_workaround_remains_enabled() -> None:
 
 
 def test_pytest_runner_is_declared_for_clean_install() -> None:
-    requirements = Path(__file__).resolve().parents[1] / "requirements.txt"
+    requirements = Path(__file__).resolve().parents[1] / "Configs/environments/requirements.txt"
     declared = requirements.read_text(encoding="utf-8").splitlines()
 
     assert "pytest==8.4.2" in declared
