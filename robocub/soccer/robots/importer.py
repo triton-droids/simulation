@@ -41,7 +41,7 @@ def require_robot(mode,asset=None,metadata=None):
     if not metadata:raise ValueError('Real robot needs --robot_metadata; dimensions/actuator settings cannot be guessed.')
     meta=json.loads(Path(metadata).read_text())
     required={'identity','units','license','initial_height','nominal_joints','kp','kd','effort_limit'}
-    if not required<=meta.keys() or meta.get('units')!='m':raise ValueError('Missing metadata fields or non-meter asset; see App/Configs/robots.example.yaml')
+    if not required<=meta.keys() or meta.get('units')!='m':raise ValueError('Missing metadata fields or non-meter asset; see Configs/robots.example.yaml')
     for key in ('initial_height','kp','kd','effort_limit'):
         if not isinstance(meta[key],(int,float)) or not 0<meta[key]<100000:raise ValueError(f'Invalid {key}')
     info['operator_metadata']=meta

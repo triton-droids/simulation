@@ -35,7 +35,7 @@ def test_launch_rejects_changed_or_used_plan(tmp_path):
     plan = tmp_path/'plan.json'
     plan.write_text('{"output_dir":"Artifacts/Results/new/queue"}')
     entry = dict(id='new',enabled=True,source='local',plan='plan.json',sha256=hashlib.sha256(plan.read_bytes()).hexdigest())
-    catalog = tmp_path/'App/Configs/dashboard_plans.json'
+    catalog = tmp_path/'Configs/dashboard_plans.json'
     catalog.parent.mkdir(parents=True)
     catalog.write_text(json.dumps({'plans':[entry]}))
     service = Service(tmp_path)

@@ -2,7 +2,7 @@
 from pathlib import Path
 import math
 
-DEFAULT_RUN = Path('App/Models/T02')
+DEFAULT_RUN = Path('Policies/T02')
 CHECKPOINT = 1003520
 
 

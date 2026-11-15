@@ -1,52 +1,54 @@
 # Triton Droids RoboCup
 
-**Open the control panel:** run **App/Scripts/dashboard.py** in this project.
-In PyCharm select **6 RoboCup Dashboard**, then Run.
+## Open the GUI
+
+Right-click **Scripts/dashboard.py** in PyCharm and choose Run, or select
+**6 RoboCup Dashboard** in the run dropdown. No desktop shortcut or installed app.
 
 ```powershell
-.venv\Scripts\python.exe App\Scripts\dashboard.py
+.venv\Scripts\python.exe Scripts\dashboard.py
 ```
 
-The panel provides local/Atlantis compute checks, saved progress, results and the
-saved robot viewer. A compute selection affects a future launch; it does not move
-active work. Starting training requires a registered approved plan.
+The panel provides compute checks, saved progress, policies, recordings and a saved
+robot viewer. Opening it does not resume training. **Training and scheduled reviews
+are paused; resume only when explicitly requested.**
 
-## What do you want to do?
-
-| Goal | Entry point | Guide |
-|---|---|---|
-| Open controls and inspect work | `App/Scripts/dashboard.py` | [Control panel](Documentation/DASHBOARD.md) |
-| Watch the saved G1 on the field | `App/Scripts/visualize.py` | [Viewer](Documentation/Guides/VISUALIZATION.md) |
-| Find the selected weights | `App/Scripts/status.py` | [Models and outputs](Documentation/Guides/OUTPUTS_AND_MODELS.md) |
-| Check installation | `App/robocub.py doctor` | [Setup](Documentation/Guides/SETUP.md) |
-| Understand training/settings | Read before launching | [Training](Documentation/Guides/TRAINING.md) |
-
-Start with [START_HERE.md](START_HERE.md). The [manual index](Documentation/Guides/README.md)
-separates operator instructions from research evidence.
-
-## Where things live
-
-| Location | Purpose |
+| Goal | Run or read |
 |---|---|
-| [App](App/README.md) | Public buttons, example configs, selected models |
-| `robocub/` | Simulator, trainer and developer utilities |
-| `Artifacts/` | Generated checkpoints, metrics, videos and research results |
-| `Documentation/Guides/` | Operator manual and parameter explanations |
-| `Documentation/Research/` | Contracts, frozen plans and historical decisions |
-| [Scripts](Scripts/README.md) | Legacy remote shell workflows, not the control panel |
-| `tests/`, `examples/` | Regression checks and small developer examples |
+| Watch the saved T02 walker | `Scripts/visualize.py` |
+| See the selected weights | `Scripts/status.py` |
+| Check installation | `Scripts/robocub_cli.py doctor` |
+| Browse policies | [Policies](Policies/README.md) |
+| Browse recordings | [Video library](Artifacts/Videos/README.md) |
+| Understand controls | [Dashboard guide](documentation/guides/DASHBOARD.md) |
+| Current research status | [CURRENT](documentation/research/CURRENT.md) |
 
-See [Project structure](Documentation/Guides/PROJECT_STRUCTURE.md).
+## Folder map
 
-## What is demonstrated
+```text
+Scripts/                  Things you run directly
+  dashboard.py            GUI entry point
+  examples/               Small controller demonstrations
+  legacy/                 Historical remote shell workflows
+Configs/                  User-facing configuration
+Policies/                 One folder per named policy; T02 includes actual weights
+Artifacts/                Training outputs, videos and research evidence
+documentation/            One documentation index, guides and research archive
+robocub/                  Implementation; normally not edited by operators
+tests/                    Regression checks
+```
 
-T02 displays a learned G1 walker in a MuJoCo soccer-field scene. It does not
-demonstrate kicking, soccer strategy, physical-robot or Isaac Lab transfer.
-[Isaac Lab Field01](Documentation/Guides/FIELD01.md) is a separate integration track.
-Three-seed certification requires all original numeric, control and visual gates;
-a demo or reward leaderboard is not that certification.
+Read [the documentation index](documentation/README.md) for setup, training and
+parameter explanations. Example training/sweep scripts are not the approved research
+campaign. Selecting laptop or Atlantis affects a future launch; it never migrates
+active work. An empty approved-plan list is valid.
 
-Native Windows Python on this machine is not the CUDA training environment.
-Do not launch example training/sweeps alongside the active local GPU batch.
+The T02 scene demonstrates simulated locomotion, not kicking, soccer strategy,
+hardware or Isaac transfer. A demo, reward leaderboard or one successful seed is
+not three-seed certification. Every original numeric/control/visual gate remains.
 
-Browse [named policies](App/Policies/README.md) and [recordings](Artifacts/Videos/README.md).
+`.cache/` holds downloaded assets and the WSL GPU runtime; moving it breaks existing
+environment paths. `.run/` is PyCharm's required shared-run-configuration directory.
+Both are excluded from the normal IDE project tree. Turn off **Show Excluded Files**
+if your IDE displays them. Pytest temporary files now live under `.cache/pytest/`;
+old temporary files are preserved under `.cache/test-history/`.

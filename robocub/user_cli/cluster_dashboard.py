@@ -2,8 +2,8 @@
 
 This module gives ordinary users one visual place to submit RoboCup sweeps,
 inspect running and completed jobs, download snapshots, read logs, and cancel
-jobs. It deliberately delegates deployment and downloads to ``Scripts/sweep.sh``
-and ``Scripts/return.sh`` so the tested shell workflow remains authoritative.
+jobs. It deliberately delegates deployment and downloads to ``Scripts/legacy/sweep.sh``
+and ``Scripts/legacy/return.sh`` so the tested shell workflow remains authoritative.
 """
 
 from __future__ import annotations
@@ -217,7 +217,7 @@ class ClusterService:
         self._validate_label(label)
         settings = parse_env(self.root / ".env")
         ssh_key = windows_path(settings["SSH_KEY_PATH"])
-        remote_pid = f'{settings["SSH_DIRECTORY"]}/Scripts/Outputs/{label}/.remote_pid'
+        remote_pid = f'{settings["SSH_DIRECTORY"]}/Artifacts/LegacyScriptOutputs/{label}/.remote_pid'
         remote_command = (
             f'test -f "{remote_pid}" && job_id=$(cat "{remote_pid}") && '
             'case "$job_id" in (*[!0-9]*|"") exit 2;; esac && '

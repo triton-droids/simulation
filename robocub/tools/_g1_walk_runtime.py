@@ -16,7 +16,7 @@ Avoid Space and Esc: the MuJoCo viewer uses them to pause the display and to
 detach the camera. Mouse drag and scroll still orbit and zoom the camera.
 If the robot falls, it resets after a short pause. Close the window to exit.
 This is the simulation-only development prototype described in
-Documentation/Guides/G1_CONTROLLER.md; it is not a hardware controller.
+documentation/guides/G1_CONTROLLER.md; it is not a hardware controller.
 """
 
 from __future__ import annotations

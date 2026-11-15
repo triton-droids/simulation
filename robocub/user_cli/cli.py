@@ -1,7 +1,7 @@
 """Coordinate the small public scripts without loading simulator dependencies.
 
 This module owns command parsing, canonical model paths, run-directory naming,
-and subprocess launching. Keeping that work here lets every file in `App/Scripts/`
+and subprocess launching. Keeping that work here lets every file in `Scripts/`
 remain an obvious one-purpose button for non-expert users.
 """
 
@@ -18,7 +18,7 @@ from typing import Sequence
 
 
 ROOT = Path(__file__).resolve().parents[2]
-T02_RUN = ROOT / "App" / "Models" / "T02"
+T02_RUN = ROOT / "Policies" / "T02"
 T02_CHECKPOINT = 1_003_520
 T02_CHECKPOINT_DIR = T02_RUN / "logs" / "checkpoints" / str(T02_CHECKPOINT)
 T02_POLICY = T02_CHECKPOINT_DIR / "policy"

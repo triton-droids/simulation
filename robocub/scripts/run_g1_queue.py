@@ -1,6 +1,6 @@
 """Run frozen, bounded G1 experiment queues without an LLM or cloud service.
 
-Linux/WSL execution: python robocub/scripts/run_g1_queue.py --plan Documentation/Research/queues/...
+Linux/WSL execution: python robocub/scripts/run_g1_queue.py --plan documentation/research/queues/...
 Each job runs serially, then applies explicit numeric gates. Visual review remains
 required. Errors stop the queue; scientific rejection proceeds to the next
 independently predeclared job. Never retries or overwrites experiment evidence.

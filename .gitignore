@@ -22,12 +22,16 @@ Artifacts/Outputs/
 Artifacts/Results/
 wandb/
 runs/
-App/Models/T02/
+Policies/T02/
+!Policies/T02/
+Policies/T02/*
+!Policies/T02/README.md
+!Policies/T02/policy.json
 Artifacts/Runs/
 Artifacts/Sweeps/
 Artifacts/Videos/index.json
 Artifacts/Videos/index.html
-Scripts/Outputs/
+Artifacts/LegacyScriptOutputs/
 Scripts/.sweep_counter
 
 # Python/tool caches

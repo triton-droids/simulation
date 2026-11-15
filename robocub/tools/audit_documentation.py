@@ -15,7 +15,7 @@ from typing import Iterable, Sequence
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_PATHS = ("App/Scripts", "robocub")
+DEFAULT_PATHS = ("Scripts", "robocub")
 IGNORED_PARTS = {".cache", ".git", ".venv", "__pycache__"}
 
 

@@ -211,7 +211,7 @@ def main() -> None:
     if not policy_path.is_file():
         raise FileNotFoundError(
             f"Missing shipped policy: {policy_path}. Expand the pinned Playground "
-            "sparse checkout as documented in Documentation/Research/handoffs/ASTRA_HANDOFF.md."
+            "sparse checkout as documented in documentation/research/archive/handoffs/ASTRA_HANDOFF.md."
         )
     policy_sha256 = _sha256(policy_path)
     if policy_sha256 != EXPECTED_ONNX_SHA256:

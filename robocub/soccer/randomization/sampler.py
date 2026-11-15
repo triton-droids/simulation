@@ -13,7 +13,7 @@ def digest(value):return hashlib.sha256(json.dumps(value,sort_keys=True,separato
 class Sampler:
     def __init__(self,field=None,seed=42,preset='mild',backend='isaaclab',rank=0,suite='train',config=None):
         self.field=field or Field();self.seed=int(seed);self.preset=preset;self.backend=backend;self.rank=int(rank);self.suite=suite
-        self.config=config or yaml.safe_load((ROOT/'App/Configs/randomization_field01.yaml').read_text())
+        self.config=config or yaml.safe_load((ROOT/'Configs/randomization_field01.yaml').read_text())
         if preset not in self.config['presets']:raise ValueError('Unknown preset')
         if suite not in SUITES:raise ValueError('Unknown suite')
         if preset=='stress' and suite!='heldout':raise ValueError('Stress is held-out only')

@@ -16,7 +16,7 @@ import sys
 import threading
 
 ROOT = Path(__file__).resolve().parents[2]
-CATALOG = ROOT / 'App/Configs/dashboard_plans.json'
+CATALOG = ROOT / 'Configs/dashboard_plans.json'
 
 
 def read_json(path):
@@ -94,7 +94,7 @@ class Service:
         return sorted(found, key=lambda r: r.updated, reverse=True)
 
     def approved(self, source):
-        entries = read_json(self.root / 'App/Configs/dashboard_plans.json').get('plans', [])
+        entries = read_json(self.root / 'Configs/dashboard_plans.json').get('plans', [])
         return [e for e in entries if e.get('enabled') is True and e.get('source') == source]
 
     def validate_entry(self, entry):
@@ -241,9 +241,9 @@ class Dashboard:
         ttk.Button(actions, text='Watch robot on field', command=self.watch).pack(side='left')
         ttk.Button(actions, text='Refresh saved progress', command=self.refresh).pack(side='left', padx=8)
         ttk.Button(actions, text='Open results', command=self.open_results).pack(side='left')
-        ttk.Button(actions, text='Policies', command=lambda:self.open_path(ROOT/'App/Policies')).pack(side='left', padx=8)
+        ttk.Button(actions, text='Policies', command=lambda:self.open_path(ROOT/'Policies')).pack(side='left', padx=8)
         ttk.Button(actions, text='Recordings', command=self.recordings).pack(side='left')
-        ttk.Button(actions, text='Help', command=lambda:self.open_path(ROOT/'START_HERE.md')).pack(side='left', padx=8)
+        ttk.Button(actions, text='Help', command=lambda:self.open_path(ROOT/'README.md')).pack(side='left', padx=8)
         launch = ttk.Frame(outer); launch.pack(fill='x', pady=(0, 12))
         self.plan = tk.StringVar()
         self.plans = ttk.Combobox(launch, textvariable=self.plan, state='readonly', width=55); self.plans.pack(side='left')
@@ -264,7 +264,7 @@ class Dashboard:
         self.activity.pack(fill='both', expand=True)
         self.log('Compute checks are explicit; saved local progress refreshes every 30 seconds.\n'
                  'Stale heartbeats are not running jobs. Cluster records require a Slurm check.\n'
-                 'Plans are enabled by reviewed ID + SHA256 in App/Configs/dashboard_plans.json.\n'
+                 'Plans are enabled by reviewed ID + SHA256 in Configs/dashboard_plans.json.\n'
                  'New compute providers require a health/launch/status/stop adapter, not just a display name.\n'
                  'Stopping keeps existing checkpoints but does not save an exact resumable training state.')
         self.rows = {}; self.refresh(); self.source_changed()
@@ -374,7 +374,7 @@ class Dashboard:
 
     def recordings(self):
         # An explicit user action; indexes files only, never loads a simulator.
-        from App.Scripts.index_videos import build_index
+        from Scripts.index_videos import build_index
         build_index(ROOT)
         self.open_path(ROOT/'Artifacts/Videos/index.html')
 
@@ -382,7 +382,7 @@ class Dashboard:
         log_path = ROOT / 'Artifacts/Results/dashboard_viewer.log'
         log_path.parent.mkdir(parents=True, exist_ok=True)
         with log_path.open('a') as log:
-            subprocess.Popen([sys.executable,str(ROOT/'App/robocub.py'),'watch','--scene','field'],cwd=ROOT,
+            subprocess.Popen([sys.executable,str(ROOT/'Scripts/robocub_cli.py'),'watch','--scene','field'],cwd=ROOT,
                              stdout=log,stderr=subprocess.STDOUT)
         self.log('Viewer requested; startup diagnostics: ' + str(log_path))
 

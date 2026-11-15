@@ -19,7 +19,7 @@ def main():
     import mujoco,cv2
     c=SimulationController(args.run_dir)
     args.output_dir.mkdir(parents=True,exist_ok=False)
-    commands=json.loads((ROOT/'Documentation/Research/queues/final_f1_commands.json').read_text())
+    commands=json.loads((ROOT/'documentation/research/queues/final_f1_commands.json').read_text())
     profiles=([(k,[(k,v,500)]) for k,v in commands.items()] if args.profile=='fixed' else
         [('smoke',[('stand',[0,0,0],5)])] if args.profile=='smoke' else
         [('move_turn_stop',[('forward',commands['forward'],500),('turn_left',commands['turn_left'],500),('stand',[0,0,0],500)])])

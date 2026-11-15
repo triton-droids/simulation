@@ -14,7 +14,7 @@ from robocub.tools.local_recovery_batch import ROOT, stop_queue, validate_manife
 
 class RecoveryBatchTests(unittest.TestCase):
     def setUp(self):
-        self.manifest = json.loads((ROOT/'Documentation/Research/queues/local_rb07_recovery_batch.json').read_text())
+        self.manifest = json.loads((ROOT/'documentation/research/queues/local_rb07_recovery_batch.json').read_text())
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
@@ -39,7 +39,7 @@ class RecoveryBatchTests(unittest.TestCase):
                 validate_manifest(manifest,self.root)
 
     def test_existing_batch_rejected(self):
-        self.manifest['output_dir'] = 'Documentation/Research'
+        self.manifest['output_dir'] = 'documentation/research'
         with self.assertRaisesRegex(ValueError, 'Existing batch'):
             validate_manifest(self.manifest,self.root)
 
@@ -59,8 +59,8 @@ class RecoveryBatchTests(unittest.TestCase):
 
     def test_gates_and_original_controls_preserved(self):
         for seed, remaining in ((101,306790400),(202,312524800),(303,312524800)):
-            original = json.loads((ROOT/f'Documentation/Research/queues/cluster_rb07_{seed}.json').read_text())
-            local = json.loads((ROOT/f'Documentation/Research/queues/local_rb07r_{seed}.json').read_text())
+            original = json.loads((ROOT/f'documentation/research/queues/cluster_rb07_{seed}.json').read_text())
+            local = json.loads((ROOT/f'documentation/research/queues/local_rb07r_{seed}.json').read_text())
             for old,new in zip(original['jobs'][1:],local['jobs'][1:]):
                 for key in ('gate','requires_screening','screening_only'):
                     self.assertEqual(old.get(key),new.get(key))

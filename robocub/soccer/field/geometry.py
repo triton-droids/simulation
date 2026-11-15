@@ -47,7 +47,7 @@ class Field:
 
     @classmethod
     def load(cls, profile='medium_14x9'):
-        path = ROOT/'App/Configs/field_profiles'/f'{profile}.yaml'
+        path = ROOT/'Configs/field_profiles'/f'{profile}.yaml'
         return cls(**yaml.safe_load(path.read_text()))
 
 

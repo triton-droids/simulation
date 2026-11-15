@@ -1,13 +1,19 @@
-# Legacy remote shell workflows
+# Public launch scripts
 
-**The GUI is `App/Scripts/dashboard.py`.** Run that script, or choose **6 RoboCup Dashboard** in PyCharm.
+**Run dashboard.py** for the GUI. Its Help button opens the project README.
 
-| File | Historical purpose |
+| Script | Purpose |
 |---|---|
-| `sweep.sh` | Remote sweep, including Git commit/push and remote checkout preparation |
-| `return.sh` | Result downloads; optional remote cleanup depends on local configuration |
-| `Outputs/` | Preserved legacy outputs |
+| `dashboard.py` | Control panel |
+| `visualize.py` | Saved T02 robot viewer |
+| `status.py` | Selected policy and exact weight path |
+| `evaluate.py` | Selected-policy evaluation |
+| `train.py` | Historical/example trainer; smoke test is not a trained policy |
+| `sweep.py` | Example parameter matrix, not the frozen research campaign |
+| `index_videos.py` | Refresh the video index without changing recordings |
+| `robocub_cli.py` | CLI including doctor/dashboard/watch |
+| `cluster_dashboard.py` | Compatibility alias for dashboard.py |
+| `examples/` | Small controller demonstrations |
+| `legacy/` | Preserved remote shell workflows; not the active campaign |
 
-These are not the active bounded research launcher. The control panel does not
-invoke `sweep.sh`. Keep these paths for historical compatibility; their presence
-does not make them recommended entry points. Do not use them for the current campaign.
+Run from the repository root. [Start here](../README.md).

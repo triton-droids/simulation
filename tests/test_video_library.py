@@ -1,4 +1,4 @@
-from App.Scripts.index_videos import build_index
+from Scripts.index_videos import build_index
 
 
 def test_index_preserves_originals_and_escapes_links(tmp_path):

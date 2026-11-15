@@ -70,7 +70,7 @@ def run_sweep(
             raise ValueError(f"Trainer/environment keys overlap: {sorted(overlap)}")
         command = [
             sys.executable,
-            str(ROOT / "App" / "Scripts" / "train.py"),
+            str(ROOT / "Scripts" / "train.py"),
             *( ["--smoke"] if smoke else [] ),
             "--run-dir", str(trial_dir),
             "--video" if video else "--no-video",
@@ -112,13 +112,13 @@ def main() -> int:
     parser.add_argument(
         "--training-hyperparameters",
         type=Path,
-        default=ROOT / "App" / "Configs" / "sweeps" / "training_hyperparameters.json",
+        default=ROOT / "Configs" / "sweeps" / "training_hyperparameters.json",
         help="JSON list of PPO/trainer value bundles to test.",
     )
     parser.add_argument(
         "--environment-hyperparameters",
         type=Path,
-        default=ROOT / "App" / "Configs" / "sweeps" / "environment_hyperparameters.json",
+        default=ROOT / "Configs" / "sweeps" / "environment_hyperparameters.json",
         help="JSON list of MJX environment value bundles to test.",
     )
     parser.add_argument("--output-dir", type=Path, default=None)

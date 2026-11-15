@@ -1,0 +1,13 @@
+{
+  "name": "T02",
+  "status": "Saved simulation demo; not a three-seed certification",
+  "run_dir": "Policies/T02",
+  "checkpoint": 1003520,
+  "weights": "Policies/T02/logs/checkpoints/1003520/policy",
+  "configuration": "Policies/T02/resolved_config.json",
+  "manifest": "Policies/T02/run_manifest.json",
+  "sha256": "92465070a5c75600c3e35951c301a042cfa41d40883fc1ad0042ed1410efee20",
+  "ancestor_steps": null,
+  "exact_resume": false,
+  "storage": "References original files; no copies or automatic selection"
+}

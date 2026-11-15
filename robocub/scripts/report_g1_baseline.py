@@ -3,7 +3,7 @@
 This script deliberately consumes completed evaluation artifacts rather than
 running policies.  It validates the frozen commands/reset seeds, preserves
 per-policy results, and computes the decision rule declared in
-``Documentation/Research/EXPERIMENT_PLAN.md`` before the held-out suite was inspected.
+``documentation/research/archive/EXPERIMENT_PLAN.md`` before the held-out suite was inspected.
 """
 
 from __future__ import annotations

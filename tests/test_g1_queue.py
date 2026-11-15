@@ -32,7 +32,7 @@ class QueueTests(unittest.TestCase):
         self.assertTrue(screening_allows(job, [{'id': 'screen', 'status': 'screening_passed'}]))
 
     def test_screen_rejects_future_or_non_screen_dependency(self):
-        plan=json.loads((Path(__file__).resolve().parents[1]/'Documentation/Research/queues/c16_balance.json').read_text())
+        plan=json.loads((Path(__file__).resolve().parents[1]/'documentation/research/queues/c16_balance.json').read_text())
         plan['jobs'][0]['requires_screening']=['missing']
         with self.assertRaises(ValueError): validate_plan(plan,self.root)
 
@@ -63,7 +63,7 @@ class QueueTests(unittest.TestCase):
         p=self.root/'episodes.csv'
         with p.open('w', newline='') as f:
             writer=csv.DictWriter(f, fieldnames=rows[0].keys());writer.writeheader();writer.writerows(rows)
-        plan=json.loads((Path(__file__).resolve().parents[1]/'Documentation/Research/queues/c16_balance.json').read_text())
+        plan=json.loads((Path(__file__).resolve().parents[1]/'documentation/research/queues/c16_balance.json').read_text())
         return assess_gate(p,plan['jobs'][0]['gate'])
 
     def test_balance_pass_still_requires_visual_review(self):
@@ -125,7 +125,7 @@ class QueueTests(unittest.TestCase):
         runner.write_text((project/'robocub/scripts/run_g1_queue.py').read_text())
         (self.root/'.gitignore').write_text('Artifacts/Results/\n__pycache__/\n')
         (self.root/'crlf_fixture.txt').write_bytes(b'unchanged content\n')
-        plan=json.loads((project/'Documentation/Research/queues/c16_balance.json').read_text())
+        plan=json.loads((project/'documentation/research/queues/c16_balance.json').read_text())
         plan['output_dir']='Artifacts/Results/queue'
         job=plan['jobs'][0]
         job['episodes_csv']='Artifacts/Results/eval/episodes.csv'

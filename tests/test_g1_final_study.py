@@ -15,7 +15,7 @@ class FinalStudyTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
-        self.protocol = json.loads((ROOT / 'Documentation/Research/queues/final_f1_protocol.json').read_text())
+        self.protocol = json.loads((ROOT / 'documentation/research/queues/final_f1_protocol.json').read_text())
         self.plan = json.loads((ROOT / self.protocol['queue_plan']).read_text())
 
     def write(self, path, value):
