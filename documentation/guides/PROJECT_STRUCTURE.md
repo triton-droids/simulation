@@ -14,7 +14,7 @@
 | `documentation/research/archive/` | Historical reports, decisions and handoffs |
 | `robocub/`, `tests/` | Implementation and regression checks |
 
-T02 weights are physically in Policies/T02. Other named policy folders point to
+T02 weights are physically in Policies/g1-walking-demo. Other named policy folders point to
 their original experiment checkpoints to preserve evidence. Add a new policy using
 the [policy template](../../Policies/TEMPLATE.md), never by overwriting an old one.
 

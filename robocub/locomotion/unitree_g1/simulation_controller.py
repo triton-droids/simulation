@@ -2,7 +2,7 @@
 from pathlib import Path
 import math
 
-DEFAULT_RUN = Path('Policies/T02')
+DEFAULT_RUN = Path('Policies/g1-walking-demo')
 CHECKPOINT = 1003520
 
 
@@ -17,7 +17,7 @@ def validate_command(command):
 
 class SimulationController:
     """Owns simulated robot state. No hardware transport or automatic fall reset."""
-    def __init__(self, run_dir=DEFAULT_RUN):
+    def __init__(self, run_dir=DEFAULT_RUN, checkpoint=CHECKPOINT):
         import functools
         import jax
         import jax.numpy as jp
@@ -26,9 +26,9 @@ class SimulationController:
         from omegaconf import OmegaConf
         from robocub.scripts import evaluate_g1 as ev
         self.run_dir = Path(run_dir).resolve()
-        policy = self.run_dir/'logs/checkpoints'/str(CHECKPOINT)/'policy'
+        policy = self.run_dir/'logs/checkpoints'/str(int(checkpoint))/'policy'
         if not policy.is_file() or not (self.run_dir/'resolved_config.json').is_file():
-            raise FileNotFoundError(f'T02 checkpoint/config missing in {self.run_dir}; provision the handoff artifacts first')
+            raise FileNotFoundError(f'Selected checkpoint/config missing in {self.run_dir}; provision the handoff artifacts first')
         cfg = OmegaConf.load(self.run_dir/'resolved_config.json')
         cfg.robot.fetch_model = False
         cfg.sim.playground.fetch_source = False

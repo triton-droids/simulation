@@ -103,7 +103,7 @@ class Pilot:
         return TOUR[-1][0], TOUR[-1][1]
 
 
-def simulate(keys: mp.Queue, frames: mp.Queue) -> None:
+def simulate(keys: mp.Queue, frames: mp.Queue, run_dir=None, checkpoint=None) -> None:
     """Child process: run the policy at real time and stream qpos to the viewer.
 
     The policy runs in its own process because sharing one interpreter with the
@@ -118,9 +118,11 @@ def simulate(keys: mp.Queue, frames: mp.Queue) -> None:
         SimulationController,
     )
 
-    print(f"Loading T02 policy (checkpoint {CHECKPOINT}) from {DEFAULT_RUN} ...", flush=True)
+    run_dir = Path(run_dir) if run_dir else PROJECT_ROOT / DEFAULT_RUN
+    checkpoint = CHECKPOINT if checkpoint is None else checkpoint
+    print(f"Loading checkpoint {checkpoint} from {run_dir} ...", flush=True)
     try:
-        robot = SimulationController(PROJECT_ROOT / DEFAULT_RUN)
+        robot = SimulationController(run_dir, checkpoint=checkpoint)
     except FileNotFoundError as error:
         frames.put(("error", str(error)))
         return

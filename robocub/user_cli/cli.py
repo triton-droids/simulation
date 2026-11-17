@@ -18,7 +18,7 @@ from typing import Sequence
 
 
 ROOT = Path(__file__).resolve().parents[2]
-T02_RUN = ROOT / "Policies" / "T02"
+T02_RUN = ROOT / "Policies" / "g1-walking-demo"
 T02_CHECKPOINT = 1_003_520
 T02_CHECKPOINT_DIR = T02_RUN / "logs" / "checkpoints" / str(T02_CHECKPOINT)
 T02_POLICY = T02_CHECKPOINT_DIR / "policy"

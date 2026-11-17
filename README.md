@@ -66,3 +66,7 @@ old temporary files are preserved under `.cache/test-history/`.
 Python dependency lists are organized under
 [Configs/environments](Configs/environments/README.md). No root `START_HERE.md`
 is needed: its instructions were merged here and its old text is archived.
+
+### Quick checkpoint workflow
+
+In **Policies & saved checkpoints**, choose a named policy, select its timestamped checkpoint, click **Load checkpoint**, then **Watch loaded checkpoint**. The viewer uses that exact saved policy. **Prepare training selection** saves a draft only; training remains paused. Research IDs and original checkpoint files remain unchanged.

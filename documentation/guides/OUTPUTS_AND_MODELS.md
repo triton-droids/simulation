@@ -16,7 +16,7 @@ Policies/
 `resolved_config.json` records the matching training configuration. Run
 `Scripts/status.py` instead of guessing which model is active.
 
-`Policies/T02/` is local and ignored by Git. A fresh clone does not
+`Policies/g1-walking-demo/` is local and ignored by Git. A fresh clone does not
 automatically contain the weights.
 
 ## Folder Meanings

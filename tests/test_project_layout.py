@@ -42,4 +42,4 @@ def test_library_and_cli_use_repository_root():
     from Scripts.index_videos import ROOT as library_root
     from robocub.user_cli.cli import T02_RUN
     assert library_root == ROOT
-    assert T02_RUN == ROOT/'Policies/T02'
+    assert T02_RUN == ROOT/'Policies/g1-walking-demo'

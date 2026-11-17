@@ -1,19 +1,22 @@
 [
   {
-    "name": "T02",
+    "name": "g1-walking-demo",
     "status": "Saved simulation demo; not a three-seed certification",
-    "run_dir": "Policies/T02",
+    "run_dir": "Policies/g1-walking-demo",
     "checkpoint": 1003520,
-    "weights": "Policies/T02/logs/checkpoints/1003520/policy",
-    "configuration": "Policies/T02/resolved_config.json",
-    "manifest": "Policies/T02/run_manifest.json",
+    "weights": "Policies/g1-walking-demo/logs/checkpoints/1003520/policy",
+    "configuration": "Policies/g1-walking-demo/resolved_config.json",
+    "manifest": "Policies/g1-walking-demo/run_manifest.json",
     "sha256": "92465070a5c75600c3e35951c301a042cfa41d40883fc1ad0042ed1410efee20",
     "ancestor_steps": null,
     "exact_resume": false,
-    "storage": "References original files; no copies or automatic selection"
+    "storage": "References original files; no copies or automatic selection",
+    "display_name": "G1 walking demo",
+    "experiment_id": "T02",
+    "library_dir": "Policies/g1-walking-demo"
   },
   {
-    "name": "RB07-101-paused",
+    "name": "g1-walking-replica-1",
     "status": "Experimental interrupted parameter continuation; not validated",
     "run_dir": "Artifacts/Results/local_rb07r_101/train",
     "checkpoint": 5734400,
@@ -23,10 +26,15 @@
     "sha256": "ba1919b27ad67f63f8ddf100e3e4bd82168f2b300fdaa45312a07bc4dd2e26a0",
     "ancestor_steps": 94617600,
     "exact_resume": false,
-    "storage": "References original files; no copies or automatic selection"
+    "storage": "References original files; no copies or automatic selection",
+    "display_name": "G1 experimental walking - replica 1 (seed 101)",
+    "experiment_id": "RB07-101-paused",
+    "library_dir": "Policies/g1-walking-experimental/replica-1",
+    "seed": 101,
+    "previous_name": "g1-velocity-tracking-seed101"
   },
   {
-    "name": "RB07-202-parent",
+    "name": "g1-walking-replica-2",
     "status": "Experimental original parent; local continuation not started",
     "run_dir": "Artifacts/Results/local_rb07_parents/202",
     "checkpoint": 88883200,
@@ -36,10 +44,15 @@
     "sha256": "1b192edca02e01567c3057757e57d11090eda9d1f517793c530194edfff9b2f3",
     "ancestor_steps": null,
     "exact_resume": false,
-    "storage": "References original files; no copies or automatic selection"
+    "storage": "References original files; no copies or automatic selection",
+    "display_name": "G1 experimental walking - replica 2 (seed 202)",
+    "experiment_id": "RB07-202-parent",
+    "library_dir": "Policies/g1-walking-experimental/replica-2",
+    "seed": 202,
+    "previous_name": "g1-velocity-tracking-seed202"
   },
   {
-    "name": "RB07-303-parent",
+    "name": "g1-walking-replica-3",
     "status": "Experimental original parent; local continuation not started",
     "run_dir": "Artifacts/Results/local_rb07_parents/303",
     "checkpoint": 88883200,
@@ -49,6 +62,11 @@
     "sha256": "7bf8091ccd59cb0dd4c15ea7d1c3b72230ab469c8d82eb06104c1773206b2a3c",
     "ancestor_steps": null,
     "exact_resume": false,
-    "storage": "References original files; no copies or automatic selection"
+    "storage": "References original files; no copies or automatic selection",
+    "display_name": "G1 experimental walking - replica 3 (seed 303)",
+    "experiment_id": "RB07-303-parent",
+    "library_dir": "Policies/g1-walking-experimental/replica-3",
+    "seed": 303,
+    "previous_name": "g1-velocity-tracking-seed303"
   }
 ]

@@ -42,11 +42,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--record', type=Path, help='Record a bounded 12-second demo instead of opening a window')
     parser.add_argument('--view_seconds', type=float, default=0, help='Optional automatic viewer close for smoke tests')
+    parser.add_argument('--run-dir', type=Path)
+    parser.add_argument('--checkpoint', type=int)
     args = parser.parse_args()
     keys, frames = mp.Queue(), mp.Queue()
-    worker = mp.Process(target=walk.simulate, args=(keys, frames), daemon=True)
+    worker = mp.Process(target=walk.simulate, args=(keys, frames, args.run_dir, args.checkpoint), daemon=True)
     worker.start()
-    print('Loading learned T02 G1 policy. First launch compiles before opening the viewer.', flush=True)
+    print('Loading selected G1 policy. First launch compiles before opening the viewer.', flush=True)
     try:
         while True:
             try: kind, model = frames.get(timeout=1); break
@@ -98,7 +100,7 @@ def main():
                     cv2.imwrite(str(args.record/'field.png'),cv2.cvtColor(renderer.render(),cv2.COLOR_RGB2BGR))
                 finally: writer.release()
             (args.record/'trajectory.json').write_text(json.dumps(rows,indent=2))
-            summary={'backend':'MuJoCo T02 learned policy; visual field overlay', 'samples':len(rows),
+            summary={'backend':'MuJoCo selected learned policy; visual field overlay', 'run_dir':str(args.run_dir), 'checkpoint':args.checkpoint, 'samples':len(rows),
                 'min_root_height':min(r['root'][2] for r in rows),
                 'xy_displacement':float(np.linalg.norm(np.array(rows[-1]['root'][:2])-rows[0]['root'][:2])),
                 'limitations':'Goals and ball are visual only; tour may automatically reset after a fall.'}

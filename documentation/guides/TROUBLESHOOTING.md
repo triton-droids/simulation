@@ -9,7 +9,7 @@ Start with `.venv\Scripts\python.exe Scripts/robocub_cli.py doctor`.
 - **Wrong green-button target:** select the desired run configuration, or
   right-click the open editor and choose Run.
 - **Missing weights:** restore the local, Git-ignored file
-  `Policies/T02/logs/checkpoints/1003520/policy`.
+  `Policies/g1-walking-demo/logs/checkpoints/1003520/policy`.
 - **Training only prints numbers:** expected; MJX training has no camera.
 - **`import warp` fails:** use `.venv\Scripts\python.exe` and reinstall
   `Configs/environments/requirements.txt`.

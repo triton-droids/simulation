@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "output_dir": "Artifacts/Results/local_rb07_resume_20261117/batch",
+  "max_wall_seconds": 225180,
+  "runs": [
+    {
+      "id": "local_rb07s_101",
+      "plan": "documentation/research/queues/local_rb07s_101.json",
+      "sha256": "95f218e9a65b93174e2f1b2fd0ec4c4707c8fd68a15eed0b19696e9bbad2fb99"
+    },
+    {
+      "id": "local_rb07s_202",
+      "plan": "documentation/research/queues/local_rb07s_202.json",
+      "sha256": "50283ca4dc2b8593c3d7abe2809f2bacc6dd0e609ba40531aefe6f0799a5dc22"
+    },
+    {
+      "id": "local_rb07s_303",
+      "plan": "documentation/research/queues/local_rb07s_303.json",
+      "sha256": "1d6b666f4a8f28970443d60128dd9631f654b1576668ff15cb1a266c3d51f67d"
+    }
+  ]
+}

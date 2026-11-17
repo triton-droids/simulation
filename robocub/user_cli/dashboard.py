@@ -162,6 +162,8 @@ class Service:
         return 'Cancellation requested for job ' + job + '; check Slurm to confirm.'
 
     def launch(self, entry):
+        if (self.root / 'Artifacts/Results/local_rb07_recovery/USER_PAUSED.txt').exists():
+            raise ValueError('Training is paused by the user. Resume must be explicitly authorized first.')
         self.validate_entry(entry)
         # Local launching is delegated to the Linux path below, not Windows CPU JAX.
         args = ['-m', 'robocub.user_cli.dashboard', '--launch-local', entry['id']]
@@ -179,6 +181,8 @@ class Service:
 
 
 def launch_local(identifier):
+    if (ROOT/'Artifacts/Results/local_rb07_recovery/USER_PAUSED.txt').exists():
+        raise ValueError('Training is paused by the user')
     if sys.platform != 'linux':
         raise ValueError('Local training requires the configured Linux/WSL runtime')
     service = Service()
@@ -219,16 +223,16 @@ class Dashboard:
         self.remote_cache = {}
         self.root = tk.Tk()
         self.root.title('Triton Droids | RoboCup control center')
-        self.root.geometry('1100x760')
+        self.root.geometry('1100x800')
         self.root.minsize(900, 640)
         style = ttk.Style(self.root)
         style.theme_use('clam')
         style.configure('.', font=('Segoe UI', 10))
         style.configure('Title.TLabel', font=('Segoe UI', 22, 'bold'))
         style.configure('Treeview', rowheight=29)
-        outer = ttk.Frame(self.root, padding=22); outer.pack(fill='both', expand=True)
+        outer = ttk.Frame(self.root, padding=12); outer.pack(fill='both', expand=True)
         ttk.Label(outer, text='RoboCup control center', style='Title.TLabel').pack(anchor='w')
-        ttk.Label(outer, text='Unitree G1  /  Simulation research  /  Three-seed validation still pending').pack(anchor='w', pady=(2, 18))
+        ttk.Label(outer, text='Unitree G1 | Three-seed validation pending | Training paused' if (self.service.root/'Artifacts/Results/local_rb07_recovery/USER_PAUSED.txt').exists() else 'Unitree G1 | Three-seed validation pending').pack(anchor='w', pady=(2, 18))
         compute = ttk.LabelFrame(outer, text='1  Compute for the next launch', padding=12); compute.pack(fill='x')
         self.source = tk.StringVar(value='This laptop · RTX 4060 (WSL)')
         choices = ('This laptop · RTX 4060 (WSL)', 'Atlantis cluster')
@@ -238,10 +242,9 @@ class Dashboard:
         self.health = tk.StringVar(value='Unknown — click Check compute. Selection does not move existing work.')
         ttk.Label(outer, textvariable=self.health, wraplength=1000).pack(anchor='w', pady=8)
         actions = ttk.Frame(outer); actions.pack(fill='x', pady=8)
-        ttk.Button(actions, text='Watch robot on field', command=self.watch).pack(side='left')
         ttk.Button(actions, text='Refresh saved progress', command=self.refresh).pack(side='left', padx=8)
         ttk.Button(actions, text='Open results', command=self.open_results).pack(side='left')
-        ttk.Button(actions, text='Policies', command=lambda:self.open_path(ROOT/'Policies')).pack(side='left', padx=8)
+        ttk.Button(actions, text='Policies', command=lambda:self.tabs.select(self.policy_tab)).pack(side='left', padx=8)
         ttk.Button(actions, text='Recordings', command=self.recordings).pack(side='left')
         ttk.Button(actions, text='Help', command=lambda:self.open_path(ROOT/'README.md')).pack(side='left', padx=8)
         launch = ttk.Frame(outer); launch.pack(fill='x', pady=(0, 12))
@@ -250,13 +253,17 @@ class Dashboard:
         self.launch_button = ttk.Button(launch, text='Start approved plan', command=self.launch); self.launch_button.pack(side='left', padx=8)
         self.tabs = ttk.Notebook(outer); self.tabs.pack(fill='both', expand=True)
         work = ttk.Frame(self.tabs, padding=8); advanced = ttk.Frame(self.tabs, padding=8)
-        self.tabs.add(work, text='Current work & history'); self.tabs.add(advanced, text='Advanced & activity')
-        self.table = ttk.Treeview(work, columns=('run','source','status','stage','step'), show='headings', height=11)
+        self.loaded_checkpoint = None
+        self.policy_tab = ttk.Frame(self.tabs, padding=8)
+        self.tabs.add(self.policy_tab, text='Policies & saved checkpoints')
+        self.tabs.add(work, text='Run history'); self.tabs.add(advanced, text='Advanced & activity')
+        self.build_policy_tab()
+        self.table = ttk.Treeview(work, columns=('run','source','status','stage','step'), show='headings', height=5)
         for name, width in [('run',210),('source',80),('status',210),('stage',160),('step',120)]:
             self.table.heading(name, text=name.title()); self.table.column(name, width=width)
         bar = ttk.Scrollbar(work, orient='vertical', command=self.table.yview)
         self.table.configure(yscrollcommand=bar.set); bar.pack(side='right', fill='y'); self.table.pack(fill='both', expand=True)
-        bottom = ttk.Frame(work); bottom.pack(fill='x', pady=(8,0))
+        bottom = ttk.Frame(work); bottom.pack(side='bottom', fill='x', pady=(8,0), before=self.table)
         ttk.Button(bottom, text='Inspect selected', command=self.inspect).pack(side='left')
         ttk.Button(bottom, text='Check selected Slurm job', command=self.check_job).pack(side='left', padx=8)
         ttk.Button(bottom, text='Stop selected…', command=self.stop).pack(side='right')
@@ -315,7 +322,8 @@ class Dashboard:
         labels = [e['id'] for e in self.entries]
         self.plans['values'] = labels
         self.plan.set(labels[0] if labels else 'No unlaunched approved plan registered')
-        self.launch_button.configure(state='normal' if labels else 'disabled')
+        paused = (self.service.root/'Artifacts/Results/local_rb07_recovery/USER_PAUSED.txt').exists()
+        self.launch_button.configure(state='normal' if labels and not paused else 'disabled')
 
     def refresh(self):
         selected = self.table.selection()
@@ -346,13 +354,13 @@ class Dashboard:
     def inspect(self):
         r = self.selected()
         if r:
-            self.log(json.dumps(read_json(r.status_path or r.receipt), indent=2)); self.tabs.select(1)
+            self.log(json.dumps(read_json(r.status_path or r.receipt), indent=2)); self.tabs.select(2)
 
     def check_job(self):
         r = self.selected()
         if r and r.source == 'atlantis':
             self.worker(lambda: r.name + '\n' + self.service.remote_status(r), 'job:' + r.source + ':' + r.name)
-            self.tabs.select(1)
+            self.tabs.select(2)
 
     def stop(self):
         r = self.selected()
@@ -378,13 +386,102 @@ class Dashboard:
         build_index(ROOT)
         self.open_path(ROOT/'Artifacts/Videos/index.html')
 
+    def build_policy_tab(self):
+        from robocub.user_cli.policy_library import policies
+        ttk, tk = self.ttk, self.tk
+        frame = self.policy_tab
+        frame.columnconfigure(0, weight=1)
+        frame.rowconfigure(3, weight=1)
+        self.policy_entries = policies(self.service.root)
+        self.policy_name = tk.StringVar()
+        selector = ttk.Frame(frame); selector.grid(row=0, column=0, sticky='ew')
+        ttk.Label(selector, text='Policy to view / prepare for training:').pack(side='left')
+        self.policy_combo = ttk.Combobox(selector, textvariable=self.policy_name, state='readonly', width=48,
+            values=[e.get('display_name', e['name']) for e in self.policy_entries])
+        self.policy_combo.pack(side='left', padx=8)
+        self.policy_combo.bind('<<ComboboxSelected>>', lambda _: self.policy_changed())
+        self.policy_status = tk.StringVar()
+        ttk.Label(frame, textvariable=self.policy_status, wraplength=850).grid(row=1, column=0, sticky='w', pady=6)
+        self.loaded_label = tk.StringVar(value='No checkpoint loaded. Select a saved row, then Load checkpoint.')
+        ttk.Label(frame, textvariable=self.loaded_label, wraplength=850).grid(row=2, column=0, sticky='w', pady=4)
+        box = ttk.Frame(frame); box.grid(row=3, column=0, sticky='nsew')
+        self.checkpoint_table = ttk.Treeview(box, columns=('step','total','saved','source','ready'), show='headings', height=5, selectmode='browse')
+        for key, title, width in [('step','Saved step',110),('total','Total trained steps',130),('saved','Saved time (UTC)',180),('source','Timestamp source',210),('ready','Files',85)]:
+            self.checkpoint_table.heading(key,text=title); self.checkpoint_table.column(key,width=width,minwidth=60)
+        bar = ttk.Scrollbar(box, command=self.checkpoint_table.yview)
+        bar.pack(side='right',fill='y'); self.checkpoint_table.configure(yscrollcommand=bar.set)
+        self.checkpoint_table.pack(fill='both',expand=True)
+        buttons = ttk.Frame(frame); buttons.grid(row=4,column=0,sticky='ew',pady=8)
+        ttk.Button(buttons,text='Load checkpoint',command=self.load_checkpoint).pack(side='left')
+        ttk.Button(buttons,text='Watch loaded checkpoint',command=self.watch).pack(side='left',padx=8)
+        ttk.Button(buttons,text='Open checkpoint files',command=self.open_checkpoint).pack(side='left')
+        ttk.Button(buttons,text='Prepare training selection',command=self.prepare_training).pack(side='left',padx=8)
+        ttk.Label(frame,text='Training stays paused. Preparing a selection writes a draft only; it does not launch or resume.\nSaved weights are not an exact optimizer/PRNG resume. Viewing is not validation.',wraplength=850).grid(row=5,column=0,sticky='w')
+        if self.policy_entries:
+            self.policy_combo.current(0); self.policy_changed()
+
+    def policy_changed(self):
+        from robocub.user_cli.policy_library import checkpoints
+        index = self.policy_combo.current()
+        if index < 0: return
+        self.policy_entry = self.policy_entries[index]
+        self.loaded_checkpoint = None
+        self.loaded_label.set('Select a saved checkpoint below. No training is started by loading.')
+        self.policy_status.set(self.policy_entry.get('status','') + ' | ' + self.policy_entry['run_dir'])
+        self.checkpoint_table.delete(*self.checkpoint_table.get_children())
+        self.checkpoint_rows = {}
+        for row in checkpoints(self.service.root,self.policy_entry):
+            key = str(row['step']); self.checkpoint_rows[key] = row
+            self.checkpoint_table.insert('', 'end', iid=key, values=(f"{row['step']:,}",f"{row['total']:,}",row['saved'],row['timestamp_source'],'Available' if row['ready'] else 'Missing'))
+        keys = self.checkpoint_table.get_children()
+        if keys: self.checkpoint_table.selection_set(keys[0])
+
+    def selected_checkpoint(self):
+        keys = self.checkpoint_table.selection()
+        return self.checkpoint_rows.get(keys[0]) if keys else None
+
+    def load_checkpoint(self):
+        from robocub.user_cli.policy_library import viewer_command
+        row = self.selected_checkpoint()
+        if not row:
+            self.messagebox.showinfo('Select checkpoint','Choose a saved checkpoint first.'); return
+        try:
+            viewer_command(self.service.root,sys.executable,row)
+        except ValueError as exc:
+            self.messagebox.showerror('Cannot load checkpoint',str(exc)); return
+        self.loaded_checkpoint = row
+        self.loaded_label.set(f"Selected for viewer: {self.policy_name.get()} | step {row['step']:,} | total {row['total']:,}. Weights load when the viewer starts.")
+
+    def open_checkpoint(self):
+        row = self.selected_checkpoint()
+        if row: self.open_path(row['weights'].parent)
+
+    def prepare_training(self):
+        row = self.selected_checkpoint()
+        if not row: return
+        folder = self.service.root/'Artifacts/Results/dashboard_drafts'
+        folder.mkdir(parents=True,exist_ok=True)
+        import uuid
+        path = folder/('selection_' + uuid.uuid4().hex + '.json')
+        path.write_text(json.dumps(dict(status='draft_not_approved_not_launched',policy=self.policy_entry['name'],
+            source=self.source_id(),run_dir=str(row['run']),checkpoint=row['step'],total_steps=row['total'],
+            exact_resume=False,created_at=utc(),required_before_launch=['Explicit user authorization to resume','Reviewed recipe, budget, fresh output path and checkpoint hash']),indent=2),encoding='utf-8')
+        self.messagebox.showinfo('Draft saved; training remains paused',str(path))
+
     def watch(self):
-        log_path = ROOT / 'Artifacts/Results/dashboard_viewer.log'
+        from robocub.user_cli.policy_library import viewer_command
+        if self.loaded_checkpoint is None:
+            self.tabs.select(self.policy_tab)
+            self.messagebox.showinfo('Load a checkpoint','Select a policy and saved checkpoint, then click Load checkpoint.'); return
+        try:
+            command = viewer_command(self.service.root,sys.executable,self.loaded_checkpoint)
+        except ValueError as exc:
+            self.messagebox.showerror('Cannot open viewer',str(exc)); return
+        log_path = self.service.root / 'Artifacts/Results/dashboard_viewer.log'
         log_path.parent.mkdir(parents=True, exist_ok=True)
         with log_path.open('a') as log:
-            subprocess.Popen([sys.executable,str(ROOT/'Scripts/robocub_cli.py'),'watch','--scene','field'],cwd=ROOT,
-                             stdout=log,stderr=subprocess.STDOUT)
-        self.log('Viewer requested; startup diagnostics: ' + str(log_path))
+            subprocess.Popen(command,cwd=self.service.root,stdout=log,stderr=subprocess.STDOUT)
+        self.log('Selected checkpoint viewer requested; startup diagnostics: ' + str(log_path))
 
 
 def main(argv=None):
@@ -394,7 +491,8 @@ def main(argv=None):
     if args.launch_local:
         launch_local(args.launch_local)
     else:
-        Dashboard().root.mainloop()
+        from robocub.user_cli.workspace import Workspace
+        Workspace().root.mainloop()
     return 0
 
 

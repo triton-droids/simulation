@@ -51,7 +51,7 @@ single-run pipeline, so sweep and manual results have the same folder shape.
 ## Visualization data flow
 
 `Scripts/visualize.py` selects the field viewer. The viewer restores
-`Policies/T02/logs/checkpoints/1003520/policy`, constructs the MuJoCo scene, and
+`Policies/g1-walking-demo/logs/checkpoints/1003520/policy`, constructs the MuJoCo scene, and
 sends a fixed sequence of velocity commands to the policy. Field geometry is
 visible, but the policy has no verified ball interaction or soccer strategy.
 

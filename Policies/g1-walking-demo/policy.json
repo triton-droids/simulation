@@ -1,0 +1,16 @@
+{
+  "name": "g1-walking-demo",
+  "status": "Saved simulation demo; not a three-seed certification",
+  "run_dir": "Policies/g1-walking-demo",
+  "checkpoint": 1003520,
+  "weights": "Policies/g1-walking-demo/logs/checkpoints/1003520/policy",
+  "configuration": "Policies/g1-walking-demo/resolved_config.json",
+  "manifest": "Policies/g1-walking-demo/run_manifest.json",
+  "sha256": "92465070a5c75600c3e35951c301a042cfa41d40883fc1ad0042ed1410efee20",
+  "ancestor_steps": null,
+  "exact_resume": false,
+  "storage": "References original files; no copies or automatic selection",
+  "display_name": "G1 walking demo",
+  "experiment_id": "T02",
+  "library_dir": "Policies/g1-walking-demo"
+}

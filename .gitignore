@@ -22,11 +22,11 @@ Artifacts/Outputs/
 Artifacts/Results/
 wandb/
 runs/
-Policies/T02/
-!Policies/T02/
-Policies/T02/*
-!Policies/T02/README.md
-!Policies/T02/policy.json
+Policies/g1-walking-demo/
+!Policies/g1-walking-demo/
+Policies/g1-walking-demo/*
+!Policies/g1-walking-demo/README.md
+!Policies/g1-walking-demo/policy.json
 Artifacts/Runs/
 Artifacts/Sweeps/
 Artifacts/Videos/index.json

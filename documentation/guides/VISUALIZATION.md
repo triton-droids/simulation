@@ -17,7 +17,7 @@ policy can be inspected. It uses:
 - Robot: Unitree G1
 - Physics/viewer: MuJoCo
 - Policy: T02 `rate_cost`
-- Weights: `Policies/T02/logs/checkpoints/1003520/policy`
+- Weights: `Policies/g1-walking-demo/logs/checkpoints/1003520/policy`
 - Scene: visible RoboCup-style field, goals, and ball
 
 ## What the viewer proves

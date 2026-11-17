@@ -1,5 +1,5 @@
 {
-  "name": "RB07-303-parent",
+  "name": "g1-walking-replica-3",
   "status": "Experimental original parent; local continuation not started",
   "run_dir": "Artifacts/Results/local_rb07_parents/303",
   "checkpoint": 88883200,
@@ -9,5 +9,10 @@
   "sha256": "7bf8091ccd59cb0dd4c15ea7d1c3b72230ab469c8d82eb06104c1773206b2a3c",
   "ancestor_steps": null,
   "exact_resume": false,
-  "storage": "References original files; no copies or automatic selection"
+  "storage": "References original files; no copies or automatic selection",
+  "display_name": "G1 experimental walking - replica 3 (seed 303)",
+  "experiment_id": "RB07-303-parent",
+  "library_dir": "Policies/g1-walking-experimental/replica-3",
+  "seed": 303,
+  "previous_name": "g1-velocity-tracking-seed303"
 }

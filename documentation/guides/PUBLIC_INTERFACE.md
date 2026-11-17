@@ -14,7 +14,7 @@ Run **Scripts/dashboard.py**. This is a Python GUI script, not an installed desk
 | `Scripts/robocub_cli.py` | CLI, including `doctor` and `dashboard` |
 | `Configs/sweeps/` | Example trainer and task/world bundles |
 | `Configs/dashboard_plans.json` | Approved launch catalog; empty is valid |
-| `Policies/T02/` | Named demo policy and resolved configuration |
+| `Policies/g1-walking-demo/` | Named demo policy and resolved configuration |
 
 Read [Training](TRAINING.md) before launching experiments.
 Changing example settings does not change an active frozen research plan.

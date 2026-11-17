@@ -80,6 +80,31 @@ def compact_status(raw):
             'scheduler': text[end:].strip()}
 
 
+def input_asset_archive(root, plan):
+    """Transfer only explicitly hash-bound checkpoint inputs into the isolated run."""
+    assets = plan.get('input_assets', [])
+    if not assets:
+        return None
+    data = io.BytesIO()
+    seen = set()
+    with tarfile.open(fileobj=data, mode='w') as archive:
+        for asset in assets:
+            relative = PurePosixPath(asset['path'])
+            path = (root / str(relative)).resolve()
+            if (relative.is_absolute() or '..' in relative.parts or
+                    relative.parts[0] not in ('Policies', 'Artifacts') or
+                    'checkpoints' not in relative.parts or
+                    not path.is_relative_to(root.resolve()) or str(relative) in seen):
+                raise ValueError('Unsafe or duplicate checkpoint input')
+            seen.add(str(relative))
+            if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != asset['sha256']:
+                raise ValueError('Checkpoint input missing or hash changed')
+            archive.add(path, arcname=str(relative), recursive=False)
+    result = data.getvalue()
+    validate_archive(result)
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=['submit', 'status'])
@@ -120,6 +145,7 @@ def main():
     plan_path = (ROOT/args.plan).resolve()
     if not plan_path.is_relative_to(ROOT): raise ValueError('Plan must be inside repository')
     plan = json.loads(plan_path.read_text())
+    input_archive = input_asset_archive(ROOT, plan)
     subprocess.run([sys.executable, str(ROOT/'robocub/scripts/run_g1_queue.py'),
                     '--plan', str(plan_path), '--validate-only'], check=True, cwd=ROOT)
     if subprocess.check_output(['git','status','--porcelain'],cwd=ROOT).strip():
@@ -137,6 +163,9 @@ def main():
     q = shlex.quote
     # mkdir is exclusive: an ambiguous previous submission can never be duplicated.
     ssh(settings, f'mkdir -p {q(settings["SSH_DIRECTORY"]+"/research_runs")}; mkdir {q(remote)} && mkdir {q(remote+"/source")} && tar -xf - -C {q(remote+"/source")}', archive, timeout=180)
+    if input_archive:
+        # Exclusive snapshot directory; never modifies a shared checkpoint or checkout.
+        ssh(settings, f'tar -xf - -C {q(remote+"/source")}', input_archive, timeout=180)
     shared = settings['SSH_DIRECTORY']
     setup = f'''set -eu
 cd {q(remote+'/source')}

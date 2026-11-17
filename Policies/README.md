@@ -1,14 +1,8 @@
-# Named policy library
+# Walking policies
 
-| Policy | Role |
-|---|---|
-| [T02](T02/README.md) | Selected saved simulation demo |
-| [RB07-101-paused](RB07-101-paused/README.md) | Interrupted experimental continuation |
-| [RB07-202-parent](RB07-202-parent/README.md) | Original development parent; local continuation not started |
-| [RB07-303-parent](RB07-303-parent/README.md) | Original development parent; local continuation not started |
+All these networks handle the same task: commanded walking, turning, sidestepping and standing.
 
-Each folder has a policy.json with original weight/config/manifest paths, checksum,
-and validation status. Nothing here is a certified three-seed recipe. The catalog
-does not select lucky checkpoints or change the viewer. Other historical checkpoints
-remain in their original experiment folders; these are curated names, not an exhaustive archive.
-Policies/T02 remains the canonical demo storage path for compatibility.
+- [Walking demo](g1-walking-demo/README.md): older T02 demonstration policy.
+- [Experimental walking](g1-walking-experimental/README.md): three independently trained replicas of one recipe. No three-seed certification yet.
+
+Original experiment IDs, seeds, weight paths and checksums remain in each policy.json. Selecting a policy in the dashboard chooses one network; replicas do not control one robot simultaneously. Training remains paused.
