@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "output_dir": "Artifacts/Results/local_rb07_resume_20261118/batch",
+  "max_wall_seconds": 104100,
+  "runs": [
+    {
+      "id": "local_rb07t_202",
+      "plan": "documentation/research/queues/local_rb07t_202.json",
+      "sha256": "2f53690677498ea1966860e94f4a6553a2120e6239bdb321442cd9c3911c6238"
+    },
+    {
+      "id": "local_rb07s_303",
+      "plan": "documentation/research/queues/local_rb07s_303.json",
+      "sha256": "1d6b666f4a8f28970443d60128dd9631f654b1576668ff15cb1a266c3d51f67d"
+    }
+  ]
+}

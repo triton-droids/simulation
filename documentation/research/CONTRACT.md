@@ -1,6 +1,6 @@
 # Current research contract
 
-**User authorized laptop training and scheduled review to resume on 2026-11-17.** See [CURRENT](CURRENT.md) for fresh continuation paths and the reconciled budget.
+**User authorized laptop training and scheduled review to resume again on 2026-11-18.** See [CURRENT](CURRENT.md) for fresh continuation paths and the reconciled budget.
 
 The goal is one frozen recipe passing all original numeric, control and visual
 requirements on three fresh independent training seeds and fresh held-out tests.

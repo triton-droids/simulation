@@ -1,3 +1,13 @@
+# Current research handoff - 2026-11-18 resume
+
+User explicitly requested resume from the latest checkpoint Nov18. Active manifest: `documentation/research/queues/local_rb07_resume_20261118.json`. Receipt/status: `Artifacts/Results/local_rb07_resume_20261118/launch_receipt.json` and `batch/status.json`.
+
+Run local_rb07t_202 from local_rb07s_202 checkpoint258048000 (cumulative346931200), remaining54476800, then original unlaunched local_rb07s_303 (remaining312524800). Completed local_rb07s_101 remains untouched. Review all three together. Original controls/gates unchanged; fixed cumulative401408000 each. Parameter continuation, not exact optimizer/PRNG/environment resume.
+
+New cap104100s (28h55m):202 queue28500/train17700;303 queue75600/train64800. Prior batch consumed102951.937809s; new cap is below remaining122228.062191s. No extension. Preserve both prior STOP/pause records. User pause is revoked for this fresh batch only. Do not replay old batches. Audit is complete at Artifacts/Results/local_rb07_resume_20261117/replication_audit.md; no repeated audit. Four-hour checks; healthy runs need no logs or polling. No source/dependency edits while active. Next hypothesis comparison still requires separate approval.
+
+## Historical Nov17 handoff (superseded paths)
+
 # Current research handoff - 2026-11-17
 
 **User explicitly authorized resuming laptop GPU training and scheduled review on Nov17.** Check the new batch receipt/status before any action; never replay the old paused batch.
