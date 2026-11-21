@@ -1,0 +1,753 @@
+{
+ "version": 1,
+ "output_dir": "Artifacts/Results/cluster_rf01_303_ctl/queue",
+ "max_wall_seconds": 82800,
+ "jobs": [
+  {
+   "id": "train",
+   "hypothesis": "User-approved RF01 comparison 1 of 2 (2026-11-21): dense narrow-foot cost (weight 0.0, width .16m, existing tested term) from each fixed final RB07 401408000 policy, 51609600 more steps; matched penalty-off control isolates added duration. Parameter continuation, not exact resume or final validation.",
+   "evidence": "RB07 mandatory review: 3/4 randomized failures terminate on foot-foot/foot-shin contact while upright (pelvis>.74m); passive references also end on foot contact at reset6002. A02 geometry: width .066/-.023m before contact. P02 rejection was a 1M-step seed11 pilot on a pre-recovery policy. Gates unchanged; full evaluations run unconditionally so every arm reports foot-contact terminations.",
+   "stages": [
+    {
+     "id": "parent_fingerprint",
+     "argv": [
+      "-c",
+      "from pathlib import Path;import hashlib,json;p=Path('Artifacts/Results/local_rb07s_303/train/logs/checkpoints/312524800/policy');h=hashlib.sha256(p.read_bytes()).hexdigest();assert h=='c952f00015b98d1da2ed0a3e41c0457dc663994f910621d6d7c818b4d11304ce';o=Path('Artifacts/Results/cluster_rf01_303_ctl/parent_sha256.json');o.parent.mkdir(parents=True,exist_ok=True);o.write_text(json.dumps({'parent':'Artifacts/Results/local_rb07s_303/train/logs/checkpoints/312524800','cumulative_parent_steps':401408000,'sha256':h,'parameter_continuation':True}))"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_rf01_303_ctl/parent_sha256.json"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_rf01_303_ctl/parent_sha256.json"
+     ],
+     "timeout_seconds": 60
+    },
+    {
+     "id": "recovery_train",
+     "argv": [
+      "robocub/scripts/train.py",
+      "--logger",
+      "local",
+      "--seed",
+      "303",
+      "env=unitree_g1_playground",
+      "robot=unitree_g1",
+      "sim=unitree_g1_playground",
+      "agent=ppo_g1_corrective",
+      "robot.fetch_model=false",
+      "sim.playground.fetch_source=true",
+      "sim.reset.randomize=true",
+      "sim.noise.add_noise=false",
+      "sim.push.add_push=false",
+      "sim.domain_rand.add_domain_rand=false",
+      "sim.commands.lin_vel_x=[-1.0,1.0]",
+      "sim.commands.lin_vel_y=[-0.5,0.5]",
+      "sim.commands.ang_vel_yaw=[-1.0,1.0]",
+      "agent.num_eval_envs=16",
+      "agent.episode_length=500",
+      "hydra.run.dir={root}/Artifacts/Results/cluster_rf01_303_ctl/train",
+      "hydra.job.chdir=true",
+      "agent.learning_rate=0.0003",
+      "agent.discounting=0.97",
+      "agent.batch_size=128",
+      "agent.num_envs=2048",
+      "agent.num_timesteps=51609600",
+      "agent.num_evals=19",
+      "sim.reward_scales.narrow_feet=0.0",
+      "--resume",
+      "--checkpoint",
+      "{root}/Artifacts/Results/local_rb07s_303/train/logs/checkpoints/312524800"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_rf01_303_ctl/train"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_rf01_303_ctl/train/run_manifest.json",
+      "Artifacts/Results/cluster_rf01_303_ctl/train/logs/checkpoints/0/policy",
+      "Artifacts/Results/cluster_rf01_303_ctl/train/logs/checkpoints/51609600/policy"
+     ],
+     "timeout_seconds": 36000,
+     "monitor": {
+      "path": "Artifacts/Results/cluster_rf01_303_ctl/train/logs/metrics.jsonl",
+      "ignore_kl_through_step": 2867200,
+      "consecutive_kl_limit": 2,
+      "kl_limit": 0.2,
+      "final_step": 51609600
+     }
+    },
+    {
+     "id": "full_restore_parity",
+     "argv": [
+      "-c",
+      "import os;os.environ['JAX_PLATFORMS']='cpu';from pathlib import Path;import json,numpy as np,jax;from brax.training.agents.ppo import checkpoint;a=checkpoint.load(Path('Artifacts/Results/local_rb07s_303/train/logs/checkpoints/312524800').resolve());b=checkpoint.load(Path('Artifacts/Results/cluster_rf01_303_ctl/train/logs/checkpoints/0').resolve());la,ta=jax.tree_util.tree_flatten(a);lb,tb=jax.tree_util.tree_flatten(b);ok=ta==tb and len(a)==len(b)==3 and len(la)==len(lb) and all(np.isfinite(np.asarray(x)).all() and np.array_equal(np.asarray(x),np.asarray(y)) for x,y in zip(la,lb));Path('Artifacts/Results/cluster_rf01_303_ctl/restore_parity.json').write_text(json.dumps({'full_actor_critic_normalizer_exact':ok}));assert ok"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_rf01_303_ctl/restore_parity.json"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_rf01_303_ctl/restore_parity.json"
+     ],
+     "timeout_seconds": 300
+    }
+   ],
+   "review_artifact": "Artifacts/Results/cluster_rf01_303_ctl/train/run_manifest.json"
+  },
+  {
+   "id": "screen_nominal",
+   "hypothesis": "User-approved RF01 comparison 1 of 2 (2026-11-21): dense narrow-foot cost (weight 0.0, width .16m, existing tested term) from each fixed final RB07 401408000 policy, 51609600 more steps; matched penalty-off control isolates added duration. Parameter continuation, not exact resume or final validation.",
+   "evidence": "RB07 mandatory review: 3/4 randomized failures terminate on foot-foot/foot-shin contact while upright (pelvis>.74m); passive references also end on foot contact at reset6002. A02 geometry: width .066/-.023m before contact. P02 rejection was a 1M-step seed11 pilot on a pre-recovery policy. Gates unchanged; full evaluations run unconditionally so every arm reports foot-contact terminations.",
+   "stages": [
+    {
+     "id": "evaluate_nominal",
+     "argv": [
+      "robocub/scripts/evaluate_g1.py",
+      "--run-dir",
+      "Artifacts/Results/cluster_rf01_303_ctl/train",
+      "--checkpoint",
+      "51609600",
+      "--reference-run-dir",
+      "Artifacts/Results/local_rb07_parents/303",
+      "--reference-label",
+      "untrained",
+      "--steps",
+      "500",
+      "--seeds",
+      "6000,6001,6002,6014",
+      "--command-grid",
+      "documentation/research/queues/post_f1_screen_commands.json",
+      "--nominal-reset",
+      "--output-dir",
+      "Artifacts/Results/cluster_rf01_303_ctl/screen_nominal",
+      "--video",
+      "--video-command",
+      "forward"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_rf01_303_ctl/screen_nominal"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_rf01_303_ctl/screen_nominal/episodes.csv",
+      "Artifacts/Results/cluster_rf01_303_ctl/screen_nominal/summary.json",
+      "Artifacts/Results/cluster_rf01_303_ctl/screen_nominal/trained_forward_seed6000.mp4"
+     ],
+     "timeout_seconds": 7200
+    }
+   ],
+   "episodes_csv": "Artifacts/Results/cluster_rf01_303_ctl/screen_nominal/episodes.csv",
+   "gate": {
+    "horizon": 500,
+    "controllers": [
+     "trained",
+     "untrained",
+     "standing"
+    ],
+    "commands": [
+     "stand",
+     "forward"
+    ],
+    "seeds": [
+     6000,
+     6001,
+     6002,
+     6014
+    ],
+    "outcomes": {
+     "pass": [
+      {
+       "name": "all episodes survive500",
+       "aggregate": "min",
+       "metric": "episode_steps",
+       "min": 500
+      },
+      {
+       "name": "upright pelvis",
+       "aggregate": "min",
+       "metric": "minimum_pelvis_height",
+       "above": 0.6
+      },
+      {
+       "name": "mean linear error",
+       "aggregate": "mean",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "mean yaw error",
+       "aggregate": "mean",
+       "metric": "yaw_rate_rmse",
+       "max": 0.2
+      },
+      {
+       "name": "forward linear",
+       "where": {
+        "command_name": "forward"
+       },
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "stand linear_velocity_vector_rmse",
+       "where": {
+        "command_name": "stand"
+       },
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.15
+      },
+      {
+       "name": "stand yaw_rate_rmse",
+       "where": {
+        "command_name": "stand"
+       },
+       "aggregate": "max",
+       "metric": "yaw_rate_rmse",
+       "max": 0.15
+      },
+      {
+       "name": "forward single_support_fraction",
+       "where": {
+        "command_name": "forward"
+       },
+       "aggregate": "min",
+       "metric": "single_support_fraction",
+       "min": 0.35,
+       "max": 0.95
+      },
+      {
+       "name": "forward left_median_completed_air_seconds",
+       "where": {
+        "command_name": "forward"
+       },
+       "aggregate": "min",
+       "metric": "left_median_completed_air_seconds",
+       "min": 0.12
+      },
+      {
+       "name": "forward right_median_completed_air_seconds",
+       "where": {
+        "command_name": "forward"
+       },
+       "aggregate": "min",
+       "metric": "right_median_completed_air_seconds",
+       "min": 0.12
+      }
+     ]
+    }
+   },
+   "screening_only": true
+  },
+  {
+   "id": "screen_randomized",
+   "hypothesis": "User-approved RF01 comparison 1 of 2 (2026-11-21): dense narrow-foot cost (weight 0.0, width .16m, existing tested term) from each fixed final RB07 401408000 policy, 51609600 more steps; matched penalty-off control isolates added duration. Parameter continuation, not exact resume or final validation.",
+   "evidence": "RB07 mandatory review: 3/4 randomized failures terminate on foot-foot/foot-shin contact while upright (pelvis>.74m); passive references also end on foot contact at reset6002. A02 geometry: width .066/-.023m before contact. P02 rejection was a 1M-step seed11 pilot on a pre-recovery policy. Gates unchanged; full evaluations run unconditionally so every arm reports foot-contact terminations.",
+   "stages": [
+    {
+     "id": "evaluate_randomized",
+     "argv": [
+      "robocub/scripts/evaluate_g1.py",
+      "--run-dir",
+      "Artifacts/Results/cluster_rf01_303_ctl/train",
+      "--checkpoint",
+      "51609600",
+      "--reference-run-dir",
+      "Artifacts/Results/local_rb07_parents/303",
+      "--reference-label",
+      "untrained",
+      "--steps",
+      "500",
+      "--seeds",
+      "6000,6001,6002,6014",
+      "--command-grid",
+      "documentation/research/queues/post_f1_screen_commands.json",
+      "--randomized-reset",
+      "--output-dir",
+      "Artifacts/Results/cluster_rf01_303_ctl/screen_randomized",
+      "--video",
+      "--video-command",
+      "forward"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_rf01_303_ctl/screen_randomized"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_rf01_303_ctl/screen_randomized/episodes.csv",
+      "Artifacts/Results/cluster_rf01_303_ctl/screen_randomized/summary.json",
+      "Artifacts/Results/cluster_rf01_303_ctl/screen_randomized/trained_forward_seed6000.mp4"
+     ],
+     "timeout_seconds": 7200
+    }
+   ],
+   "episodes_csv": "Artifacts/Results/cluster_rf01_303_ctl/screen_randomized/episodes.csv",
+   "gate": {
+    "horizon": 500,
+    "controllers": [
+     "trained",
+     "untrained",
+     "standing"
+    ],
+    "commands": [
+     "stand",
+     "forward"
+    ],
+    "seeds": [
+     6000,
+     6001,
+     6002,
+     6014
+    ],
+    "outcomes": {
+     "pass": [
+      {
+       "name": "all16 survive500",
+       "aggregate": "min",
+       "metric": "episode_steps",
+       "min": 500
+      },
+      {
+       "name": "upright pelvis",
+       "aggregate": "min",
+       "metric": "minimum_pelvis_height",
+       "above": 0.6
+      },
+      {
+       "name": "mean linear_velocity_vector_rmse",
+       "aggregate": "mean",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "worst linear_velocity_vector_rmse",
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.35
+      },
+      {
+       "name": "mean yaw_rate_rmse",
+       "aggregate": "mean",
+       "metric": "yaw_rate_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "worst yaw_rate_rmse",
+       "aggregate": "max",
+       "metric": "yaw_rate_rmse",
+       "max": 0.35
+      }
+     ]
+    }
+   },
+   "screening_only": true
+  },
+  {
+   "id": "full_c15_nominal",
+   "hypothesis": "User-approved RF01 comparison 1 of 2 (2026-11-21): dense narrow-foot cost (weight 0.0, width .16m, existing tested term) from each fixed final RB07 401408000 policy, 51609600 more steps; matched penalty-off control isolates added duration. Parameter continuation, not exact resume or final validation.",
+   "evidence": "RB07 mandatory review: 3/4 randomized failures terminate on foot-foot/foot-shin contact while upright (pelvis>.74m); passive references also end on foot contact at reset6002. A02 geometry: width .066/-.023m before contact. P02 rejection was a 1M-step seed11 pilot on a pre-recovery policy. Gates unchanged; full evaluations run unconditionally so every arm reports foot-contact terminations.",
+   "stages": [
+    {
+     "id": "evaluate_nominal",
+     "argv": [
+      "robocub/scripts/evaluate_g1.py",
+      "--run-dir",
+      "Artifacts/Results/cluster_rf01_303_ctl/train",
+      "--checkpoint",
+      "51609600",
+      "--reference-run-dir",
+      "Artifacts/Results/local_rb07_parents/303",
+      "--reference-label",
+      "untrained",
+      "--steps",
+      "500",
+      "--seeds",
+      "6000,6001,6002",
+      "--command-grid",
+      "documentation/research/queues/final_f1_commands.json",
+      "--nominal-reset",
+      "--video",
+      "--video-command",
+      "combined",
+      "--output-dir",
+      "Artifacts/Results/cluster_rf01_303_ctl/full_nominal"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_rf01_303_ctl/full_nominal"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_rf01_303_ctl/full_nominal/summary.json",
+      "Artifacts/Results/cluster_rf01_303_ctl/full_nominal/episodes.csv",
+      "Artifacts/Results/cluster_rf01_303_ctl/full_nominal/trained_combined_seed6000.mp4"
+     ],
+     "timeout_seconds": 7200
+    }
+   ],
+   "episodes_csv": "Artifacts/Results/cluster_rf01_303_ctl/full_nominal/episodes.csv",
+   "gate": {
+    "horizon": 500,
+    "controllers": [
+     "trained",
+     "untrained",
+     "standing"
+    ],
+    "commands": [
+     "stand",
+     "forward",
+     "backward",
+     "left",
+     "right",
+     "turn_left",
+     "turn_right",
+     "combined"
+    ],
+    "seeds": [
+     6000,
+     6001,
+     6002
+    ],
+    "outcomes": {
+     "pass": [
+      {
+       "name": "all episodes survive500",
+       "aggregate": "min",
+       "metric": "episode_steps",
+       "min": 500
+      },
+      {
+       "name": "upright pelvis",
+       "aggregate": "min",
+       "metric": "minimum_pelvis_height",
+       "above": 0.6
+      },
+      {
+       "name": "mean linear error",
+       "aggregate": "mean",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "mean yaw error",
+       "aggregate": "mean",
+       "metric": "yaw_rate_rmse",
+       "max": 0.2
+      },
+      {
+       "name": "forward linear",
+       "where": {
+        "command_name": "forward"
+       },
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "backward linear",
+       "where": {
+        "command_name": "backward"
+       },
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "left linear",
+       "where": {
+        "command_name": "left"
+       },
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "right linear",
+       "where": {
+        "command_name": "right"
+       },
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "combined linear",
+       "where": {
+        "command_name": "combined"
+       },
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "turn_left yaw",
+       "where": {
+        "command_name": "turn_left"
+       },
+       "aggregate": "max",
+       "metric": "yaw_rate_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "turn_right yaw",
+       "where": {
+        "command_name": "turn_right"
+       },
+       "aggregate": "max",
+       "metric": "yaw_rate_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "stand linear_velocity_vector_rmse",
+       "where": {
+        "command_name": "stand"
+       },
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.15
+      },
+      {
+       "name": "stand yaw_rate_rmse",
+       "where": {
+        "command_name": "stand"
+       },
+       "aggregate": "max",
+       "metric": "yaw_rate_rmse",
+       "max": 0.15
+      },
+      {
+       "name": "forward single_support_fraction",
+       "where": {
+        "command_name": "forward"
+       },
+       "aggregate": "min",
+       "metric": "single_support_fraction",
+       "min": 0.35,
+       "max": 0.95
+      },
+      {
+       "name": "forward left_median_completed_air_seconds",
+       "where": {
+        "command_name": "forward"
+       },
+       "aggregate": "min",
+       "metric": "left_median_completed_air_seconds",
+       "min": 0.12
+      },
+      {
+       "name": "forward right_median_completed_air_seconds",
+       "where": {
+        "command_name": "forward"
+       },
+       "aggregate": "min",
+       "metric": "right_median_completed_air_seconds",
+       "min": 0.12
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "full_c15_randomized",
+   "hypothesis": "User-approved RF01 comparison 1 of 2 (2026-11-21): dense narrow-foot cost (weight 0.0, width .16m, existing tested term) from each fixed final RB07 401408000 policy, 51609600 more steps; matched penalty-off control isolates added duration. Parameter continuation, not exact resume or final validation.",
+   "evidence": "RB07 mandatory review: 3/4 randomized failures terminate on foot-foot/foot-shin contact while upright (pelvis>.74m); passive references also end on foot contact at reset6002. A02 geometry: width .066/-.023m before contact. P02 rejection was a 1M-step seed11 pilot on a pre-recovery policy. Gates unchanged; full evaluations run unconditionally so every arm reports foot-contact terminations.",
+   "stages": [
+    {
+     "id": "evaluate_randomized",
+     "argv": [
+      "robocub/scripts/evaluate_g1.py",
+      "--run-dir",
+      "Artifacts/Results/cluster_rf01_303_ctl/train",
+      "--checkpoint",
+      "51609600",
+      "--reference-run-dir",
+      "Artifacts/Results/local_rb07_parents/303",
+      "--reference-label",
+      "untrained",
+      "--steps",
+      "500",
+      "--seeds",
+      "6000,6001,6002",
+      "--command-grid",
+      "documentation/research/queues/final_f1_commands.json",
+      "--randomized-reset",
+      "--video",
+      "--video-command",
+      "combined",
+      "--output-dir",
+      "Artifacts/Results/cluster_rf01_303_ctl/full_randomized"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_rf01_303_ctl/full_randomized"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_rf01_303_ctl/full_randomized/summary.json",
+      "Artifacts/Results/cluster_rf01_303_ctl/full_randomized/episodes.csv",
+      "Artifacts/Results/cluster_rf01_303_ctl/full_randomized/trained_combined_seed6000.mp4"
+     ],
+     "timeout_seconds": 7200
+    }
+   ],
+   "episodes_csv": "Artifacts/Results/cluster_rf01_303_ctl/full_randomized/episodes.csv",
+   "gate": {
+    "horizon": 500,
+    "controllers": [
+     "trained",
+     "untrained",
+     "standing"
+    ],
+    "commands": [
+     "stand",
+     "forward",
+     "backward",
+     "left",
+     "right",
+     "turn_left",
+     "turn_right",
+     "combined"
+    ],
+    "seeds": [
+     6000,
+     6001,
+     6002
+    ],
+    "outcomes": {
+     "pass": [
+      {
+       "name": "all16 survive500",
+       "aggregate": "min",
+       "metric": "episode_steps",
+       "min": 500
+      },
+      {
+       "name": "upright pelvis",
+       "aggregate": "min",
+       "metric": "minimum_pelvis_height",
+       "above": 0.6
+      },
+      {
+       "name": "mean linear_velocity_vector_rmse",
+       "aggregate": "mean",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "worst linear_velocity_vector_rmse",
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.35
+      },
+      {
+       "name": "mean yaw_rate_rmse",
+       "aggregate": "mean",
+       "metric": "yaw_rate_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "worst yaw_rate_rmse",
+       "aggregate": "max",
+       "metric": "yaw_rate_rmse",
+       "max": 0.35
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "full_recovery_generalization",
+   "hypothesis": "User-approved RF01 comparison 1 of 2 (2026-11-21): dense narrow-foot cost (weight 0.0, width .16m, existing tested term) from each fixed final RB07 401408000 policy, 51609600 more steps; matched penalty-off control isolates added duration. Parameter continuation, not exact resume or final validation.",
+   "evidence": "RB07 mandatory review: 3/4 randomized failures terminate on foot-foot/foot-shin contact while upright (pelvis>.74m); passive references also end on foot contact at reset6002. A02 geometry: width .066/-.023m before contact. P02 rejection was a 1M-step seed11 pilot on a pre-recovery policy. Gates unchanged; full evaluations run unconditionally so every arm reports foot-contact terminations.",
+   "review_artifact": "Artifacts/Results/cluster_rf01_303_ctl/full_forward_resets/summary.json",
+   "stages": [
+    {
+     "id": "evaluate_randomized",
+     "argv": [
+      "robocub/scripts/evaluate_g1.py",
+      "--run-dir",
+      "Artifacts/Results/cluster_rf01_303_ctl/train",
+      "--checkpoint",
+      "51609600",
+      "--reference-run-dir",
+      "Artifacts/Results/local_rb07_parents/303",
+      "--reference-label",
+      "untrained",
+      "--steps",
+      "500",
+      "--seeds",
+      "6010,6011,6012,6013,6014,6015,6016,6017,6018,6019,6020,6021",
+      "--command-grid",
+      "documentation/research/queues/post_f1_d07_commands.json",
+      "--randomized-reset",
+      "--video",
+      "--video-command",
+      "forward",
+      "--output-dir",
+      "Artifacts/Results/cluster_rf01_303_ctl/full_forward_resets"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_rf01_303_ctl/full_forward_resets"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_rf01_303_ctl/full_forward_resets/summary.json",
+      "Artifacts/Results/cluster_rf01_303_ctl/full_forward_resets/episodes.csv",
+      "Artifacts/Results/cluster_rf01_303_ctl/full_forward_resets/trained_forward_seed6010.mp4"
+     ],
+     "timeout_seconds": 7200
+    }
+   ]
+  }
+ ],
+ "input_assets": [
+  {
+   "path": "Artifacts/Results/local_rb07s_303/train/logs/checkpoints/312524800/_CHECKPOINT_METADATA",
+   "sha256": "9076ad3b3f4065fca6c064e721d876fd08eca5ef9a82f3e51e30c8d59436279c"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07s_303/train/logs/checkpoints/312524800/_METADATA",
+   "sha256": "804abe596189323a9700c1e70afbd2b1c176d676b5ee5c0bf298e04531024dc9"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07s_303/train/logs/checkpoints/312524800/_sharding",
+   "sha256": "8a688a5186a0fe6186b1fa973c3a3ec38b2c29d17a8c5ceebf8e0f52a00a3ccc"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07s_303/train/logs/checkpoints/312524800/array_metadatas/process_0",
+   "sha256": "5364713e55d60759132b4f304aa90d64865cb1d785a05b43ffc92c84a47afdb6"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07s_303/train/logs/checkpoints/312524800/d/4256d94fdc3805ff05b8f612566ddf11",
+   "sha256": "71688ac5ff37df17172fcd7c8bfbd7b3112ec4d541dcd255999e28fbadc888f0"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07s_303/train/logs/checkpoints/312524800/manifest.ocdbt",
+   "sha256": "38cf48c427655c64c89c9000dc5135b116c5b20103f5d27389617828c0ab6c66"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07s_303/train/logs/checkpoints/312524800/ocdbt.process_0/d/45946cc9420a5325678b24e2965cc954",
+   "sha256": "d726faaa805fe1bb38a107b2162c901fbb3aac5c955f1c06a14e74db078aa1fd"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07s_303/train/logs/checkpoints/312524800/ocdbt.process_0/d/7a682093c538353ac18d4ae9881e5247",
+   "sha256": "1d869c308a7df8a8add02965d43210c5916009a695622a467ce35a9f07212d3c"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07s_303/train/logs/checkpoints/312524800/ocdbt.process_0/d/a1f729dd0f4d6f6562b17fbd9935cd19",
+   "sha256": "a7fbfd4342f44cf4c3f86498f2ab9710a4d253ae8cc9a4d028f6e7b61e24467d"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07s_303/train/logs/checkpoints/312524800/ocdbt.process_0/d/abb70b15b5e68d8bdd325da5d8cc5e41",
+   "sha256": "c611c4913fc799d0cc5f9cca2031cf00d36bc711511d113448a3b5b205e6b2e4"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07s_303/train/logs/checkpoints/312524800/ocdbt.process_0/d/cb88e61f26e273dfeeb2d8cc81a37094",
+   "sha256": "7a9a9439f4a429e4eaf979947715a155e428ab2bb64237c600545b1a66a437ac"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07s_303/train/logs/checkpoints/312524800/ocdbt.process_0/manifest.ocdbt",
+   "sha256": "e0a90ea633e44f18bb93075550d8712a95366f584a6f4b4ad73eba814bc8b93a"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07s_303/train/logs/checkpoints/312524800/policy",
+   "sha256": "c952f00015b98d1da2ed0a3e41c0457dc663994f910621d6d7c818b4d11304ce"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07_parents/303/logs/checkpoints/0/policy",
+   "sha256": "f695a07069a2c5bd8cf19ff467afa2c89938285a017f75bba42ca9a0ed607adb"
+  }
+ ]
+}

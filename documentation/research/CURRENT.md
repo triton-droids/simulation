@@ -1,3 +1,15 @@
+# Current handoff - RF01 narrow-foot comparison on Atlantis (2026-11-21)
+
+User approved comparison 1 of 2 on 2026-11-21 and lifted the 72 GPU-hour cap for Atlantis work. Diagnosis: 3/4 RB07 randomized failures are foot-foot/foot-shin contact terminations while upright (pelvis >.74m), not falls; passive references also end on foot contact at reset6002. RF01 tests the existing narrow_feet cost (weight -4, width .16m) from each fixed final 401408000 policy for 51609600 more steps, with a matched penalty-off control per seed: queues `cluster_rf01_{101,202,303}_{fix,ctl}.json`, six Atlantis RTX2080Ti jobs. Gates unchanged; full evaluations run unconditionally so every arm reports foot-contact terminations.
+
+Decision rule, frozen before launch: support only if all three fix arms have zero undesired-contact terminations across screen, full randomized and 12 forward-reset evaluations with no failure absent from the matched control. Reject if fix arms do not reduce foot-contact terminations versus controls or regress survival/gait relative to controls; no extension or retry. Turn/backward tracking misses are out of scope and would need comparison 2. Final fresh-seed validation is not unlocked by RF01.
+
+## Previous handoff - batch complete, decision required
+
+All three cumulative401408000-step development runs completed. None passes all original gates. Scheduled research paused pending separately approved next work. Report: `Artifacts/Results/local_rb07_resume_20261118/mandatory_review.md`. No automatic extensions, new seeds or final-validation launch. Audit complete. Preserve all prior runs.
+
+## Historical handoff
+
 # Current research handoff - 2026-11-18 resume
 
 User explicitly requested resume from the latest checkpoint Nov18. Active manifest: `documentation/research/queues/local_rb07_resume_20261118.json`. Receipt/status: `Artifacts/Results/local_rb07_resume_20261118/launch_receipt.json` and `batch/status.json`.

@@ -12,7 +12,7 @@ evidence, then at most TWO separately approved hypothesis comparisons before a
 mandatory review. No automatic architecture switch, endless sweep or extra compute.
 Each new comparison needs an approved hypothesis, budget, commands and decision rule.
 
-Existing aggregate72GPUh cap remains. Saved interrupted runs and local continuations
+On 2026-11-21 the user lifted the aggregate 72GPUh cap for Atlantis work; each comparison still states its budget before launch. Previously, the aggregate72GPUh cap applied. Saved interrupted runs and local continuations
 count toward it. Reconcile actual elapsed time and remaining steps before proposing
 resume. Parameters do not include optimizer/PRNG/environment state; continuation
 is not exact resume. Recover evaluation without repeating completed training.
