@@ -1,4 +1,8 @@
-# Current handoff - RF01 narrow-foot comparison on Atlantis (2026-11-21)
+# Current handoff - RF01 rejected, decision required (2026-11-21)
+
+RF01 narrow-foot penalty is REJECTED under its frozen rule. 303 fix had 3 foot-contact terminations against 1 in its control, and 202 fix and 202 control both had 0, so the penalty did not cause the improvement. Every arm fails nominal turning yaw (.36-.40 > .25): that is now the shared blocker. 101 control was stopped by the KL guard (kl 11.25), and 101 fix froze at compile with no result. Review: `Artifacts/Results/cluster_rf01_review.md`. Comparison 1 of 2 is used; the next comparison needs separate approval. Final validation is not unlocked.
+
+## Previous handoff - RF01 narrow-foot comparison on Atlantis (2026-11-21)
 
 User approved comparison 1 of 2 on 2026-11-21 and lifted the 72 GPU-hour cap for Atlantis work. Diagnosis: 3/4 RB07 randomized failures are foot-foot/foot-shin contact terminations while upright (pelvis >.74m), not falls; passive references also end on foot contact at reset6002. RF01 tests the existing narrow_feet cost (weight -4, width .16m) from each fixed final 401408000 policy for 51609600 more steps, with a matched penalty-off control per seed: queues `cluster_rf01_{101,202,303}_{fix,ctl}.json`, six Atlantis RTX2080Ti jobs. Gates unchanged; full evaluations run unconditionally so every arm reports foot-contact terminations.
 
