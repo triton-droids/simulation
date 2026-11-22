@@ -1,4 +1,8 @@
-# Current handoff - TS01 turn-command diagnostic on Atlantis (2026-11-21)
+# Current handoff - TS01 CONFIRMED, comparison 2 needs approval (2026-11-21)
+
+TS01 is CONFIRMED under its frozen rule (review: `Artifacts/Results/cluster_ts01_review.md`). All seven policies have a stand-still dead zone for small commands. Pure yaw .2-.3 stands in 7/7 policies, yaw .4 flips by seed and direction, and yaw .6 and above, or yaw .4 with forward speed, steps and tracks (yaw error about .1). The cause is the reward shape: standing earns 70% of the yaw reward at .3. In-place turns are also rare in the sampler (about 1%). Comparison 2 of 2 is unused and needs explicit approval of its hypothesis, budget, commands and decision rule.
+
+## Previous handoff - TS01 turn-command diagnostic on Atlantis (2026-11-21)
 
 User approved an evaluation-only turn sweep and cancellation of frozen job 7983 (RF01_101_fix, cancelled after 7h52m at step 0) on 2026-11-21. TS01 is not a hypothesis comparison: no training, no promotion, gates unchanged, comparison 2 of 2 is still unused. Hypothesis: nominal turn failures are an in-place-turn deficit (the policy stands still for zero-linear yaw commands), because the upstream sampler gives |v|<.1 with |yaw|>=.3 in only about 1% of training commands. Seven policies: RB07 finals 101/202/303 (RF01 checkpoint 0, with an exact actor/critic/normalizer parity check against the parent) and RF01 202/303 fix/ctl at 51609600. Three nominal grids on seeds 6000-6002: `ts01_{pure_yaw,moving_yaw,mixed_yaw}_commands.json` (labels are evaluator slots; the CSV records the actual commands). Plans: `cluster_ts01_*.json`. Budget: seven 1-GPU jobs, at most 4h each.
 
