@@ -1,4 +1,18 @@
-# Current handoff - RT01 turn dead-zone comparison on Atlantis (2026-11-21)
+# Current handoff - RT01 rejected, mandatory review due (2026-11-22)
+
+RT01 (comparison 2 of 2) is REJECTED under its frozen rule. Evidence: `documentation/research/reviews/2026-11-21_rf01_ts01_rt01.md`.
+- What worked: the stricter yaw reward fixed nominal turning on all three fix arms (max yaw .04-.10 vs the .25 limit), and ±.4 in-place turns now step.
+- Why it was rejected:
+  - 101 fix has randomized falls and 3 foot-contact terminations that its control lacks.
+  - Criterion (2) at ±.3 was unmeasurable because the reused grid has no ±.3, an authoring error.
+  - Every arm still stands still at ±.2.
+- Other outcomes:
+  - 101 ctl (lr 1e-4, no reward change) passed every numeric gate. That is one seed, still needs visual review, and is not final validation.
+  - 303 ctl trained fully but crashed on an Atlantis ptxas fault before its evaluations; they can be recovered from its saved checkpoint.
+
+Both approved comparisons are used. Next is the mandatory review; no new comparison or final fresh-seed validation without explicit user approval.
+
+## Previous handoff - RT01 turn dead-zone comparison on Atlantis (2026-11-21)
 
 User approved comparison 2 of 2 ("test that") on 2026-11-21, as proposed after TS01. Fix arm: separate yaw-rate tracking sigma .05 (upstream shared .25) plus `in_place_turn_probability` .15, where 15% of moving command draws become zero-linear turns with |yaw| in [.2,1.0] and zero draws stay zero (about 13.5% of all draws). Control: upstream reward and sampler. Both arms: lr 1e-4 (RF01 used 3e-4), narrow_feet 0, continuing each fixed final RB07 401408000 policy for 51609600 steps with exact restore parity, the KL guard, screens and full evaluations unchanged, plus an unconditional `turn_pure_yaw` diagnostic (TS01 grid) on the final checkpoint. Queues: `cluster_rt01_{101,202,303}_{fix,ctl}.json`, six Atlantis RTX2080Ti jobs. This is the last approved comparison; mandatory review follows.
 
