@@ -1,4 +1,10 @@
-# Current handoff - RF01 rejected, decision required (2026-11-21)
+# Current handoff - TS01 turn-command diagnostic on Atlantis (2026-11-21)
+
+User approved an evaluation-only turn sweep and cancellation of frozen job 7983 (RF01_101_fix, cancelled after 7h52m at step 0) on 2026-11-21. TS01 is not a hypothesis comparison: no training, no promotion, gates unchanged, comparison 2 of 2 is still unused. Hypothesis: nominal turn failures are an in-place-turn deficit (the policy stands still for zero-linear yaw commands), because the upstream sampler gives |v|<.1 with |yaw|>=.3 in only about 1% of training commands. Seven policies: RB07 finals 101/202/303 (RF01 checkpoint 0, with an exact actor/critic/normalizer parity check against the parent) and RF01 202/303 fix/ctl at 51609600. Three nominal grids on seeds 6000-6002: `ts01_{pure_yaw,moving_yaw,mixed_yaw}_commands.json` (labels are evaluator slots; the CSV records the actual commands). Plans: `cluster_ts01_*.json`. Budget: seven 1-GPU jobs, at most 4h each.
+
+Reading rule, frozen before launch. CONFIRMED if, for each policy/direction failing pure yaw .4 (yaw_rate_rmse > .25), most failing pure-yaw episodes show single_support_fraction < .05 (standing), and adding forward speed (vx .1-.45, same yaw) brings mean yaw_rate_rmse to <= .25 with stepping. REFUTED if yaw tracking still fails with forward speed, or the failures show stepping (single_support >= .2): that would make it general turn-tracking error, not an in-place deficit. Anything else is MIXED and is reported as such. Command-curriculum training is proposed only if CONFIRMED.
+
+## Previous handoff - RF01 rejected, decision required (2026-11-21)
 
 RF01 narrow-foot penalty is REJECTED under its frozen rule. 303 fix had 3 foot-contact terminations against 1 in its control, and 202 fix and 202 control both had 0, so the penalty did not cause the improvement. Every arm fails nominal turning yaw (.36-.40 > .25): that is now the shared blocker. 101 control was stopped by the KL guard (kl 11.25), and 101 fix froze at compile with no result. Review: `Artifacts/Results/cluster_rf01_review.md`. Comparison 1 of 2 is used; the next comparison needs separate approval. Final validation is not unlocked.
 

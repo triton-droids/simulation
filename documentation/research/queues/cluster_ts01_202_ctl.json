@@ -1,0 +1,164 @@
+{
+ "version": 1,
+ "output_dir": "Artifacts/Results/cluster_ts01_202_ctl/queue",
+ "max_wall_seconds": 12600,
+ "jobs": [
+  {
+   "id": "source",
+   "hypothesis": "User-approved TS01 diagnostic (2026-11-21), evaluation only: nominal turn failures are an in-place-turn deficit (policy stands still for zero-linear yaw commands) rather than general yaw-tracking error. No training, no promotion, gates unchanged.",
+   "evidence": "RF01 failing nominal turns show double_support 1.00, single_support 0.00 and yaw error ~= command; the upstream sampler gives |v|<.1 with |yaw|>=.3 in only ~1% of training commands.",
+   "review_artifact": "Artifacts/Results/cluster_ts01_202_ctl/policy_record.json",
+   "stages": [
+    {
+     "id": "fetch_pinned",
+     "argv": [
+      "-c",
+      "from robocub.locomotion.unitree_g1.playground_source import resolve_playground_source;from pathlib import Path;import json;s=resolve_playground_source(fetch=True);p=Path('Artifacts/Results/cluster_ts01_202_ctl/source.json');p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps({'source':str(s)}))"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_ts01_202_ctl/source.json"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_ts01_202_ctl/source.json"
+     ],
+     "timeout_seconds": 300
+    },
+    {
+     "id": "record_policy",
+     "argv": [
+      "-c",
+      "import os;os.environ['JAX_PLATFORMS']='cpu';import hashlib,json;from pathlib import Path;p=Path('{root}/../../RF01_202_ctl/source/Artifacts/Results/cluster_rf01_202_ctl/train/logs/checkpoints/51609600');r={'run':'RF01_202_ctl','checkpoint':51609600,'policy_sha256':hashlib.sha256((p/'policy').read_bytes()).hexdigest()};o=Path('Artifacts/Results/cluster_ts01_202_ctl/policy_record.json');o.parent.mkdir(parents=True,exist_ok=True);o.write_text(json.dumps(r));"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_ts01_202_ctl/policy_record.json"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_ts01_202_ctl/policy_record.json"
+     ],
+     "timeout_seconds": 300
+    }
+   ]
+  },
+  {
+   "id": "pure_yaw",
+   "hypothesis": "User-approved TS01 diagnostic (2026-11-21), evaluation only: nominal turn failures are an in-place-turn deficit (policy stands still for zero-linear yaw commands) rather than general yaw-tracking error. No training, no promotion, gates unchanged.",
+   "evidence": "RF01 failing nominal turns show double_support 1.00, single_support 0.00 and yaw error ~= command; the upstream sampler gives |v|<.1 with |yaw|>=.3 in only ~1% of training commands.",
+   "review_artifact": "Artifacts/Results/cluster_ts01_202_ctl/pure_yaw/summary.json",
+   "stages": [
+    {
+     "id": "evaluate",
+     "argv": [
+      "robocub/scripts/evaluate_g1.py",
+      "--run-dir",
+      "{root}/../../RF01_202_ctl/source/Artifacts/Results/cluster_rf01_202_ctl/train",
+      "--checkpoint",
+      "51609600",
+      "--reference-run-dir",
+      "{root}/../../RF01_202_ctl/source/Artifacts/Results/local_rb07_parents/202",
+      "--reference-label",
+      "untrained",
+      "--steps",
+      "500",
+      "--seeds",
+      "6000,6001,6002",
+      "--command-grid",
+      "documentation/research/queues/ts01_pure_yaw_commands.json",
+      "--nominal-reset",
+      "--output-dir",
+      "Artifacts/Results/cluster_ts01_202_ctl/pure_yaw",
+      "--video",
+      "--video-command",
+      "turn_left"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_ts01_202_ctl/pure_yaw"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_ts01_202_ctl/pure_yaw/summary.json",
+      "Artifacts/Results/cluster_ts01_202_ctl/pure_yaw/episodes.csv",
+      "Artifacts/Results/cluster_ts01_202_ctl/pure_yaw/trained_turn_left_seed6000.mp4"
+     ],
+     "timeout_seconds": 5400
+    }
+   ]
+  },
+  {
+   "id": "moving_yaw",
+   "hypothesis": "User-approved TS01 diagnostic (2026-11-21), evaluation only: nominal turn failures are an in-place-turn deficit (policy stands still for zero-linear yaw commands) rather than general yaw-tracking error. No training, no promotion, gates unchanged.",
+   "evidence": "RF01 failing nominal turns show double_support 1.00, single_support 0.00 and yaw error ~= command; the upstream sampler gives |v|<.1 with |yaw|>=.3 in only ~1% of training commands.",
+   "review_artifact": "Artifacts/Results/cluster_ts01_202_ctl/moving_yaw/summary.json",
+   "stages": [
+    {
+     "id": "evaluate",
+     "argv": [
+      "robocub/scripts/evaluate_g1.py",
+      "--run-dir",
+      "{root}/../../RF01_202_ctl/source/Artifacts/Results/cluster_rf01_202_ctl/train",
+      "--checkpoint",
+      "51609600",
+      "--reference-run-dir",
+      "{root}/../../RF01_202_ctl/source/Artifacts/Results/local_rb07_parents/202",
+      "--reference-label",
+      "untrained",
+      "--steps",
+      "500",
+      "--seeds",
+      "6000,6001,6002",
+      "--command-grid",
+      "documentation/research/queues/ts01_moving_yaw_commands.json",
+      "--nominal-reset",
+      "--output-dir",
+      "Artifacts/Results/cluster_ts01_202_ctl/moving_yaw"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_ts01_202_ctl/moving_yaw"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_ts01_202_ctl/moving_yaw/summary.json",
+      "Artifacts/Results/cluster_ts01_202_ctl/moving_yaw/episodes.csv"
+     ],
+     "timeout_seconds": 5400
+    }
+   ]
+  },
+  {
+   "id": "mixed_yaw",
+   "hypothesis": "User-approved TS01 diagnostic (2026-11-21), evaluation only: nominal turn failures are an in-place-turn deficit (policy stands still for zero-linear yaw commands) rather than general yaw-tracking error. No training, no promotion, gates unchanged.",
+   "evidence": "RF01 failing nominal turns show double_support 1.00, single_support 0.00 and yaw error ~= command; the upstream sampler gives |v|<.1 with |yaw|>=.3 in only ~1% of training commands.",
+   "review_artifact": "Artifacts/Results/cluster_ts01_202_ctl/mixed_yaw/summary.json",
+   "stages": [
+    {
+     "id": "evaluate",
+     "argv": [
+      "robocub/scripts/evaluate_g1.py",
+      "--run-dir",
+      "{root}/../../RF01_202_ctl/source/Artifacts/Results/cluster_rf01_202_ctl/train",
+      "--checkpoint",
+      "51609600",
+      "--reference-run-dir",
+      "{root}/../../RF01_202_ctl/source/Artifacts/Results/local_rb07_parents/202",
+      "--reference-label",
+      "untrained",
+      "--steps",
+      "500",
+      "--seeds",
+      "6000,6001,6002",
+      "--command-grid",
+      "documentation/research/queues/ts01_mixed_yaw_commands.json",
+      "--nominal-reset",
+      "--output-dir",
+      "Artifacts/Results/cluster_ts01_202_ctl/mixed_yaw"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_ts01_202_ctl/mixed_yaw"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_ts01_202_ctl/mixed_yaw/summary.json",
+      "Artifacts/Results/cluster_ts01_202_ctl/mixed_yaw/episodes.csv"
+     ],
+     "timeout_seconds": 5400
+    }
+   ]
+  }
+ ]
+}
