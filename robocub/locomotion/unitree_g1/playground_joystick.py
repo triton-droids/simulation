@@ -60,12 +60,26 @@ def standing_command_sampler(rng, *, original, probability):
     return jp.where(jax.random.bernoulli(zero_key, p=probability), jp.zeros_like(command), command)
 
 
+IN_PLACE_TURN_YAW = (0.2, 1.0)
+
+
+def in_place_turn_sampler(rng, *, original, probability, yaw_range=IN_PLACE_TURN_YAW):
+    """Replace a share of moving draws with zero-linear turns; zero draws stay zero."""
+    command = original(rng)
+    turn_key, yaw_key, sign_key = jax.random.split(jax.random.fold_in(rng, 1), 3)
+    yaw = jax.random.uniform(yaw_key, minval=yaw_range[0], maxval=yaw_range[1])
+    yaw = jp.where(jax.random.bernoulli(sign_key), yaw, -yaw)
+    turn = jax.random.bernoulli(turn_key, p=probability) & jp.any(command != 0)
+    return jp.where(turn, jp.zeros_like(command).at[2].set(yaw), command)
+
+
 class Joystick:
     """Repository-facing wrapper around the exact pinned Playground G1 task."""
 
     _feet_contact_phase_scale = 0.0
     _narrow_feet_scale = 0.0
     _stand_yaw_scale = 0.0
+    _yaw_tracking_sigma = None
     _action_filter_alpha = 1.0
     _action_multipliers = None
     _phase_reward_command_only = False
@@ -152,6 +166,10 @@ class Joystick:
         self._airtime_reward_command_only = bool(getattr(cfg.playground, "airtime_reward_command_only", False))
         self._narrow_feet_scale = float(getattr(cfg.reward_scales, "narrow_feet", 0.0))
         self._stand_yaw_scale = float(getattr(cfg.reward_scales, "stand_yaw", 0.0))
+        yaw_sigma = getattr(cfg.playground, "yaw_tracking_sigma", None)
+        self._yaw_tracking_sigma = None if yaw_sigma is None else float(yaw_sigma)
+        if self._yaw_tracking_sigma is not None and not self._yaw_tracking_sigma > 0.0:
+            raise ValueError("Yaw tracking sigma must be positive")
         self._action_filter_alpha = float(getattr(cfg.playground, "action_filter_alpha", 1.0))
         if not 0.0 < self._action_filter_alpha <= 1.0:
             raise ValueError("Action filter alpha must be in (0, 1]")
@@ -182,6 +200,13 @@ class Joystick:
             self._env.sample_command = functools.partial(
                 standing_command_sampler, original=self._env.sample_command,
                 probability=stand_probability)
+        turn_probability = float(getattr(cfg.playground, "in_place_turn_probability", 0.0))
+        if not 0.0 <= turn_probability <= 1.0:
+            raise ValueError("In-place turn probability must be in [0, 1]")
+        if turn_probability != 0.0:
+            self._env.sample_command = functools.partial(
+                in_place_turn_sampler, original=self._env.sample_command,
+                probability=turn_probability)
         # Playground's default fast auto-reset restores only data/observations
         # and deliberately carries transition history across episodes.  That
         # makes the command, phase, contact, and action history disagree with
@@ -226,6 +251,13 @@ class Joystick:
         if self._stand_yaw_scale != 0.0:
             self.effective_config.setdefault("local_reward_scales", {})["stand_yaw"] = self._stand_yaw_scale
             self.source_record["adaptations"].append("zero-command-only squared pelvis yaw rate cost")
+        if turn_probability != 0.0:
+            self.effective_config["in_place_turn_probability"] = turn_probability
+            self.effective_config["in_place_turn_yaw"] = list(IN_PLACE_TURN_YAW)
+            self.source_record["adaptations"].append("replace a share of moving command draws with zero-linear turns")
+        if self._yaw_tracking_sigma is not None:
+            self.effective_config["yaw_tracking_sigma"] = self._yaw_tracking_sigma
+            self.source_record["adaptations"].append("separate yaw-rate tracking sigma replaces the exact upstream term")
         if self._phase_reward_command_only:
             self.effective_config["phase_reward_command_only"] = True
             self.source_record["adaptations"].append("disable phase-height reward at zero command")
@@ -357,6 +389,13 @@ class Joystick:
             old = metrics["reward/feet_air_time"]
             new = old * (jp.linalg.norm(state.info["command"]) > 0.01)
             metrics["reward/feet_air_time"] = new
+            reward = reward + (new - old) * self.dt
+        if self._yaw_tracking_sigma is not None:
+            old = metrics["reward/tracking_ang_vel"]
+            error = jp.square(state.info["command"][2] - self._env.get_gyro(next_state.data, "pelvis")[2])
+            scale = self._env._config.reward_config.scales["tracking_ang_vel"]
+            new = scale * jp.exp(-error / self._yaw_tracking_sigma)
+            metrics["reward/tracking_ang_vel"] = new
             reward = reward + (new - old) * self.dt
         if self._feet_contact_phase_scale != 0.0:
             weighted = self._feet_contact_phase_scale * contact_phase_reward(

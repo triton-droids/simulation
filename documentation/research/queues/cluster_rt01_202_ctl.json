@@ -1,0 +1,796 @@
+{
+ "version": 1,
+ "output_dir": "Artifacts/Results/cluster_rt01_202_ctl/queue",
+ "max_wall_seconds": 82800,
+ "jobs": [
+  {
+   "id": "train",
+   "hypothesis": "User-approved RT01 comparison 2 of 2 (2026-11-21): stricter yaw tracking (separate sigma .05 vs .25) plus 15% of moving command draws replaced by zero-linear turns |yaw| in [.2,1.0], from each fixed final RB07 401408000 policy, 51609600 more steps at lr 1e-4; matched control keeps upstream reward and sampler at the same lr. Parameter continuation, not exact resume or final validation.",
+   "evidence": "TS01 CONFIRMED: all seven RB07/RF01 policies stand still for small commands (pure yaw .2-.3 in 7/7, .4 flips by seed/direction) yet step and track yaw .6+ or yaw .4 with forward speed. Standing earns 70% of the upstream yaw reward at .3; in-place turns are ~1% of draws. RF01 101 ctl KL blew up at lr 3e-4.",
+   "stages": [
+    {
+     "id": "parent_fingerprint",
+     "argv": [
+      "-c",
+      "from pathlib import Path;import hashlib,json;p=Path('Artifacts/Results/local_rb07t_202/train/logs/checkpoints/54476800/policy');h=hashlib.sha256(p.read_bytes()).hexdigest();assert h=='f1befc39d457e9e23771b11e6083cacf00fa27b42da26cc15c54b8aa96c94326';o=Path('Artifacts/Results/cluster_rt01_202_ctl/parent_sha256.json');o.parent.mkdir(parents=True,exist_ok=True);o.write_text(json.dumps({'parent':'Artifacts/Results/local_rb07t_202/train/logs/checkpoints/54476800','cumulative_parent_steps':401408000,'sha256':h,'parameter_continuation':True}))"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_rt01_202_ctl/parent_sha256.json"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_rt01_202_ctl/parent_sha256.json"
+     ],
+     "timeout_seconds": 60
+    },
+    {
+     "id": "recovery_train",
+     "argv": [
+      "robocub/scripts/train.py",
+      "--logger",
+      "local",
+      "--seed",
+      "202",
+      "env=unitree_g1_playground",
+      "robot=unitree_g1",
+      "sim=unitree_g1_playground",
+      "agent=ppo_g1_corrective",
+      "robot.fetch_model=false",
+      "sim.playground.fetch_source=true",
+      "sim.reset.randomize=true",
+      "sim.noise.add_noise=false",
+      "sim.push.add_push=false",
+      "sim.domain_rand.add_domain_rand=false",
+      "sim.commands.lin_vel_x=[-1.0,1.0]",
+      "sim.commands.lin_vel_y=[-0.5,0.5]",
+      "sim.commands.ang_vel_yaw=[-1.0,1.0]",
+      "agent.num_eval_envs=16",
+      "agent.episode_length=500",
+      "hydra.run.dir={root}/Artifacts/Results/cluster_rt01_202_ctl/train",
+      "hydra.job.chdir=true",
+      "agent.learning_rate=0.0001",
+      "agent.discounting=0.97",
+      "agent.batch_size=128",
+      "agent.num_envs=2048",
+      "agent.num_timesteps=51609600",
+      "agent.num_evals=19",
+      "sim.reward_scales.narrow_feet=0.0",
+      "--resume",
+      "--checkpoint",
+      "{root}/Artifacts/Results/local_rb07t_202/train/logs/checkpoints/54476800"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_rt01_202_ctl/train"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_rt01_202_ctl/train/run_manifest.json",
+      "Artifacts/Results/cluster_rt01_202_ctl/train/logs/checkpoints/0/policy",
+      "Artifacts/Results/cluster_rt01_202_ctl/train/logs/checkpoints/51609600/policy"
+     ],
+     "timeout_seconds": 36000,
+     "monitor": {
+      "path": "Artifacts/Results/cluster_rt01_202_ctl/train/logs/metrics.jsonl",
+      "ignore_kl_through_step": 2867200,
+      "consecutive_kl_limit": 2,
+      "kl_limit": 0.2,
+      "final_step": 51609600
+     }
+    },
+    {
+     "id": "full_restore_parity",
+     "argv": [
+      "-c",
+      "import os;os.environ['JAX_PLATFORMS']='cpu';from pathlib import Path;import json,numpy as np,jax;from brax.training.agents.ppo import checkpoint;a=checkpoint.load(Path('Artifacts/Results/local_rb07t_202/train/logs/checkpoints/54476800').resolve());b=checkpoint.load(Path('Artifacts/Results/cluster_rt01_202_ctl/train/logs/checkpoints/0').resolve());la,ta=jax.tree_util.tree_flatten(a);lb,tb=jax.tree_util.tree_flatten(b);ok=ta==tb and len(a)==len(b)==3 and len(la)==len(lb) and all(np.isfinite(np.asarray(x)).all() and np.array_equal(np.asarray(x),np.asarray(y)) for x,y in zip(la,lb));Path('Artifacts/Results/cluster_rt01_202_ctl/restore_parity.json').write_text(json.dumps({'full_actor_critic_normalizer_exact':ok}));assert ok"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_rt01_202_ctl/restore_parity.json"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_rt01_202_ctl/restore_parity.json"
+     ],
+     "timeout_seconds": 300
+    }
+   ],
+   "review_artifact": "Artifacts/Results/cluster_rt01_202_ctl/train/run_manifest.json"
+  },
+  {
+   "id": "screen_nominal",
+   "hypothesis": "User-approved RT01 comparison 2 of 2 (2026-11-21): stricter yaw tracking (separate sigma .05 vs .25) plus 15% of moving command draws replaced by zero-linear turns |yaw| in [.2,1.0], from each fixed final RB07 401408000 policy, 51609600 more steps at lr 1e-4; matched control keeps upstream reward and sampler at the same lr. Parameter continuation, not exact resume or final validation.",
+   "evidence": "TS01 CONFIRMED: all seven RB07/RF01 policies stand still for small commands (pure yaw .2-.3 in 7/7, .4 flips by seed/direction) yet step and track yaw .6+ or yaw .4 with forward speed. Standing earns 70% of the upstream yaw reward at .3; in-place turns are ~1% of draws. RF01 101 ctl KL blew up at lr 3e-4.",
+   "stages": [
+    {
+     "id": "evaluate_nominal",
+     "argv": [
+      "robocub/scripts/evaluate_g1.py",
+      "--run-dir",
+      "Artifacts/Results/cluster_rt01_202_ctl/train",
+      "--checkpoint",
+      "51609600",
+      "--reference-run-dir",
+      "Artifacts/Results/local_rb07_parents/202",
+      "--reference-label",
+      "untrained",
+      "--steps",
+      "500",
+      "--seeds",
+      "6000,6001,6002,6014",
+      "--command-grid",
+      "documentation/research/queues/post_f1_screen_commands.json",
+      "--nominal-reset",
+      "--output-dir",
+      "Artifacts/Results/cluster_rt01_202_ctl/screen_nominal",
+      "--video",
+      "--video-command",
+      "forward"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_rt01_202_ctl/screen_nominal"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_rt01_202_ctl/screen_nominal/episodes.csv",
+      "Artifacts/Results/cluster_rt01_202_ctl/screen_nominal/summary.json",
+      "Artifacts/Results/cluster_rt01_202_ctl/screen_nominal/trained_forward_seed6000.mp4"
+     ],
+     "timeout_seconds": 7200
+    }
+   ],
+   "episodes_csv": "Artifacts/Results/cluster_rt01_202_ctl/screen_nominal/episodes.csv",
+   "gate": {
+    "horizon": 500,
+    "controllers": [
+     "trained",
+     "untrained",
+     "standing"
+    ],
+    "commands": [
+     "stand",
+     "forward"
+    ],
+    "seeds": [
+     6000,
+     6001,
+     6002,
+     6014
+    ],
+    "outcomes": {
+     "pass": [
+      {
+       "name": "all episodes survive500",
+       "aggregate": "min",
+       "metric": "episode_steps",
+       "min": 500
+      },
+      {
+       "name": "upright pelvis",
+       "aggregate": "min",
+       "metric": "minimum_pelvis_height",
+       "above": 0.6
+      },
+      {
+       "name": "mean linear error",
+       "aggregate": "mean",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "mean yaw error",
+       "aggregate": "mean",
+       "metric": "yaw_rate_rmse",
+       "max": 0.2
+      },
+      {
+       "name": "forward linear",
+       "where": {
+        "command_name": "forward"
+       },
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "stand linear_velocity_vector_rmse",
+       "where": {
+        "command_name": "stand"
+       },
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.15
+      },
+      {
+       "name": "stand yaw_rate_rmse",
+       "where": {
+        "command_name": "stand"
+       },
+       "aggregate": "max",
+       "metric": "yaw_rate_rmse",
+       "max": 0.15
+      },
+      {
+       "name": "forward single_support_fraction",
+       "where": {
+        "command_name": "forward"
+       },
+       "aggregate": "min",
+       "metric": "single_support_fraction",
+       "min": 0.35,
+       "max": 0.95
+      },
+      {
+       "name": "forward left_median_completed_air_seconds",
+       "where": {
+        "command_name": "forward"
+       },
+       "aggregate": "min",
+       "metric": "left_median_completed_air_seconds",
+       "min": 0.12
+      },
+      {
+       "name": "forward right_median_completed_air_seconds",
+       "where": {
+        "command_name": "forward"
+       },
+       "aggregate": "min",
+       "metric": "right_median_completed_air_seconds",
+       "min": 0.12
+      }
+     ]
+    }
+   },
+   "screening_only": true
+  },
+  {
+   "id": "screen_randomized",
+   "hypothesis": "User-approved RT01 comparison 2 of 2 (2026-11-21): stricter yaw tracking (separate sigma .05 vs .25) plus 15% of moving command draws replaced by zero-linear turns |yaw| in [.2,1.0], from each fixed final RB07 401408000 policy, 51609600 more steps at lr 1e-4; matched control keeps upstream reward and sampler at the same lr. Parameter continuation, not exact resume or final validation.",
+   "evidence": "TS01 CONFIRMED: all seven RB07/RF01 policies stand still for small commands (pure yaw .2-.3 in 7/7, .4 flips by seed/direction) yet step and track yaw .6+ or yaw .4 with forward speed. Standing earns 70% of the upstream yaw reward at .3; in-place turns are ~1% of draws. RF01 101 ctl KL blew up at lr 3e-4.",
+   "stages": [
+    {
+     "id": "evaluate_randomized",
+     "argv": [
+      "robocub/scripts/evaluate_g1.py",
+      "--run-dir",
+      "Artifacts/Results/cluster_rt01_202_ctl/train",
+      "--checkpoint",
+      "51609600",
+      "--reference-run-dir",
+      "Artifacts/Results/local_rb07_parents/202",
+      "--reference-label",
+      "untrained",
+      "--steps",
+      "500",
+      "--seeds",
+      "6000,6001,6002,6014",
+      "--command-grid",
+      "documentation/research/queues/post_f1_screen_commands.json",
+      "--randomized-reset",
+      "--output-dir",
+      "Artifacts/Results/cluster_rt01_202_ctl/screen_randomized",
+      "--video",
+      "--video-command",
+      "forward"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_rt01_202_ctl/screen_randomized"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_rt01_202_ctl/screen_randomized/episodes.csv",
+      "Artifacts/Results/cluster_rt01_202_ctl/screen_randomized/summary.json",
+      "Artifacts/Results/cluster_rt01_202_ctl/screen_randomized/trained_forward_seed6000.mp4"
+     ],
+     "timeout_seconds": 7200
+    }
+   ],
+   "episodes_csv": "Artifacts/Results/cluster_rt01_202_ctl/screen_randomized/episodes.csv",
+   "gate": {
+    "horizon": 500,
+    "controllers": [
+     "trained",
+     "untrained",
+     "standing"
+    ],
+    "commands": [
+     "stand",
+     "forward"
+    ],
+    "seeds": [
+     6000,
+     6001,
+     6002,
+     6014
+    ],
+    "outcomes": {
+     "pass": [
+      {
+       "name": "all16 survive500",
+       "aggregate": "min",
+       "metric": "episode_steps",
+       "min": 500
+      },
+      {
+       "name": "upright pelvis",
+       "aggregate": "min",
+       "metric": "minimum_pelvis_height",
+       "above": 0.6
+      },
+      {
+       "name": "mean linear_velocity_vector_rmse",
+       "aggregate": "mean",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "worst linear_velocity_vector_rmse",
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.35
+      },
+      {
+       "name": "mean yaw_rate_rmse",
+       "aggregate": "mean",
+       "metric": "yaw_rate_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "worst yaw_rate_rmse",
+       "aggregate": "max",
+       "metric": "yaw_rate_rmse",
+       "max": 0.35
+      }
+     ]
+    }
+   },
+   "screening_only": true
+  },
+  {
+   "id": "full_c15_nominal",
+   "hypothesis": "User-approved RT01 comparison 2 of 2 (2026-11-21): stricter yaw tracking (separate sigma .05 vs .25) plus 15% of moving command draws replaced by zero-linear turns |yaw| in [.2,1.0], from each fixed final RB07 401408000 policy, 51609600 more steps at lr 1e-4; matched control keeps upstream reward and sampler at the same lr. Parameter continuation, not exact resume or final validation.",
+   "evidence": "TS01 CONFIRMED: all seven RB07/RF01 policies stand still for small commands (pure yaw .2-.3 in 7/7, .4 flips by seed/direction) yet step and track yaw .6+ or yaw .4 with forward speed. Standing earns 70% of the upstream yaw reward at .3; in-place turns are ~1% of draws. RF01 101 ctl KL blew up at lr 3e-4.",
+   "stages": [
+    {
+     "id": "evaluate_nominal",
+     "argv": [
+      "robocub/scripts/evaluate_g1.py",
+      "--run-dir",
+      "Artifacts/Results/cluster_rt01_202_ctl/train",
+      "--checkpoint",
+      "51609600",
+      "--reference-run-dir",
+      "Artifacts/Results/local_rb07_parents/202",
+      "--reference-label",
+      "untrained",
+      "--steps",
+      "500",
+      "--seeds",
+      "6000,6001,6002",
+      "--command-grid",
+      "documentation/research/queues/final_f1_commands.json",
+      "--nominal-reset",
+      "--video",
+      "--video-command",
+      "combined",
+      "--output-dir",
+      "Artifacts/Results/cluster_rt01_202_ctl/full_nominal"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_rt01_202_ctl/full_nominal"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_rt01_202_ctl/full_nominal/summary.json",
+      "Artifacts/Results/cluster_rt01_202_ctl/full_nominal/episodes.csv",
+      "Artifacts/Results/cluster_rt01_202_ctl/full_nominal/trained_combined_seed6000.mp4"
+     ],
+     "timeout_seconds": 7200
+    }
+   ],
+   "episodes_csv": "Artifacts/Results/cluster_rt01_202_ctl/full_nominal/episodes.csv",
+   "gate": {
+    "horizon": 500,
+    "controllers": [
+     "trained",
+     "untrained",
+     "standing"
+    ],
+    "commands": [
+     "stand",
+     "forward",
+     "backward",
+     "left",
+     "right",
+     "turn_left",
+     "turn_right",
+     "combined"
+    ],
+    "seeds": [
+     6000,
+     6001,
+     6002
+    ],
+    "outcomes": {
+     "pass": [
+      {
+       "name": "all episodes survive500",
+       "aggregate": "min",
+       "metric": "episode_steps",
+       "min": 500
+      },
+      {
+       "name": "upright pelvis",
+       "aggregate": "min",
+       "metric": "minimum_pelvis_height",
+       "above": 0.6
+      },
+      {
+       "name": "mean linear error",
+       "aggregate": "mean",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "mean yaw error",
+       "aggregate": "mean",
+       "metric": "yaw_rate_rmse",
+       "max": 0.2
+      },
+      {
+       "name": "forward linear",
+       "where": {
+        "command_name": "forward"
+       },
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "backward linear",
+       "where": {
+        "command_name": "backward"
+       },
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "left linear",
+       "where": {
+        "command_name": "left"
+       },
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "right linear",
+       "where": {
+        "command_name": "right"
+       },
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "combined linear",
+       "where": {
+        "command_name": "combined"
+       },
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "turn_left yaw",
+       "where": {
+        "command_name": "turn_left"
+       },
+       "aggregate": "max",
+       "metric": "yaw_rate_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "turn_right yaw",
+       "where": {
+        "command_name": "turn_right"
+       },
+       "aggregate": "max",
+       "metric": "yaw_rate_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "stand linear_velocity_vector_rmse",
+       "where": {
+        "command_name": "stand"
+       },
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.15
+      },
+      {
+       "name": "stand yaw_rate_rmse",
+       "where": {
+        "command_name": "stand"
+       },
+       "aggregate": "max",
+       "metric": "yaw_rate_rmse",
+       "max": 0.15
+      },
+      {
+       "name": "forward single_support_fraction",
+       "where": {
+        "command_name": "forward"
+       },
+       "aggregate": "min",
+       "metric": "single_support_fraction",
+       "min": 0.35,
+       "max": 0.95
+      },
+      {
+       "name": "forward left_median_completed_air_seconds",
+       "where": {
+        "command_name": "forward"
+       },
+       "aggregate": "min",
+       "metric": "left_median_completed_air_seconds",
+       "min": 0.12
+      },
+      {
+       "name": "forward right_median_completed_air_seconds",
+       "where": {
+        "command_name": "forward"
+       },
+       "aggregate": "min",
+       "metric": "right_median_completed_air_seconds",
+       "min": 0.12
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "full_c15_randomized",
+   "hypothesis": "User-approved RT01 comparison 2 of 2 (2026-11-21): stricter yaw tracking (separate sigma .05 vs .25) plus 15% of moving command draws replaced by zero-linear turns |yaw| in [.2,1.0], from each fixed final RB07 401408000 policy, 51609600 more steps at lr 1e-4; matched control keeps upstream reward and sampler at the same lr. Parameter continuation, not exact resume or final validation.",
+   "evidence": "TS01 CONFIRMED: all seven RB07/RF01 policies stand still for small commands (pure yaw .2-.3 in 7/7, .4 flips by seed/direction) yet step and track yaw .6+ or yaw .4 with forward speed. Standing earns 70% of the upstream yaw reward at .3; in-place turns are ~1% of draws. RF01 101 ctl KL blew up at lr 3e-4.",
+   "stages": [
+    {
+     "id": "evaluate_randomized",
+     "argv": [
+      "robocub/scripts/evaluate_g1.py",
+      "--run-dir",
+      "Artifacts/Results/cluster_rt01_202_ctl/train",
+      "--checkpoint",
+      "51609600",
+      "--reference-run-dir",
+      "Artifacts/Results/local_rb07_parents/202",
+      "--reference-label",
+      "untrained",
+      "--steps",
+      "500",
+      "--seeds",
+      "6000,6001,6002",
+      "--command-grid",
+      "documentation/research/queues/final_f1_commands.json",
+      "--randomized-reset",
+      "--video",
+      "--video-command",
+      "combined",
+      "--output-dir",
+      "Artifacts/Results/cluster_rt01_202_ctl/full_randomized"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_rt01_202_ctl/full_randomized"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_rt01_202_ctl/full_randomized/summary.json",
+      "Artifacts/Results/cluster_rt01_202_ctl/full_randomized/episodes.csv",
+      "Artifacts/Results/cluster_rt01_202_ctl/full_randomized/trained_combined_seed6000.mp4"
+     ],
+     "timeout_seconds": 7200
+    }
+   ],
+   "episodes_csv": "Artifacts/Results/cluster_rt01_202_ctl/full_randomized/episodes.csv",
+   "gate": {
+    "horizon": 500,
+    "controllers": [
+     "trained",
+     "untrained",
+     "standing"
+    ],
+    "commands": [
+     "stand",
+     "forward",
+     "backward",
+     "left",
+     "right",
+     "turn_left",
+     "turn_right",
+     "combined"
+    ],
+    "seeds": [
+     6000,
+     6001,
+     6002
+    ],
+    "outcomes": {
+     "pass": [
+      {
+       "name": "all16 survive500",
+       "aggregate": "min",
+       "metric": "episode_steps",
+       "min": 500
+      },
+      {
+       "name": "upright pelvis",
+       "aggregate": "min",
+       "metric": "minimum_pelvis_height",
+       "above": 0.6
+      },
+      {
+       "name": "mean linear_velocity_vector_rmse",
+       "aggregate": "mean",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "worst linear_velocity_vector_rmse",
+       "aggregate": "max",
+       "metric": "linear_velocity_vector_rmse",
+       "max": 0.35
+      },
+      {
+       "name": "mean yaw_rate_rmse",
+       "aggregate": "mean",
+       "metric": "yaw_rate_rmse",
+       "max": 0.25
+      },
+      {
+       "name": "worst yaw_rate_rmse",
+       "aggregate": "max",
+       "metric": "yaw_rate_rmse",
+       "max": 0.35
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "full_recovery_generalization",
+   "hypothesis": "User-approved RT01 comparison 2 of 2 (2026-11-21): stricter yaw tracking (separate sigma .05 vs .25) plus 15% of moving command draws replaced by zero-linear turns |yaw| in [.2,1.0], from each fixed final RB07 401408000 policy, 51609600 more steps at lr 1e-4; matched control keeps upstream reward and sampler at the same lr. Parameter continuation, not exact resume or final validation.",
+   "evidence": "TS01 CONFIRMED: all seven RB07/RF01 policies stand still for small commands (pure yaw .2-.3 in 7/7, .4 flips by seed/direction) yet step and track yaw .6+ or yaw .4 with forward speed. Standing earns 70% of the upstream yaw reward at .3; in-place turns are ~1% of draws. RF01 101 ctl KL blew up at lr 3e-4.",
+   "review_artifact": "Artifacts/Results/cluster_rt01_202_ctl/full_forward_resets/summary.json",
+   "stages": [
+    {
+     "id": "evaluate_randomized",
+     "argv": [
+      "robocub/scripts/evaluate_g1.py",
+      "--run-dir",
+      "Artifacts/Results/cluster_rt01_202_ctl/train",
+      "--checkpoint",
+      "51609600",
+      "--reference-run-dir",
+      "Artifacts/Results/local_rb07_parents/202",
+      "--reference-label",
+      "untrained",
+      "--steps",
+      "500",
+      "--seeds",
+      "6010,6011,6012,6013,6014,6015,6016,6017,6018,6019,6020,6021",
+      "--command-grid",
+      "documentation/research/queues/post_f1_d07_commands.json",
+      "--randomized-reset",
+      "--video",
+      "--video-command",
+      "forward",
+      "--output-dir",
+      "Artifacts/Results/cluster_rt01_202_ctl/full_forward_resets"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_rt01_202_ctl/full_forward_resets"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_rt01_202_ctl/full_forward_resets/summary.json",
+      "Artifacts/Results/cluster_rt01_202_ctl/full_forward_resets/episodes.csv",
+      "Artifacts/Results/cluster_rt01_202_ctl/full_forward_resets/trained_forward_seed6010.mp4"
+     ],
+     "timeout_seconds": 7200
+    }
+   ]
+  },
+  {
+   "id": "turn_pure_yaw",
+   "hypothesis": "User-approved RT01 comparison 2 of 2 (2026-11-21): stricter yaw tracking (separate sigma .05 vs .25) plus 15% of moving command draws replaced by zero-linear turns |yaw| in [.2,1.0], from each fixed final RB07 401408000 policy, 51609600 more steps at lr 1e-4; matched control keeps upstream reward and sampler at the same lr. Parameter continuation, not exact resume or final validation.",
+   "evidence": "TS01 CONFIRMED: all seven RB07/RF01 policies stand still for small commands (pure yaw .2-.3 in 7/7, .4 flips by seed/direction) yet step and track yaw .6+ or yaw .4 with forward speed. Standing earns 70% of the upstream yaw reward at .3; in-place turns are ~1% of draws. RF01 101 ctl KL blew up at lr 3e-4.",
+   "review_artifact": "Artifacts/Results/cluster_rt01_202_ctl/turn_pure_yaw/summary.json",
+   "stages": [
+    {
+     "id": "evaluate",
+     "argv": [
+      "robocub/scripts/evaluate_g1.py",
+      "--run-dir",
+      "Artifacts/Results/cluster_rt01_202_ctl/train",
+      "--checkpoint",
+      "51609600",
+      "--reference-run-dir",
+      "Artifacts/Results/local_rb07_parents/202",
+      "--reference-label",
+      "untrained",
+      "--steps",
+      "500",
+      "--seeds",
+      "6000,6001,6002",
+      "--command-grid",
+      "documentation/research/queues/ts01_pure_yaw_commands.json",
+      "--nominal-reset",
+      "--video",
+      "--video-command",
+      "turn_left",
+      "--output-dir",
+      "Artifacts/Results/cluster_rt01_202_ctl/turn_pure_yaw"
+     ],
+     "fresh_paths": [
+      "Artifacts/Results/cluster_rt01_202_ctl/turn_pure_yaw"
+     ],
+     "required_paths": [
+      "Artifacts/Results/cluster_rt01_202_ctl/turn_pure_yaw/summary.json",
+      "Artifacts/Results/cluster_rt01_202_ctl/turn_pure_yaw/episodes.csv",
+      "Artifacts/Results/cluster_rt01_202_ctl/turn_pure_yaw/trained_turn_left_seed6000.mp4"
+     ],
+     "timeout_seconds": 5400
+    }
+   ]
+  }
+ ],
+ "input_assets": [
+  {
+   "path": "Artifacts/Results/local_rb07t_202/train/logs/checkpoints/54476800/_CHECKPOINT_METADATA",
+   "sha256": "c7810ddebcaf273089838081ba1891d508a22cab27baa3f03ca56eae1375123e"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07t_202/train/logs/checkpoints/54476800/_METADATA",
+   "sha256": "804abe596189323a9700c1e70afbd2b1c176d676b5ee5c0bf298e04531024dc9"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07t_202/train/logs/checkpoints/54476800/_sharding",
+   "sha256": "8a688a5186a0fe6186b1fa973c3a3ec38b2c29d17a8c5ceebf8e0f52a00a3ccc"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07t_202/train/logs/checkpoints/54476800/array_metadatas/process_0",
+   "sha256": "5364713e55d60759132b4f304aa90d64865cb1d785a05b43ffc92c84a47afdb6"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07t_202/train/logs/checkpoints/54476800/d/504c3e787d6d116b50654fa364e6e7ab",
+   "sha256": "969d02bf05a7fbb8b864482e7ec71d92949bc1be87cb86f8068a1b96228ceff7"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07t_202/train/logs/checkpoints/54476800/manifest.ocdbt",
+   "sha256": "cfd388e6a32f955535542bd42a949d296d3c3db2d337bb2c4eba1a354d60d46d"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07t_202/train/logs/checkpoints/54476800/ocdbt.process_0/d/27d0680c1d2ba78594b3ddcf4a571693",
+   "sha256": "4d3c0cef60fa2beb39ed9f7008b454c6ea8b8fb17ec120cd8cbaacb7eb5629b8"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07t_202/train/logs/checkpoints/54476800/ocdbt.process_0/d/33f3325c2be8163584d413a3b266b427",
+   "sha256": "acbf3b5409596db761973a4630cb684818f9a55cd13cb8c1bde3cbb79503271e"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07t_202/train/logs/checkpoints/54476800/ocdbt.process_0/d/91162dfd0d6167c6d2b6d8605c75c246",
+   "sha256": "ce63c6c2363aa04a2eb32b6ea55b1a6ff311e28b149612792c7a31c4b1f2f00a"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07t_202/train/logs/checkpoints/54476800/ocdbt.process_0/d/bab087dfdf73358549ac209b3b70befe",
+   "sha256": "a7fbfd4342f44cf4c3f86498f2ab9710a4d253ae8cc9a4d028f6e7b61e24467d"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07t_202/train/logs/checkpoints/54476800/ocdbt.process_0/d/cfec5620a8cb2a51daa98ea9e1f72217",
+   "sha256": "9781a8a2a397ea8c979009ee03fc33ba7590b74f1156ca573405a651be870147"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07t_202/train/logs/checkpoints/54476800/ocdbt.process_0/manifest.ocdbt",
+   "sha256": "ac3470e33bed38aba5f81da1140082d2d5083bef76684b338266cde50d9e8c19"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07t_202/train/logs/checkpoints/54476800/policy",
+   "sha256": "f1befc39d457e9e23771b11e6083cacf00fa27b42da26cc15c54b8aa96c94326"
+  },
+  {
+   "path": "Artifacts/Results/local_rb07_parents/202/logs/checkpoints/0/policy",
+   "sha256": "a4e485ec6a87e664b2e807785806a7ad618b2721ff07f83cd3b34d2a6f9c5be6"
+  }
+ ]
+}

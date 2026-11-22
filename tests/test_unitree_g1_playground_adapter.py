@@ -504,3 +504,68 @@ def test_ankle_roll_mapping_real_model_bounds_and_saved_config():
     result = env.step(state,jp.ones(29)*2)
     np.testing.assert_allclose(result.info['last_act'][jp.array(ids)], .5236, atol=1e-7)
     np.testing.assert_allclose(result.obs['state'][70:99], result.info['last_act'])
+
+
+def test_in_place_turn_sampler_replaces_only_moving_draws():
+    from robocub.locomotion.unitree_g1.playground_joystick import in_place_turn_sampler
+    import numpy as np
+    def original(key):
+        a,b,c,z = jax.random.split(key,4)
+        cmd = jp.array([jax.random.uniform(a,minval=-1,maxval=1),jax.random.uniform(b,minval=-.5,maxval=.5),jax.random.uniform(c,minval=-1,maxval=1)])
+        return jp.where(jax.random.bernoulli(z,p=0.1),jp.zeros(3),cmd)
+    keys = jax.random.split(jax.random.PRNGKey(23),20000)
+    baseline = np.asarray(jax.jit(jax.vmap(original))(keys))
+    def sample(p):
+        return np.asarray(jax.jit(jax.vmap(lambda k: in_place_turn_sampler(k,original=original,probability=p)))(keys))
+    np.testing.assert_array_equal(sample(0.0),baseline)
+    out = sample(0.15)
+    zero = np.all(baseline==0,axis=1)
+    assert np.all(out[zero]==0)
+    turned = np.any(out!=baseline,axis=1)
+    assert 0.13 < turned[~zero].mean() < 0.17
+    assert np.all(out[turned][:,:2]==0)
+    yaw = out[turned][:,2]
+    assert np.all((np.abs(yaw)>=.2)&(np.abs(yaw)<=1.0))
+    assert 0.45 < np.mean(yaw>0) < 0.55
+
+
+def test_real_upstream_in_place_turn_sampler_override():
+    import numpy as np
+    cfg = OmegaConf.structured(G1PlaygroundMJXConfig())
+    cfg.playground.fetch_source = False
+    cfg.playground.in_place_turn_probability = 0.15
+    env = Joystick("unitree_g1", UnitreeG1Model(fetch=False), "flat", cfg)
+    keys = jax.random.split(jax.random.PRNGKey(73),10000)
+    sample = np.asarray(jax.jit(jax.vmap(env._env.sample_command))(keys))
+    original = np.asarray(jax.jit(jax.vmap(env._env.sample_command.keywords["original"]))(keys))
+    turned = np.any(sample!=original,axis=1)
+    assert 0.11 < turned.mean() < 0.16
+    assert np.all(sample[turned][:,:2]==0)
+    assert 0.08 < np.mean(np.all(sample==0,axis=1)) < 0.12
+    assert env.effective_config["in_place_turn_probability"] == 0.15
+
+
+@pytest.mark.parametrize("sigma", [.25, .05])
+def test_yaw_tracking_sigma_replaces_exact_upstream_term(sigma):
+    from types import SimpleNamespace
+    class Upstream(_MutatingUpstream):
+        _config = SimpleNamespace(reward_config=SimpleNamespace(scales={"tracking_ang_vel": .75}))
+        def get_gyro(self, data, body):
+            assert body == "pelvis"
+            return jp.array([0.,0.,.1])
+        def step(self, state, action):
+            # Upstream term at sigma .25 for the pre-transition command .4.
+            old = .75*jp.exp(-jp.square(.4-.1)/.25)
+            return super().step(state, action).replace(reward=jp.asarray(.5), metrics={"reward/tracking_ang_vel": old})
+    adapter = Joystick.__new__(Joystick)
+    adapter._env = Upstream()
+    adapter._yaw_tracking_sigma = sigma
+    adapter.dt = .02
+    state = _FakeState(data=_FakeData(jp.zeros(36),jp.zeros(35)),
+        obs={"state":jp.zeros(103),"privileged_state":jp.zeros(216)},
+        reward=jp.zeros(()),done=jp.zeros(()),metrics={},
+        info={"command":jp.array([0.,0.,.4]),"last_act":jp.zeros(29),"phase":jp.zeros(2),"feet_air_time":jp.zeros(2)})
+    out = adapter.step(state, jp.zeros(29))
+    old = .75*float(jp.exp(-.09/.25)); new = .75*float(jp.exp(-.09/sigma))
+    assert float(out.metrics["reward/tracking_ang_vel"]) == pytest.approx(new, rel=1e-6)
+    assert float(out.reward) == pytest.approx(.5 + (new-old)*.02, rel=1e-6)

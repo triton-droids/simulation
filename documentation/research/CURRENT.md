@@ -1,4 +1,10 @@
-# Current handoff - TS01 CONFIRMED, comparison 2 needs approval (2026-11-21)
+# Current handoff - RT01 turn dead-zone comparison on Atlantis (2026-11-21)
+
+User approved comparison 2 of 2 ("test that") on 2026-11-21, as proposed after TS01. Fix arm: separate yaw-rate tracking sigma .05 (upstream shared .25) plus `in_place_turn_probability` .15, where 15% of moving command draws become zero-linear turns with |yaw| in [.2,1.0] and zero draws stay zero (about 13.5% of all draws). Control: upstream reward and sampler. Both arms: lr 1e-4 (RF01 used 3e-4), narrow_feet 0, continuing each fixed final RB07 401408000 policy for 51609600 steps with exact restore parity, the KL guard, screens and full evaluations unchanged, plus an unconditional `turn_pure_yaw` diagnostic (TS01 grid) on the final checkpoint. Queues: `cluster_rt01_{101,202,303}_{fix,ctl}.json`, six Atlantis RTX2080Ti jobs. This is the last approved comparison; mandatory review follows.
+
+Decision rule, frozen before launch. SUPPORT only if every fix arm (1) passes nominal turn_left and turn_right yaw (max yaw_rate_rmse <= .25) in full_c15_nominal, (2) has mean yaw_rate_rmse <= .25 at pure yaw +.3 and -.3 in turn_pure_yaw, and (3) shows no survival, foot-contact or other gate failure absent from its matched control, and the matched controls do not also clear (1) and (2) on all three seeds (otherwise lr/duration explains it). REJECT otherwise, with no extension or retry. A fix arm that is KL-stopped counts as a failure; a KL-stopped control is reported and leaves that seed unmatched. Even if supported, fresh-seed final validation needs separate approval.
+
+## Previous handoff - TS01 CONFIRMED, comparison 2 needs approval (2026-11-21)
 
 TS01 is CONFIRMED under its frozen rule (review: `Artifacts/Results/cluster_ts01_review.md`). All seven policies have a stand-still dead zone for small commands. Pure yaw .2-.3 stands in 7/7 policies, yaw .4 flips by seed and direction, and yaw .6 and above, or yaw .4 with forward speed, steps and tracks (yaw error about .1). The cause is the reward shape: standing earns 70% of the yaw reward at .3. In-place turns are also rare in the sampler (about 1%). Comparison 2 of 2 is unused and needs explicit approval of its hypothesis, budget, commands and decision rule.
 

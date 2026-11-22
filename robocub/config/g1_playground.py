@@ -62,6 +62,8 @@ class G1PlaygroundMJXConfig(G1MJXConfig):
         phase_reward_command_only: bool = False
         airtime_reward_command_only: bool = False
         standing_command_probability: float = 0.1
+        in_place_turn_probability: float = 0.0
+        yaw_tracking_sigma: Optional[float] = None
         action_filter_alpha: float = 1.0
         ankle_roll_range_action: bool = False
         support_state_observation: bool = False
